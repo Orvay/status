@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "generatedAt": 1787114430793,
+  "readings": {
+    "marketing-and-docs": {
+      "method": "probe",
+      "vantage": "github-actions",
+      "observedAt": 1787114430793,
+      "observation": {
+        "kind": "ok",
+        "level": "operational",
+        "latencyMs": 316.21362500000004
+      }
+    },
+    "control-plane": {
+      "method": "probe",
+      "vantage": "github-actions",
+      "observedAt": 1787114430793,
+      "observation": {
+        "kind": "ok",
+        "level": "operational",
+        "latencyMs": 818.781084
+      }
+    },
+    "sign-in": {
+      "method": "probe",
+      "vantage": "github-actions",
+      "observedAt": 1787114430793,
+      "observation": {
+        "kind": "ok",
+        "level": "operational",
+        "latencyMs": 661.3055840000001
+      }
+    },
+    "website-studio": {
+      "method": "probe",
+      "vantage": "github-actions",
+      "observedAt": 1787114430793,
+      "observation": {
+        "kind": "ok",
+        "level": "operational",
+        "latencyMs": 105.959792
+      }
+    },
+    "tenant-sites": {
+      "method": "probe",
+      "vantage": "github-actions",
+      "observedAt": 1787114430793,
+      "observation": {
+        "kind": "ok",
+        "level": "operational",
+        "latencyMs": 106.179167
+      }
+    },
+    "vendor-supabase": {
+      "method": "vendor-reported",
+      "vendor": "Supabase",
+      "state": "Partially Degraded Service",
+      "vendorUpdatedAt": 1787114064166,
+      "fetchedAt": 1787114431854,
+      "permalink": "https://status.supabase.com"
+    },
+    "vendor-sentry": {
+      "method": "vendor-reported",
+      "vendor": "Sentry",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787114040473,
+      "fetchedAt": 1787114431884,
+      "permalink": "https://status.sentry.io"
+    },
+    "vendor-cloudflare": {
+      "method": "vendor-reported",
+      "vendor": "Cloudflare",
+      "state": "Minor Service Outage",
+      "vendorUpdatedAt": 1787114431958,
+      "fetchedAt": 1787114431891,
+      "permalink": "https://www.cloudflarestatus.com"
+    },
+    "vendor-anthropic": {
+      "method": "vendor-reported",
+      "vendor": "Anthropic",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787114076956,
+      "fetchedAt": 1787114431893,
+      "permalink": "https://status.claude.com"
+    },
+    "vendor-openai": {
+      "method": "vendor-reported",
+      "vendor": "OpenAI",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1783625156000,
+      "fetchedAt": 1787114431934,
+      "permalink": "https://status.openai.com"
+    },
+    "vendor-stripe": {
+      "method": "vendor-reported",
+      "vendor": "Stripe",
+      "state": "All services are online.",
+      "vendorUpdatedAt": 1707502080000,
+      "fetchedAt": 1787114432373,
+      "permalink": "https://status.stripe.com"
+    }
+  },
+  "states": {
+    "sign-in": "operational",
+    "control-plane": "operational",
+    "website-studio": "operational",
+    "tenant-sites": "operational",
+    "marketing-and-docs": "operational",
+    "agent-runs": "not-measured",
+    "independent-verification": "not-measured",
+    "scheduled-work": "not-measured",
+    "evidence-archive": "not-measured",
+    "email-notifications": "not-measured",
+    "checkout-and-billing": "not-measured",
+    "vendor-cloudflare": "reported",
+    "vendor-supabase": "reported",
+    "vendor-anthropic": "reported",
+    "vendor-openai": "reported",
+    "vendor-stripe": "reported",
+    "vendor-sentry": "reported"
+  },
+  "sourceCommit": "4054408"
+}
