@@ -1544,7 +1544,7 @@ a { color: var(--accent-text); text-underline-offset: 0.16em; }
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
 
 /* Masthead -------------------------------------------------------------- */
-.masthead { display: flex; align-items: center; gap: var(--o-space-3); flex-wrap: wrap; }
+.masthead { display: flex; align-items: center; gap: var(--o-space-3); flex-wrap: wrap; margin-bottom: var(--o-space-6); }
 .masthead img { width: 26px; height: 26px; border-radius: 7px; display: block; }
 .masthead .name { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }
 .masthead .kicker { font: var(--o-text-label-14); color: var(--fg-secondary); }
@@ -1620,24 +1620,44 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 .empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }
 
 /* Tooltips, with no JavaScript ------------------------------------------- */
+/* The row's own layers, stated rather than inferred. The header was painting
+   over the tooltip, and default paint order is not a thing to rely on when the
+   answer matters at every hover. */
+.row { position: relative; }
+.row-head { position: relative; z-index: 0; }
+.bar-wrap { position: relative; z-index: 1; }
 .bar { position: relative; }
 .cell { position: relative; }
-.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 3; }
+.cell:hover, .cell:focus-within { z-index: 30; }
+.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
 .tip {
   position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  min-width: 11rem; padding: 0; z-index: 4;
+  min-width: 11rem; padding: 0; z-index: 31;
   background: var(--bg-raised); color: var(--fg-primary);
   border: 1px solid var(--line-border); border-radius: var(--o-radius-sm);
   box-shadow: var(--o-bevel-raised);
   opacity: 0; visibility: hidden; pointer-events: none;
-  transition: opacity var(--o-dur-quick) var(--o-ease-standard);
+  transform: translateX(-50%) translateY(4px);
+  /* 4px of travel, not 24. The reference measurements are explicit that a
+     reveal moves a little and quickly; a longer one reads as a template. */
+  transition:
+    opacity var(--o-dur-enter) var(--o-ease-enter) 60ms,
+    transform var(--o-dur-enter) var(--o-ease-enter) 60ms,
+    visibility 0s linear 60ms;
   display: flex; flex-direction: column;
 }
 /* Anchored so a tooltip near either end cannot leave the card. */
-.cell[data-tip='start'] .tip { left: 0; transform: none; }
-.cell[data-tip='end'] .tip { left: auto; right: 0; transform: none; }
-.cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip { opacity: 1; visibility: visible; }
-.cell:hover { z-index: 3; }
+.cell[data-tip='start'] .tip, .seg[data-tip='start'] .tip { left: 0; transform: translateY(4px); }
+.cell[data-tip='end'] .tip, .seg[data-tip='end'] .tip { left: auto; right: 0; transform: translateY(4px); }
+.cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip,
+.seg:hover .tip, .seg:focus .tip, .seg:focus-visible .tip {
+  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+  transition-delay: 60ms, 60ms, 0s;
+}
+.cell[data-tip='start']:hover .tip, .cell[data-tip='start']:focus .tip,
+.cell[data-tip='end']:hover .tip, .cell[data-tip='end']:focus .tip,
+.seg[data-tip='start']:hover .tip, .seg[data-tip='start']:focus .tip,
+.seg[data-tip='end']:hover .tip, .seg[data-tip='end']:focus .tip { transform: translateY(0); }
 .tip-day { padding: var(--o-space-3) var(--o-space-3) var(--o-space-2); font: var(--o-text-label-14); color: var(--fg-secondary); border-bottom: 1px solid var(--line-rule); white-space: nowrap; }
 .tip-state { padding: var(--o-space-3); font: var(--o-text-label-14); font-weight: var(--o-weight-medium); display: flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
 /* The dot repeats the colour; the WORD beside it is what carries the meaning. */
@@ -1690,24 +1710,52 @@ footer nav a:hover { color: var(--fg-primary); text-decoration: underline; }
 .month { margin-bottom: var(--o-space-6); }
 .month h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }
 ul.incidents { list-style: none; margin: 0; padding: 0; }
-.incident-row { display: grid; grid-template-columns: 3.4rem 3px 1fr auto; gap: var(--o-space-3); align-items: start; padding: var(--o-space-4) 0; border-top: 1px solid var(--line-rule); }
-.incident-date { font: var(--o-text-label-14); color: var(--fg-secondary); white-space: nowrap; }
+.incident-row { display: grid; grid-template-columns: 3.4rem 1fr; gap: var(--o-space-3); align-items: start; padding: var(--o-space-3) 0; border-top: 1px solid var(--line-rule); }
+.incident-date { font: var(--o-text-label-14); color: var(--fg-secondary); white-space: nowrap; padding-top: var(--o-space-3); }
 .incident-date .dd { font-weight: var(--o-weight-strong); color: var(--fg-primary); }
-.incident-bar { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
+/* The whole card is the target. A four-word title is a small thing to hit, and
+   a row that highlights but does not respond is worse than one that does not
+   highlight at all. */
+.incident-card {
+  position: relative;
+  display: grid; grid-template-columns: 3px 1fr auto; gap: var(--o-space-3);
+  align-items: start; padding: var(--o-space-3) var(--o-space-4);
+  border-radius: var(--o-radius-md);
+  transition: background var(--o-dur-quick) var(--o-ease-standard);
+}
+.incident-card:hover { background: var(--bg-subtle); }
+.incident-card:focus-within { background: var(--bg-subtle); }
+.incident-rail { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
 .incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .incident-title { color: var(--fg-primary); text-decoration: none; font-weight: var(--o-weight-medium); }
-.incident-title:hover { text-decoration: underline; }
+/* The stretched-link pattern: the anchor covers the card, so the target is the
+   card and the accessible name is still the title. No JavaScript involved. */
+.incident-title::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.incident-card:hover .incident-title { text-decoration: underline; }
 .incident-main p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
 .incident-time { font: var(--o-text-mono-13); color: var(--fg-secondary); }
 .incident-meta { color: var(--fg-secondary); font: var(--o-text-label-14); }
 
-.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); }
-.timeline .seg { border-radius: 2px; min-width: 4px; }
+.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); position: relative; }
+.timeline .seg { border-radius: 2px; min-width: 4px; position: relative; }
+.timeline .seg:hover, .timeline .seg:focus-within { z-index: 30; }
+.timeline .seg:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
+/* Upward, like the day cells: the card clips, and there is room above. */
+.timeline .seg .tip { bottom: calc(100% + 8px); top: auto; }
 .timeline-scale { display: flex; justify-content: space-between; font: var(--o-text-micro-11); color: var(--fg-secondary); margin-top: var(--o-space-2); }
 
 ul.updates { list-style: none; margin: 0; padding: 0; }
-ul.updates li { display: grid; grid-template-columns: 12px 1fr; gap: var(--o-space-3); padding: var(--o-space-4) var(--o-space-5); border-top: 1px solid var(--line-rule); }
-ul.updates .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 0.42em; }
+ul.updates { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); }
+ul.updates li { display: grid; grid-template-columns: 12px 1fr; gap: var(--o-space-3); position: relative; padding-bottom: var(--o-space-5); }
+ul.updates li:last-child { padding-bottom: 0; }
+/* The rail between dots, which is what makes a list of times read as one
+   sequence rather than as several unrelated notes. */
+ul.updates li::before {
+  content: ''; position: absolute; left: 5px; top: 1.1em; bottom: -0.2em;
+  width: 1px; background: var(--line-border);
+}
+ul.updates li:last-child::before { display: none; }
+ul.updates .dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 0.38em; position: relative; z-index: 1; box-shadow: 0 0 0 3px var(--bg-raised); }
 ul.updates strong { font-weight: var(--o-weight-medium); }
 ul.updates p { margin: 2px 0 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
 ul.updates .when { font: var(--o-text-mono-13); }
@@ -1770,6 +1818,7 @@ ${input.body}
       <a href="${esc(HOSTS.app)}">Sign in</a>
       <a href="${esc(HOSTS.docs)}">Documentation</a>
       <a href="/history/">History</a>
+      <a href="/about/">About this page</a>
       <a href="/history.atom">RSS feed</a>
     </nav>
   </footer>
@@ -1918,7 +1967,6 @@ var renderPage = (input) => {
     displays.set(spec.id, displayFor(reading, now, spec.budget));
   }
   const overall = overallFrom([...displays.values()]);
-  const overallStyle = overall.kind === "known" ? LEVEL_STYLE[overall.level] : UNKNOWN_STYLE;
   const headline = overall.kind === "known" ? overall.level === "operational" ? "Everything we measure is working" : "Something we measure is not working" : "We cannot currently tell you the state of the service";
   const caveat = overall.kind === "known" && !overall.complete ? `${overall.measured} of ${COMPONENTS.length} components are checked from outside our network.${overall.unknown > 0 ? ` ${overall.unknown} could not be checked just now.` : ""} The other ${overall.notMeasured} are not watched yet, and each one says so.` : overall.kind === "unknown" ? "Nothing we watch reported successfully on the last run, which usually means our own checker failed rather than that everything is down." : `All ${overall.measured} measured components are healthy.`;
   const groups = GROUPS.map((group) => {
@@ -1954,7 +2002,6 @@ var renderPage = (input) => {
     body: `
   <div class="banner" data-level="${overall.kind === "known" ? overall.level : "unknown"}">
     <div class="banner-head">
-      <span class="banner-mark" style="background:${overallStyle.solid};color:${overallStyle.onSolid}">${glyphSvg(overallStyle.glyph, "")}</span>
       <h1>${esc(headline)}</h1>
     </div>
     <div class="banner-body">
@@ -2013,14 +2060,16 @@ var renderHistoryPage = (input) => {
       return `
         <li class="incident-row">
           <div class="incident-date"><span class="dd">${pad(d.getUTCDate())}</span> <span class="ddow">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()]}</span></div>
-          <div class="incident-bar" style="background:${IMPACT_TINT[incident.impact]}" aria-hidden="true"></div>
-          <div class="incident-main">
-            <a class="incident-title" href="/incidents/${esc(incident.id)}/">${esc(incident.label)} was ${esc(
+          <div class="incident-card">
+            <span class="incident-rail" style="background:${IMPACT_TINT[incident.impact]}" aria-hidden="true"></span>
+            <div class="incident-main">
+              <a class="incident-title" href="/incidents/${esc(incident.id)}/">${esc(incident.label)} was ${esc(
         IMPACT_PHRASE[incident.impact]
       )}</a>
-            <p>${esc(resolutionLine(incident))}</p>
+              <p>${esc(resolutionLine(incident))}</p>
+            </div>
+            <div class="incident-time">${esc(utcTime(incident.startedAt))}</div>
           </div>
-          <div class="incident-time">${esc(utcTime(incident.startedAt))}</div>
         </li>`;
     }).join("");
     return `
@@ -2032,9 +2081,6 @@ var renderHistoryPage = (input) => {
   }).join("");
   const empty = `
     <p class="empty">Nothing has changed state since we started recording. This page fills itself as things happen, and entries are never removed from it.</p>`;
-  const channels = input.fallbackChannels ?? [];
-  const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
-  const fallback = channels.length === 0 ? "We have not yet published a second place to look when this page is unreachable. Until we do, the limitation is stated here rather than left for you to discover during an outage." : `If the status page is unreachable, look at ${links}. ${channels.length === 1 ? "It is not" : "None of them is"} served from our own infrastructure, so a problem with ours does not take ${channels.length === 1 ? "it" : "them"} down too.`;
   return shell({
     title: `History \xB7 ${BRAND.name} Status`,
     description: `Every recorded change of state for ${BRAND.name}, oldest kept forever.`,
@@ -2047,14 +2093,6 @@ var renderHistoryPage = (input) => {
   </div>
 ${input.incidents.length === 0 ? empty : months}
 
-  <section class="notes">
-    <h2>About these records</h2>
-    <p>These are machine records. A check runs from outside our own network, and when its answer changes we write down the component, the time and what it changed to. <strong>Nobody has written an explanation of why</strong>, because there is no operator typing updates here yet. When that changes, the written account will appear alongside these timings rather than replacing them.</p>
-    <p>We publish no uptime percentage. Every number of that kind we could publish would be derived from our own account of our own incidents, which is the proposer checking its own work, so we show you what each check found and when instead.</p>
-    <p>There is no email sign-up here. A feed collects no personal data, so there is no consent record to keep, no revocation path to build and nothing to erase. Changes are published at <a href="/history.atom">history.atom</a>.</p>
-    <p>Where your data lives: the database holding your company data is in Zurich, Switzerland. Requests to the models we use are processed by Anthropic and OpenAI, outside Switzerland and outside the EU. The evidence archive is pinned to the EU.</p>
-    <p>${fallback}</p>
-  </section>
 `
   });
 };
@@ -2068,9 +2106,8 @@ var renderIncidentPage = (input) => {
     const from = phase.at;
     const to = incident.phases[i + 1]?.at ?? end;
     const width = Math.max((to - from) / span * 100, 1.5);
-    return `<span class="seg" style="width:${width.toFixed(2)}%;background:${IMPACT_TINT[phase.impact]}" title="${esc(
-      `${utc(from)}: ${IMPACT_LABEL[phase.impact]}`
-    )}"></span>`;
+    const anchor = i === 0 ? ' data-tip="start"' : i === incident.phases.length - 1 ? ' data-tip="end"' : "";
+    return `<span class="seg" tabindex="0"${anchor} style="width:${width.toFixed(2)}%;background:${IMPACT_TINT[phase.impact]}"><span class="tip"><span class="tip-day">${esc(utc(from))}</span><span class="tip-state" data-s="${phase.impact}">${esc(IMPACT_LABEL[phase.impact])}</span></span></span>`;
   }).join("");
   const updates = [...incident.phases].reverse().map(
     (phase) => `
@@ -2136,6 +2173,49 @@ var renderIncidentPage = (input) => {
   <div class="cta">
     <a class="button" href="/history/">Back to history</a>
   </div>
+`
+  });
+};
+
+// src/render-about.ts
+var renderAboutPage = (input) => {
+  const channels = input.fallbackChannels ?? [];
+  const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
+  const fallback = channels.length === 0 ? "We have not yet published a second place to look when this page is unreachable. Until we do, the limitation is stated here rather than left for you to discover during an outage." : `If the status page is unreachable, look at ${links}. ${channels.length === 1 ? "It is not" : "None of them is"} served from our own infrastructure, so a problem with ours does not take ${channels.length === 1 ? "it" : "them"} down too.`;
+  return shell({
+    title: `About this page \xB7 ${BRAND.name} Status`,
+    description: `How ${BRAND.name} measures what this status page reports, and what it deliberately does not claim.`,
+    tokensCss: input.tokensCss,
+    breadcrumb: [{ label: `${BRAND.name} Status`, href: "/" }, { label: "About this page" }],
+    body: `
+  <div class="page-head">
+    <h1>About this page</h1>
+    <p>How these numbers are produced, and what they deliberately do not claim.</p>
+  </div>
+
+  <section class="notes">
+    <h2>How a component is checked</h2>
+    <p>A request runs from outside our own network, on a machine we do not own, roughly every 15 minutes. It asks for a real page and checks that the answer contains something only that page carries, because a 200 proves something answered and not that the product did.</p>
+    <p>Each bar shows the last 90 days, one cell per day, coloured by the <strong>worst</strong> state we measured that day. A day with one hour of trouble and twenty-three of health is shown as trouble. Days before we started recording are blank rather than green.</p>
+
+    <h2>What the states mean</h2>
+    <p><strong>Operational</strong> is a check that reached it and got what it should. <strong>Degraded</strong> answered, more slowly or less reliably than it should. <strong>Unknown</strong> means we tried and could not get an answer, which is not the same as working and not the same as broken. <strong>Not measured</strong> means nothing watches it yet, and we list those rows so you can see the gap instead of assuming coverage.</p>
+
+    <h2>Why there is no uptime percentage</h2>
+    <p>Every number of that kind we could publish would be derived from our own account of our own incidents, which is the proposer checking its own work. We show you what each check found and when instead.</p>
+
+    <h2>Why there is no explanation of an incident</h2>
+    <p>The records on the history page are machine records. When a check changes its answer we write down the component, the time and the new state. <strong>Nobody has written an explanation of why</strong>, because there is no operator typing updates here yet. When that changes, the written account will appear alongside these timings rather than replacing them.</p>
+
+    <h2>Notifications</h2>
+    <p>There is no email sign-up. A feed collects no personal data, so there is no consent record to keep, no revocation path to build and nothing to erase. Changes are published at <a href="/history.atom">history.atom</a>.</p>
+
+    <h2>Where your data lives</h2>
+    <p>The database holding your company data is in Zurich, Switzerland. Requests to the models we use are processed by Anthropic and OpenAI, outside Switzerland and outside the EU. The evidence archive is pinned to the EU.</p>
+
+    <h2>What this page cannot tell you</h2>
+    <p>${fallback}</p>
+  </section>
 `
   });
 };
@@ -2265,7 +2345,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "487bafa" : "unknown";
+var sourceCommit = true ? "c903b44" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
@@ -2376,6 +2456,7 @@ var main = async (outDir, options = {}) => {
   const incidents = incidentsFrom(history.entries);
   await mkdir(outDir, { recursive: true });
   await mkdir(join(outDir, "history"), { recursive: true });
+  await mkdir(join(outDir, "about"), { recursive: true });
   await Promise.all(
     incidents.map((i) => mkdir(join(outDir, "incidents", i.id), { recursive: true }))
   );
@@ -2405,10 +2486,12 @@ var main = async (outDir, options = {}) => {
     writeFile(join(outDir, "history.atom"), renderFeed(history.entries, at, HOSTS.status)),
     writeFile(
       join(outDir, "history", "index.html"),
-      renderHistoryPage({
+      renderHistoryPage({ tokensCss: tokens_default, incidents, generatedAt: at })
+    ),
+    writeFile(
+      join(outDir, "about", "index.html"),
+      renderAboutPage({
         tokensCss: tokens_default,
-        incidents,
-        generatedAt: at,
         ...options.fallbacks && options.fallbacks.length > 0 ? { fallbackChannels: options.fallbacks } : {}
       })
     ),
