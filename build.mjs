@@ -83,6 +83,7 @@ var FORM_ORIGINS = [
   "http://localhost:3000",
   "http://localhost:3001"
 ];
+var LOGIN_PATH = "/login";
 
 // ../../packages/status/src/reading.ts
 var LEVEL_ORDER = [
@@ -169,7 +170,7 @@ var COMPONENTS = [
     id: "control-plane",
     group: "measured",
     label: "Company control plane",
-    summary: "The app where you review approvals, watch runs and read the audit trail.",
+    summary: "The app where you review approvals, watch runs and read the audit trail. Our check confirms it is serving and that it keeps signed-out visitors out. It cannot confirm what you see once you are signed in.",
     budget: { staleAfterMs: 20 * MINUTE }
   },
   {
@@ -1137,14 +1138,31 @@ var TARGETS = [
   {
     component: "control-plane",
     url: HOSTS.app,
-    bodyMarker: BRAND.category,
+    // THE MARKER IS THE REDIRECT, AND THIS ROW IS THE REASON THE HEADER ABOVE
+    // EXISTS. Every product route now sends a signed-out visitor to the login
+    // page with a `<meta http-equiv="refresh">` and a 200, because loading.tsx
+    // puts each route behind a Suspense boundary. The first version of this
+    // target asserted `BRAND.category`, which appears in the redirect shell's
+    // own <title>, so the row reported operational off a page that contains the
+    // words "Loading your company" and nothing else. It would have kept
+    // reporting operational with the entire authenticated app broken.
+    //
+    // Asserting the redirect instead measures three real things: the Worker is
+    // serving, routing works, and the gate is closed. The third is the valuable
+    // one. If this marker ever goes missing because the app started serving
+    // itself to a signed-out visitor, that is a security regression and this
+    // probe is what catches it.
+    //
+    // What it still cannot prove is what a signed-in customer sees, and the
+    // row's own summary says so rather than leaving it implied.
+    bodyMarker: `url=${LOGIN_PATH}`,
     expectStatus: 200,
     thresholds: DEFAULT_THRESHOLDS,
     checkCertificate: true
   },
   {
     component: "sign-in",
-    url: `${HOSTS.app}/login`,
+    url: `${HOSTS.app}${LOGIN_PATH}`,
     // A class name rather than a heading. Copy changes; the auth form's own
     // class does not, and this marker exists to notice the form being gone.
     bodyMarker: "a-auth__title",
@@ -1783,7 +1801,7 @@ var append = (history, entries) => ({ schema: 1, entries: [...entries, ...histor
 // src/build.ts
 var here = dirname(fileURLToPath(import.meta.url));
 var repoRoot = resolve(here, "..", "..", "..");
-var sourceCommit = true ? "4054408" : "unknown";
+var sourceCommit = true ? "8478b85" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
