@@ -1,10 +1,15 @@
 # Rebuild the public status page.
 #
-# THIS WORKFLOW HOLDS NO SECRET, and that is a deliberate property rather than a
-# convenience. `GITHUB_TOKEN` is scoped to this repository alone, every probe
-# target is a public URL, and every vendor feed is public. Nothing here can reach
-# Orvay's infrastructure, so a compromise of this repository yields an attacker
-# the ability to publish a wrong status page and nothing else.
+# IT HOLDS EXACTLY ONE SECRET, and none that reaches Orvay. `GITHUB_TOKEN` is
+# scoped to this repository alone; every probe target and every vendor feed is a
+# public URL; and `BSKY_APP_PASSWORD` is an app password for a social account,
+# revocable in one click and useful for nothing else. So a compromise of this
+# repository buys an attacker the ability to publish a wrong status page and a
+# wrong post about it, and no path at all into the product.
+#
+# That sentence said "holds no secret" until the Bluesky step was added, which
+# would have made this file's own header the kind of stale claim the page it
+# builds exists to refuse.
 #
 # It runs on GitHub's own runners, which is the point of the whole design: the
 # machine measuring Orvay is on a different network, owned by a different
@@ -63,7 +68,74 @@ jobs:
           node-version: '24'
 
       - name: Probe, mirror, render
-        run: node build.mjs out
+        env:
+          # Public identifiers only. The Bluesky HANDLE is public by definition,
+          # and the page names the channel exactly when the workflow is also
+          # configured to post to it, so it cannot promise somewhere nothing
+          # publishes. §12b.
+          BSKY_HANDLE: ${{ vars.BSKY_HANDLE }}
+        run: |
+          # The repository is the fallback that works today and needs nothing.
+          # It is served by GitHub, so a problem with our own DNS or our own
+          # Cloudflare account cannot take it with them.
+          FALLBACKS=(--fallback "our status repository=${{ github.server_url }}/${{ github.repository }}")
+
+          # Bluesky joins the list only once a handle is configured AND the
+          # credential exists, because a named channel nobody posts to is worse
+          # than no channel: somebody looks there during an outage and finds
+          # silence that reads as "nothing is wrong".
+          if [ -n "$BSKY_HANDLE" ] && [ -n "${{ secrets.BSKY_APP_PASSWORD }}" ]; then
+            FALLBACKS+=(--fallback "@$BSKY_HANDLE on Bluesky=https://bsky.app/profile/$BSKY_HANDLE")
+          fi
+
+          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}"
+
+      # ---------------------------------------------------------------------
+      # The second channel, for the outage this page cannot report on itself.
+      #
+      # Runs BEFORE the publish step on purpose. If GitHub Pages is the thing
+      # that is broken, the post is the only thing that gets out, and ordering it
+      # after the publish would lose it in exactly that case.
+      #
+      # `announce.txt` exists only when a transition was worth saying out loud,
+      # so an absent file means silence rather than a failure. `continue-on-error`
+      # because a status page that fails to publish because a social network was
+      # down would be its own small joke.
+      # ---------------------------------------------------------------------
+      - name: Say it out loud
+        if: ${{ vars.BSKY_HANDLE != '' }}
+        continue-on-error: true
+        env:
+          BSKY_HANDLE: ${{ vars.BSKY_HANDLE }}
+          BSKY_APP_PASSWORD: ${{ secrets.BSKY_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          FILE="$RUNNER_TEMP/announce.txt"
+          if [ ! -s "$FILE" ]; then echo "nothing to announce"; exit 0; fi
+          if [ -z "${BSKY_APP_PASSWORD:-}" ]; then echo "no credential; skipping"; exit 0; fi
+
+          TEXT=$(cat "$FILE")
+          echo "posting: $TEXT"
+
+          SESSION=$(curl -sS -X POST https://bsky.social/xrpc/com.atproto.server.createSession \
+            -H 'Content-Type: application/json' \
+            --data "$(jq -nc --arg i "$BSKY_HANDLE" --arg p "$BSKY_APP_PASSWORD" '{identifier:$i,password:$p}')")
+
+          JWT=$(jq -r '.accessJwt // empty' <<<"$SESSION")
+          DID=$(jq -r '.did // empty' <<<"$SESSION")
+          if [ -z "$JWT" ] || [ -z "$DID" ]; then
+            # Deliberately does NOT echo the response: a failed auth reply can
+            # carry the identifier back, and this log is public.
+            echo "could not authenticate to Bluesky" >&2
+            exit 1
+          fi
+
+          curl -sS -X POST https://bsky.social/xrpc/com.atproto.repo.createRecord \
+            -H "Authorization: Bearer $JWT" -H 'Content-Type: application/json' \
+            --data "$(jq -nc --arg repo "$DID" --arg text "$TEXT" \
+              --arg now "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+              '{repo:$repo,collection:"app.bsky.feed.post",record:{"$type":"app.bsky.feed.post",text:$text,createdAt:$now,langs:["en"]}}')" \
+            | jq -r '.uri // "post failed"'
 
       - name: Publish
         working-directory: out

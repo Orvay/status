@@ -1577,7 +1577,10 @@ var renderPage = (input) => {
       display.kind === "vendor" ? display.permalink : void 0
     );
   }).join("");
-  const fallback = input.fallbackChannel === void 0 ? "We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage." : `If this page is unreachable, look at <a href="${esc(input.fallbackChannel.url)}" rel="noreferrer noopener">${esc(input.fallbackChannel.label)}</a>.`;
+  const channels = input.fallbackChannels ?? [];
+  const fallback = channels.length === 0 ? "We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage." : `If this page is unreachable, look at ${channels.map(
+    (c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`
+  ).join(", or ")}. Neither is served from our own infrastructure, so a problem with ours does not take them with it.`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -1807,6 +1810,54 @@ var transitions = (previous, current, labels, at) => {
 };
 var append = (history, entries) => ({ schema: 1, entries: [...entries, ...history.entries] });
 
+// src/announce.ts
+var MAX_POST_LENGTH = 300;
+var ANNOUNCED = /* @__PURE__ */ new Set([
+  "degraded",
+  "partial-outage",
+  "major-outage",
+  "unknown",
+  "operational"
+]);
+var isNoise = (entry2) => !ANNOUNCED.has(entry2.to) || !ANNOUNCED.has(entry2.from);
+var SAYS = {
+  operational: "working again",
+  degraded: "degraded",
+  "partial-outage": "partly down",
+  "major-outage": "down",
+  unknown: "unknown, we cannot measure it",
+  "not-measured": "not measured",
+  reported: "reported by the provider"
+};
+var announce = (entries, pageUrl) => {
+  const worth = entries.filter((e) => !isNoise(e));
+  if (worth.length === 0) return void 0;
+  const broke = worth.filter((e) => e.to !== "operational");
+  const fixed = worth.filter((e) => e.to === "operational");
+  const parts = [];
+  if (broke.length === 1 && broke[0] !== void 0) {
+    parts.push(`${broke[0].label}: ${SAYS[broke[0].to]}.`);
+  } else if (broke.length > 1) {
+    parts.push(`${broke.length} services affected: ${broke.map((e) => e.label).join(", ")}.`);
+  }
+  if (fixed.length === 1 && fixed[0] !== void 0 && broke.length === 0) {
+    parts.push(`${fixed[0].label}: working again.`);
+  } else if (fixed.length > 0 && broke.length === 0) {
+    parts.push(`Recovered: ${fixed.map((e) => e.label).join(", ")}.`);
+  } else if (fixed.length > 0) {
+    parts.push(`Recovered: ${fixed.map((e) => e.label).join(", ")}.`);
+  }
+  parts.push(pageUrl);
+  let text = parts.join(" ");
+  if ([...text].length > MAX_POST_LENGTH) {
+    const tail = ` ${pageUrl}`;
+    const room = MAX_POST_LENGTH - [...tail].length - 1;
+    const head = [...parts.slice(0, -1).join(" ")].slice(0, room).join("");
+    text = `${head.trimEnd()}\u2026${tail}`;
+  }
+  return { text, covers: worth };
+};
+
 // src/build.ts
 var sourceCommit = true ? "572cfcc" : "unknown";
 var CERT_WARN_DAYS = 14;
@@ -1869,7 +1920,7 @@ var foldOntoComponents = (resolved, targets, at) => {
   }
   return byComponent;
 };
-var main = async (outDir) => {
+var main = async (outDir, options = {}) => {
   const at = Instant(Date.now());
   const perTarget = /* @__PURE__ */ new Map();
   await Promise.all(
@@ -1930,7 +1981,15 @@ var main = async (outDir) => {
   };
   await mkdir(outDir, { recursive: true });
   await Promise.all([
-    writeFile(join(outDir, "index.html"), renderPage({ generatedAt: at, readings: snapshot.readings, tokensCss: tokens_default })),
+    writeFile(
+      join(outDir, "index.html"),
+      renderPage({
+        generatedAt: at,
+        readings: snapshot.readings,
+        tokensCss: tokens_default,
+        ...options.fallbacks && options.fallbacks.length > 0 ? { fallbackChannels: options.fallbacks } : {}
+      })
+    ),
     writeFile(
       join(outDir, "summary.json"),
       `${JSON.stringify({ ...snapshot, states, sourceCommit }, null, 2)}
@@ -1949,15 +2008,43 @@ var main = async (outDir) => {
     // that is exactly the sort of assumption that breaks quietly later.
     writeFile(join(outDir, ".nojekyll"), "")
   ]);
+  const announcement = announce(history.entries.filter((e) => e.at === at), HOSTS.status);
+  if (options.announceFile !== void 0 && announcement !== void 0) {
+    await writeFile(options.announceFile, `${announcement.text}
+`);
+  }
   const summary = [...displays.entries()].map(([id, d]) => `${id}: ${stateOf(d)}`).join("\n");
   console.log(
     `status built at ${new Date(at).toISOString()} from ${sourceCommit}
 ${summary}`
   );
 };
-var outArg = process.argv[2];
-if (outArg !== void 0) {
-  await main(resolve(outArg));
+var argv = process.argv.slice(2);
+var flag = (name) => {
+  const i = argv.indexOf(`--${name}`);
+  return i >= 0 ? argv[i + 1] : void 0;
+};
+var fallbacks = () => {
+  const out = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] !== "--fallback") continue;
+    const pair = argv[i + 1];
+    if (pair === void 0) continue;
+    const split = pair.indexOf("=");
+    if (split <= 0) continue;
+    const label = pair.slice(0, split).trim();
+    const url = pair.slice(split + 1).trim();
+    if (label.length === 0 || url.length === 0) continue;
+    out.push({ label, url });
+  }
+  return out;
+};
+var outArg = argv[0];
+if (outArg !== void 0 && !outArg.startsWith("--")) {
+  await main(resolve(outArg), {
+    announceFile: flag("announce"),
+    fallbacks: fallbacks()
+  });
 }
 export {
   main

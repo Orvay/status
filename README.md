@@ -2,6 +2,25 @@
 
 The public status page for Orvay, served at **https://status.orvayos.com**.
 
+## If you are here because that page will not load
+
+You are in the right place. This repository is the fallback, and it works when
+the page does not, because GitHub serves it and nothing about it depends on our
+domain or our hosting provider.
+
+The current state is in **[`summary.json` on the `gh-pages` branch](../../blob/gh-pages/summary.json)**.
+It is the same data the page renders. Two fields are worth knowing:
+
+- `states` is one entry per component. `operational` means a check ran and
+  passed. `unknown` means we tried and could not get an answer, which is not the
+  same as broken. `not-measured` means nothing watches it yet.
+- `generatedAt` is when the file was written, in milliseconds. If it is hours
+  old, our publisher is what is broken, and that is worth knowing too.
+
+**[`history.json`](../../blob/gh-pages/history.json)** holds every state change
+we have ever recorded, and the commit log of the `gh-pages` branch is its audit
+trail.
+
 ## Why this repository exists at all
 
 Orvay runs entirely on Cloudflare, and both of its domains resolve through
