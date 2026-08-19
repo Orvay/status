@@ -88,7 +88,15 @@ jobs:
             FALLBACKS+=(--fallback "@$BSKY_HANDLE on Bluesky=https://bsky.app/profile/$BSKY_HANDLE")
           fi
 
-          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}"
+          # The Bot Fight Mode bypass for orvay.app. Without it the Published
+          # websites row reads `unknown` on every run, because Cloudflare
+          # challenges datacenter addresses and a runner is one.
+          SECRET_ARG=()
+          if [ -n "${{ secrets.ORVAY_PROBE_SECRET }}" ]; then
+            SECRET_ARG=(--probe-secret "${{ secrets.ORVAY_PROBE_SECRET }}")
+          fi
+
+          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}" "${SECRET_ARG[@]}"
 
       # ---------------------------------------------------------------------
       # The second channel, for the outage this page cannot report on itself.
