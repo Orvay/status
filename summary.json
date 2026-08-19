@@ -1,51 +1,51 @@
 {
   "schema": 1,
-  "generatedAt": 1787171899880,
+  "generatedAt": 1787172202063,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171899880,
+      "observedAt": 1787172202063,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 478.040806
+        "latencyMs": 404.77712
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171899880,
+      "observedAt": 1787172202063,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1298.2311530000002
+        "latencyMs": 919.323292
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171899880,
+      "observedAt": 1787172202063,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 801.9347969999999
+        "latencyMs": 195.868568
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171899880,
+      "observedAt": 1787172202063,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 189.400215
+        "latencyMs": 177.94523400000003
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171899880,
+      "observedAt": 1787172202063,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
@@ -54,11 +54,11 @@
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171899880,
+      "observedAt": 1787172202063,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 399.200917
+        "latencyMs": 407.632248
       }
     }
   },
@@ -76,5 +76,5 @@
     "checkout-and-billing": "not-measured",
     "email-notifications": "not-measured"
   },
-  "sourceCommit": "d99ee16"
+  "sourceCommit": "2f99c81"
 }
