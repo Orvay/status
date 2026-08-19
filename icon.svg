@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Orvay">
+  <!--
+    The Orvay mark on its favicon tile. THE MASTER FOR THE TILED FORM.
+
+    brand/orvay-mark.svg is the master for the bare glyph; this is that glyph
+    placed on the dark tile, which is what a browser tab, an app icon and a
+    masthead actually want. Next.js requires a copy at apps/*/src/app/icon.svg
+    for its file convention, and those two are copies of this, regenerated
+    together rather than edited apart.
+
+    It lives outside apps/ because it is shared: apps/status imports it to write
+    its own favicon, and apps importing apps is a section 5 prohibition that
+    pnpm arch:check enforces. Pulling it from apps/site was the first attempt and
+    the check refused it.
+
+    No double hyphen appears in this comment, and that is load-bearing rather
+    than stylistic. XML forbids it inside a comment, and an earlier version of
+    this drawing used one: the favicon was unparseable, the browser fell back to
+    a default glyph, and it served a 200 with the right content-type the whole
+    time. scripts/check-enforcement.mjs now refuses it.
+
+    Colour literals are unavoidable in an image asset and the constitution ban is
+    scoped to CSS and TypeScript, where tokens.css is the sole owner. These two
+    values are the dark theme neutral-1 and neutral-12 resolved from oklch, held
+    in sync by nothing but this sentence, which is acceptable for a 32px mark
+    that changes approximately never.
+  -->
+  <rect width="32" height="32" rx="8" fill="#0c0d0f" />
+  <g transform="translate(0.2057 0.2057) scale(0.030848)">
+    <path fill="#eef0f3" fill-rule="nonzero" d="M359.5 122.9 L606.0 122.9 L722.7 239.6 L722.7 353.8 L822.0 353.8 L890.4 422.2 L890.4 675.2 L664.5 901.1 L418.0 901.1 L301.3 784.4 L301.3 670.2 L202.0 670.2 L133.6 601.8 L133.6 348.8 Z M284.0 400.7 L284.0 566.3 L466.0 748.3 L610.2 748.3 L737.6 620.9 L737.6 455.3 L555.6 273.3 L411.4 273.3 Z"/>
+  </g>
+</svg>

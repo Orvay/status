@@ -1,103 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787152920489,
+  "generatedAt": 1787154496118,
   "readings": {
-    "marketing-and-docs": {
+    "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787152920489,
+      "observedAt": 1787154496118,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1032.675544
+        "latencyMs": 610.2872649999999
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787152920489,
+      "observedAt": 1787154496118,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1347.427425
+        "latencyMs": 808.798153
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787152920489,
+      "observedAt": 1787154496118,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1262.9325999999999
+        "latencyMs": 852.2848550000001
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787152920489,
+      "observedAt": 1787154496118,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 413.49019499999997
+        "latencyMs": 270.639221
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787152920489,
+      "observedAt": 1787154496118,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
       }
     },
-    "vendor-supabase": {
-      "method": "vendor-reported",
-      "vendor": "Supabase",
-      "state": "Partially Degraded Service",
-      "vendorUpdatedAt": 1787151552790,
-      "fetchedAt": 1787152922307,
-      "permalink": "https://status.supabase.com"
-    },
-    "vendor-sentry": {
-      "method": "vendor-reported",
-      "vendor": "Sentry",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787151530053,
-      "fetchedAt": 1787152922428,
-      "permalink": "https://status.sentry.io"
-    },
-    "vendor-cloudflare": {
-      "method": "vendor-reported",
-      "vendor": "Cloudflare",
-      "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787152922408,
-      "fetchedAt": 1787152922438,
-      "permalink": "https://www.cloudflarestatus.com"
-    },
-    "vendor-anthropic": {
-      "method": "vendor-reported",
-      "vendor": "Anthropic",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787151565733,
-      "fetchedAt": 1787152922456,
-      "permalink": "https://status.claude.com"
-    },
-    "vendor-openai": {
-      "method": "vendor-reported",
-      "vendor": "OpenAI",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787152922515,
-      "permalink": "https://status.openai.com"
-    },
-    "vendor-stripe": {
-      "method": "vendor-reported",
-      "vendor": "Stripe",
-      "state": "All services are online.",
-      "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787152922553,
-      "permalink": "https://status.stripe.com"
+    "documentation": {
+      "method": "probe",
+      "vantage": "github-actions",
+      "observedAt": 1787154496118,
+      "observation": {
+        "kind": "ok",
+        "level": "operational",
+        "latencyMs": 581.23795
+      }
     }
   },
   "states": {
@@ -105,19 +67,14 @@
     "control-plane": "operational",
     "website-studio": "operational",
     "tenant-sites": "unknown",
-    "marketing-and-docs": "operational",
+    "marketing-site": "operational",
+    "documentation": "operational",
     "agent-runs": "not-measured",
     "independent-verification": "not-measured",
     "scheduled-work": "not-measured",
     "evidence-archive": "not-measured",
-    "email-notifications": "not-measured",
     "checkout-and-billing": "not-measured",
-    "vendor-cloudflare": "reported",
-    "vendor-supabase": "reported",
-    "vendor-anthropic": "reported",
-    "vendor-openai": "reported",
-    "vendor-stripe": "reported",
-    "vendor-sentry": "reported"
+    "email-notifications": "not-measured"
   },
-  "sourceCommit": "bd3a0d0"
+  "sourceCommit": "7bf1e9a"
 }
