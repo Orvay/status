@@ -1,103 +1,103 @@
 {
   "schema": 1,
-  "generatedAt": 1787142376829,
+  "generatedAt": 1787145861765,
   "readings": {
     "marketing-and-docs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787142376829,
+      "observedAt": 1787145861765,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 524.557889
+        "latencyMs": 358.012647
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787142376829,
+      "observedAt": 1787145861765,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 748.8285410000001
+        "latencyMs": 746.7637599999999
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787142376829,
+      "observedAt": 1787145861765,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 769.989276
+        "latencyMs": 1166.1968749999999
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787142376829,
+      "observedAt": 1787145861765,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 232.06007899999997
+        "latencyMs": 229.14967900000002
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787142376829,
+      "observedAt": 1787145861765,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
       }
     },
+    "vendor-cloudflare": {
+      "method": "vendor-reported",
+      "vendor": "Cloudflare",
+      "state": "Minor Service Outage",
+      "vendorUpdatedAt": 1787145863135,
+      "fetchedAt": 1787145863144,
+      "permalink": "https://www.cloudflarestatus.com"
+    },
     "vendor-supabase": {
       "method": "vendor-reported",
       "vendor": "Supabase",
       "state": "Partially Degraded Service",
-      "vendorUpdatedAt": 1787141996273,
-      "fetchedAt": 1787142377861,
+      "vendorUpdatedAt": 1787145780447,
+      "fetchedAt": 1787145863237,
       "permalink": "https://status.supabase.com"
-    },
-    "vendor-sentry": {
-      "method": "vendor-reported",
-      "vendor": "Sentry",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787141959382,
-      "fetchedAt": 1787142377943,
-      "permalink": "https://status.sentry.io"
     },
     "vendor-anthropic": {
       "method": "vendor-reported",
       "vendor": "Anthropic",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1787142013098,
-      "fetchedAt": 1787142377944,
+      "fetchedAt": 1787145863380,
       "permalink": "https://status.claude.com"
     },
-    "vendor-stripe": {
+    "vendor-sentry": {
       "method": "vendor-reported",
-      "vendor": "Stripe",
-      "state": "All services are online.",
-      "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787142378061,
-      "permalink": "https://status.stripe.com"
+      "vendor": "Sentry",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787141959382,
+      "fetchedAt": 1787145863388,
+      "permalink": "https://status.sentry.io"
     },
     "vendor-openai": {
       "method": "vendor-reported",
       "vendor": "OpenAI",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787142378172,
+      "fetchedAt": 1787145863430,
       "permalink": "https://status.openai.com"
     },
-    "vendor-cloudflare": {
+    "vendor-stripe": {
       "method": "vendor-reported",
-      "vendor": "Cloudflare",
-      "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787142378145,
-      "fetchedAt": 1787142378184,
-      "permalink": "https://www.cloudflarestatus.com"
+      "vendor": "Stripe",
+      "state": "All services are online.",
+      "vendorUpdatedAt": 1707502080000,
+      "fetchedAt": 1787145863489,
+      "permalink": "https://status.stripe.com"
     }
   },
   "states": {
