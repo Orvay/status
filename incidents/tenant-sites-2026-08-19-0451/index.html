@@ -1311,7 +1311,7 @@ a { color: var(--accent-text); text-underline-offset: 0.16em; }
 :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
 
 /* Masthead -------------------------------------------------------------- */
-.masthead { display: flex; align-items: center; gap: var(--o-space-3); flex-wrap: wrap; }
+.masthead { display: flex; align-items: center; gap: var(--o-space-3); flex-wrap: wrap; margin-bottom: var(--o-space-6); }
 .masthead img { width: 26px; height: 26px; border-radius: 7px; display: block; }
 .masthead .name { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }
 .masthead .kicker { font: var(--o-text-label-14); color: var(--fg-secondary); }
@@ -1387,24 +1387,44 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 .empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }
 
 /* Tooltips, with no JavaScript ------------------------------------------- */
+/* The row's own layers, stated rather than inferred. The header was painting
+   over the tooltip, and default paint order is not a thing to rely on when the
+   answer matters at every hover. */
+.row { position: relative; }
+.row-head { position: relative; z-index: 0; }
+.bar-wrap { position: relative; z-index: 1; }
 .bar { position: relative; }
 .cell { position: relative; }
-.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 3; }
+.cell:hover, .cell:focus-within { z-index: 30; }
+.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
 .tip {
   position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  min-width: 11rem; padding: 0; z-index: 4;
+  min-width: 11rem; padding: 0; z-index: 31;
   background: var(--bg-raised); color: var(--fg-primary);
   border: 1px solid var(--line-border); border-radius: var(--o-radius-sm);
   box-shadow: var(--o-bevel-raised);
   opacity: 0; visibility: hidden; pointer-events: none;
-  transition: opacity var(--o-dur-quick) var(--o-ease-standard);
+  transform: translateX(-50%) translateY(4px);
+  /* 4px of travel, not 24. The reference measurements are explicit that a
+     reveal moves a little and quickly; a longer one reads as a template. */
+  transition:
+    opacity var(--o-dur-enter) var(--o-ease-enter) 60ms,
+    transform var(--o-dur-enter) var(--o-ease-enter) 60ms,
+    visibility 0s linear 60ms;
   display: flex; flex-direction: column;
 }
 /* Anchored so a tooltip near either end cannot leave the card. */
-.cell[data-tip='start'] .tip { left: 0; transform: none; }
-.cell[data-tip='end'] .tip { left: auto; right: 0; transform: none; }
-.cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip { opacity: 1; visibility: visible; }
-.cell:hover { z-index: 3; }
+.cell[data-tip='start'] .tip, .seg[data-tip='start'] .tip { left: 0; transform: translateY(4px); }
+.cell[data-tip='end'] .tip, .seg[data-tip='end'] .tip { left: auto; right: 0; transform: translateY(4px); }
+.cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip,
+.seg:hover .tip, .seg:focus .tip, .seg:focus-visible .tip {
+  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+  transition-delay: 60ms, 60ms, 0s;
+}
+.cell[data-tip='start']:hover .tip, .cell[data-tip='start']:focus .tip,
+.cell[data-tip='end']:hover .tip, .cell[data-tip='end']:focus .tip,
+.seg[data-tip='start']:hover .tip, .seg[data-tip='start']:focus .tip,
+.seg[data-tip='end']:hover .tip, .seg[data-tip='end']:focus .tip { transform: translateY(0); }
 .tip-day { padding: var(--o-space-3) var(--o-space-3) var(--o-space-2); font: var(--o-text-label-14); color: var(--fg-secondary); border-bottom: 1px solid var(--line-rule); white-space: nowrap; }
 .tip-state { padding: var(--o-space-3); font: var(--o-text-label-14); font-weight: var(--o-weight-medium); display: flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
 /* The dot repeats the colour; the WORD beside it is what carries the meaning. */
@@ -1457,24 +1477,52 @@ footer nav a:hover { color: var(--fg-primary); text-decoration: underline; }
 .month { margin-bottom: var(--o-space-6); }
 .month h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }
 ul.incidents { list-style: none; margin: 0; padding: 0; }
-.incident-row { display: grid; grid-template-columns: 3.4rem 3px 1fr auto; gap: var(--o-space-3); align-items: start; padding: var(--o-space-4) 0; border-top: 1px solid var(--line-rule); }
-.incident-date { font: var(--o-text-label-14); color: var(--fg-secondary); white-space: nowrap; }
+.incident-row { display: grid; grid-template-columns: 3.4rem 1fr; gap: var(--o-space-3); align-items: start; padding: var(--o-space-3) 0; border-top: 1px solid var(--line-rule); }
+.incident-date { font: var(--o-text-label-14); color: var(--fg-secondary); white-space: nowrap; padding-top: var(--o-space-3); }
 .incident-date .dd { font-weight: var(--o-weight-strong); color: var(--fg-primary); }
-.incident-bar { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
+/* The whole card is the target. A four-word title is a small thing to hit, and
+   a row that highlights but does not respond is worse than one that does not
+   highlight at all. */
+.incident-card {
+  position: relative;
+  display: grid; grid-template-columns: 3px 1fr auto; gap: var(--o-space-3);
+  align-items: start; padding: var(--o-space-3) var(--o-space-4);
+  border-radius: var(--o-radius-md);
+  transition: background var(--o-dur-quick) var(--o-ease-standard);
+}
+.incident-card:hover { background: var(--bg-subtle); }
+.incident-card:focus-within { background: var(--bg-subtle); }
+.incident-rail { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
 .incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .incident-title { color: var(--fg-primary); text-decoration: none; font-weight: var(--o-weight-medium); }
-.incident-title:hover { text-decoration: underline; }
+/* The stretched-link pattern: the anchor covers the card, so the target is the
+   card and the accessible name is still the title. No JavaScript involved. */
+.incident-title::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.incident-card:hover .incident-title { text-decoration: underline; }
 .incident-main p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
 .incident-time { font: var(--o-text-mono-13); color: var(--fg-secondary); }
 .incident-meta { color: var(--fg-secondary); font: var(--o-text-label-14); }
 
-.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); }
-.timeline .seg { border-radius: 2px; min-width: 4px; }
+.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); position: relative; }
+.timeline .seg { border-radius: 2px; min-width: 4px; position: relative; }
+.timeline .seg:hover, .timeline .seg:focus-within { z-index: 30; }
+.timeline .seg:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
+/* Upward, like the day cells: the card clips, and there is room above. */
+.timeline .seg .tip { bottom: calc(100% + 8px); top: auto; }
 .timeline-scale { display: flex; justify-content: space-between; font: var(--o-text-micro-11); color: var(--fg-secondary); margin-top: var(--o-space-2); }
 
 ul.updates { list-style: none; margin: 0; padding: 0; }
-ul.updates li { display: grid; grid-template-columns: 12px 1fr; gap: var(--o-space-3); padding: var(--o-space-4) var(--o-space-5); border-top: 1px solid var(--line-rule); }
-ul.updates .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 0.42em; }
+ul.updates { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); }
+ul.updates li { display: grid; grid-template-columns: 12px 1fr; gap: var(--o-space-3); position: relative; padding-bottom: var(--o-space-5); }
+ul.updates li:last-child { padding-bottom: 0; }
+/* The rail between dots, which is what makes a list of times read as one
+   sequence rather than as several unrelated notes. */
+ul.updates li::before {
+  content: ''; position: absolute; left: 5px; top: 1.1em; bottom: -0.2em;
+  width: 1px; background: var(--line-border);
+}
+ul.updates li:last-child::before { display: none; }
+ul.updates .dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 0.38em; position: relative; z-index: 1; box-shadow: 0 0 0 3px var(--bg-raised); }
 ul.updates strong { font-weight: var(--o-weight-medium); }
 ul.updates p { margin: 2px 0 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
 ul.updates .when { font: var(--o-text-mono-13); }
@@ -1532,7 +1580,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
     <div class="row">
       <div class="row-head"><h3 class="row-label">Published websites</h3></div>
       <div class="timeline-scale"><span>19 Aug 2026, 04:51 UTC</span><span>now</span></div>
-      <div class="timeline" role="img" aria-label="Published websites: 2 recorded phases between 19 Aug 2026, 04:51 UTC and now"><span class="seg" style="width:836.59%;background:var(--risk-high-solid)" title="19 Aug 2026, 04:51 UTC: Partial outage"></span><span class="seg" style="width:1.50%;background:var(--o-neutral-8)" title="19 Aug 2026, 04:59 UTC: Not measurable"></span></div>
+      <div class="timeline" role="img" aria-label="Published websites: 2 recorded phases between 19 Aug 2026, 04:51 UTC and now"><span class="seg" tabindex="0" data-tip="start" style="width:836.59%;background:var(--risk-high-solid)"><span class="tip"><span class="tip-day">19 Aug 2026, 04:51 UTC</span><span class="tip-state" data-s="partial-outage">Partial outage</span></span></span><span class="seg" tabindex="0" data-tip="end" style="width:1.50%;background:var(--o-neutral-8)"><span class="tip"><span class="tip-day">19 Aug 2026, 04:59 UTC</span><span class="tip-state" data-s="unknown">Not measurable</span></span></span></div>
     </div>
   </section>
 
@@ -1573,6 +1621,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
       <a href="https://app.orvayos.com">Sign in</a>
       <a href="https://docs.orvayos.com">Documentation</a>
       <a href="/history/">History</a>
+      <a href="/about/">About this page</a>
       <a href="/history.atom">RSS feed</a>
     </nav>
   </footer>

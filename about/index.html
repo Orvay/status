@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>History · Orvay Status</title>
-<meta name="description" content="Every recorded change of state for Orvay, oldest kept forever.">
+<title>About this page · Orvay Status</title>
+<meta name="description" content="How Orvay measures what this status page reports, and what it deliberately does not claim.">
 <meta name="robots" content="index, follow">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
@@ -1558,31 +1558,37 @@ ul.updates .when { font: var(--o-text-mono-13); }
     <span class="kicker">Service status</span>
   </header>
 
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Orvay Status</a><span class="crumb-sep" aria-hidden="true">/</span><span aria-current="page">History</span></nav>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Orvay Status</a><span class="crumb-sep" aria-hidden="true">/</span><span aria-current="page">About this page</span></nav>
 
 
   <div class="page-head">
-    <h1>History</h1>
-    <p>Every change of state we have recorded, newest first. Entries are never removed and never edited.</p>
+    <h1>About this page</h1>
+    <p>How these numbers are produced, and what they deliberately do not claim.</p>
   </div>
 
-    <section class="month">
-      <h2>August 2026</h2>
-      <ul class="incidents">
-        <li class="incident-row">
-          <div class="incident-date"><span class="dd">19</span> <span class="ddow">Wed</span></div>
-          <div class="incident-card">
-            <span class="incident-rail" style="background:var(--risk-high-solid)" aria-hidden="true"></span>
-            <div class="incident-main">
-              <a class="incident-title" href="/incidents/tenant-sites-2026-08-19-0451/">Published websites was partly down</a>
-              <p>Still going on. This page updates when the next check runs.</p>
-            </div>
-            <div class="incident-time">04:51</div>
-          </div>
-        </li>
-      </ul>
-    </section>
+  <section class="notes">
+    <h2>How a component is checked</h2>
+    <p>A request runs from outside our own network, on a machine we do not own, roughly every 15 minutes. It asks for a real page and checks that the answer contains something only that page carries, because a 200 proves something answered and not that the product did.</p>
+    <p>Each bar shows the last 90 days, one cell per day, coloured by the <strong>worst</strong> state we measured that day. A day with one hour of trouble and twenty-three of health is shown as trouble. Days before we started recording are blank rather than green.</p>
 
+    <h2>What the states mean</h2>
+    <p><strong>Operational</strong> is a check that reached it and got what it should. <strong>Degraded</strong> answered, more slowly or less reliably than it should. <strong>Unknown</strong> means we tried and could not get an answer, which is not the same as working and not the same as broken. <strong>Not measured</strong> means nothing watches it yet, and we list those rows so you can see the gap instead of assuming coverage.</p>
+
+    <h2>Why there is no uptime percentage</h2>
+    <p>Every number of that kind we could publish would be derived from our own account of our own incidents, which is the proposer checking its own work. We show you what each check found and when instead.</p>
+
+    <h2>Why there is no explanation of an incident</h2>
+    <p>The records on the history page are machine records. When a check changes its answer we write down the component, the time and the new state. <strong>Nobody has written an explanation of why</strong>, because there is no operator typing updates here yet. When that changes, the written account will appear alongside these timings rather than replacing them.</p>
+
+    <h2>Notifications</h2>
+    <p>There is no email sign-up. A feed collects no personal data, so there is no consent record to keep, no revocation path to build and nothing to erase. Changes are published at <a href="/history.atom">history.atom</a>.</p>
+
+    <h2>Where your data lives</h2>
+    <p>The database holding your company data is in Zurich, Switzerland. Requests to the models we use are processed by Anthropic and OpenAI, outside Switzerland and outside the EU. The evidence archive is pinned to the EU.</p>
+
+    <h2>What this page cannot tell you</h2>
+    <p>If the status page is unreachable, look at <a href="https://github.com/Orvay/status" rel="noreferrer noopener">our status repository</a>. It is not served from our own infrastructure, so a problem with ours does not take it down too.</p>
+  </section>
 
 
   <footer>
