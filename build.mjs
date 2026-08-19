@@ -2100,7 +2100,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "d99ee16" : "unknown";
+var sourceCommit = true ? "2f99c81" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
