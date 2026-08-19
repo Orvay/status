@@ -1381,14 +1381,14 @@ footer p { margin: 0; max-width: 66ch; }
   </header>
 
   <div class="banner">
-    <h1>Something we measure is not working</h1>
+    <h1>Everything we measure is working</h1>
     
-      <span class="state" style="color:var(--risk-high-text)">
-        <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>
-        <span class="state-word">Partial outage</span>
-        <span class="sr-only">Partial outage, some of this is not working</span>
+      <span class="state" style="color:var(--verified-text)">
+        <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor"><circle cx="8" cy="8" r="5"/></svg>
+        <span class="state-word">Operational</span>
+        <span class="sr-only">Operational</span>
       </span>
-    <p class="banner-caveat">This is a partial view. 5 rows are measured, 0 could not be measured just now, and 6 are not watched yet. A row we do not watch is listed below rather than left out.</p>
+    <p class="banner-caveat">This is a partial view. 4 rows are measured, 1 could not be measured just now, and 6 are not watched yet. A row we do not watch is listed below rather than left out.</p>
     <p class="banner-limit">This page runs on servers that are not ours and not the ones Orvay runs on, so an outage of our application layer does not take it down. It still depends on our domain name resolving. We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage.</p>
   </div>
 
@@ -1408,7 +1408,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">Reaching the login page and starting a session.</p>
       
-      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:51 UTC, answered in 724 ms.</p>
+      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:59 UTC, answered in 1027 ms.</p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1422,7 +1422,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">The app where you review approvals, watch runs and read the audit trail. Our check confirms it is serving and that it keeps signed-out visitors out. It cannot confirm what you see once you are signed in.</p>
       
-      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:51 UTC, answered in 725 ms.</p>
+      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:59 UTC, answered in 664 ms.</p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1436,21 +1436,21 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">Describing a website and watching it build.</p>
       
-      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:51 UTC, answered in 131 ms.</p>
+      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:59 UTC, answered in 261 ms.</p>
     </li>
     <li class="row">
       <div class="row-main">
         <h3 class="row-label">Published websites</h3>
         
-      <span class="state" style="color:var(--risk-high-text)">
-        <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="3" width="10" height="10" rx="1"/></svg>
-        <span class="state-word">Partial outage</span>
-        <span class="sr-only">Partial outage, some of this is not working</span>
+      <span class="state" style="color:var(--fg-secondary)">
+        <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor"><path d="M8 3a5 5 0 1 1-4.6 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="state-word">Unknown</span>
+        <span class="sr-only">Unknown, we could not measure this</span>
       </span>
       </div>
       <p class="row-summary">Websites already published on orvay.app, served to your visitors.</p>
       
-      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:51 UTC, answered in 184 ms.</p>
+      <p class="row-method">Last attempt at 19 Aug 2026, 04:59 UTC: a bot filter stopped our own check before it reached the service, so this says nothing about whether the service is working.</p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1464,7 +1464,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">orvayos.com and the documentation.</p>
       
-      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:51 UTC, answered in 283 ms.</p>
+      <p class="row-method">Checked from outside our network at 19 Aug 2026, 04:59 UTC, answered in 426 ms.</p>
     </li>
     <li class="row" data-unmeasured="true">
       <div class="row-main">
@@ -1569,7 +1569,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">Runs our application layer and our network.</p>
       <p class="vendor-state">Minor Service Outage</p>
-      <p class="row-method">Reported by them at 19 Aug 2026, 04:51 UTC. Read by us at 19 Aug 2026, 04:51 UTC. <a class="permalink" href="https://www.cloudflarestatus.com" rel="noreferrer noopener">Their status page</a></p>
+      <p class="row-method">Reported by them at 19 Aug 2026, 04:59 UTC. Read by us at 19 Aug 2026, 04:59 UTC. <a class="permalink" href="https://www.cloudflarestatus.com" rel="noreferrer noopener">Their status page</a></p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1583,7 +1583,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">Runs the database that holds your company data, in Zurich.</p>
       <p class="vendor-state">Partially Degraded Service</p>
-      <p class="row-method">Reported by them at 19 Aug 2026, 04:46 UTC. Read by us at 19 Aug 2026, 04:51 UTC. <a class="permalink" href="https://status.supabase.com" rel="noreferrer noopener">Their status page</a></p>
+      <p class="row-method">Reported by them at 19 Aug 2026, 04:46 UTC. Read by us at 19 Aug 2026, 04:59 UTC. <a class="permalink" href="https://status.supabase.com" rel="noreferrer noopener">Their status page</a></p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1597,7 +1597,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">One of the two model providers Orvay calls.</p>
       <p class="vendor-state">All Systems Operational</p>
-      <p class="row-method">Reported by them at 19 Aug 2026, 04:46 UTC. Read by us at 19 Aug 2026, 04:51 UTC. <a class="permalink" href="https://status.claude.com" rel="noreferrer noopener">Their status page</a></p>
+      <p class="row-method">Reported by them at 19 Aug 2026, 04:46 UTC. Read by us at 19 Aug 2026, 04:59 UTC. <a class="permalink" href="https://status.claude.com" rel="noreferrer noopener">Their status page</a></p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1611,7 +1611,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">The second model provider, used for independent verification.</p>
       <p class="vendor-state">All Systems Operational <span class="flag">Their feed has not changed recently, so treat this as out of date.</span></p>
-      <p class="row-method">Reported by them at 09 Jul 2026, 19:25 UTC. Read by us at 19 Aug 2026, 04:51 UTC. <a class="permalink" href="https://status.openai.com" rel="noreferrer noopener">Their status page</a></p>
+      <p class="row-method">Reported by them at 09 Jul 2026, 19:25 UTC. Read by us at 19 Aug 2026, 04:59 UTC. <a class="permalink" href="https://status.openai.com" rel="noreferrer noopener">Their status page</a></p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1625,7 +1625,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">Processes payments.</p>
       <p class="vendor-state">All services are online. <span class="flag">Their feed has not changed recently, so treat this as out of date.</span></p>
-      <p class="row-method">Reported by them at 09 Feb 2024, 18:08 UTC. Read by us at 19 Aug 2026, 04:51 UTC. <a class="permalink" href="https://status.stripe.com" rel="noreferrer noopener">Their status page</a></p>
+      <p class="row-method">Reported by them at 09 Feb 2024, 18:08 UTC. Read by us at 19 Aug 2026, 04:59 UTC. <a class="permalink" href="https://status.stripe.com" rel="noreferrer noopener">Their status page</a></p>
     </li>
     <li class="row">
       <div class="row-main">
@@ -1639,7 +1639,7 @@ footer p { margin: 0; max-width: 66ch; }
       </div>
       <p class="row-summary">Collects our error reports. A problem here affects us, not you.</p>
       <p class="vendor-state">All Systems Operational</p>
-      <p class="row-method">Reported by them at 19 Aug 2026, 04:44 UTC. Read by us at 19 Aug 2026, 04:51 UTC. <a class="permalink" href="https://status.sentry.io" rel="noreferrer noopener">Their status page</a></p>
+      <p class="row-method">Reported by them at 19 Aug 2026, 04:44 UTC. Read by us at 19 Aug 2026, 04:59 UTC. <a class="permalink" href="https://status.sentry.io" rel="noreferrer noopener">Their status page</a></p>
     </li>
     </ul>
   </section>
@@ -1658,7 +1658,7 @@ footer p { margin: 0; max-width: 66ch; }
     <p>Where your data lives: the database holding your company data is in Zurich, Switzerland. Requests to the models we use are processed by Anthropic and OpenAI, outside Switzerland and outside the EU. The evidence archive is pinned to the EU.</p>
     <p>We publish no uptime percentage. Every number of that kind we could publish today would be derived from our own account of our own incidents, and we would rather show you what each check found and when.</p>
     <p>You can follow this page by feed at <a href="/history.atom">history.atom</a>. Email notifications are not available. There is no sign-up form here because there is nothing to sign up to.</p>
-    <p>Page built 19 Aug 2026, 04:51 UTC. The service itself is at <a href="https://orvayos.com">orvayos.com</a>.</p>
+    <p>Page built 19 Aug 2026, 04:59 UTC. The service itself is at <a href="https://orvayos.com">orvayos.com</a>.</p>
   </footer>
 
 </main>
