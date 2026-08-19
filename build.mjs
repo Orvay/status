@@ -379,6 +379,67 @@ var pruneBefore = (record, endDay, keep = 400) => {
   return { schema: 1, days };
 };
 
+// ../../packages/status/src/incidents.ts
+var worseImpact = (a, b) => {
+  if (a === "unknown") return b === "unknown" ? a : b;
+  if (b === "unknown") return a;
+  return levelRank(b) > levelRank(a) ? b : a;
+};
+var impactOf = (state) => {
+  if (state === "degraded" || state === "partial-outage" || state === "major-outage") return state;
+  if (state === "unknown") return "unknown";
+  return void 0;
+};
+var incidentId = (component, startedAt) => `${component}-${new Date(startedAt).toISOString().replace(/[:.]/g, "").replace("T", "-").slice(0, 15)}`;
+var incidentsFrom = (transitions2) => {
+  const ordered = [...transitions2].sort((a, b) => a.at - b.at);
+  const open = /* @__PURE__ */ new Map();
+  const closed = [];
+  for (const t of ordered) {
+    if (t.from === "not-measured" || t.to === "not-measured") continue;
+    const impact = impactOf(t.to);
+    const current = open.get(t.component);
+    if (impact !== void 0) {
+      if (current === void 0) {
+        open.set(t.component, {
+          id: incidentId(t.component, t.at),
+          component: t.component,
+          label: t.label,
+          startedAt: t.at,
+          impact,
+          phases: [{ at: t.at, impact }]
+        });
+      } else {
+        open.set(t.component, {
+          ...current,
+          impact: worseImpact(current.impact, impact),
+          phases: [...current.phases, { at: t.at, impact }]
+        });
+      }
+      continue;
+    }
+    if (current !== void 0) {
+      closed.push({
+        ...current,
+        resolvedAt: t.at,
+        phases: [...current.phases, { at: t.at, impact: "operational" }]
+      });
+      open.delete(t.component);
+    }
+  }
+  return [...closed, ...open.values()].sort((a, b) => b.startedAt - a.startedAt);
+};
+var durationOf = (incident) => incident.resolvedAt === void 0 ? void 0 : incident.resolvedAt - incident.startedAt;
+var humanDuration = (ms) => {
+  const minutes = Math.max(1, Math.round(ms / 6e4));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours < 24) return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  const days = Math.floor(hours / 24);
+  return `${days} d ${hours % 24} h`;
+};
+
 // ../../packages/content/src/legal.ts
 var LEGAL_LAST_UPDATED = "2026-08-16";
 var CONTROLLER = {
@@ -1426,22 +1487,299 @@ var certificateDaysRemaining = async (host, now, timeoutMs = 1e4) => new Promise
   });
 });
 
-// src/render.ts
+// src/shell.ts
 var esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var MONTHS_LONG = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
 var pad = (n) => String(n).padStart(2, "0");
-var utc = (at) => {
-  const d = new Date(at);
+var utc = (ms) => {
+  const d = new Date(ms);
   return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
 };
-var utcDay = (at) => {
-  const d = new Date(at);
-  return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+var utcTime = (ms) => {
+  const d = new Date(ms);
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 };
 var prettyDay = (key) => {
   const parts = key.split("-");
   return `${parts[2]} ${MONTHS[Number(parts[1]) - 1]} ${parts[0]}`;
 };
+var CSS = String.raw`
+
+/* -------------------------------------------------------------------------
+   Every colour below is a token from the block above.
+   ------------------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg-canvas);
+  color: var(--fg-primary);
+  font: var(--o-text-body-15);
+  font-weight: var(--o-weight-regular);
+  -webkit-font-smoothing: antialiased;
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+
+.wrap { max-width: 58rem; margin: 0 auto; padding: var(--o-space-6) var(--o-space-4) var(--o-space-8); }
+
+a { color: var(--accent-text); text-underline-offset: 0.16em; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
+
+/* Masthead -------------------------------------------------------------- */
+.masthead { display: flex; align-items: center; gap: var(--o-space-3); flex-wrap: wrap; }
+.masthead img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+.masthead .name { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }
+.masthead .kicker { font: var(--o-text-label-14); color: var(--fg-secondary); }
+
+/* Banner ---------------------------------------------------------------- */
+.banner {
+  border: 1px solid var(--line-rule);
+  border-radius: var(--o-radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--o-space-6);
+  background: var(--bg-raised);
+}
+/* A tint keyed to the state, with the border to match. Colour is the LAST
+   carrier here: the glyph and the sentence both say it first. */
+.banner[data-level='operational'] { border-color: var(--verified-line); }
+.banner[data-level='operational'] .banner-head { background: var(--o-verdant-a3); }
+.banner[data-level='degraded'] .banner-head { background: var(--risk-medium-tint); }
+.banner[data-level='partial-outage'] .banner-head { background: var(--risk-high-tint); }
+.banner[data-level='major-outage'] .banner-head { background: var(--risk-critical-tint); }
+.banner-head { display: flex; align-items: center; gap: var(--o-space-3); padding: var(--o-space-4) var(--o-space-5); }
+.banner-head h1 { font: var(--o-text-title-24); font-weight: var(--o-weight-strong); margin: 0; letter-spacing: -0.012em; }
+.banner-mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.banner-mark svg { width: 15px; height: 15px; }
+.banner-body { padding: var(--o-space-4) var(--o-space-5); border-top: 1px solid var(--line-rule); display: flex; flex-direction: column; gap: var(--o-space-2); }
+.banner-body p { margin: 0; max-width: 70ch; }
+.banner-body .updated { color: var(--fg-secondary); font: var(--o-text-label-14); }
+
+/* Cards ----------------------------------------------------------------- */
+.card {
+  background: var(--bg-raised);
+  border: 1px solid var(--line-rule);
+  border-radius: var(--o-radius-lg);
+  margin-bottom: var(--o-space-5);
+  overflow: hidden;
+}
+.card-head { padding: var(--o-space-5) var(--o-space-5) var(--o-space-4); }
+.card-head h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 2px; }
+.card-head p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
+
+ul.rows { list-style: none; margin: 0; padding: 0; }
+.row { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); border-top: 1px solid var(--line-rule); display: flex; flex-direction: column; gap: var(--o-space-2); }
+.row[data-unmeasured='true'] { background-image: var(--provenance-hatch); }
+.row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--o-space-2) var(--o-space-4); }
+.row-label { font: var(--o-text-title-19); font-weight: var(--o-weight-medium); margin: 0; letter-spacing: -0.005em; }
+.row-summary { margin: 0; color: var(--fg-secondary); max-width: 68ch; font: var(--o-text-label-14); line-height: 1.5; }
+.row-method { margin: 2px 0 0; font: var(--o-text-mono-13); color: var(--fg-secondary); }
+
+/* State badge ------------------------------------------------------------ */
+.state { display: inline-flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
+.glyph { width: 1.05em; height: 1.05em; flex: none; }
+.state-word { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); }
+
+/* History bar ------------------------------------------------------------ */
+.bar-wrap { display: flex; flex-direction: column; gap: var(--o-space-2); margin-top: var(--o-space-2); }
+.bar { display: flex; gap: 2px; align-items: stretch; height: 32px; }
+.cell { flex: 1 1 0; min-width: 2px; border-radius: 2px; }
+/* Barely there on purpose. A visible grey cell reads as a measurement that went
+   badly; this has to read as a day we were not yet watching, which is what an
+   empty track says and a filled one cannot. */
+.cell--none { background: var(--o-neutral-4); opacity: 0.55; }
+.bar-scale { display: flex; justify-content: space-between; align-items: baseline; font: var(--o-text-micro-11); color: var(--fg-secondary); letter-spacing: 0.02em; }
+.bar-count { font-variant-numeric: tabular-nums; }
+
+/* History ---------------------------------------------------------------- */
+.history h2, .legend-wrap h2 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); margin: var(--o-space-7) 0 var(--o-space-2); }
+.history p.lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); max-width: 62ch; font: var(--o-text-label-14); }
+.day { border-top: 1px solid var(--line-rule); padding: var(--o-space-4) 0; }
+.day h3 { font: var(--o-text-label-14); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-2); }
+.day ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-space-2); }
+.day li { color: var(--fg-secondary); font: var(--o-text-label-14); }
+.day strong { color: var(--fg-primary); font-weight: var(--o-weight-medium); }
+.ev-time { font: var(--o-text-mono-13); color: var(--fg-secondary); margin-right: var(--o-space-2); }
+.empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }
+
+/* Tooltips, with no JavaScript ------------------------------------------- */
+.bar { position: relative; }
+.cell { position: relative; }
+.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 3; }
+.tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  min-width: 11rem; padding: 0; z-index: 4;
+  background: var(--bg-raised); color: var(--fg-primary);
+  border: 1px solid var(--line-border); border-radius: var(--o-radius-sm);
+  box-shadow: var(--o-bevel-raised);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--o-dur-quick) var(--o-ease-standard);
+  display: flex; flex-direction: column;
+}
+/* Anchored so a tooltip near either end cannot leave the card. */
+.cell[data-tip='start'] .tip { left: 0; transform: none; }
+.cell[data-tip='end'] .tip { left: auto; right: 0; transform: none; }
+.cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip { opacity: 1; visibility: visible; }
+.cell:hover { z-index: 3; }
+.tip-day { padding: var(--o-space-3) var(--o-space-3) var(--o-space-2); font: var(--o-text-label-14); color: var(--fg-secondary); border-bottom: 1px solid var(--line-rule); white-space: nowrap; }
+.tip-state { padding: var(--o-space-3); font: var(--o-text-label-14); font-weight: var(--o-weight-medium); display: flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
+/* The dot repeats the colour; the WORD beside it is what carries the meaning. */
+.tip-state::before { content: ''; width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--o-neutral-8); }
+.tip-state[data-s='operational']::before { background: var(--verified-solid); }
+.tip-state[data-s='degraded']::before { background: var(--risk-medium-solid); }
+.tip-state[data-s='partial-outage']::before { background: var(--risk-high-solid); }
+.tip-state[data-s='major-outage']::before { background: var(--risk-critical-solid); }
+.tip-state[data-s='not-measured']::before { background: var(--o-neutral-6); }
+.tip-state[data-s='none']::before { background: var(--o-neutral-5); }
+
+/* Button and footer ------------------------------------------------------ */
+.cta { display: flex; justify-content: center; margin: var(--o-space-7) 0 var(--o-space-6); }
+.button {
+  display: inline-flex; align-items: center; gap: var(--o-space-2);
+  padding: 0.7rem 1.15rem; border-radius: var(--o-radius-pill);
+  background: var(--bg-raised); border: 1px solid var(--line-border);
+  color: var(--fg-primary); text-decoration: none;
+  font: var(--o-text-label-14); font-weight: var(--o-weight-medium);
+  /* 44px hit area, §7a rule 4. */
+  min-height: 44px;
+  transition: background var(--o-dur-quick) var(--o-ease-standard);
+}
+.button:hover { background: var(--bg-hover); }
+.button svg { width: 16px; height: 16px; }
+
+footer { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); color: var(--fg-secondary); display: flex; flex-direction: column; gap: var(--o-space-4); align-items: center; text-align: center; font: var(--o-text-label-14); line-height: 1.55; }
+footer p { margin: 0; max-width: 66ch; }
+footer nav { display: flex; flex-wrap: wrap; gap: var(--o-space-2) var(--o-space-4); justify-content: center; }
+footer nav a { color: var(--fg-secondary); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+footer nav a:hover { color: var(--fg-primary); text-decoration: underline; }
+
+@media (max-width: 34rem) {
+  .bar { height: 26px; gap: 1px; }
+  .card-head, .row { padding-left: var(--o-space-4); padding-right: var(--o-space-4); }
+  .banner-head h1 { font: var(--o-text-title-19); }
+  .banner-head, .banner-body { padding-left: var(--o-space-4); padding-right: var(--o-space-4); }
+}
+
+@media print {
+  .row, .card, .state, .glyph, .cell, .banner, .banner-mark { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  a[href]::after { content: ' (' attr(href) ')'; font: var(--o-text-mono-13); }
+}
+
+/* History and incident pages -------------------------------------------- */
+.page-head { margin-bottom: var(--o-space-6); }
+.page-head h1 { font: var(--o-text-display-32); font-weight: var(--o-weight-regular); margin: 0 0 var(--o-space-2); letter-spacing: -0.018em; }
+.page-head p { margin: 0; color: var(--fg-secondary); max-width: 62ch; }
+
+.month { margin-bottom: var(--o-space-6); }
+.month h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }
+ul.incidents { list-style: none; margin: 0; padding: 0; }
+.incident-row { display: grid; grid-template-columns: 3.4rem 3px 1fr auto; gap: var(--o-space-3); align-items: start; padding: var(--o-space-4) 0; border-top: 1px solid var(--line-rule); }
+.incident-date { font: var(--o-text-label-14); color: var(--fg-secondary); white-space: nowrap; }
+.incident-date .dd { font-weight: var(--o-weight-strong); color: var(--fg-primary); }
+.incident-bar { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
+.incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.incident-title { color: var(--fg-primary); text-decoration: none; font-weight: var(--o-weight-medium); }
+.incident-title:hover { text-decoration: underline; }
+.incident-main p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
+.incident-time { font: var(--o-text-mono-13); color: var(--fg-secondary); }
+.incident-meta { color: var(--fg-secondary); font: var(--o-text-label-14); }
+
+.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); }
+.timeline .seg { border-radius: 2px; min-width: 4px; }
+.timeline-scale { display: flex; justify-content: space-between; font: var(--o-text-micro-11); color: var(--fg-secondary); margin-top: var(--o-space-2); }
+
+ul.updates { list-style: none; margin: 0; padding: 0; }
+ul.updates li { display: grid; grid-template-columns: 12px 1fr; gap: var(--o-space-3); padding: var(--o-space-4) var(--o-space-5); border-top: 1px solid var(--line-rule); }
+ul.updates .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 0.42em; }
+ul.updates strong { font-weight: var(--o-weight-medium); }
+ul.updates p { margin: 2px 0 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
+ul.updates .when { font: var(--o-text-mono-13); }
+
+.notes { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); }
+.notes h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }
+.notes p { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); max-width: 68ch; line-height: 1.55; }
+.notes strong { color: var(--fg-primary); font-weight: var(--o-weight-medium); }
+.empty { color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; }
+
+@media (max-width: 34rem) {
+  .incident-row { grid-template-columns: 2.8rem 3px 1fr; }
+  .incident-time { grid-column: 3; font: var(--o-text-micro-11); }
+}
+
+/* Breadcrumbs and shared page furniture --------------------------------- */
+.masthead-brand { display: inline-flex; align-items: center; gap: var(--o-space-3); text-decoration: none; color: var(--fg-primary); }
+.crumbs { display: flex; align-items: center; gap: var(--o-space-2); margin-top: var(--o-space-5); margin-bottom: var(--o-space-5); font: var(--o-text-label-14); color: var(--fg-secondary); }
+.crumbs a { color: var(--fg-secondary); text-decoration: none; }
+.crumbs a:hover { color: var(--fg-primary); text-decoration: underline; }
+.crumb-sep { color: var(--line-strong); }
+`;
+var shell = (input) => `<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(input.title)}</title>
+<meta name="description" content="${esc(input.description)}">
+<meta name="robots" content="index, follow">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="alternate" type="application/atom+xml" title="${esc(BRAND.name)} Status" href="/history.atom">
+<style>
+${input.tokensCss}
+${CSS}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header class="masthead">
+    <a class="masthead-brand" href="/">
+      <img src="/icon.svg" alt="" width="26" height="26">
+      <span class="name">${esc(BRAND.name)}</span>
+    </a>
+    <span class="kicker">Service status</span>
+  </header>
+${input.breadcrumb === void 0 ? "" : `
+  <nav class="crumbs" aria-label="Breadcrumb">${input.breadcrumb.map(
+  (c) => c.href === void 0 ? `<span aria-current="page">${esc(c.label)}</span>` : `<a href="${esc(c.href)}">${esc(c.label)}</a>`
+).join('<span class="crumb-sep" aria-hidden="true">/</span>')}</nav>
+`}
+${input.body}
+
+  <footer>
+    <p>Each bar shows the last 90 days, one cell per day, coloured by the worst state we measured that day. Hover a cell to see the date and what it was. Checks run from outside our own network roughly every 15 minutes.</p>
+    <nav aria-label="${esc(BRAND.name)}">
+      <a href="${esc(HOSTS.site)}">${esc(BRAND.name)}</a>
+      <a href="${esc(HOSTS.app)}">Sign in</a>
+      <a href="${esc(HOSTS.docs)}">Documentation</a>
+      <a href="/history/">History</a>
+      <a href="/history.atom">RSS feed</a>
+    </nav>
+  </footer>
+
+</main>
+</body>
+</html>
+`;
+
+// src/render.ts
 var GLYPHS = {
   check: '<path d="M4.2 8.4 6.9 11l4.9-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   triangle: '<path d="M8 2.6 14 12.9H2Z"/>',
@@ -1531,22 +1869,23 @@ var DAY_TINT = {
   unknown: "var(--o-neutral-8)",
   "not-measured": "var(--o-neutral-5)"
 };
-var DAY_WORD = {
-  operational: "operational",
-  degraded: "degraded",
-  "partial-outage": "a partial outage",
-  "major-outage": "a major outage",
-  unknown: "not measurable",
-  "not-measured": "not watched"
+var DAY_LABEL = {
+  operational: "Operational",
+  degraded: "Degraded",
+  "partial-outage": "Partial outage",
+  "major-outage": "Major outage",
+  unknown: "Not measurable",
+  "not-measured": "Not watched"
 };
 var historyBar = (series, endDay, label) => {
   const end = Date.parse(`${endDay}T00:00:00Z`);
+  const last = series.length - 1;
   const cells = series.map((state, i) => {
-    const key = new Date(end - (series.length - 1 - i) * 864e5).toISOString().slice(0, 10);
-    if (state === void 0) {
-      return `<span class="cell cell--none" title="${esc(prettyDay(key))}: not recorded"></span>`;
-    }
-    return `<span class="cell" style="background:${DAY_TINT[state]}" title="${esc(prettyDay(key))}: ${esc(DAY_WORD[state])}"></span>`;
+    const key = new Date(end - (last - i) * 864e5).toISOString().slice(0, 10);
+    const anchor = i < 8 ? ' data-tip="start"' : i > last - 8 ? ' data-tip="end"' : "";
+    const word = state === void 0 ? "Not recorded" : DAY_LABEL[state];
+    const dot = state === void 0 ? "none" : state;
+    return `<span class="cell${state === void 0 ? " cell--none" : ""}" tabindex="0"${anchor}${state === void 0 ? "" : ` style="background:${DAY_TINT[state]}"`}><span class="tip"><span class="tip-day">${esc(prettyDay(key))}</span><span class="tip-state" data-s="${dot}">${esc(word)}</span></span></span>`;
   }).join("");
   const stats = statsFor(series);
   const scale = stats.recorded === 0 ? "No history yet" : stats.recorded === 1 ? "1 day recorded" : `${stats.recorded} days recorded`;
@@ -1608,190 +1947,197 @@ var renderPage = (input) => {
   </section>
 `;
   }).join("");
-  const byDay = /* @__PURE__ */ new Map();
-  for (const e of input.history.slice(0, 120)) {
-    const key = new Date(e.at).toISOString().slice(0, 10);
-    byDay.set(key, [...byDay.get(key) ?? [], e]);
-  }
-  const incidents = byDay.size === 0 ? `<p class="empty">Nothing has changed state since we started recording on ${esc(utcDay(now))}. This section fills itself as things happen, and entries are never removed from it.</p>` : [...byDay.entries()].map(([day, entries]) => {
-    const items = entries.map((e) => {
-      const d = new Date(e.at);
-      const from = DAY_WORD[e.from] ?? e.from;
-      const to = DAY_WORD[e.to] ?? e.to;
-      return `<li><span class="ev-time">${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC</span> <strong>${esc(e.label)}</strong> went from ${esc(from)} to ${esc(to)}</li>`;
-    }).join("");
-    return `
-      <div class="day">
-        <h3>${esc(prettyDay(day))}</h3>
-        <ul>${items}</ul>
-      </div>`;
-  }).join("");
-  const channels = input.fallbackChannels ?? [];
-  const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
-  const fallback = channels.length === 0 ? "We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage." : channels.length === 1 ? `If this page is unreachable, look at ${links}. It is not served from our own infrastructure, so a problem with ours does not take it down too.` : `If this page is unreachable, look at ${links}. None of them is served from our own infrastructure, so a problem with ours does not take them down too.`;
-  return `<!doctype html>
-<html lang="en" data-theme="light">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(BRAND.name)} Status</title>
-<meta name="description" content="Live operational status for ${esc(BRAND.name)}, with the way each component is measured stated beside it.">
-<meta name="robots" content="index, follow">
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/icon.svg">
-<link rel="alternate" type="application/atom+xml" title="${esc(BRAND.name)} Status" href="/history.atom">
-<style>
-${input.tokensCss}
-
-/* -------------------------------------------------------------------------
-   Every colour below is a token from the block above.
-   ------------------------------------------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg-canvas);
-  color: var(--fg-primary);
-  font: var(--o-text-body-15);
-  font-weight: var(--o-weight-regular);
-  -webkit-font-smoothing: antialiased;
-}
-
-.sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
-}
-
-.wrap { max-width: 58rem; margin: 0 auto; padding: var(--o-space-6) var(--o-space-4) var(--o-space-8); }
-
-a { color: var(--accent-text); text-underline-offset: 0.16em; }
-:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
-
-/* Masthead -------------------------------------------------------------- */
-.masthead { display: flex; align-items: center; gap: var(--o-space-3); }
-.masthead img { width: 26px; height: 26px; border-radius: 7px; display: block; }
-.masthead .name { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }
-.masthead .kicker { font: var(--o-text-label-14); color: var(--fg-secondary); }
-
-/* Hero ------------------------------------------------------------------ */
-.hero { text-align: center; padding-block: var(--o-space-8) var(--o-space-7); display: flex; flex-direction: column; align-items: center; gap: var(--o-space-3); }
-.hero-mark { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-bottom: var(--o-space-1); }
-.hero-mark svg { width: 28px; height: 28px; }
-.hero h1 { font: var(--o-text-display-32); font-weight: var(--o-weight-regular); margin: 0; text-wrap: balance; letter-spacing: -0.018em; }
-.hero .updated { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
-.hero .caveat { margin: 0; color: var(--fg-secondary); max-width: 48ch; font: var(--o-text-label-14); line-height: 1.55; }
-
-/* Cards ----------------------------------------------------------------- */
-.card {
-  background: var(--bg-raised);
-  border: 1px solid var(--line-rule);
-  border-radius: var(--o-radius-lg);
-  margin-bottom: var(--o-space-5);
-  overflow: hidden;
-}
-.card-head { padding: var(--o-space-5) var(--o-space-5) var(--o-space-4); }
-.card-head h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 2px; }
-.card-head p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
-
-ul.rows { list-style: none; margin: 0; padding: 0; }
-.row { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); border-top: 1px solid var(--line-rule); display: flex; flex-direction: column; gap: var(--o-space-2); }
-.row[data-unmeasured='true'] { background-image: var(--provenance-hatch); }
-.row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--o-space-2) var(--o-space-4); }
-.row-label { font: var(--o-text-title-19); font-weight: var(--o-weight-medium); margin: 0; letter-spacing: -0.005em; }
-.row-summary { margin: 0; color: var(--fg-secondary); max-width: 68ch; font: var(--o-text-label-14); line-height: 1.5; }
-.row-method { margin: 2px 0 0; font: var(--o-text-mono-13); color: var(--fg-secondary); }
-
-/* State badge ------------------------------------------------------------ */
-.state { display: inline-flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
-.glyph { width: 1.05em; height: 1.05em; flex: none; }
-.state-word { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); }
-
-/* History bar ------------------------------------------------------------ */
-.bar-wrap { display: flex; flex-direction: column; gap: var(--o-space-2); margin-top: var(--o-space-2); }
-.bar { display: flex; gap: 2px; align-items: stretch; height: 32px; }
-.cell { flex: 1 1 0; min-width: 2px; border-radius: 2px; }
-/* Barely there on purpose. A visible grey cell reads as a measurement that went
-   badly; this has to read as a day we were not yet watching, which is what an
-   empty track says and a filled one cannot. */
-.cell--none { background: var(--o-neutral-4); opacity: 0.55; }
-.bar-scale { display: flex; justify-content: space-between; align-items: baseline; font: var(--o-text-micro-11); color: var(--fg-secondary); letter-spacing: 0.02em; }
-.bar-count { font-variant-numeric: tabular-nums; }
-
-/* History ---------------------------------------------------------------- */
-.history h2, .legend-wrap h2 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); margin: var(--o-space-7) 0 var(--o-space-2); }
-.history p.lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); max-width: 62ch; font: var(--o-text-label-14); }
-.day { border-top: 1px solid var(--line-rule); padding: var(--o-space-4) 0; }
-.day h3 { font: var(--o-text-label-14); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-2); }
-.day ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-space-2); }
-.day li { color: var(--fg-secondary); font: var(--o-text-label-14); }
-.day strong { color: var(--fg-primary); font-weight: var(--o-weight-medium); }
-.ev-time { font: var(--o-text-mono-13); color: var(--fg-secondary); margin-right: var(--o-space-2); }
-.empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }
-
-/* Legend and footer ------------------------------------------------------ */
-dl.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--o-space-4) var(--o-space-5); margin: 0; }
-dl.legend div { display: flex; flex-direction: column; gap: 2px; }
-dl.legend dt { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); }
-dl.legend dd { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); line-height: 1.5; }
-
-footer { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); color: var(--fg-secondary); display: flex; flex-direction: column; gap: var(--o-space-3); font: var(--o-text-label-14); line-height: 1.55; }
-footer p { margin: 0; max-width: 68ch; }
-
-@media (max-width: 34rem) {
-  .bar { height: 26px; gap: 1px; }
-  .card-head, .row { padding-left: var(--o-space-4); padding-right: var(--o-space-4); }
-  .hero h1 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); }
-}
-
-@media print {
-  .row, .card, .state, .glyph, .cell, .hero-mark { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  a[href]::after { content: ' (' attr(href) ')'; font: var(--o-text-mono-13); }
-}
-</style>
-</head>
-<body>
-<main class="wrap">
-
-  <header class="masthead">
-    <img src="/icon.svg" alt="" width="26" height="26">
-    <span class="name">${esc(BRAND.name)}</span>
-    <span class="kicker">Service status</span>
-  </header>
-
-  <div class="hero">
-    <span class="hero-mark" style="background:${overallStyle.solid};color:${overallStyle.onSolid}">${glyphSvg(overallStyle.glyph, "")}</span>
-    <h1>${esc(headline)}</h1>
-    <p class="updated">Last checked ${esc(utc(now))}</p>
-    <p class="caveat">${esc(caveat)}</p>
+  return shell({
+    title: `${BRAND.name} Status`,
+    description: `Live operational status for ${BRAND.name}, with the way each component is measured stated beside it.`,
+    tokensCss: input.tokensCss,
+    body: `
+  <div class="banner" data-level="${overall.kind === "known" ? overall.level : "unknown"}">
+    <div class="banner-head">
+      <span class="banner-mark" style="background:${overallStyle.solid};color:${overallStyle.onSolid}">${glyphSvg(overallStyle.glyph, "")}</span>
+      <h1>${esc(headline)}</h1>
+    </div>
+    <div class="banner-body">
+      <p>${esc(caveat)}</p>
+      <p class="updated">Last checked ${esc(utc(now))}.</p>
+    </div>
   </div>
 ${groups}
-  <section class="history">
-    <h2>History</h2>
-    <p class="lede">Every state change we have recorded, newest first. Entries are never removed.</p>
-    ${incidents}
-  </section>
+  <div class="cta">
+    <a class="button" href="/history/">
+      <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2.5" y="3.2" width="11" height="10" rx="2"/><path d="M2.5 6.4h11M5.5 2v2.4M10.5 2v2.4"/></svg>
+      View history
+    </a>
+  </div>
+`
+  });
+};
 
-  <section class="legend-wrap">
-    <h2>How to read this page</h2>
-    <dl class="legend">
-      <div><dt>Operational</dt><dd>A request from outside our own network reached it and got what it should.</dd></div>
-      <div><dt>Degraded</dt><dd>It answered, and more slowly or less reliably than it should.</dd></div>
-      <div><dt>Unknown</dt><dd>We tried and could not get an answer. Not the same as working, and not the same as broken.</dd></div>
-      <div><dt>Not measured</dt><dd>Nothing watches this yet. We list it so you can see the gap instead of assuming coverage.</dd></div>
-    </dl>
-  </section>
+// src/render-history.ts
+var IMPACT_LABEL = {
+  degraded: "Degraded",
+  "partial-outage": "Partial outage",
+  "major-outage": "Major outage",
+  unknown: "Not measurable",
+  operational: "Recovered"
+};
+var IMPACT_PHRASE = {
+  degraded: "degraded",
+  "partial-outage": "partly down",
+  "major-outage": "down",
+  unknown: "not measurable"
+};
+var IMPACT_TINT = {
+  degraded: "var(--risk-medium-solid)",
+  "partial-outage": "var(--risk-high-solid)",
+  "major-outage": "var(--risk-critical-solid)",
+  unknown: "var(--o-neutral-8)",
+  operational: "var(--verified-solid)"
+};
+var resolutionLine = (incident) => {
+  const ms = durationOf(incident);
+  if (ms === void 0) return "Still going on. This page updates when the next check runs.";
+  return `Recovered after ${humanDuration(ms)}, at ${utc(incident.resolvedAt)}.`;
+};
+var renderHistoryPage = (input) => {
+  const byMonth = /* @__PURE__ */ new Map();
+  for (const incident of input.incidents) {
+    const d = new Date(incident.startedAt);
+    const key = `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}`;
+    byMonth.set(key, [...byMonth.get(key) ?? [], incident]);
+  }
+  const months = [...byMonth.entries()].map(([key, incidents]) => {
+    const [year, month] = key.split("-");
+    const rows = incidents.map((incident) => {
+      const d = new Date(incident.startedAt);
+      return `
+        <li class="incident-row">
+          <div class="incident-date"><span class="dd">${pad(d.getUTCDate())}</span> <span class="ddow">${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getUTCDay()]}</span></div>
+          <div class="incident-bar" style="background:${IMPACT_TINT[incident.impact]}" aria-hidden="true"></div>
+          <div class="incident-main">
+            <a class="incident-title" href="/incidents/${esc(incident.id)}/">${esc(incident.label)} was ${esc(
+        IMPACT_PHRASE[incident.impact]
+      )}</a>
+            <p>${esc(resolutionLine(incident))}</p>
+          </div>
+          <div class="incident-time">${esc(utcTime(incident.startedAt))}</div>
+        </li>`;
+    }).join("");
+    return `
+    <section class="month">
+      <h2>${esc(MONTHS_LONG[Number(month) - 1] ?? key)} ${esc(year ?? "")}</h2>
+      <ul class="incidents">${rows}
+      </ul>
+    </section>`;
+  }).join("");
+  const empty = `
+    <p class="empty">Nothing has changed state since we started recording. This page fills itself as things happen, and entries are never removed from it.</p>`;
+  const channels = input.fallbackChannels ?? [];
+  const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
+  const fallback = channels.length === 0 ? "We have not yet published a second place to look when this page is unreachable. Until we do, the limitation is stated here rather than left for you to discover during an outage." : `If the status page is unreachable, look at ${links}. ${channels.length === 1 ? "It is not" : "None of them is"} served from our own infrastructure, so a problem with ours does not take ${channels.length === 1 ? "it" : "them"} down too.`;
+  return shell({
+    title: `History \xB7 ${BRAND.name} Status`,
+    description: `Every recorded change of state for ${BRAND.name}, oldest kept forever.`,
+    tokensCss: input.tokensCss,
+    breadcrumb: [{ label: `${BRAND.name} Status`, href: "/" }, { label: "History" }],
+    body: `
+  <div class="page-head">
+    <h1>History</h1>
+    <p>Every change of state we have recorded, newest first. Entries are never removed and never edited.</p>
+  </div>
+${input.incidents.length === 0 ? empty : months}
 
-  <footer>
-    <p>${fallback}</p>
+  <section class="notes">
+    <h2>About these records</h2>
+    <p>These are machine records. A check runs from outside our own network, and when its answer changes we write down the component, the time and what it changed to. <strong>Nobody has written an explanation of why</strong>, because there is no operator typing updates here yet. When that changes, the written account will appear alongside these timings rather than replacing them.</p>
+    <p>We publish no uptime percentage. Every number of that kind we could publish would be derived from our own account of our own incidents, which is the proposer checking its own work, so we show you what each check found and when instead.</p>
+    <p>There is no email sign-up here. A feed collects no personal data, so there is no consent record to keep, no revocation path to build and nothing to erase. Changes are published at <a href="/history.atom">history.atom</a>.</p>
     <p>Where your data lives: the database holding your company data is in Zurich, Switzerland. Requests to the models we use are processed by Anthropic and OpenAI, outside Switzerland and outside the EU. The evidence archive is pinned to the EU.</p>
-    <p>We publish no uptime percentage. Every number of that kind we could publish would be derived from our own account of our own incidents, so we show you what each check found and when instead.</p>
-    <p>You can follow this page by feed at <a href="/history.atom">history.atom</a>. Email notifications are not available, and there is no sign-up form here because there is nothing to sign up to.</p>
-  </footer>
+    <p>${fallback}</p>
+  </section>
+`
+  });
+};
+var renderIncidentPage = (input) => {
+  const { incident } = input;
+  const start = incident.startedAt;
+  const end = incident.resolvedAt ?? start + 6e4;
+  const span = Math.max(end - start, 6e4);
+  const spec = COMPONENTS.find((c) => c.id === incident.component);
+  const segments = incident.phases.map((phase, i) => {
+    const from = phase.at;
+    const to = incident.phases[i + 1]?.at ?? end;
+    const width = Math.max((to - from) / span * 100, 1.5);
+    return `<span class="seg" style="width:${width.toFixed(2)}%;background:${IMPACT_TINT[phase.impact]}" title="${esc(
+      `${utc(from)}: ${IMPACT_LABEL[phase.impact]}`
+    )}"></span>`;
+  }).join("");
+  const updates = [...incident.phases].reverse().map(
+    (phase) => `
+      <li>
+        <span class="dot" style="background:${IMPACT_TINT[phase.impact]}"></span>
+        <div>
+          <strong>${esc(IMPACT_LABEL[phase.impact])}</strong>
+          <p>${esc(
+      phase.impact === "operational" ? `A check from outside our network reached ${incident.label} and got what it should.` : `A check from outside our network found ${incident.label} in this state.`
+    )}</p>
+          <p class="when">${esc(utc(phase.at))}</p>
+        </div>
+      </li>`
+  ).join("");
+  return shell({
+    title: `${incident.label} \xB7 ${BRAND.name} Status`,
+    description: `A recorded incident affecting ${incident.label}.`,
+    tokensCss: input.tokensCss,
+    breadcrumb: [
+      { label: `${BRAND.name} Status`, href: "/" },
+      { label: "History", href: "/history/" },
+      { label: incident.label }
+    ],
+    body: `
+  <div class="banner" data-level="${incident.resolvedAt === void 0 ? incident.impact : "operational"}">
+    <div class="banner-head">
+      <h1>${esc(incident.label)} was ${esc(IMPACT_PHRASE[incident.impact])}</h1>
+    </div>
+    <div class="banner-body">
+      <p class="incident-meta">${esc(
+      incident.resolvedAt === void 0 ? "Ongoing" : "Resolved"
+    )} \xB7 ${esc(IMPACT_LABEL[incident.impact])}</p>
+      <p>${esc(resolutionLine(incident))}</p>
+      <p class="updated">Started ${esc(utc(start))}.</p>
+    </div>
+  </div>
 
-</main>
-</body>
-</html>
-`;
+  <section class="card">
+    <div class="card-head">
+      <h2>Affected component</h2>
+      <p>${esc(spec?.summary ?? incident.label)}</p>
+    </div>
+    <div class="row">
+      <div class="row-head"><h3 class="row-label">${esc(incident.label)}</h3></div>
+      <div class="timeline-scale"><span>${esc(utc(start))}</span><span>${esc(
+      incident.resolvedAt === void 0 ? "now" : utc(end)
+    )}</span></div>
+      <div class="timeline" role="img" aria-label="${esc(
+      `${incident.label}: ${incident.phases.length} recorded phases between ${utc(start)} and ${incident.resolvedAt === void 0 ? "now" : utc(end)}`
+    )}">${segments}</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>What the checks recorded</h2>
+      <p>Newest first. Every line is a probe result with a timestamp, not an account written by a person.</p>
+    </div>
+    <ul class="updates">${updates}
+    </ul>
+  </section>
+
+  <div class="cta">
+    <a class="button" href="/history/">Back to history</a>
+  </div>
+`
+  });
 };
 
 // src/feed.ts
@@ -1919,7 +2265,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "7bf1e9a" : "unknown";
+var sourceCommit = true ? "487bafa" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
@@ -2027,7 +2373,12 @@ var main = async (outDir, options = {}) => {
     generatedAt: at,
     readings: Object.fromEntries(readings)
   };
+  const incidents = incidentsFrom(history.entries);
   await mkdir(outDir, { recursive: true });
+  await mkdir(join(outDir, "history"), { recursive: true });
+  await Promise.all(
+    incidents.map((i) => mkdir(join(outDir, "incidents", i.id), { recursive: true }))
+  );
   await Promise.all([
     writeFile(
       join(outDir, "index.html"),
@@ -2036,7 +2387,6 @@ var main = async (outDir, options = {}) => {
         readings: snapshot.readings,
         tokensCss: tokens_default,
         daily,
-        history: history.entries,
         ...options.fallbacks && options.fallbacks.length > 0 ? { fallbackChannels: options.fallbacks } : {}
       })
     ),
@@ -2053,6 +2403,21 @@ var main = async (outDir, options = {}) => {
     // so the page has no cross-origin dependency at all.
     writeFile(join(outDir, "icon.svg"), orvay_favicon_default),
     writeFile(join(outDir, "history.atom"), renderFeed(history.entries, at, HOSTS.status)),
+    writeFile(
+      join(outDir, "history", "index.html"),
+      renderHistoryPage({
+        tokensCss: tokens_default,
+        incidents,
+        generatedAt: at,
+        ...options.fallbacks && options.fallbacks.length > 0 ? { fallbackChannels: options.fallbacks } : {}
+      })
+    ),
+    ...incidents.map(
+      (incident) => writeFile(
+        join(outDir, "incidents", incident.id, "index.html"),
+        renderIncidentPage({ tokensCss: tokens_default, incident })
+      )
+    ),
     // GitHub Pages needs this file to serve a custom domain, and it needs to be
     // in the published output rather than the source, because the output branch
     // is what Pages reads.
@@ -2071,6 +2436,7 @@ var main = async (outDir, options = {}) => {
   const summary = [...displays.entries()].map(([id, d]) => `${id}: ${stateOf(d)}`).join("\n");
   console.log(
     `status built at ${new Date(at).toISOString()} from ${sourceCommit}
+${incidents.length} incident page(s)
 ${summary}`
   );
 };
