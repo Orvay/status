@@ -5,6 +5,9 @@ import { join, resolve } from "node:path";
 // ../../packages/design-system/src/tokens.css
 var tokens_default = "/* =============================================================================\n   Orvay design tokens\n\n   THE ONLY FILE IN THIS REPOSITORY THAT MAY CONTAIN A COLOUR LITERAL.\n   ESLint errors on any hex, rgb(), hsl() or oklch() elsewhere, and\n   tests/enforcement proves that rule still fires. Spec: docs/plan/08.\n\n   Three tiers:\n     Tier 1  primitives (--o-<ramp>-<step>)  INTERNAL. Components must never\n             reference these. They exist so semantics can be re-pointed without\n             re-deriving colour.\n     Tier 2  semantic (--bg-*, --fg-*, --risk-*, --autonomy-*, ...)  The only\n             tier components consume.\n     Tier 3  component-scoped, defined next to the component that owns it.\n\n   Hue is a scarce budget and it is spent entirely on RISK. Lifecycle is shape,\n   autonomy is container edge, provenance is surface texture, actor is\n   typography and tile geometry. A healthy queue is monochrome, so one amber row\n   is pre-attentively salient rather than one more coloured rectangle.\n\n   Step 9 is theme-invariant but PER RAMP: L(amber-9) > L(ember-9) > L(signal-9)\n   with >= 0.06 separation, so rising risk is a luminance descent and survives\n   greyscale, every form of colour blindness, and a bad projector.\n   tokens.test.ts parses this file and asserts it.\n   ============================================================================= */\n\n:root {\n  /* `light dark` is correct ONLY for the system-default case, where the browser\n     should follow the OS. It must be narrowed the moment a reader picks a theme\n     explicitly, and the two rules below do that.\n\n     Without them, `data-theme='dark'` on a machine set to light leaves every\n     surface the BROWSER draws in light mode while every surface WE draw goes\n     dark: the default button face, form control internals, scrollbars, autofill\n     backgrounds, and the default text colour of any element we forgot to paint.\n     That is not theoretical \u2014 it rendered near-white ink on the UA's near-white\n     `buttonface` at 1.14:1 on the Reject button, on every route, and it looked\n     perfect in light mode where the two happened to agree. */\n  color-scheme: light dark;\n\n  /* No faux-bold, anywhere, ever.\n\n     Measured on the reference: the maximum weight on that entire site is 500.\n     Circular ships only a 500, `b { font-weight: 500 !important }` demotes\n     browser bold, and `font-synthesis: none` blocks the browser from inventing\n     the rest. Hierarchy is carried by size, family, tracking and ink alpha,\n     with weight doing almost no work, and that is the single largest source of\n     the \"expensive\" read (docs/research/warmwind-measurements.md, trap 9).\n\n     Declared here rather than in a component stylesheet because a synthesised\n     weight is a rendering behaviour of the whole document: any surface that\n     forgot to opt out would get a smeared fake bold that no contrast test and\n     no type token can see. Every app imports this file, so every app gets it. */\n  font-synthesis: none;\n\n  /* ---- Tier 1: primitives (light) ---- */\n    /* neutral \u2014 hue 250 */\n    --o-neutral-1: oklch(1.000 0.0000 250);\n    --o-neutral-2: oklch(0.978 0.0010 250);\n    --o-neutral-3: oklch(0.955 0.0000 250);\n    --o-neutral-4: oklch(0.935 0.0015 250);\n    --o-neutral-5: oklch(0.912 0.0020 250);\n    --o-neutral-6: oklch(0.888 0.0025 250);\n    --o-neutral-7: oklch(0.852 0.0030 250);\n    --o-neutral-8: oklch(0.795 0.0035 250);\n    --o-neutral-9: oklch(0.620 0.0045 250);\n    --o-neutral-10: oklch(0.570 0.0050 250);\n    /* L 0.500 measured 4.29:1 against step 6, which is --bg-active. The floor is\n       4.5:1 and nothing caught it, because the contrast suite enumerated INKS\n       against a fixed list of canvases rather than enumerating FILLS. That\n       covers a diagonal of the matrix, not the matrix: primary ink was checked\n       on steps 1-5, secondary ink on step 1 alone, and the interactive ladder\n       (steps 4, 5, 6 = component, hover, active) had no secondary assertion at\n       all. 0.485 clears it at 4.57:1 and still reads as secondary, at 6.39:1 on\n       the raised surface against primary ink's 15:1. */\n    --o-neutral-11: oklch(0.485 0.0055 250);\n    --o-neutral-12: oklch(0.216 0.0075 248);\n    /* The solid-control slab. Not part of the 12-step ramp because it is a\n       two-stop gradient, not a scale position \u2014 the faint vertical fall is what\n       makes the control read as lit from above rather than as flat fill. */\n    --o-slab-top: oklch(0.383 0.0000 250);\n    --o-slab-bottom: oklch(0.256 0.0000 250);\n    /* The slab's ink, declared HERE and never anywhere else.\n       The slab inverts between themes and --o-neutral-9 does not: neutral-9 is\n       L 0.620 in both, so the ink that suits it (dark) is fixed, while the slab\n       runs L 0.26-0.38 in light and L 0.86-0.93 in dark. Wiring the button's\n       colour to --fg-on-solid therefore produced near-black text on a near-black\n       button in LIGHT mode at 1.21:1 \u2014 invisible, on the default theme, on the\n       landing page's main call to action. A fill and its ink have to be declared\n       as a pair, in one place, or they drift apart exactly like this. */\n    --o-slab-ink: var(--o-ink-solid-light);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.994 0.0087 232);\n    --o-steel-2: oklch(0.978 0.0145 232);\n    --o-steel-3: oklch(0.958 0.0232 232);\n    --o-steel-4: oklch(0.938 0.0319 232);\n    --o-steel-5: oklch(0.918 0.0435 232);\n    --o-steel-6: oklch(0.895 0.0551 232);\n    --o-steel-7: oklch(0.858 0.0725 232);\n    --o-steel-8: oklch(0.800 0.0957 232);\n    --o-steel-9: oklch(0.620 0.1450 232);\n    --o-steel-10: oklch(0.575 0.1421 232);\n  /* Step 11 is the INK step, and it has to clear 4.5:1 on every rung of the\n     background ladder rather than on the three anybody thought to check.\n\n     The suite asserted the risk inks on canvases 1, 2 and 3 and left verdant\n     out of the list entirely. Measured across all six rungs in the light theme,\n     every one of the five free inks failed: accent 3.72, verified 3.53, medium\n     3.75, high 3.88, critical 3.97 at their worst. The whole-site sweep caught\n     the verdant case in production markup, at 4.33:1 on the waitlist success\n     message, once its selector was widened to see a `span`.\n\n     These are FREE inks: nothing pairs them with a particular fill, so any of\n     them can land on any surface, and the only honest floor is the worst rung.\n     Dark needed no change; its step 11 sits at L 0.760 against dark grounds. */\n    --o-steel-11: oklch(0.478 0.1044 232);\n    --o-steel-12: oklch(0.255 0.0609 232);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.994 0.0081 75);\n    --o-amber-2: oklch(0.978 0.0135 75);\n    --o-amber-3: oklch(0.958 0.0216 75);\n    --o-amber-4: oklch(0.938 0.0297 75);\n    --o-amber-5: oklch(0.918 0.0405 75);\n    --o-amber-6: oklch(0.895 0.0513 75);\n    --o-amber-7: oklch(0.858 0.0675 75);\n    --o-amber-8: oklch(0.800 0.0891 75);\n    --o-amber-9: oklch(0.700 0.1350 75);\n    --o-amber-10: oklch(0.655 0.1323 75);\n    --o-amber-11: oklch(0.490 0.0972 75);\n    --o-amber-12: oklch(0.255 0.0567 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.994 0.0099 45);\n    --o-ember-2: oklch(0.978 0.0165 45);\n    --o-ember-3: oklch(0.958 0.0264 45);\n    --o-ember-4: oklch(0.938 0.0363 45);\n    --o-ember-5: oklch(0.918 0.0495 45);\n    --o-ember-6: oklch(0.895 0.0627 45);\n    --o-ember-7: oklch(0.858 0.0825 45);\n    --o-ember-8: oklch(0.800 0.1089 45);\n    --o-ember-9: oklch(0.630 0.1650 45);\n    --o-ember-10: oklch(0.585 0.1617 45);\n    --o-ember-11: oklch(0.500 0.1188 45);\n    --o-ember-12: oklch(0.255 0.0693 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.994 0.0118 25);\n    --o-signal-2: oklch(0.978 0.0196 25);\n    --o-signal-3: oklch(0.958 0.0314 25);\n    --o-signal-4: oklch(0.938 0.0431 25);\n    --o-signal-5: oklch(0.918 0.0588 25);\n    --o-signal-6: oklch(0.895 0.0745 25);\n    --o-signal-7: oklch(0.858 0.0980 25);\n    --o-signal-8: oklch(0.800 0.1294 25);\n    --o-signal-9: oklch(0.560 0.1960 25);\n    --o-signal-10: oklch(0.515 0.1921 25);\n    --o-signal-11: oklch(0.505 0.1411 25);\n    --o-signal-12: oklch(0.255 0.0823 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.994 0.0081 152);\n    --o-verdant-2: oklch(0.978 0.0135 152);\n    --o-verdant-3: oklch(0.958 0.0216 152);\n    --o-verdant-4: oklch(0.938 0.0297 152);\n    --o-verdant-5: oklch(0.918 0.0405 152);\n    --o-verdant-6: oklch(0.895 0.0513 152);\n    --o-verdant-7: oklch(0.858 0.0675 152);\n    --o-verdant-8: oklch(0.800 0.0891 152);\n    --o-verdant-9: oklch(0.620 0.1350 152);\n    --o-verdant-10: oklch(0.575 0.1323 152);\n    --o-verdant-11: oklch(0.475 0.0972 152);\n    --o-verdant-12: oklch(0.255 0.0567 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n  /* Ink for step-9 solids. Body ink (step 12) is deliberately not pure, which\n     makes it too light to reach 4.5:1 on a mid-lightness solid \u2014 4.32:1 on\n     neutral-9. Solids get their own inks, and because step 9 is\n     theme-invariant, so is its ink. Which one each ramp takes is derived from\n     the contrast maths, not chosen: only signal-9 is dark enough for light ink.\n     Asserted in tokens.test.ts. */\n  --o-ink-solid-dark: oklch(0.170 0.006 250);\n  --o-ink-solid-light: oklch(0.985 0.004 250);\n\n  /* ---- Weight ramp: off the CSS keyword ladder (\xA74.1), and capped ----\n\n     Off the ladder so that `font-weight: bold` can never be reached for by\n     habit; capped at 530 because the reference's maximum weight is 500 and\n     `font-synthesis: none` above blocks the browser from faking anything\n     heavier. A 620 in a system whose hierarchy is carried by size, family,\n     tracking and ink alpha is the one addition that most reliably destroys the\n     read (measurements, trap 9). tokens.test.ts asserts the cap numerically, so\n     reintroducing a heavier step fails rather than merely disagreeing with this\n     comment. */\n  --o-weight-regular: 400;\n  --o-weight-medium: 460;\n  --o-weight-strong: 530;\n  /* ---- Type scale: tracking is a function of size and inverts (\xA74.3) ---- */\n  /* The first entry in each stack is the face next/font generates in every app's\n     root layout, which resolves to the self-hosted family plus the fallback Next\n     derives from its real metrics. The literal names behind it are what a\n     surface rendered outside a Next app gets, which is how this file is read by\n     the token tests and the specimen sheet.\n\n     The var() carries a DEFAULT rather than standing alone, and that is\n     load-bearing: an undefined custom property makes the whole declaration\n     invalid at computed-value time, so a bare var(--o-font-sans-face) would drop\n     the entire stack rather than skip one absent entry. The failure would look\n     like a serif page, not like a missing font.\n\n     Before 2026-08-18 both stacks named families that nothing loaded, so every\n     surface rendered in system-ui while the tokens claimed otherwise. */\n  --o-font-sans: var(--o-font-sans-face, InterVariable), Inter, ui-sans-serif, system-ui, sans-serif;\n  --o-font-mono: var(--o-font-mono-face, \"IBM Plex Mono\"), ui-monospace, SFMono-Regular, monospace;\n\n  --o-text-display-32: 2rem/2.3rem var(--o-font-sans);\n  --o-tracking-display-32: -0.04em;\n  --o-text-title-24: 1.5rem/1.75rem var(--o-font-sans);\n  --o-tracking-title-24: -0.03em;\n  --o-text-title-19: 1.1875rem/1.5rem var(--o-font-sans);\n  --o-tracking-title-19: -0.025em;\n  --o-text-body-15: 0.9375rem/1.5rem var(--o-font-sans);\n  --o-tracking-body-15: -0.015em;\n  --o-text-label-14: 0.875rem/1rem var(--o-font-sans);\n  --o-tracking-label-14: -0.0125em;\n  --o-text-mono-13: 0.8125rem/1.25rem var(--o-font-mono);\n  --o-tracking-mono-13: 0em;\n  --o-text-micro-11: 0.6875rem/0.875rem var(--o-font-sans);\n  --o-tracking-micro-11: 0.012em;\n\n  /* Chrome tracks in ABSOLUTE PIXELS. Text tracks in percentages.\n\n     The convention deliberately flips at the chrome tier, and missing the flip\n     is what makes buttons look loose (measurements, trap 8). Text tracking is a\n     percentage so it scales with a fluid size; a control label is not fluid, it\n     is a fixed piece of furniture, and it wants a fixed optical correction.\n\n     Measured on the reference: button labels -0.35px, badges -0.2px, numerics\n     -0.5px with tabular figures. Note the size of the effect. `.Button\n     .Paragraph` OVERRIDES the paragraph's -1.5%, and at 16px that is -0.24px\n     against -0.35px, so a button label is tracked ~46% tighter than identical\n     body text sitting beside it. */\n  --o-tracking-control: -0.35px;\n  --o-tracking-badge: -0.2px;\n  --o-tracking-numeric: -0.5px;\n\n  /* ---- Space, radius, hairlines ---- */\n  --o-space-1: 0.25rem;  --o-space-2: 0.5rem;   --o-space-3: 0.75rem;\n  --o-space-4: 1rem;     --o-space-5: 1.5rem;   --o-space-6: 2rem;\n  --o-space-7: 3rem;     --o-space-8: 4rem;\n  --o-radius-sm: 8px;    --o-radius-md: 12px;   --o-radius-lg: 20px;\n  /* Two shapes carry the whole language: controls are fully round, surfaces\n     are generously rounded. Nothing in between, which is what stops the UI\n     drifting into a dozen near-identical corner radii. */\n  --o-radius-pill: 1000px;\n  --o-radius-panel: 30px;\n\n  /* ---------------------------------------------------------------------------\n     Bevel \u2014 where the \"glass\" impression actually comes from.\n\n     Measured on the reference (warmwind.com, 2026-08-09): there is NO\n     backdrop-filter anywhere on that page. Zero. The glassy quality is made\n     entirely from a white INSET highlight along the top edge plus a soft outer\n     shadow \u2014 a simulated bevel catching light, not a blurred backdrop.\n\n     That distinction is worth the paragraph, because backdrop-filter is\n     expensive to composite, disappears under forced-colors, and prints as\n     nothing. This achieves the same read with none of those costs.\n     ------------------------------------------------------------------------- */\n  --o-bevel-control:\n    inset 0 1px 1px 0 color-mix(in oklab, white 20%, transparent),\n    0 1px 2px -0.5px color-mix(in oklab, var(--o-neutral-12) 10%, transparent);\n  --o-bevel-control-solid:\n    0 1px 8px -3px color-mix(in oklab, var(--o-neutral-12) 20%, transparent),\n    inset 0.5px 0 0 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset -0.5px 0 0 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset 0 1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent),\n    inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent);\n  /* Measured off the reference card, not off its icon well. The previous recipe\n     here was `0 23px 29px` plus a 24px opaque-white inner glow, which is the\n     reference's .IconBox-Inner svg shadow -- a 60px lens -- applied to a 1000px\n     card. On an icon it reads as glass; on a card it is a lamp.\n     The real card is held up by the 15-unit luminance step from ground to\n     surface. The outer shadow is deliberately almost erased: a -10px spread on\n     a 12px blur measures 8/255 of darkening at its strongest. Any shadow you\n     would reach for by instinct is an order of magnitude louder. */\n  --o-bevel-raised:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent),\n    inset 0 2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    inset 0 -2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    0 5px 12px -10px color-mix(in oklab, var(--o-neutral-12) 20%, transparent);\n  /* The resting half of the pair. Elevation here is not a translate or a scale:\n     it is this swapping to --o-bevel-raised, six alpha points deeper. An\n     interactive surface must rest on THIS one, or it has nowhere to hover to. */\n  --o-bevel-resting:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 8%, transparent),\n    inset 0 2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    inset 0 -2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    0 4px 10px -8px color-mix(in oklab, var(--o-neutral-12) 10%, transparent);\n  /* Pressed into the ground rather than lifted off it \u2014 a double inset\n     vignette, top and bottom, for wells and inputs. */\n  --o-bevel-inset:\n    inset 0 -2.5px 15px 0 color-mix(in oklab, var(--o-neutral-12) 2%, transparent),\n    inset 0 2.5px 15px 0 color-mix(in oklab, var(--o-neutral-12) 2%, transparent);\n  /* Sub-pixel rims: the hairline that separates without drawing a border. */\n  --o-bevel-rim:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent);\n  --o-hairline: 1px;\n  --o-tap-min: 44px;\n\n  /* ---- Motion: meaning only, never decoration (\xA76) ----\n\n     Two registers, and they are not interchangeable.\n\n     CONTROL FEEDBACK answers \"did it hear me\", so it is fast and symmetric and\n     it never sits on a decision's critical path. Approve, reject, select and\n     halt are 0ms, always.\n\n     ENTER AND EXIT answer \"where did this come from and where did it go\", and\n     the reference's whole motion vocabulary is one asymmetric pair, measured:\n     0.225s in on cubic-bezier(.23, 1, .32, 1), 0.15s out on\n     cubic-bezier(.77, 0, .175, 1). The exit is 33% faster AND a completely\n     different shape. A symmetric ease-out at 300ms with 24px of travel reads as\n     a template (measurements, \xA712 and trap 16). */\n  --o-dur-instant: 80ms;\n  --o-dur-quick: 140ms;\n  --o-dur-considered: 240ms;\n  --o-ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);\n\n  /* The measured pair, verbatim rather than rounded to the duration scale. A\n     motion curve is not a spacing rung: 225 and 150 are the values that were\n     read off the reference, and rounding them to 220 and 160 for tidiness would\n     be substituting taste for the measurement this file exists to record. */\n  --o-dur-enter: 225ms;\n  --o-ease-enter: cubic-bezier(0.23, 1, 0.32, 1);\n  --o-dur-exit: 150ms;\n  /* Previously cubic-bezier(0.4, 0, 1, 1), a plain ease-in, and referenced by\n     nothing. docs/plan/08 \xA76.3 states there is no ease-in curve in the token\n     set; that was already untrue of --o-ease-standard, whose first control\n     point sits below the diagonal. The amendment recorded in \xA76.3 is: the\n     asymmetric pair governs reveals and exits, and ease-out governs anything a\n     click is waiting on. An exit may accelerate away, because nobody is waiting\n     for a thing that has already left. */\n  --o-ease-exit: cubic-bezier(0.77, 0, 0.175, 1);\n\n  /* Reveals travel 4px, not 24px, and run once.\n     Measured: `whileInView opacity 0 -> 1, translateY(4px) -> 0`, 0.225s, 0.1s\n     delay, viewport once. The restraint is the point. A 24px reveal announces\n     itself; a 4px reveal is felt and not seen, which is the only kind of motion\n     a supervision surface can afford. */\n  --o-travel-reveal: 4px;\n  /* Blur is part of the enter, not decoration: the reference's section and\n     slide presets carry 3px and 4px in their initial and exit states. */\n  --o-blur-enter: 3px;\n  /* 0.05s x index, measured. Staggering beyond a handful of items turns a list\n     into a performance, so this is for rows arriving, never for rows present. */\n  --o-stagger-unit: 50ms;\n\n  /* Kept as aliases of the measured pair. They are the names apps already use,\n     and repointing them here is what makes the correction reach every consumer\n     without this session editing a surface it does not own. */\n  --o-dur-reveal: var(--o-dur-enter);\n  --o-ease-reveal: var(--o-ease-enter);\n\n  /* ---- Elevation: the halt control is exempt from overlay depth (\xA70 G) ---- */\n  --o-z-content: 0;\n  --o-z-sticky: 10;\n  --o-z-overlay: 100;\n  --o-z-halt: 1000;\n}\n\n\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    /* neutral \u2014 hue 250 */\n    --o-neutral-1: oklch(0.160 0.0040 250);\n    --o-neutral-2: oklch(0.190 0.0055 250);\n    --o-neutral-3: oklch(0.220 0.0069 250);\n    --o-neutral-4: oklch(0.250 0.0084 250);\n    --o-neutral-5: oklch(0.280 0.0098 250);\n    --o-neutral-6: oklch(0.310 0.0113 250);\n    --o-neutral-7: oklch(0.365 0.0113 250);\n    --o-neutral-8: oklch(0.435 0.0098 250);\n    --o-neutral-9: oklch(0.620 0.0084 250);\n    --o-neutral-10: oklch(0.665 0.0069 250);\n    --o-neutral-11: oklch(0.760 0.0055 250);\n    --o-neutral-12: oklch(0.955 0.0040 250);\n    --o-slab-top: oklch(0.930 0.0030 250);\n    --o-slab-bottom: oklch(0.860 0.0030 250);\n    /* Inverted with the slab. See the note in the light block. */\n    --o-slab-ink: var(--o-ink-solid-dark);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.160 0.0079 232);\n    --o-steel-2: oklch(0.190 0.0132 232);\n    --o-steel-3: oklch(0.220 0.0211 232);\n    --o-steel-4: oklch(0.250 0.0290 232);\n    --o-steel-5: oklch(0.280 0.0396 232);\n    --o-steel-6: oklch(0.310 0.0501 232);\n    --o-steel-7: oklch(0.365 0.0660 232);\n    --o-steel-8: oklch(0.435 0.0871 232);\n    --o-steel-9: oklch(0.620 0.1319 232);\n    --o-steel-10: oklch(0.665 0.1293 232);\n    --o-steel-11: oklch(0.760 0.0950 232);\n    --o-steel-12: oklch(0.955 0.0554 232);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.160 0.0074 75);\n    --o-amber-2: oklch(0.190 0.0123 75);\n    --o-amber-3: oklch(0.220 0.0197 75);\n    --o-amber-4: oklch(0.250 0.0270 75);\n    --o-amber-5: oklch(0.280 0.0369 75);\n    --o-amber-6: oklch(0.310 0.0467 75);\n    --o-amber-7: oklch(0.365 0.0614 75);\n    --o-amber-8: oklch(0.435 0.0811 75);\n    --o-amber-9: oklch(0.700 0.1229 75);\n    --o-amber-10: oklch(0.745 0.1204 75);\n    --o-amber-11: oklch(0.760 0.0885 75);\n    --o-amber-12: oklch(0.955 0.0516 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.160 0.0090 45);\n    --o-ember-2: oklch(0.190 0.0150 45);\n    --o-ember-3: oklch(0.220 0.0240 45);\n    --o-ember-4: oklch(0.250 0.0330 45);\n    --o-ember-5: oklch(0.280 0.0450 45);\n    --o-ember-6: oklch(0.310 0.0571 45);\n    --o-ember-7: oklch(0.365 0.0751 45);\n    --o-ember-8: oklch(0.435 0.0991 45);\n    --o-ember-9: oklch(0.630 0.1502 45);\n    --o-ember-10: oklch(0.675 0.1471 45);\n    --o-ember-11: oklch(0.760 0.1081 45);\n    --o-ember-12: oklch(0.955 0.0631 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.160 0.0107 25);\n    --o-signal-2: oklch(0.190 0.0178 25);\n    --o-signal-3: oklch(0.220 0.0285 25);\n    --o-signal-4: oklch(0.250 0.0392 25);\n    --o-signal-5: oklch(0.280 0.0535 25);\n    --o-signal-6: oklch(0.310 0.0678 25);\n    --o-signal-7: oklch(0.365 0.0892 25);\n    --o-signal-8: oklch(0.435 0.1177 25);\n    --o-signal-9: oklch(0.560 0.1784 25);\n    --o-signal-10: oklch(0.605 0.1748 25);\n    --o-signal-11: oklch(0.760 0.1284 25);\n    --o-signal-12: oklch(0.955 0.0749 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.160 0.0074 152);\n    --o-verdant-2: oklch(0.190 0.0123 152);\n    --o-verdant-3: oklch(0.220 0.0197 152);\n    --o-verdant-4: oklch(0.250 0.0270 152);\n    --o-verdant-5: oklch(0.280 0.0369 152);\n    --o-verdant-6: oklch(0.310 0.0467 152);\n    --o-verdant-7: oklch(0.365 0.0614 152);\n    --o-verdant-8: oklch(0.435 0.0811 152);\n    --o-verdant-9: oklch(0.620 0.1229 152);\n    --o-verdant-10: oklch(0.665 0.1204 152);\n    --o-verdant-11: oklch(0.760 0.0885 152);\n    --o-verdant-12: oklch(0.955 0.0516 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n    /* -------------------------------------------------------------------------\n       Bevel, re-derived for a dark ground.\n\n       These MUST be restated per theme, and the reason is geometric rather than\n       chromatic. In light, a card is lifted by pooling white INSIDE its lower\n       edge -- white on white reads as a soft interior lift. Do the same thing on\n       a dark card and you get a lamp. The dark equivalent of \"lifted\" is a\n       lighter surface, a hairline of light caught on the TOP edge, and a shadow\n       that is actually dark. Different shapes, not the same shape recoloured, so\n       one shared recipe with swapped colours cannot express both.\n\n       Leaving them undefined here was a real, shipped bug: every shadow is mixed\n       from --o-neutral-12, which is near-black in light and near-white in dark,\n       so every shadow in the product inverted into a glow, and --o-bevel-raised\n       carried a 100%-opacity white inset that turned every card into a halo.\n\n       Shadows are mixed from black rather than from an ink token on purpose: a\n       shadow is an absence of light, and it must not follow the text colour when\n       the theme flips. That coupling is what broke.\n       ---------------------------------------------------------------------- */\n    --o-bevel-control:\n      inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),\n      0 1px 2px -0.5px color-mix(in oklab, black 55%, transparent);\n    --o-bevel-control-solid:\n      0 1px 8px -3px color-mix(in oklab, black 70%, transparent),\n      inset 0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset -0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset 0 1.25px 0 -0.5px color-mix(in oklab, white 14%, transparent),\n      inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 8%, transparent);\n    --o-bevel-raised:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 10%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 50%, transparent),\n      inset 0 2px 4px 0 color-mix(in oklab, white 4%, transparent),\n      0 5px 12px -10px color-mix(in oklab, black 75%, transparent);\n    --o-bevel-resting:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 6%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 40%, transparent),\n      0 4px 10px -8px color-mix(in oklab, black 60%, transparent);\n    --o-bevel-inset:\n      inset 0 -2.5px 15px 0 color-mix(in oklab, black 24%, transparent),\n      inset 0 2.5px 15px 0 color-mix(in oklab, black 24%, transparent);\n    /* The rim inverts, and only in dark: light collects on the top edge and the\n       bottom edge falls into shadow. In light both edges are ink. */\n    --o-bevel-rim:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);\n  }\n}\n\n:root[data-theme='dark'] {\n    /* neutral \u2014 hue 250 */\n    --o-neutral-1: oklch(0.160 0.0040 250);\n    --o-neutral-2: oklch(0.190 0.0055 250);\n    --o-neutral-3: oklch(0.220 0.0069 250);\n    --o-neutral-4: oklch(0.250 0.0084 250);\n    --o-neutral-5: oklch(0.280 0.0098 250);\n    --o-neutral-6: oklch(0.310 0.0113 250);\n    --o-neutral-7: oklch(0.365 0.0113 250);\n    --o-neutral-8: oklch(0.435 0.0098 250);\n    --o-neutral-9: oklch(0.620 0.0084 250);\n    --o-neutral-10: oklch(0.665 0.0069 250);\n    --o-neutral-11: oklch(0.760 0.0055 250);\n    --o-neutral-12: oklch(0.955 0.0040 250);\n    --o-slab-top: oklch(0.930 0.0030 250);\n    --o-slab-bottom: oklch(0.860 0.0030 250);\n    /* Inverted with the slab. See the note in the light block. */\n    --o-slab-ink: var(--o-ink-solid-dark);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.160 0.0079 232);\n    --o-steel-2: oklch(0.190 0.0132 232);\n    --o-steel-3: oklch(0.220 0.0211 232);\n    --o-steel-4: oklch(0.250 0.0290 232);\n    --o-steel-5: oklch(0.280 0.0396 232);\n    --o-steel-6: oklch(0.310 0.0501 232);\n    --o-steel-7: oklch(0.365 0.0660 232);\n    --o-steel-8: oklch(0.435 0.0871 232);\n    --o-steel-9: oklch(0.620 0.1319 232);\n    --o-steel-10: oklch(0.665 0.1293 232);\n    --o-steel-11: oklch(0.760 0.0950 232);\n    --o-steel-12: oklch(0.955 0.0554 232);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.160 0.0074 75);\n    --o-amber-2: oklch(0.190 0.0123 75);\n    --o-amber-3: oklch(0.220 0.0197 75);\n    --o-amber-4: oklch(0.250 0.0270 75);\n    --o-amber-5: oklch(0.280 0.0369 75);\n    --o-amber-6: oklch(0.310 0.0467 75);\n    --o-amber-7: oklch(0.365 0.0614 75);\n    --o-amber-8: oklch(0.435 0.0811 75);\n    --o-amber-9: oklch(0.700 0.1229 75);\n    --o-amber-10: oklch(0.745 0.1204 75);\n    --o-amber-11: oklch(0.760 0.0885 75);\n    --o-amber-12: oklch(0.955 0.0516 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.160 0.0090 45);\n    --o-ember-2: oklch(0.190 0.0150 45);\n    --o-ember-3: oklch(0.220 0.0240 45);\n    --o-ember-4: oklch(0.250 0.0330 45);\n    --o-ember-5: oklch(0.280 0.0450 45);\n    --o-ember-6: oklch(0.310 0.0571 45);\n    --o-ember-7: oklch(0.365 0.0751 45);\n    --o-ember-8: oklch(0.435 0.0991 45);\n    --o-ember-9: oklch(0.630 0.1502 45);\n    --o-ember-10: oklch(0.675 0.1471 45);\n    --o-ember-11: oklch(0.760 0.1081 45);\n    --o-ember-12: oklch(0.955 0.0631 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.160 0.0107 25);\n    --o-signal-2: oklch(0.190 0.0178 25);\n    --o-signal-3: oklch(0.220 0.0285 25);\n    --o-signal-4: oklch(0.250 0.0392 25);\n    --o-signal-5: oklch(0.280 0.0535 25);\n    --o-signal-6: oklch(0.310 0.0678 25);\n    --o-signal-7: oklch(0.365 0.0892 25);\n    --o-signal-8: oklch(0.435 0.1177 25);\n    --o-signal-9: oklch(0.560 0.1784 25);\n    --o-signal-10: oklch(0.605 0.1748 25);\n    --o-signal-11: oklch(0.760 0.1284 25);\n    --o-signal-12: oklch(0.955 0.0749 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.160 0.0074 152);\n    --o-verdant-2: oklch(0.190 0.0123 152);\n    --o-verdant-3: oklch(0.220 0.0197 152);\n    --o-verdant-4: oklch(0.250 0.0270 152);\n    --o-verdant-5: oklch(0.280 0.0369 152);\n    --o-verdant-6: oklch(0.310 0.0467 152);\n    --o-verdant-7: oklch(0.365 0.0614 152);\n    --o-verdant-8: oklch(0.435 0.0811 152);\n    --o-verdant-9: oklch(0.620 0.1229 152);\n    --o-verdant-10: oklch(0.665 0.1204 152);\n    --o-verdant-11: oklch(0.760 0.0885 152);\n    --o-verdant-12: oklch(0.955 0.0516 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n    /* -------------------------------------------------------------------------\n       Bevel, re-derived for a dark ground.\n\n       These MUST be restated per theme, and the reason is geometric rather than\n       chromatic. In light, a card is lifted by pooling white INSIDE its lower\n       edge -- white on white reads as a soft interior lift. Do the same thing on\n       a dark card and you get a lamp. The dark equivalent of \"lifted\" is a\n       lighter surface, a hairline of light caught on the TOP edge, and a shadow\n       that is actually dark. Different shapes, not the same shape recoloured, so\n       one shared recipe with swapped colours cannot express both.\n\n       Leaving them undefined here was a real, shipped bug: every shadow is mixed\n       from --o-neutral-12, which is near-black in light and near-white in dark,\n       so every shadow in the product inverted into a glow, and --o-bevel-raised\n       carried a 100%-opacity white inset that turned every card into a halo.\n\n       Shadows are mixed from black rather than from an ink token on purpose: a\n       shadow is an absence of light, and it must not follow the text colour when\n       the theme flips. That coupling is what broke.\n       ---------------------------------------------------------------------- */\n    --o-bevel-control:\n      inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),\n      0 1px 2px -0.5px color-mix(in oklab, black 55%, transparent);\n    --o-bevel-control-solid:\n      0 1px 8px -3px color-mix(in oklab, black 70%, transparent),\n      inset 0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset -0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset 0 1.25px 0 -0.5px color-mix(in oklab, white 14%, transparent),\n      inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 8%, transparent);\n    --o-bevel-raised:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 10%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 50%, transparent),\n      inset 0 2px 4px 0 color-mix(in oklab, white 4%, transparent),\n      0 5px 12px -10px color-mix(in oklab, black 75%, transparent);\n    --o-bevel-resting:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 6%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 40%, transparent),\n      0 4px 10px -8px color-mix(in oklab, black 60%, transparent);\n    --o-bevel-inset:\n      inset 0 -2.5px 15px 0 color-mix(in oklab, black 24%, transparent),\n      inset 0 2.5px 15px 0 color-mix(in oklab, black 24%, transparent);\n    /* The rim inverts, and only in dark: light collects on the top edge and the\n       bottom edge falls into shadow. In light both edges are ink. */\n    --o-bevel-rim:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);\n}\n\n/* =============================================================================\n   Tier 2 \u2014 semantic. The only tier components consume.\n   ============================================================================= */\n\n:root, :root[data-theme='dark'] {\n  /* THE STRUCTURAL INVERSION, and the single biggest visual decision here.\n     The ground is GREY and surfaces are WHITE floating on it \u2014 the opposite of\n     the usual white-page-with-grey-panels. It is what makes the reference feel\n     calm and dimensional rather than flat, and it costs nothing: the same ramp,\n     read from a different step.\n\n     WHICH step is not theme-portable, and that is the subtle part. The invariant\n     is \"a raised surface is LIGHTER than the ground it floats on\". In light that\n     means the ground is step 3 and the surface is step 1, because step 1 is the\n     lightest. In dark the ramp runs the other way \u2014 step 1 is the DARKEST \u2014 so\n     these same two mappings put every card BELOW its own ground: a hole punched\n     into the canvas rather than a surface floating on it. The dark override\n     below swaps them, and `elevation is monotonic` in tokens.test.ts is what\n     stops this being rediscovered by looking at a screenshot. */\n  --bg-canvas: var(--o-neutral-3);\n  --bg-raised: var(--o-neutral-1);\n  --bg-subtle: var(--o-neutral-2);\n  --bg-component: var(--o-neutral-4);\n  --bg-hover: var(--o-neutral-5);\n  --bg-active: var(--o-neutral-6);\n\n  --line-rule: var(--o-neutral-a6);\n  --line-border: var(--o-neutral-a7);\n  --line-strong: var(--o-neutral-a8);\n  /* A border that IDENTIFIES a control, not a decorative rule. Steps 6-8 are\n     hairlines for table rules and dividers and legitimately sit below WCAG\n     1.4.11's 3:1 \u2014 at step 7 a control border is 1.5:1 on canvas, which is not\n     a boundary anyone can see. Control boundaries bind here instead. */\n  --line-control: var(--o-neutral-10);\n\n  --fg-primary: var(--o-neutral-12);\n  --fg-secondary: var(--o-neutral-11);\n  --fg-on-solid: var(--o-neutral-on-9);\n\n  --control-solid-top: var(--o-slab-top);\n  /* Anything setting `color` on a control-solid fill MUST use this and never\n     --fg-on-solid. The two are different inks for different fills. */\n  --control-solid-ink: var(--o-slab-ink);\n  --control-solid-bottom: var(--o-slab-bottom);\n\n  --accent-solid: var(--o-steel-9);\n  --accent-hover: var(--o-steel-10);\n  --accent-line: var(--o-steel-a8);\n  /* The accent as INK. Same trap as risk: step 9 is a fill anchor and is only\n     3.6:1 as text on canvas. Links and inline accents bind here. */\n  --accent-text: var(--o-steel-11);\n  --accent-on-solid: var(--o-steel-on-9);\n  /* The ring is INK, not a fill, and binding it to step 9 was the same mistake\n     --accent-text and the risk text steps already exist to correct.\n\n     A focus indicator is judged against what it is ADJACENT to (WCAG 1.4.11,\n     3:1), and with `outline-offset` the adjacent colour is whatever the control\n     sits on. Step 9 is theme-invariant in lightness by design, so one value had\n     to answer for light grounds at L 0.89-1.00 and dark grounds at L 0.16-0.31.\n     It could only be right for one of them, and it was: measured across steps\n     1-6 it ran 3.47 down to 2.48:1 in light, failing on --bg-component,\n     --bg-hover and --bg-active. --bg-component is the button's own background,\n     so the indicator on the most common control in the product was 2.86:1.\n\n     Step 11 is theme-aware, so it moves with the ground: worst case 3.72:1 in\n     light and 6.24:1 in dark, across every surface a ring can border. No halo\n     layer is needed, which matters because \xA76.3's box-shadow ring would be\n     clipped by the `overflow: hidden` on every scrollable log panel we own.\n\n     This is the trap-6 fix. The reference removes focus indication entirely;\n     replacing it with an indicator that misses the non-text floor would have\n     been the same defect wearing a fix's clothes. */\n  --focus-ring: var(--o-steel-11);\n\n  /* Risk \u2014 the one family that spends hue. Low is the ABSENCE of hue. */\n  --risk-low-tint: transparent;\n  --risk-low-solid: var(--o-neutral-9);\n  --risk-medium-tint: var(--o-amber-a3);\n  --risk-medium-solid: var(--o-amber-9);\n  --risk-medium-on: var(--o-amber-on-9);\n  --risk-high-tint: var(--o-ember-a3);\n  --risk-high-solid: var(--o-ember-9);\n  --risk-high-on: var(--o-ember-on-9);\n  --risk-critical-tint: var(--o-signal-a3);\n  --risk-critical-solid: var(--o-signal-9);\n  --risk-critical-on: var(--o-signal-on-9);\n\n  /* Risk expressed as INK. Step 9 is a fill anchor at a lightness chosen to\n     carry ink, which makes it far too light to BE ink: amber-9 as text is\n     2.6:1 on canvas. Step 11 is the text step and meets 4.5:1. Grafana splits\n     redDarkMain from redDarkText for the same reason. */\n  --risk-medium-text: var(--o-amber-11);\n  --risk-high-text: var(--o-ember-11);\n  --risk-critical-text: var(--o-signal-11);\n\n  --verified-solid: var(--o-verdant-9);\n  --verified-line: var(--o-verdant-a8);\n  /* The ink partner, for exactly the reason stated above the risk text steps:\n     verdant-9 is a FILL anchor and measures ~2.9:1 as text on canvas, which is\n     below the 4.5:1 floor. Anything setting `color` from a verified signal must\n     use this and never the solid. */\n  --verified-text: var(--o-verdant-11);\n  /* And the ink that sits ON the solid, so a filled success chip is a token\n     lookup rather than a judgement call. */\n  --verified-on: var(--o-verdant-on-9);\n\n  /* Autonomy \u2014 container edge. Line STYLE is the channel; nothing else uses it. */\n  --autonomy-rail-width: 3px;\n  --autonomy-autonomous-style: solid;\n  --autonomy-approval-style: dashed;\n  --autonomy-restricted-style: double;\n  --autonomy-forbidden-style: solid;\n  --autonomy-autonomous-color: var(--o-neutral-a8);\n  --autonomy-approval-color: var(--o-steel-a8);\n  --autonomy-restricted-color: var(--o-amber-a8);\n  --autonomy-forbidden-color: var(--o-signal-a8);\n\n  /* Provenance \u2014 the ground. ONE meaning: not an established fact (\xA70 C). */\n  --provenance-hatch-color: var(--o-neutral-a4);\n  --provenance-hatch: repeating-linear-gradient(\n    45deg,\n    var(--provenance-hatch-color) 0 1px,\n    transparent 1px 7px\n  );\n\n  /* Charts are monochrome by construction (\xA73.7). Colour must be asked for. */\n  --chart-1: var(--o-neutral-12);\n  --chart-2: var(--o-neutral-11);\n  --chart-3: var(--o-neutral-10);\n  --chart-4: var(--o-neutral-9);\n  --chart-5: var(--o-neutral-8);\n  --chart-6: var(--o-neutral-7);\n\n  /* ===========================================================================\n     GLASS \u2014 the one material that is not allowed on the flat ground.\n\n     THE RULE, and it decides everything about this family:\n       Glass only where it floats over a photograph. Opaque white everywhere it\n       sits on the flat ground.\n\n     This is measured, not preferred. Across every marketing page on the\n     reference, the count of elements with a computed `backdrop-filter` is\n     ZERO; its glassiness is inset white rims plus ink hairlines on opaque\n     fills, which is what --o-bevel-* already encodes. Its PRODUCT CSS uses\n     `blur(clamp(14px, .6vw, 44px))` on nearly every floating surface, because\n     there the ground is a photographic wallpaper. Putting blur on a card that\n     sits on our canvas is copying the product onto the site (trap 11).\n\n     Nothing in Orvay's product qualifies today: our ground is flat by\n     decision, so this family is currently reachable only from a surface that\n     declares `data-ground=\"photographic\"`. ui.css owns that gate and\n     tokens.test.ts proves the gate fires. The family is built rather than\n     deferred because the tenant-website preview surface is a real photographic\n     ground arriving later, and a material invented under deadline is how the\n     one rule above gets quietly broken.\n\n     THEME-INVARIANT ON PURPOSE, and this is the part that is easy to get\n     wrong. Every other surface token here inverts, because its ground is our\n     canvas. Glass floats over an arbitrary image that knows nothing about\n     `prefers-color-scheme`. Mixing the scrim from --o-neutral-12 would make it\n     a dark veil in light mode and a near-white veil in dark mode over the same\n     photograph. That is exactly the coupling that broke every shadow in the\n     product once already; the note above --o-bevel-* in the dark block records\n     it. So the scrim is declared once, here, and never restated.\n     ======================================================================== */\n\n  /* The measured ink, restated as a fixed value because it must not follow the\n     theme. Same construction and same reason as --o-ink-solid-light/dark. */\n  --o-glass-scrim: oklch(0.216 0.0075 248);\n  /* #171a1d59 measured \u2014 35% is the value that makes an arbitrary photograph\n     quiet enough to read white ink against without becoming a grey panel. */\n  --o-glass-fill: color-mix(in oklab, var(--o-glass-scrim) 35%, transparent);\n  /* The veil the GROUND wears, and the reason it has to exist.\n\n     The measured scrim is 35%, and at 35% glass ink is legible over the\n     reference's own wallpapers and nowhere else. Measured through the shipped\n     values: white ink on a 35% scrim is 10.27:1 over a mid-dark photograph and\n     2.11:1 over a white one. warmwind never meets the second case because it\n     ships the photographs; Orvay's only plausible photographic surface is a\n     tenant's own imagery, which is uploaded by somebody else and can be\n     anything at all.\n\n     So the ground guarantees its own ceiling rather than trusting its content.\n     0.40 is the minimum veil that clears 4.5:1 against a WHITE photograph;\n     0.45 is what ships, for headroom, and material.test.ts asserts the\n     arithmetic against the worst case rather than against a sample image.\n\n     This is the one place the measurement could not be copied. It was right for\n     the reference's situation and wrong for ours, and the difference is who\n     supplies the picture. */\n  --o-ground-veil: color-mix(in oklab, var(--o-glass-scrim) 45%, transparent);\n  --o-glass-blur: blur(clamp(14px, 0.6vw, 44px));\n  /* The modal scrim, which belongs to this family only because it shares the\n     fixed ink. Measured as a FLAT 60% scrim with no blur: the reference's own\n     dialog backdrop is flat, and blurring the page behind a modal is the same\n     trap-11 mistake as blurring a card on the flat ground. Theme-invariant,\n     because darkening the page is the same gesture in either theme. */\n  --o-scrim: color-mix(in oklab, var(--o-glass-scrim) 60%, transparent);\n  /* One variant on the reference adds saturation, which puts colour back that\n     a heavy blur averages away. Use it on chrome that sits over a photograph\n     the reader is meant to still perceive as a photograph. */\n  --o-glass-blur-vivid: blur(clamp(14px, 0.6vw, 44px)) saturate(1.5);\n\n  /* The rim is what makes a 35% scrim legible against an unknown image, and\n     the bevel is INVERTED on purpose: ink insets on the left and right only,\n     white 30% rims on the top and bottom. That is backwards from a physical\n     bevel, and it is precisely why these read as glass rather than as plastic.\n     Put a dark inset on the bottom and you have built a button (trap 4).\n     Restated here rather than aliased to --o-bevel-control-solid because that\n     token inverts per theme and this one must not. */\n  --o-glass-rim:\n    0 1px 8px -3px color-mix(in oklab, var(--o-glass-scrim) 20%, transparent),\n    inset 0.5px 0 0 0 color-mix(in oklab, var(--o-glass-scrim) 10%, transparent),\n    inset -0.5px 0 0 0 color-mix(in oklab, var(--o-glass-scrim) 10%, transparent),\n    inset 0 1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent),\n    inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent);\n\n  /* Ink on glass is fixed light, for the same reason the scrim is fixed dark. */\n  --o-glass-ink: var(--o-ink-solid-light);\n\n  /* THERE IS NO SECONDARY INK ON GLASS, and the reason is arithmetic.\n\n     Over a white photograph, veiled and scrimmed, primary ink measures 5.06:1.\n     That leaves almost no budget: the minimum alpha that still clears 4.5:1 is\n     0.91, and ink at 91% is not a de-emphasised tier, it is primary ink with a\n     rounding error. Buying a real muted tier means a veil of 0.65, which\n     obscures the photograph badly enough that there was no reason to use one.\n\n     So on glass, de-emphasis is size, tracking and position, never opacity.\n     Same lesson as the weight cap, applied to a different channel: when a\n     channel has no headroom, stop spending in it rather than spending a token\n     amount and calling it hierarchy.\n\n     material.test.ts enumerates every --o-glass-ink* token and holds each to\n     4.5:1 against a white photograph, so adding one later is allowed and being\n     illegible is not. */\n  /* Panels on a photographic ground are separated by the WALLPAPER showing\n     through, never by a divider. There is no line token here on purpose. */\n\n  /* The progressive blur \u2014 ten layers, each doubling, each masked to a 10% band\n     shifted 10% further along. Worth stealing outright: a single large blur\n     reads as a smear, the stack reads as depth, and the difference is entirely\n     in the fact that the transition between blurred and unblurred is itself\n     gradual. The component that assembles the twelve layers is ProgressiveBlur\n     in @orvay/ui; the ladder is owned here so the doubling cannot drift. */\n  --o-blur-l1: 0.1px;\n  --o-blur-l2: 0.2px;\n  --o-blur-l3: 0.4px;\n  --o-blur-l4: 0.8px;\n  --o-blur-l5: 1.6px;\n  --o-blur-l6: 3.2px;\n  --o-blur-l7: 6.4px;\n  --o-blur-l8: 12.8px;\n  --o-blur-l9: 25.6px;\n  --o-blur-l10: 51.2px;\n  --o-blur-band: 10%;\n}\n\n\n/* =============================================================================\n   Tier 2 \u2014 dark. Only the surface ladder moves.\n\n   Everything else in Tier 2 is expressed as a var() onto a Tier 1 step that\n   already flips, so it needs no restatement: --fg-primary is step 12 and step 12\n   is ink in both themes. The BACKGROUNDS are the exception, because \"raised\" is\n   not a step, it is a DIRECTION along the ramp, and the ramp reverses.\n\n   Light: ground 3 (0.955) -> surface 1 (1.000), a lift of +0.045.\n   Dark:  ground 1 (0.160) -> surface 3 (0.220), a lift of +0.060.\n\n   Same gesture, opposite steps. Leaving this out is what made every card in dark\n   sit BELOW its ground; the white halo was a second, independent bug on top of\n   it, and fixing only the halo would have produced something that looked better\n   and was still inverted.\n   ============================================================================= */\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    --bg-canvas: var(--o-neutral-1);\n    --bg-subtle: var(--o-neutral-2);\n    --bg-raised: var(--o-neutral-3);\n  }\n}\n:root[data-theme='dark'] {\n  --bg-canvas: var(--o-neutral-1);\n  --bg-subtle: var(--o-neutral-2);\n  --bg-raised: var(--o-neutral-3);\n}\n\n/* `color-scheme`, pinned to the explicit choice.\n   Declared HERE rather than beside the bare `:root` declaration at the top of\n   the file, because tokens.test.ts slices this document into theme blocks by\n   the FIRST occurrence of each selector and asserts they appear in ramp order.\n   A `[data-theme='dark']` rule above the ramps makes that slice start in the\n   wrong place and every dark-theme assertion in the suite silently measures the\n   light values. The suite caught it; the placement below keeps it honest. */\n:root[data-theme='light'] { color-scheme: light; }\n:root[data-theme='dark'] { color-scheme: dark; }\n\n/* =============================================================================\n   Print under a dark theme.\n\n   `--bg-canvas: #ffffff` alone was not enough, and for this product that is a\n   critical bug rather than a cosmetic one: a reader in dark mode printing an\n   evidence exhibit got near-white ink (step 12 = 0.955) on a forced-white page.\n   The exhibit prints blank. CLAUDE.md section 7 says a printed simulated run\n   that looks live is a critical bug; a printed run that shows nothing at all is\n   the same class of failure.\n\n   The neutral ramp is restated at its LIGHT values for print, rather than only\n   the ground, because ink and ground have to agree about which way the ramp\n   runs. Only the steps that carry ground, surface and ink are listed; the risk\n   hues keep their own values and are already forced with print-color-adjust.\n   ============================================================================= */\n@media print {\n  :root, :root[data-theme='dark'], :root:not([data-theme='light']) {\n    --o-neutral-1: oklch(1.000 0.0000 250);\n    --o-neutral-2: oklch(0.978 0.0010 250);\n    --o-neutral-3: oklch(0.955 0.0000 250);\n    /* Mirrors the light value exactly. It had drifted to L 0.528 / C 0.0090\n       against light's 0.500 / 0.0055, which is a third ramp nobody chose: the\n       block's whole purpose is to restate the LIGHT ramp so a dark-mode reader\n       printing an exhibit gets ink on paper. A print-only value that agrees\n       with neither theme is how an exhibit stops matching the screen it was\n       taken from. tokens.test.ts now asserts the mirroring. */\n    --o-neutral-11: oklch(0.485 0.0055 250);\n    --o-neutral-12: oklch(0.216 0.0075 248);\n    --bg-canvas: var(--o-neutral-3);\n    --bg-subtle: var(--o-neutral-2);\n    --bg-raised: var(--o-neutral-1);\n  }\n}\n\n/* =============================================================================\n   Print \u2014 a first-class output (\xA70 E).\n\n   Screenshots of Orvay are exhibits. Browsers strip backgrounds by default,\n   which would remove the risk tint AND the provenance hatch, so a printed\n   SIMULATED run would look live. That is the one thing this product must never\n   do. Colour is forced, and the redundant text carriers do the rest.\n   ============================================================================= */\n@media print {\n  :root { --bg-canvas: #ffffff; }\n  [data-provenance], [data-risk] {\n    print-color-adjust: exact;\n    -webkit-print-color-adjust: exact;\n  }\n}\n\n/* =============================================================================\n   Reduced motion \u2014 stand the movement down, never the signal.\n\n   This is trap 19, and it is law here rather than taste (CLAUDE.md \xA77a). The\n   reference ships `*, ::before, ::after { animation-duration: .001ms }`, which\n   DELETES its pulsing .ActiveIndicator. That indicator is the only thing on the\n   screen saying a worker is alive, and nothing takes its place. A reader who\n   sets a motion preference is asking not to be moved; they are not asking to be\n   told less.\n\n   So the rule for this repository is stated as an obligation on the AUTHOR of a\n   motion, not on this block: any motion that carries meaning must have a\n   non-motion carrier that survives here. The theme toggle's glyph swap is one\n   (the sun still becomes a moon with the travel at zero); the stale-run signal\n   in ui.css is the other, and it degrades to a static hatch plus the literal\n   word rather than to a still dot.\n\n   Every duration is listed, including the aliases. Relying on an alias to\n   inherit its target's zero would work today and break silently the moment\n   somebody gives the alias its own value, and this block is the single control\n   that must not have an escape hatch. tokens.test.ts asserts the list is\n   complete against the tokens actually declared above.\n   ============================================================================= */\n@media (prefers-reduced-motion: reduce) {\n  :root {\n    --o-dur-instant: 0ms;\n    --o-dur-quick: 0ms;\n    --o-dur-considered: 0ms;\n    --o-dur-enter: 0ms;\n    --o-dur-exit: 0ms;\n    --o-dur-reveal: 0ms;\n    --o-stagger-unit: 0ms;\n    /* The travel and the blur are stood down too. A 0ms transition on a 4px\n       translate still paints the element 4px out of place on the first frame\n       if the travel itself survives, and an enter blur with no duration is a\n       permanently blurred element. */\n    --o-travel-reveal: 0px;\n    --o-blur-enter: 0px;\n  }\n}\n";
 
+// ../../brand/orvay-favicon.svg
+var orvay_favicon_default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Orvay">\n  <!--\n    The Orvay mark on its favicon tile. THE MASTER FOR THE TILED FORM.\n\n    brand/orvay-mark.svg is the master for the bare glyph; this is that glyph\n    placed on the dark tile, which is what a browser tab, an app icon and a\n    masthead actually want. Next.js requires a copy at apps/*/src/app/icon.svg\n    for its file convention, and those two are copies of this, regenerated\n    together rather than edited apart.\n\n    It lives outside apps/ because it is shared: apps/status imports it to write\n    its own favicon, and apps importing apps is a section 5 prohibition that\n    pnpm arch:check enforces. Pulling it from apps/site was the first attempt and\n    the check refused it.\n\n    No double hyphen appears in this comment, and that is load-bearing rather\n    than stylistic. XML forbids it inside a comment, and an earlier version of\n    this drawing used one: the favicon was unparseable, the browser fell back to\n    a default glyph, and it served a 200 with the right content-type the whole\n    time. scripts/check-enforcement.mjs now refuses it.\n\n    Colour literals are unavoidable in an image asset and the constitution ban is\n    scoped to CSS and TypeScript, where tokens.css is the sole owner. These two\n    values are the dark theme neutral-1 and neutral-12 resolved from oklch, held\n    in sync by nothing but this sentence, which is acceptable for a 32px mark\n    that changes approximately never.\n  -->\n  <rect width="32" height="32" rx="8" fill="#0c0d0f" />\n  <g transform="translate(0.2057 0.2057) scale(0.030848)">\n    <path fill="#eef0f3" fill-rule="nonzero" d="M359.5 122.9 L606.0 122.9 L722.7 239.6 L722.7 353.8 L822.0 353.8 L890.4 422.2 L890.4 675.2 L664.5 901.1 L418.0 901.1 L301.3 784.4 L301.3 670.2 L202.0 670.2 L133.6 601.8 L133.6 348.8 Z M284.0 400.7 L284.0 566.3 L466.0 748.3 L610.2 748.3 L737.6 620.9 L737.6 455.3 L555.6 273.3 L411.4 273.3 Z"/>\n  </g>\n</svg>\n';
+
 // ../../packages/domain/src/ids.ts
 var make = () => (value) => value;
 var OrganizationId = make();
@@ -157,140 +160,224 @@ var overallFrom = (displays) => {
 // ../../packages/status/src/components.ts
 var MINUTE = 60 * 1e3;
 var HOUR = 60 * MINUTE;
+var GROUPS = [
+  {
+    id: "surfaces",
+    title: "What you use",
+    summary: "The pages and applications you open."
+  },
+  {
+    id: "work",
+    title: "What runs for you",
+    summary: "The machinery that proposes work, does it, and proves it was done."
+  },
+  {
+    id: "account",
+    title: "Your account",
+    summary: "Plans, payment, and the messages we send you."
+  }
+];
 var COMPONENTS = [
   // -------------------------------------------------------------------------
-  // Group A. Measured by us.
+  // What you use. Every one of these is probed from outside our network.
   // -------------------------------------------------------------------------
   {
     id: "sign-in",
-    group: "measured",
+    group: "surfaces",
     label: "Sign in",
-    summary: "Reaching the login page and starting a session.",
-    budget: { staleAfterMs: 20 * MINUTE }
+    summary: "Reaching the sign-in page and starting a session.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "control-plane",
-    group: "measured",
+    group: "surfaces",
     label: "Company control plane",
     summary: "The app where you review approvals, watch runs and read the audit trail. Our check confirms it is serving and that it keeps signed-out visitors out. It cannot confirm what you see once you are signed in.",
-    budget: { staleAfterMs: 20 * MINUTE }
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "website-studio",
-    group: "measured",
+    group: "surfaces",
     label: "Website studio",
     summary: "Describing a website and watching it build.",
-    budget: { staleAfterMs: 20 * MINUTE }
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "tenant-sites",
-    group: "measured",
+    group: "surfaces",
     label: "Published websites",
     summary: "Websites already published on orvay.app, served to your visitors.",
-    budget: { staleAfterMs: 20 * MINUTE }
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
-    id: "marketing-and-docs",
-    group: "measured",
-    label: "Public site and documentation",
-    summary: "orvayos.com and the documentation.",
-    budget: { staleAfterMs: 20 * MINUTE }
+    id: "marketing-site",
+    group: "surfaces",
+    label: "Public website",
+    summary: "orvayos.com, including the pricing and legal pages.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
-  // The six that Phase 1 does not measure. Each says so.
+  {
+    // Split from the public website, because they are separate deployments that
+    // fail separately. Folding them into one row meant a documentation outage
+    // could hide behind a healthy marketing page.
+    id: "documentation",
+    group: "surfaces",
+    label: "Documentation",
+    summary: "The reference for how Orvay decides what may happen, and how it proves what did.",
+    budget: { staleAfterMs: 45 * MINUTE }
+  },
+  // -------------------------------------------------------------------------
+  // What runs for you. None of this is visible from outside, and every row says
+  // so rather than showing a colour nothing earned.
+  // -------------------------------------------------------------------------
   {
     id: "agent-runs",
-    group: "measured",
+    group: "work",
     label: "Agent runs",
-    summary: "Work being proposed and executed by agents.",
-    budget: { staleAfterMs: 1 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Agent run health comes from real customer traffic rather than from an external check, and that measurement is not built."
+    summary: "Work being proposed and carried out by agents.",
+    budget: { staleAfterMs: 2 * HOUR },
+    notMeasuredWhy: "Nothing watches this yet. Run health has to come from real customer traffic rather than from an outside check, and that measurement is not built."
   },
   {
     id: "independent-verification",
-    group: "measured",
+    group: "work",
     label: "Independent verification",
-    summary: "Checking finished work with a second, separate actor. This is a different row from agent runs on purpose: work can still be executing while nothing can be independently verified.",
-    budget: { staleAfterMs: 1 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Verification health comes from real customer traffic rather than from an external check, and that measurement is not built."
+    summary: "Checking finished work with a second, separate actor. A different row from agent runs on purpose: work can still be running while nothing can be independently verified.",
+    budget: { staleAfterMs: 2 * HOUR },
+    notMeasuredWhy: "Nothing watches this yet. Verification health has to come from real customer traffic rather than from an outside check, and that measurement is not built."
   },
   {
     id: "scheduled-work",
-    group: "measured",
+    group: "work",
     label: "Scheduled work",
     summary: "Background work that runs on a timer rather than when you ask for it.",
-    budget: { staleAfterMs: 1 * HOUR },
+    budget: { staleAfterMs: 2 * HOUR },
     notMeasuredWhy: "Nothing watches this yet. A timer that stops is silent by nature, so this row needs a check that lives outside our own systems. It is not built."
   },
   {
     id: "evidence-archive",
-    group: "measured",
+    group: "work",
     label: "Evidence archive",
     summary: "The off-site, tamper-evident copy of your audit trail.",
-    budget: { staleAfterMs: 4 * HOUR },
+    budget: { staleAfterMs: 6 * HOUR },
     notMeasuredWhy: "Nothing watches this yet. The check is not built."
+  },
+  // -------------------------------------------------------------------------
+  // Your account.
+  // -------------------------------------------------------------------------
+  {
+    id: "checkout-and-billing",
+    group: "account",
+    label: "Checkout and billing",
+    summary: "Starting a plan, changing a plan, and paying for one.",
+    budget: { staleAfterMs: 6 * HOUR },
+    notMeasuredWhy: "Nothing watches this yet. Checkout health has to come from real attempts rather than from a test payment, and that measurement is not built."
   },
   {
     id: "email-notifications",
-    group: "measured",
+    group: "account",
     label: "Email notifications",
     summary: "Messages we send you about your own company. Listed separately because a failure here is the one failure you would not otherwise hear about.",
-    budget: { staleAfterMs: 4 * HOUR },
+    budget: { staleAfterMs: 6 * HOUR },
     notMeasuredWhy: "Nothing watches this yet. The check is not built."
-  },
-  {
-    id: "checkout-and-billing",
-    group: "measured",
-    label: "Checkout and billing",
-    summary: "Starting a plan, changing a plan, and paying for one.",
-    budget: { staleAfterMs: 4 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Checkout health has to come from real attempts rather than from a test payment, and that measurement is not built."
-  },
-  // -------------------------------------------------------------------------
-  // Group B. Reported by a vendor. Mirrored, never measured.
-  // -------------------------------------------------------------------------
-  {
-    id: "vendor-cloudflare",
-    group: "vendor",
-    label: "Cloudflare",
-    summary: "Runs our application layer and our network.",
-    budget: { staleAfterMs: 24 * HOUR }
-  },
-  {
-    id: "vendor-supabase",
-    group: "vendor",
-    label: "Supabase",
-    summary: "Runs the database that holds your company data, in Zurich.",
-    budget: { staleAfterMs: 24 * HOUR }
-  },
-  {
-    id: "vendor-anthropic",
-    group: "vendor",
-    label: "Anthropic",
-    summary: "One of the two model providers Orvay calls.",
-    budget: { staleAfterMs: 24 * HOUR }
-  },
-  {
-    id: "vendor-openai",
-    group: "vendor",
-    label: "OpenAI",
-    summary: "The second model provider, used for independent verification.",
-    budget: { staleAfterMs: 24 * HOUR }
-  },
-  {
-    id: "vendor-stripe",
-    group: "vendor",
-    label: "Stripe",
-    summary: "Processes payments.",
-    budget: { staleAfterMs: 24 * HOUR }
-  },
-  {
-    id: "vendor-sentry",
-    group: "vendor",
-    label: "Sentry",
-    summary: "Collects our error reports. A problem here affects us, not you.",
-    budget: { staleAfterMs: 24 * HOUR }
   }
 ];
+
+// ../../packages/status/src/daily.ts
+var EMPTY_DAILY = { schema: 1, days: {} };
+var dayKey = (at) => new Date(at).toISOString().slice(0, 10);
+var stateOfDisplay = (display) => {
+  switch (display.kind) {
+    case "measured":
+      return display.level;
+    case "unknown":
+      return "unknown";
+    case "not-measured":
+      return "not-measured";
+    default:
+      return "unknown";
+  }
+};
+var worseOf = (existing, incoming) => {
+  if (existing === void 0) return incoming;
+  const existingIsLevel = existing !== "unknown" && existing !== "not-measured";
+  const incomingIsLevel = incoming !== "unknown" && incoming !== "not-measured";
+  if (existingIsLevel && incomingIsLevel) {
+    return levelRank(incoming) > levelRank(existing) ? incoming : existing;
+  }
+  if (existingIsLevel) return existing;
+  if (incomingIsLevel) return incoming;
+  return existing === "unknown" || incoming === "unknown" ? "unknown" : "not-measured";
+};
+var recordDay = (record, day, states) => {
+  const existing = record.days[day] ?? {};
+  const merged = { ...existing };
+  for (const [id, incoming] of Object.entries(states)) {
+    merged[id] = worseOf(existing[id], incoming);
+  }
+  return { schema: 1, days: { ...record.days, [day]: merged } };
+};
+var seriesFor = (record, component, endDay, length = 90) => {
+  const end = Date.parse(`${endDay}T00:00:00Z`);
+  const out = [];
+  for (let i = length - 1; i >= 0; i -= 1) {
+    const key = new Date(end - i * 864e5).toISOString().slice(0, 10);
+    out.push(record.days[key]?.[component]);
+  }
+  return out;
+};
+var statsFor = (series) => {
+  let recorded = 0;
+  let measured = 0;
+  let clean = 0;
+  for (const day of series) {
+    if (day === void 0) continue;
+    recorded += 1;
+    if (day === "unknown" || day === "not-measured") continue;
+    measured += 1;
+    if (day === "operational") clean += 1;
+  }
+  return { recorded, measured, clean };
+};
+var isRecord = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+var DAY = /^\d{4}-\d{2}-\d{2}$/;
+var STATES = /* @__PURE__ */ new Set([
+  "operational",
+  "degraded",
+  "partial-outage",
+  "major-outage",
+  "unknown",
+  "not-measured"
+]);
+var readDaily = (raw) => {
+  if (raw === void 0) return EMPTY_DAILY;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!isRecord(parsed) || parsed["schema"] !== 1) return EMPTY_DAILY;
+    const days = parsed["days"];
+    if (!isRecord(days)) return EMPTY_DAILY;
+    const clean = {};
+    for (const [key, value] of Object.entries(days)) {
+      if (!DAY.test(key) || !isRecord(value)) continue;
+      const row = {};
+      for (const [id, state] of Object.entries(value)) {
+        if (typeof state === "string" && STATES.has(state)) row[id] = state;
+      }
+      clean[key] = row;
+    }
+    return { schema: 1, days: clean };
+  } catch {
+    return EMPTY_DAILY;
+  }
+};
+var pruneBefore = (record, endDay, keep = 400) => {
+  const cutoff = Date.parse(`${endDay}T00:00:00Z`) - keep * 864e5;
+  const days = {};
+  for (const [key, value] of Object.entries(record.days)) {
+    if (Date.parse(`${key}T00:00:00Z`) >= cutoff) days[key] = value;
+  }
+  return { schema: 1, days };
+};
 
 // ../../packages/content/src/legal.ts
 var LEGAL_LAST_UPDATED = "2026-08-16";
@@ -1129,7 +1216,7 @@ var DEFAULT_THRESHOLDS = {
 };
 var TARGETS = [
   {
-    component: "marketing-and-docs",
+    component: "marketing-site",
     url: HOSTS.site,
     // The tagline, from the package that owns it.
     bodyMarker: BRAND.tagline,
@@ -1197,7 +1284,7 @@ var TARGETS = [
 ];
 var SECONDARY_TARGETS = [
   {
-    component: "marketing-and-docs",
+    component: "documentation",
     url: HOSTS.docs,
     // The documentation index heading's id. Stable across prose edits.
     bodyMarker: 'id="documentation"',
@@ -1339,150 +1426,61 @@ var certificateDaysRemaining = async (host, now, timeoutMs = 1e4) => new Promise
   });
 });
 
-// src/vendors.ts
-var VENDOR_FEEDS = [
-  {
-    component: "vendor-cloudflare",
-    vendor: "Cloudflare",
-    api: "https://www.cloudflarestatus.com/api/v2/status.json",
-    permalink: "https://www.cloudflarestatus.com",
-    shape: "statuspage-v2"
-  },
-  {
-    component: "vendor-supabase",
-    vendor: "Supabase",
-    api: "https://status.supabase.com/api/v2/status.json",
-    permalink: "https://status.supabase.com",
-    shape: "statuspage-v2"
-  },
-  {
-    component: "vendor-anthropic",
-    vendor: "Anthropic",
-    // Redirects to status.claude.com and the payload's `page.name` is "Claude"
-    // rather than "Anthropic". The label shown to a reader is OURS, taken from
-    // `vendor` above, so a vendor renaming their page cannot silently rename a
-    // row on ours. Redirects are followed deliberately.
-    api: "https://status.anthropic.com/api/v2/status.json",
-    permalink: "https://status.claude.com",
-    shape: "statuspage-v2"
-  },
-  {
-    component: "vendor-openai",
-    vendor: "OpenAI",
-    api: "https://status.openai.com/api/v2/status.json",
-    permalink: "https://status.openai.com",
-    shape: "statuspage-v2"
-  },
-  {
-    component: "vendor-stripe",
-    vendor: "Stripe",
-    // Not a Statuspage instance. A static object on CloudFront with its own
-    // shape, and the one that proves why freshness is checked at all.
-    api: "https://status.stripe.com/current",
-    permalink: "https://status.stripe.com",
-    shape: "stripe-current"
-  },
-  {
-    component: "vendor-sentry",
-    vendor: "Sentry",
-    api: "https://status.sentry.io/api/v2/status.json",
-    permalink: "https://status.sentry.io",
-    shape: "statuspage-v2"
-  }
-];
-var isRecord = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
-var parseVendorPayload = (shape, raw) => {
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return void 0;
-  }
-  if (!isRecord(parsed)) return void 0;
-  if (shape === "statuspage-v2") {
-    const status = parsed["status"];
-    const page = parsed["page"];
-    if (!isRecord(status) || typeof status["description"] !== "string") return void 0;
-    const updatedRaw = isRecord(page) ? page["updated_at"] : void 0;
-    const updatedAt = typeof updatedRaw === "string" && !Number.isNaN(Date.parse(updatedRaw)) ? Instant(Date.parse(updatedRaw)) : void 0;
-    return { state: status["description"], updatedAt };
-  }
-  const message = parsed["message"];
-  if (typeof message !== "string") return void 0;
-  const timeRaw = parsed["time"];
-  const cleaned = typeof timeRaw === "string" ? timeRaw.replace(" @ ", " ").replace(/(\d)(AM|PM)/i, "$1 $2") : "";
-  const parsedTime = Date.parse(cleaned);
-  return {
-    state: message,
-    updatedAt: Number.isNaN(parsedTime) ? void 0 : Instant(parsedTime)
-  };
-};
-var readVendorFeed = async (feed, fetchText2, clock) => {
-  const raw = await fetchText2(feed.api);
-  const now = clock();
-  if (raw === void 0) {
-    return {
-      method: "not-measured",
-      why: `We could not reach ${feed.vendor}'s status feed, so we cannot show what they are reporting. Their own page is linked and remains the source of record.`
-    };
-  }
-  const parsed = parseVendorPayload(feed.shape, raw);
-  if (parsed === void 0) {
-    return {
-      method: "not-measured",
-      why: `${feed.vendor}'s status feed answered in a format we do not recognise, so we are not showing a state we cannot read. Their own page is linked and remains the source of record.`
-    };
-  }
-  return {
-    method: "vendor-reported",
-    vendor: feed.vendor,
-    state: parsed.state,
-    vendorUpdatedAt: parsed.updatedAt,
-    fetchedAt: now,
-    permalink: feed.permalink
-  };
-};
-
 // src/render.ts
 var esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var pad = (n) => String(n).padStart(2, "0");
 var utc = (at) => {
   const d = new Date(at);
-  const pad = (n) => String(n).padStart(2, "0");
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${pad(d.getUTCDate())} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+  return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+};
+var utcDay = (at) => {
+  const d = new Date(at);
+  return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+};
+var prettyDay = (key) => {
+  const parts = key.split("-");
+  return `${parts[2]} ${MONTHS[Number(parts[1]) - 1]} ${parts[0]}`;
 };
 var GLYPHS = {
-  circle: '<circle cx="8" cy="8" r="5"/>',
-  triangle: '<path d="M8 2.5 14 13H2Z"/>',
-  square: '<rect x="3" y="3" width="10" height="10" rx="1"/>',
-  cross: '<path d="M4 4 12 12M12 4 4 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
-  brokenRing: '<path d="M8 3a5 5 0 1 1-4.6 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
-  dashedRing: '<circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="2.2 2.4"/>',
-  arrow: '<path d="M3 8h9M8.5 4.5 12.5 8l-4 3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+  check: '<path d="M4.2 8.4 6.9 11l4.9-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  triangle: '<path d="M8 2.6 14 12.9H2Z"/>',
+  square: '<rect x="3.2" y="3.2" width="9.6" height="9.6" rx="1.2"/>',
+  cross: '<path d="M4.4 4.4 11.6 11.6M11.6 4.4 4.4 11.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
+  brokenRing: '<path d="M8 3.2a4.8 4.8 0 1 1-4.4 2.9" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>',
+  dashedRing: '<circle cx="8" cy="8" r="4.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-dasharray="2.1 2.3"/>'
 };
 var LEVEL_STYLE = {
   operational: {
     word: "Operational",
-    glyph: "circle",
-    token: "var(--verified-text)",
+    glyph: "check",
+    ink: "var(--verified-text)",
+    solid: "var(--verified-solid)",
+    onSolid: "var(--verified-on)",
     spoken: "Operational"
   },
   degraded: {
     word: "Degraded",
     glyph: "triangle",
-    token: "var(--risk-medium-text)",
+    ink: "var(--risk-medium-text)",
+    solid: "var(--risk-medium-solid)",
+    onSolid: "var(--risk-medium-on)",
     spoken: "Degraded, slower or less reliable than usual"
   },
   "partial-outage": {
     word: "Partial outage",
     glyph: "square",
-    token: "var(--risk-high-text)",
+    ink: "var(--risk-high-text)",
+    solid: "var(--risk-high-solid)",
+    onSolid: "var(--risk-high-on)",
     spoken: "Partial outage, some of this is not working"
   },
   "major-outage": {
     word: "Major outage",
     glyph: "cross",
-    token: "var(--risk-critical-text)",
+    ink: "var(--risk-critical-text)",
+    solid: "var(--risk-critical-solid)",
+    onSolid: "var(--risk-critical-on)",
     spoken: "Major outage, this is not working"
   }
 };
@@ -1490,23 +1488,22 @@ var UNKNOWN_STYLE = {
   word: "Unknown",
   glyph: "brokenRing",
   // Deliberately neutral. An unknown is not a mild problem and not a mild
-  // success, and giving it amber would rank it below a degradation it might
-  // easily be hiding.
-  token: "var(--fg-secondary)",
+  // success, and giving it amber would rank it below a degradation it might be
+  // hiding.
+  ink: "var(--fg-secondary)",
+  solid: "var(--o-neutral-9)",
+  onSolid: "var(--fg-on-solid)",
   spoken: "Unknown, we could not measure this"
 };
 var NOT_MEASURED_STYLE = {
   word: "Not measured",
   glyph: "dashedRing",
-  token: "var(--fg-secondary)",
+  ink: "var(--fg-secondary)",
+  solid: "var(--o-neutral-9)",
+  onSolid: "var(--fg-on-solid)",
   spoken: "Not measured, nothing watches this yet"
 };
-var VENDOR_STYLE = {
-  word: "Reported",
-  glyph: "arrow",
-  token: "var(--fg-secondary)",
-  spoken: "Reported by the vendor, not measured by us"
-};
+var styleFor = (display) => display.kind === "measured" ? LEVEL_STYLE[display.level] : display.kind === "unknown" ? UNKNOWN_STYLE : NOT_MEASURED_STYLE;
 var REASON_TEXT = {
   timeout: "the check timed out",
   "dns-failure": "the address did not resolve",
@@ -1520,41 +1517,59 @@ var REASON_TEXT = {
   "artifact-malformed": "our own internal report was not readable",
   stale: "the last measurement is too old to rely on"
 };
-var badge = (style, detail) => `
-      <span class="state" style="color:${style.token}">
-        <svg class="glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor">${GLYPHS[style.glyph]}</svg>
-        <span class="state-word">${esc(style.word)}</span>
-        <span class="sr-only">${esc(style.spoken)}${detail === void 0 ? "" : `. ${detail}`}</span>
-      </span>`;
+var glyphSvg = (name, cls) => `<svg${cls === "" ? "" : ` class="${cls}"`} viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor">${GLYPHS[name]}</svg>`;
+var badge = (style) => `<span class="state" style="color:${style.ink}">
+          ${glyphSvg(style.glyph, "glyph")}
+          <span class="state-word">${esc(style.word)}</span>
+          <span class="sr-only">${esc(style.spoken)}</span>
+        </span>`;
+var DAY_TINT = {
+  operational: "var(--verified-solid)",
+  degraded: "var(--risk-medium-solid)",
+  "partial-outage": "var(--risk-high-solid)",
+  "major-outage": "var(--risk-critical-solid)",
+  unknown: "var(--o-neutral-8)",
+  "not-measured": "var(--o-neutral-5)"
+};
+var DAY_WORD = {
+  operational: "operational",
+  degraded: "degraded",
+  "partial-outage": "a partial outage",
+  "major-outage": "a major outage",
+  unknown: "not measurable",
+  "not-measured": "not watched"
+};
+var historyBar = (series, endDay, label) => {
+  const end = Date.parse(`${endDay}T00:00:00Z`);
+  const cells = series.map((state, i) => {
+    const key = new Date(end - (series.length - 1 - i) * 864e5).toISOString().slice(0, 10);
+    if (state === void 0) {
+      return `<span class="cell cell--none" title="${esc(prettyDay(key))}: not recorded"></span>`;
+    }
+    return `<span class="cell" style="background:${DAY_TINT[state]}" title="${esc(prettyDay(key))}: ${esc(DAY_WORD[state])}"></span>`;
+  }).join("");
+  const stats = statsFor(series);
+  const scale = stats.recorded === 0 ? "No history yet" : stats.recorded === 1 ? "1 day recorded" : `${stats.recorded} days recorded`;
+  return `<div class="bar-wrap">
+          <div class="bar" role="img" aria-label="${esc(`${label}: history for the last ${series.length} days. ${scale}.`)}">${cells}</div>
+          <div class="bar-scale"><span>${series.length} days ago</span><span class="bar-count">${esc(scale)}</span><span>Today</span></div>
+        </div>`;
+};
 var methodNote = (display) => {
   switch (display.kind) {
     case "measured":
       return `Checked from outside our network at ${esc(utc(display.observedAt))}${display.latencyMs === void 0 || display.latencyMs <= 0 ? "" : `, answered in ${Math.round(display.latencyMs)} ms`}.`;
     case "unknown":
       return `Last attempt at ${esc(utc(display.observedAt))}: ${esc(REASON_TEXT[display.reason])}.`;
-    case "vendor":
-      return display.vendorUpdatedAt === void 0 ? `Read at ${esc(utc(display.fetchedAt))}. Their feed does not say when they last updated it.` : `Reported by them at ${esc(utc(display.vendorUpdatedAt))}. Read by us at ${esc(utc(display.fetchedAt))}.`;
     case "not-measured":
       return esc(display.why);
+    default:
+      return "";
   }
-};
-var row = (label, summary, display, permalink) => {
-  const style = display.kind === "measured" ? LEVEL_STYLE[display.level] : display.kind === "unknown" ? UNKNOWN_STYLE : display.kind === "vendor" ? VENDOR_STYLE : NOT_MEASURED_STYLE;
-  const vendorState = display.kind === "vendor" ? `<p class="vendor-state">${esc(display.state)}${display.feedStale ? ' <span class="flag">Their feed has not changed recently, so treat this as out of date.</span>' : ""}</p>` : "";
-  const link = permalink === void 0 ? "" : ` <a class="permalink" href="${esc(permalink)}" rel="noreferrer noopener">Their status page</a>`;
-  return `
-    <li class="row"${display.kind === "not-measured" ? ' data-unmeasured="true"' : ""}>
-      <div class="row-main">
-        <h3 class="row-label">${esc(label)}</h3>
-        ${badge(style)}
-      </div>
-      <p class="row-summary">${esc(summary)}</p>
-      ${vendorState}
-      <p class="row-method">${methodNote(display)}${link}</p>
-    </li>`;
 };
 var renderPage = (input) => {
   const now = input.generatedAt;
+  const endDay = new Date(now).toISOString().slice(0, 10);
   const displays = /* @__PURE__ */ new Map();
   for (const spec of COMPONENTS) {
     const reading = input.readings[spec.id] ?? {
@@ -1565,35 +1580,71 @@ var renderPage = (input) => {
   }
   const overall = overallFrom([...displays.values()]);
   const overallStyle = overall.kind === "known" ? LEVEL_STYLE[overall.level] : UNKNOWN_STYLE;
-  const overallHeadline = overall.kind === "known" ? overall.level === "operational" ? "Everything we measure is working" : `Something we measure is not working` : "We cannot currently tell you the state of the service";
-  const completeness = overall.kind === "known" && !overall.complete ? `<p class="banner-caveat">This is a partial view. ${overall.measured} ${overall.measured === 1 ? "row is" : "rows are"} measured, ${overall.unknown} could not be measured just now, and ${overall.notMeasured} are not watched yet. A row we do not watch is listed below rather than left out.</p>` : overall.kind === "unknown" ? `<p class="banner-caveat">Nothing we watch reported successfully on the last run, which usually means our own checker failed rather than that everything is down. Until a check succeeds we will not guess.</p>` : "";
-  const measuredRows = COMPONENTS.filter((c) => c.group === "measured").map((c) => row(c.label, c.summary, displays.get(c.id))).join("");
-  const vendorRows = COMPONENTS.filter((c) => c.group === "vendor").map((c) => {
-    const display = displays.get(c.id);
-    return row(
-      c.label,
-      c.summary,
-      display,
-      display.kind === "vendor" ? display.permalink : void 0
-    );
+  const headline = overall.kind === "known" ? overall.level === "operational" ? "Everything we measure is working" : "Something we measure is not working" : "We cannot currently tell you the state of the service";
+  const caveat = overall.kind === "known" && !overall.complete ? `${overall.measured} of ${COMPONENTS.length} components are checked from outside our network.${overall.unknown > 0 ? ` ${overall.unknown} could not be checked just now.` : ""} The other ${overall.notMeasured} are not watched yet, and each one says so.` : overall.kind === "unknown" ? "Nothing we watch reported successfully on the last run, which usually means our own checker failed rather than that everything is down." : `All ${overall.measured} measured components are healthy.`;
+  const groups = GROUPS.map((group) => {
+    const rows = COMPONENTS.filter((c) => c.group === group.id).map((spec) => {
+      const display = displays.get(spec.id);
+      const series = seriesFor(input.daily, spec.id, endDay);
+      return `
+      <li class="row"${display.kind === "not-measured" ? ' data-unmeasured="true"' : ""}>
+        <div class="row-head">
+          <h3 class="row-label">${esc(spec.label)}</h3>
+          ${badge(styleFor(display))}
+        </div>
+        <p class="row-summary">${esc(spec.summary)}</p>
+        ${historyBar(series, endDay, spec.label)}
+        <p class="row-method">${methodNote(display)}</p>
+      </li>`;
+    }).join("");
+    return `
+  <section class="card" aria-labelledby="group-${group.id}">
+    <div class="card-head">
+      <h2 id="group-${group.id}">${esc(group.title)}</h2>
+      <p>${esc(group.summary)}</p>
+    </div>
+    <ul class="rows">${rows}
+    </ul>
+  </section>
+`;
+  }).join("");
+  const byDay = /* @__PURE__ */ new Map();
+  for (const e of input.history.slice(0, 120)) {
+    const key = new Date(e.at).toISOString().slice(0, 10);
+    byDay.set(key, [...byDay.get(key) ?? [], e]);
+  }
+  const incidents = byDay.size === 0 ? `<p class="empty">Nothing has changed state since we started recording on ${esc(utcDay(now))}. This section fills itself as things happen, and entries are never removed from it.</p>` : [...byDay.entries()].map(([day, entries]) => {
+    const items = entries.map((e) => {
+      const d = new Date(e.at);
+      const from = DAY_WORD[e.from] ?? e.from;
+      const to = DAY_WORD[e.to] ?? e.to;
+      return `<li><span class="ev-time">${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC</span> <strong>${esc(e.label)}</strong> went from ${esc(from)} to ${esc(to)}</li>`;
+    }).join("");
+    return `
+      <div class="day">
+        <h3>${esc(prettyDay(day))}</h3>
+        <ul>${items}</ul>
+      </div>`;
   }).join("");
   const channels = input.fallbackChannels ?? [];
   const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
   const fallback = channels.length === 0 ? "We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage." : channels.length === 1 ? `If this page is unreachable, look at ${links}. It is not served from our own infrastructure, so a problem with ours does not take it down too.` : `If this page is unreachable, look at ${links}. None of them is served from our own infrastructure, so a problem with ours does not take them down too.`;
   return `<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(BRAND.name)} Status</title>
-<meta name="description" content="Live operational status for ${esc(BRAND.name)}, with the way each row is measured stated beside it.">
+<meta name="description" content="Live operational status for ${esc(BRAND.name)}, with the way each component is measured stated beside it.">
 <meta name="robots" content="index, follow">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
 <link rel="alternate" type="application/atom+xml" title="${esc(BRAND.name)} Status" href="/history.atom">
 <style>
 ${input.tokensCss}
 
 /* -------------------------------------------------------------------------
-   The page itself. Every colour below is a token from the block above.
+   Every colour below is a token from the block above.
    ------------------------------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; }
 
@@ -1607,77 +1658,94 @@ body {
 }
 
 .sr-only {
-  position: absolute; width: 1px; height: 1px;
-  padding: 0; margin: -1px; overflow: hidden;
-  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;
 }
 
-.wrap { max-width: 62rem; margin: 0 auto; padding: var(--o-space-6) var(--o-space-4) var(--o-space-8); }
+.wrap { max-width: 58rem; margin: 0 auto; padding: var(--o-space-6) var(--o-space-4) var(--o-space-8); }
 
-header.masthead {
-  display: flex; flex-wrap: wrap; align-items: baseline;
-  gap: var(--o-space-2) var(--o-space-4);
-  padding-bottom: var(--o-space-5);
-}
-.brand { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }
+a { color: var(--accent-text); text-underline-offset: 0.16em; }
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
+
+/* Masthead -------------------------------------------------------------- */
+.masthead { display: flex; align-items: center; gap: var(--o-space-3); }
+.masthead img { width: 26px; height: 26px; border-radius: 7px; display: block; }
+.masthead .name { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }
 .masthead .kicker { font: var(--o-text-label-14); color: var(--fg-secondary); }
 
-/* Banner ---------------------------------------------------------------- */
-.banner {
+/* Hero ------------------------------------------------------------------ */
+.hero { text-align: center; padding-block: var(--o-space-8) var(--o-space-7); display: flex; flex-direction: column; align-items: center; gap: var(--o-space-3); }
+.hero-mark { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; flex: none; margin-bottom: var(--o-space-1); }
+.hero-mark svg { width: 28px; height: 28px; }
+.hero h1 { font: var(--o-text-display-32); font-weight: var(--o-weight-regular); margin: 0; text-wrap: balance; letter-spacing: -0.018em; }
+.hero .updated { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
+.hero .caveat { margin: 0; color: var(--fg-secondary); max-width: 48ch; font: var(--o-text-label-14); line-height: 1.55; }
+
+/* Cards ----------------------------------------------------------------- */
+.card {
   background: var(--bg-raised);
   border: 1px solid var(--line-rule);
-  border-radius: var(--o-radius-md);
-  padding: var(--o-space-5);
-  display: flex; flex-direction: column; gap: var(--o-space-3);
+  border-radius: var(--o-radius-lg);
+  margin-bottom: var(--o-space-5);
+  overflow: hidden;
 }
-.banner h1 { font: var(--o-text-display-32); font-weight: var(--o-weight-regular); margin: 0; text-wrap: balance; }
-.banner-caveat, .banner-limit { margin: 0; color: var(--fg-secondary); max-width: 60ch; }
-.banner-limit { border-top: 1px solid var(--line-rule); padding-top: var(--o-space-3); }
+.card-head { padding: var(--o-space-5) var(--o-space-5) var(--o-space-4); }
+.card-head h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 2px; }
+.card-head p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }
+
+ul.rows { list-style: none; margin: 0; padding: 0; }
+.row { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); border-top: 1px solid var(--line-rule); display: flex; flex-direction: column; gap: var(--o-space-2); }
+.row[data-unmeasured='true'] { background-image: var(--provenance-hatch); }
+.row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--o-space-2) var(--o-space-4); }
+.row-label { font: var(--o-text-title-19); font-weight: var(--o-weight-medium); margin: 0; letter-spacing: -0.005em; }
+.row-summary { margin: 0; color: var(--fg-secondary); max-width: 68ch; font: var(--o-text-label-14); line-height: 1.5; }
+.row-method { margin: 2px 0 0; font: var(--o-text-mono-13); color: var(--fg-secondary); }
 
 /* State badge ------------------------------------------------------------ */
 .state { display: inline-flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
-.glyph { width: 1em; height: 1em; flex: none; }
-.state-word { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); letter-spacing: 0.01em; }
+.glyph { width: 1.05em; height: 1.05em; flex: none; }
+.state-word { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); }
 
-/* Sections and rows ------------------------------------------------------ */
-section { margin-top: var(--o-space-7); }
-section > h2 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); margin: 0 0 var(--o-space-2); }
-section > .section-note { margin: 0 0 var(--o-space-4); color: var(--fg-secondary); max-width: 62ch; }
+/* History bar ------------------------------------------------------------ */
+.bar-wrap { display: flex; flex-direction: column; gap: var(--o-space-2); margin-top: var(--o-space-2); }
+.bar { display: flex; gap: 2px; align-items: stretch; height: 32px; }
+.cell { flex: 1 1 0; min-width: 2px; border-radius: 2px; }
+/* Barely there on purpose. A visible grey cell reads as a measurement that went
+   badly; this has to read as a day we were not yet watching, which is what an
+   empty track says and a filled one cannot. */
+.cell--none { background: var(--o-neutral-4); opacity: 0.55; }
+.bar-scale { display: flex; justify-content: space-between; align-items: baseline; font: var(--o-text-micro-11); color: var(--fg-secondary); letter-spacing: 0.02em; }
+.bar-count { font-variant-numeric: tabular-nums; }
 
-ul.rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px;
-  background: var(--line-rule); border: 1px solid var(--line-rule); border-radius: var(--o-radius-md); overflow: hidden; }
-.row { background: var(--bg-raised); padding: var(--o-space-4); display: flex; flex-direction: column; gap: var(--o-space-2); }
+/* History ---------------------------------------------------------------- */
+.history h2, .legend-wrap h2 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); margin: var(--o-space-7) 0 var(--o-space-2); }
+.history p.lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); max-width: 62ch; font: var(--o-text-label-14); }
+.day { border-top: 1px solid var(--line-rule); padding: var(--o-space-4) 0; }
+.day h3 { font: var(--o-text-label-14); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-2); }
+.day ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-space-2); }
+.day li { color: var(--fg-secondary); font: var(--o-text-label-14); }
+.day strong { color: var(--fg-primary); font-weight: var(--o-weight-medium); }
+.ev-time { font: var(--o-text-mono-13); color: var(--fg-secondary); margin-right: var(--o-space-2); }
+.empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }
 
-/* An unmeasured row is also carried by TEXTURE, reusing the provenance hatch,
-   so it stays distinguishable in greyscale and in print where the neutral ink
-   of "Not measured" and "Unknown" would otherwise converge. */
-.row[data-unmeasured="true"] { background-image: var(--provenance-hatch); }
-
-.row-main { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--o-space-2) var(--o-space-4); }
-.row-label { font: var(--o-text-title-19); font-weight: var(--o-weight-medium); margin: 0; }
-.row-summary { margin: 0; color: var(--fg-secondary); max-width: 66ch; }
-.row-method { margin: 0; font: var(--o-text-mono-13); color: var(--fg-secondary); }
-.vendor-state { margin: 0; font-weight: var(--o-weight-medium); }
-.flag { display: inline-block; font: var(--o-text-label-14); color: var(--risk-medium-text); }
-
-a { color: var(--accent-text); text-underline-offset: 0.16em; }
-a:focus-visible, :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 3px; }
-.permalink { font: var(--o-text-mono-13); }
-
-/* Legend ----------------------------------------------------------------- */
-dl.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: var(--o-space-3) var(--o-space-5); margin: 0; }
-dl.legend div { display: flex; flex-direction: column; gap: var(--o-space-1); }
+/* Legend and footer ------------------------------------------------------ */
+dl.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--o-space-4) var(--o-space-5); margin: 0; }
+dl.legend div { display: flex; flex-direction: column; gap: 2px; }
 dl.legend dt { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); }
-dl.legend dd { margin: 0; color: var(--fg-secondary); }
+dl.legend dd { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); line-height: 1.5; }
 
-footer { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); color: var(--fg-secondary); display: flex; flex-direction: column; gap: var(--o-space-3); }
-footer p { margin: 0; max-width: 66ch; }
+footer { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); color: var(--fg-secondary); display: flex; flex-direction: column; gap: var(--o-space-3); font: var(--o-text-label-14); line-height: 1.55; }
+footer p { margin: 0; max-width: 68ch; }
+
+@media (max-width: 34rem) {
+  .bar { height: 26px; gap: 1px; }
+  .card-head, .row { padding-left: var(--o-space-4); padding-right: var(--o-space-4); }
+  .hero h1 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); }
+}
 
 @media print {
-  /* The hatch and every glyph are ink, so they survive on their own. This is
-     reinforcement, not the carrier. */
-  .row, .banner, .state, .glyph { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  a[href]::after { content: " (" attr(href) ")"; font: var(--o-text-mono-13); }
+  .row, .card, .state, .glyph, .cell, .hero-mark { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  a[href]::after { content: ' (' attr(href) ')'; font: var(--o-text-mono-13); }
 }
 </style>
 </head>
@@ -1685,46 +1753,39 @@ footer p { margin: 0; max-width: 66ch; }
 <main class="wrap">
 
   <header class="masthead">
-    <span class="brand">${esc(BRAND.name)}</span>
+    <img src="/icon.svg" alt="" width="26" height="26">
+    <span class="name">${esc(BRAND.name)}</span>
     <span class="kicker">Service status</span>
   </header>
 
-  <div class="banner">
-    <h1>${esc(overallHeadline)}</h1>
-    ${badge(overallStyle)}
-    ${completeness}
-    <p class="banner-limit">This page runs on servers that are not ours and not the ones ${esc(BRAND.name)} runs on, so an outage of our application layer does not take it down. It still depends on our domain name resolving. ${fallback}</p>
+  <div class="hero">
+    <span class="hero-mark" style="background:${overallStyle.solid};color:${overallStyle.onSolid}">${glyphSvg(overallStyle.glyph, "")}</span>
+    <h1>${esc(headline)}</h1>
+    <p class="updated">Last checked ${esc(utc(now))}</p>
+    <p class="caveat">${esc(caveat)}</p>
   </div>
-
-  <section>
-    <h2>What we measure</h2>
-    <p class="section-note">Each row says how it is known and when it was last checked. A row nothing watches says so, and is never shown as working.</p>
-    <ul class="rows">${measuredRows}
-    </ul>
+${groups}
+  <section class="history">
+    <h2>History</h2>
+    <p class="lede">Every state change we have recorded, newest first. Entries are never removed.</p>
+    ${incidents}
   </section>
 
-  <section>
-    <h2>What our providers report</h2>
-    <p class="section-note">${esc(BRAND.name)} depends on these companies. We mirror what each one publishes about itself and we do not measure them, so these rows carry no history and no percentage. Their own page is the source of record.</p>
-    <ul class="rows">${vendorRows}
-    </ul>
-  </section>
-
-  <section>
+  <section class="legend-wrap">
     <h2>How to read this page</h2>
     <dl class="legend">
-      <div><dt>Checked</dt><dd>We ran a request from outside our own network and it either worked or it did not.</dd></div>
-      <div><dt>Reported</dt><dd>A provider published this about themselves. We are repeating it, with the time they last updated it.</dd></div>
-      <div><dt>Unknown</dt><dd>We tried and could not get an answer. This is not the same as working, and not the same as broken.</dd></div>
+      <div><dt>Operational</dt><dd>A request from outside our own network reached it and got what it should.</dd></div>
+      <div><dt>Degraded</dt><dd>It answered, and more slowly or less reliably than it should.</dd></div>
+      <div><dt>Unknown</dt><dd>We tried and could not get an answer. Not the same as working, and not the same as broken.</dd></div>
       <div><dt>Not measured</dt><dd>Nothing watches this yet. We list it so you can see the gap instead of assuming coverage.</dd></div>
     </dl>
   </section>
 
   <footer>
+    <p>${fallback}</p>
     <p>Where your data lives: the database holding your company data is in Zurich, Switzerland. Requests to the models we use are processed by Anthropic and OpenAI, outside Switzerland and outside the EU. The evidence archive is pinned to the EU.</p>
-    <p>We publish no uptime percentage. Every number of that kind we could publish today would be derived from our own account of our own incidents, and we would rather show you what each check found and when.</p>
-    <p>You can follow this page by feed at <a href="/history.atom">history.atom</a>. Email notifications are not available. There is no sign-up form here because there is nothing to sign up to.</p>
-    <p>Page built ${esc(utc(input.generatedAt))}. The service itself is at <a href="${esc(HOSTS.site)}">${esc(HOSTS.site.replace("https://", ""))}</a>.</p>
+    <p>We publish no uptime percentage. Every number of that kind we could publish would be derived from our own account of our own incidents, so we show you what each check found and when instead.</p>
+    <p>You can follow this page by feed at <a href="/history.atom">history.atom</a>. Email notifications are not available, and there is no sign-up form here because there is nothing to sign up to.</p>
   </footer>
 
 </main>
@@ -1858,25 +1919,11 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "bd3a0d0" : "unknown";
+var sourceCommit = true ? "7bf1e9a" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
     return await readFile(path, "utf8");
-  } catch {
-    return void 0;
-  }
-};
-var fetchText = async (url, timeoutMs = 12e3) => {
-  try {
-    const response = await fetch(url, {
-      redirect: "follow",
-      cache: "no-store",
-      headers: { "user-agent": USER_AGENT },
-      signal: AbortSignal.timeout(timeoutMs)
-    });
-    if (!response.ok) return void 0;
-    return await response.text();
   } catch {
     return void 0;
   }
@@ -1942,11 +1989,6 @@ var main = async (outDir, options = {}) => {
       });
     }
   }
-  await Promise.all(
-    VENDOR_FEEDS.map(async (feed) => {
-      readings.set(feed.component, await readVendorFeed(feed, (u) => fetchText(u), () => Instant(Date.now())));
-    })
-  );
   const previousRaw = await readIfPresent(join(outDir, "summary.json"));
   const previousStates = {};
   if (previousRaw !== void 0) {
@@ -1969,6 +2011,13 @@ var main = async (outDir, options = {}) => {
     states[spec.id] = stateOf(display);
     labels[spec.id] = spec.label;
   }
+  const today = dayKey(at);
+  const todayStates = {};
+  for (const [id, display] of displays) todayStates[id] = stateOfDisplay(display);
+  const daily = pruneBefore(
+    recordDay(readDaily(await readIfPresent(join(outDir, "daily.json"))), today, todayStates),
+    today
+  );
   const history = append(
     readHistory(await readIfPresent(join(outDir, "history.json"))),
     transitions(previousStates, displays, labels, at)
@@ -1986,6 +2035,8 @@ var main = async (outDir, options = {}) => {
         generatedAt: at,
         readings: snapshot.readings,
         tokensCss: tokens_default,
+        daily,
+        history: history.entries,
         ...options.fallbacks && options.fallbacks.length > 0 ? { fallbackChannels: options.fallbacks } : {}
       })
     ),
@@ -1996,6 +2047,11 @@ var main = async (outDir, options = {}) => {
     ),
     writeFile(join(outDir, "history.json"), `${JSON.stringify(history, null, 2)}
 `),
+    writeFile(join(outDir, "daily.json"), `${JSON.stringify(daily, null, 2)}
+`),
+    // The favicon, written beside the page rather than linked from the product,
+    // so the page has no cross-origin dependency at all.
+    writeFile(join(outDir, "icon.svg"), orvay_favicon_default),
     writeFile(join(outDir, "history.atom"), renderFeed(history.entries, at, HOSTS.status)),
     // GitHub Pages needs this file to serve a custom domain, and it needs to be
     // in the published output rather than the source, because the output branch
