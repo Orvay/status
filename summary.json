@@ -1,51 +1,51 @@
 {
   "schema": 1,
-  "generatedAt": 1787171710481,
+  "generatedAt": 1787171899880,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171710481,
+      "observedAt": 1787171899880,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 598.4955630000001
+        "latencyMs": 478.040806
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171710481,
+      "observedAt": 1787171899880,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1427.832026
+        "latencyMs": 1298.2311530000002
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171710481,
+      "observedAt": 1787171899880,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1127.991768
+        "latencyMs": 801.9347969999999
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171710481,
+      "observedAt": 1787171899880,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 146.12277999999998
+        "latencyMs": 189.400215
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171710481,
+      "observedAt": 1787171899880,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
@@ -54,11 +54,11 @@
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787171710481,
+      "observedAt": 1787171899880,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 627.23414
+        "latencyMs": 399.200917
       }
     }
   },
