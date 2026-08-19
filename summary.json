@@ -1,51 +1,51 @@
 {
   "schema": 1,
-  "generatedAt": 1787116637069,
+  "generatedAt": 1787118726044,
   "readings": {
     "marketing-and-docs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787116637069,
+      "observedAt": 1787118726044,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 380.039944
+        "latencyMs": 400.07633599999997
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787116637069,
+      "observedAt": 1787118726044,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1421.818311
+        "latencyMs": 945.989345
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787116637069,
+      "observedAt": 1787118726044,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 772.606387
+        "latencyMs": 943.199508
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787116637069,
+      "observedAt": 1787118726044,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 173.229718
+        "latencyMs": 215.254031
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787116637069,
+      "observedAt": 1787118726044,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
@@ -56,47 +56,47 @@
       "vendor": "Supabase",
       "state": "Partially Degraded Service",
       "vendorUpdatedAt": 1787114773641,
-      "fetchedAt": 1787116638794,
+      "fetchedAt": 1787118727130,
       "permalink": "https://status.supabase.com"
-    },
-    "vendor-cloudflare": {
-      "method": "vendor-reported",
-      "vendor": "Cloudflare",
-      "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787116638841,
-      "fetchedAt": 1787116638877,
-      "permalink": "https://www.cloudflarestatus.com"
-    },
-    "vendor-anthropic": {
-      "method": "vendor-reported",
-      "vendor": "Anthropic",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787116410165,
-      "fetchedAt": 1787116638989,
-      "permalink": "https://status.claude.com"
-    },
-    "vendor-sentry": {
-      "method": "vendor-reported",
-      "vendor": "Sentry",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787114685450,
-      "fetchedAt": 1787116639019,
-      "permalink": "https://status.sentry.io"
     },
     "vendor-stripe": {
       "method": "vendor-reported",
       "vendor": "Stripe",
       "state": "All services are online.",
       "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787116639030,
+      "fetchedAt": 1787118727188,
       "permalink": "https://status.stripe.com"
+    },
+    "vendor-anthropic": {
+      "method": "vendor-reported",
+      "vendor": "Anthropic",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787116410165,
+      "fetchedAt": 1787118727198,
+      "permalink": "https://status.claude.com"
+    },
+    "vendor-cloudflare": {
+      "method": "vendor-reported",
+      "vendor": "Cloudflare",
+      "state": "Minor Service Outage",
+      "vendorUpdatedAt": 1787118727214,
+      "fetchedAt": 1787118727254,
+      "permalink": "https://www.cloudflarestatus.com"
+    },
+    "vendor-sentry": {
+      "method": "vendor-reported",
+      "vendor": "Sentry",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787114685450,
+      "fetchedAt": 1787118727365,
+      "permalink": "https://status.sentry.io"
     },
     "vendor-openai": {
       "method": "vendor-reported",
       "vendor": "OpenAI",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787116639135,
+      "fetchedAt": 1787118727467,
       "permalink": "https://status.openai.com"
     }
   },
