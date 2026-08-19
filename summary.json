@@ -1,51 +1,51 @@
 {
   "schema": 1,
-  "generatedAt": 1787115612426,
+  "generatedAt": 1787116302184,
   "readings": {
     "marketing-and-docs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787115612426,
+      "observedAt": 1787116302184,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 717.1043420000001
+        "latencyMs": 420.45297999999997
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787115612426,
+      "observedAt": 1787116302184,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1371.690071
+        "latencyMs": 1349.1242519999998
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787115612426,
+      "observedAt": 1787116302184,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1665.265465
+        "latencyMs": 919.558572
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787115612426,
+      "observedAt": 1787116302184,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 386.54510199999993
+        "latencyMs": 223.151477
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787115612426,
+      "observedAt": 1787116302184,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
@@ -56,15 +56,15 @@
       "vendor": "Supabase",
       "state": "Partially Degraded Service",
       "vendorUpdatedAt": 1787114773641,
-      "fetchedAt": 1787115614500,
+      "fetchedAt": 1787116303818,
       "permalink": "https://status.supabase.com"
     },
     "vendor-cloudflare": {
       "method": "vendor-reported",
       "vendor": "Cloudflare",
       "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787115614542,
-      "fetchedAt": 1787115614579,
+      "vendorUpdatedAt": 1787116303860,
+      "fetchedAt": 1787116303896,
       "permalink": "https://www.cloudflarestatus.com"
     },
     "vendor-anthropic": {
@@ -72,7 +72,7 @@
       "vendor": "Anthropic",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1787114802891,
-      "fetchedAt": 1787115614601,
+      "fetchedAt": 1787116303967,
       "permalink": "https://status.claude.com"
     },
     "vendor-stripe": {
@@ -80,7 +80,7 @@
       "vendor": "Stripe",
       "state": "All services are online.",
       "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787115614664,
+      "fetchedAt": 1787116304017,
       "permalink": "https://status.stripe.com"
     },
     "vendor-sentry": {
@@ -88,7 +88,7 @@
       "vendor": "Sentry",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1787114685450,
-      "fetchedAt": 1787115614721,
+      "fetchedAt": 1787116304076,
       "permalink": "https://status.sentry.io"
     },
     "vendor-openai": {
@@ -96,7 +96,7 @@
       "vendor": "OpenAI",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787115614936,
+      "fetchedAt": 1787116304145,
       "permalink": "https://status.openai.com"
     }
   },
