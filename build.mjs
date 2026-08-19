@@ -1604,7 +1604,7 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 /* Barely there on purpose. A visible grey cell reads as a measurement that went
    badly; this has to read as a day we were not yet watching, which is what an
    empty track says and a filled one cannot. */
-.cell--none { background: var(--o-neutral-4); opacity: 0.55; }
+.cell--none { background: var(--o-neutral-3); }
 .bar-scale { display: flex; justify-content: space-between; align-items: baseline; font: var(--o-text-micro-11); color: var(--fg-secondary); letter-spacing: 0.02em; }
 .bar-count { font-variant-numeric: tabular-nums; }
 
@@ -1620,12 +1620,19 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 .empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }
 
 /* Tooltips, with no JavaScript ------------------------------------------- */
-/* The row's own layers, stated rather than inferred. The header was painting
-   over the tooltip, and default paint order is not a thing to rely on when the
-   answer matters at every hover. */
+/* The hovered cell lifts so its tooltip clears its NEIGHBOURS. That is the only
+   layering this needs.
+   Three rules used to live here, added to fix a stacking problem that turned out
+   not to exist. The tooltip looked like it was painting underneath the row
+   header. It was in fact rendering at 55 percent opacity, because the
+   cell--none rule carried an opacity and opacity composites the whole subtree,
+   tooltip included. They are gone rather than left in as insurance, because CSS
+   kept for a reason that was wrong is CSS nobody can safely remove later.
+
+   No backtick appears in this comment and that is load-bearing: this block is a
+   template literal, so a backtick here ends it. The first version of this very
+   note did exactly that and broke the bundle. */
 .row { position: relative; }
-.row-head { position: relative; z-index: 0; }
-.bar-wrap { position: relative; z-index: 1; }
 .bar { position: relative; }
 .cell { position: relative; }
 .cell:hover, .cell:focus-within { z-index: 30; }
@@ -2345,7 +2352,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "c903b44" : "unknown";
+var sourceCommit = true ? "d99ee16" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
