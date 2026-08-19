@@ -1,86 +1,94 @@
 {
   "schema": 1,
-  "generatedAt": 1787145861765,
+  "generatedAt": 1787148265878,
   "readings": {
     "marketing-and-docs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787145861765,
+      "observedAt": 1787148265878,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 358.012647
+        "latencyMs": 460.74152899999996
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787145861765,
+      "observedAt": 1787148265878,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 746.7637599999999
+        "latencyMs": 997.909937
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787145861765,
+      "observedAt": 1787148265878,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1166.1968749999999
+        "latencyMs": 1648.623525
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787145861765,
+      "observedAt": 1787148265878,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 229.14967900000002
+        "latencyMs": 272.59486699999997
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787145861765,
+      "observedAt": 1787148265878,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
       }
     },
-    "vendor-cloudflare": {
-      "method": "vendor-reported",
-      "vendor": "Cloudflare",
-      "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787145863135,
-      "fetchedAt": 1787145863144,
-      "permalink": "https://www.cloudflarestatus.com"
-    },
     "vendor-supabase": {
       "method": "vendor-reported",
       "vendor": "Supabase",
       "state": "Partially Degraded Service",
-      "vendorUpdatedAt": 1787145780447,
-      "fetchedAt": 1787145863237,
+      "vendorUpdatedAt": 1787145883772,
+      "fetchedAt": 1787148267979,
       "permalink": "https://status.supabase.com"
+    },
+    "vendor-stripe": {
+      "method": "vendor-reported",
+      "vendor": "Stripe",
+      "state": "All services are online.",
+      "vendorUpdatedAt": 1707502080000,
+      "fetchedAt": 1787148268061,
+      "permalink": "https://status.stripe.com"
+    },
+    "vendor-cloudflare": {
+      "method": "vendor-reported",
+      "vendor": "Cloudflare",
+      "state": "Minor Service Outage",
+      "vendorUpdatedAt": 1787148268079,
+      "fetchedAt": 1787148268109,
+      "permalink": "https://www.cloudflarestatus.com"
     },
     "vendor-anthropic": {
       "method": "vendor-reported",
       "vendor": "Anthropic",
       "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787142013098,
-      "fetchedAt": 1787145863380,
+      "vendorUpdatedAt": 1787145901341,
+      "fetchedAt": 1787148268149,
       "permalink": "https://status.claude.com"
     },
     "vendor-sentry": {
       "method": "vendor-reported",
       "vendor": "Sentry",
       "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787141959382,
-      "fetchedAt": 1787145863388,
+      "vendorUpdatedAt": 1787145854821,
+      "fetchedAt": 1787148268180,
       "permalink": "https://status.sentry.io"
     },
     "vendor-openai": {
@@ -88,16 +96,8 @@
       "vendor": "OpenAI",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787145863430,
+      "fetchedAt": 1787148268193,
       "permalink": "https://status.openai.com"
-    },
-    "vendor-stripe": {
-      "method": "vendor-reported",
-      "vendor": "Stripe",
-      "state": "All services are online.",
-      "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787145863489,
-      "permalink": "https://status.stripe.com"
     }
   },
   "states": {
