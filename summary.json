@@ -1,102 +1,102 @@
 {
   "schema": 1,
-  "generatedAt": 1787129555643,
+  "generatedAt": 1787131445007,
   "readings": {
     "marketing-and-docs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787129555643,
+      "observedAt": 1787131445007,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 467.82486000000006
+        "latencyMs": 375.734189
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787129555643,
+      "observedAt": 1787131445007,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 813.5534230000001
+        "latencyMs": 677.4526020000001
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787129555643,
+      "observedAt": 1787131445007,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 812.2920320000001
+        "latencyMs": 715.3932580000001
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787129555643,
+      "observedAt": 1787131445007,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 202.57752200000002
+        "latencyMs": 209.712392
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787129555643,
+      "observedAt": 1787131445007,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
       }
     },
+    "vendor-cloudflare": {
+      "method": "vendor-reported",
+      "vendor": "Cloudflare",
+      "state": "Minor Service Outage",
+      "vendorUpdatedAt": 1787131446174,
+      "fetchedAt": 1787131446201,
+      "permalink": "https://www.cloudflarestatus.com"
+    },
     "vendor-supabase": {
       "method": "vendor-reported",
       "vendor": "Supabase",
       "state": "Partially Degraded Service",
-      "vendorUpdatedAt": 1787127549043,
-      "fetchedAt": 1787129556687,
+      "vendorUpdatedAt": 1787131162638,
+      "fetchedAt": 1787131446226,
       "permalink": "https://status.supabase.com"
+    },
+    "vendor-sentry": {
+      "method": "vendor-reported",
+      "vendor": "Sentry",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787131140345,
+      "fetchedAt": 1787131446376,
+      "permalink": "https://status.sentry.io"
+    },
+    "vendor-anthropic": {
+      "method": "vendor-reported",
+      "vendor": "Anthropic",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787131176054,
+      "fetchedAt": 1787131446423,
+      "permalink": "https://status.claude.com"
     },
     "vendor-stripe": {
       "method": "vendor-reported",
       "vendor": "Stripe",
       "state": "All services are online.",
       "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787129556772,
+      "fetchedAt": 1787131446476,
       "permalink": "https://status.stripe.com"
-    },
-    "vendor-anthropic": {
-      "method": "vendor-reported",
-      "vendor": "Anthropic",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787127558848,
-      "fetchedAt": 1787129556804,
-      "permalink": "https://status.claude.com"
-    },
-    "vendor-cloudflare": {
-      "method": "vendor-reported",
-      "vendor": "Cloudflare",
-      "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787129556843,
-      "fetchedAt": 1787129556883,
-      "permalink": "https://www.cloudflarestatus.com"
-    },
-    "vendor-sentry": {
-      "method": "vendor-reported",
-      "vendor": "Sentry",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787127532302,
-      "fetchedAt": 1787129556897,
-      "permalink": "https://status.sentry.io"
     },
     "vendor-openai": {
       "method": "vendor-reported",
       "vendor": "OpenAI",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787129556898,
+      "fetchedAt": 1787131446481,
       "permalink": "https://status.openai.com"
     }
   },
