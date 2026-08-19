@@ -1,102 +1,102 @@
 {
   "schema": 1,
-  "generatedAt": 1787134937419,
+  "generatedAt": 1787136756390,
   "readings": {
     "marketing-and-docs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787134937419,
+      "observedAt": 1787136756390,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 196.39463500000002
+        "latencyMs": 639.520973
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787134937419,
+      "observedAt": 1787136756390,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 906.467671
+        "latencyMs": 1284.447306
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787134937419,
+      "observedAt": 1787136756390,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1041.577777
+        "latencyMs": 1282.9737049999999
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787134937419,
+      "observedAt": 1787136756390,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 209.052801
+        "latencyMs": 254.38816199999997
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787134937419,
+      "observedAt": 1787136756390,
       "observation": {
         "kind": "unknown",
         "reason": "challenged"
       }
     },
-    "vendor-supabase": {
-      "method": "vendor-reported",
-      "vendor": "Supabase",
-      "state": "Partially Degraded Service",
-      "vendorUpdatedAt": 1787134460620,
-      "fetchedAt": 1787134938675,
-      "permalink": "https://status.supabase.com"
-    },
     "vendor-cloudflare": {
       "method": "vendor-reported",
       "vendor": "Cloudflare",
       "state": "Minor Service Outage",
-      "vendorUpdatedAt": 1787134938765,
-      "fetchedAt": 1787134938812,
+      "vendorUpdatedAt": 1787136758023,
+      "fetchedAt": 1787136758030,
       "permalink": "https://www.cloudflarestatus.com"
     },
-    "vendor-sentry": {
+    "vendor-supabase": {
       "method": "vendor-reported",
-      "vendor": "Sentry",
-      "state": "All Systems Operational",
-      "vendorUpdatedAt": 1787134428848,
-      "fetchedAt": 1787134938865,
-      "permalink": "https://status.sentry.io"
-    },
-    "vendor-anthropic": {
-      "method": "vendor-reported",
-      "vendor": "Anthropic",
+      "vendor": "Supabase",
       "state": "Partially Degraded Service",
-      "vendorUpdatedAt": 1787133565761,
-      "fetchedAt": 1787134938910,
-      "permalink": "https://status.claude.com"
+      "vendorUpdatedAt": 1787136556242,
+      "fetchedAt": 1787136758038,
+      "permalink": "https://status.supabase.com"
     },
     "vendor-stripe": {
       "method": "vendor-reported",
       "vendor": "Stripe",
       "state": "All services are online.",
       "vendorUpdatedAt": 1707502080000,
-      "fetchedAt": 1787134938924,
+      "fetchedAt": 1787136758056,
       "permalink": "https://status.stripe.com"
+    },
+    "vendor-sentry": {
+      "method": "vendor-reported",
+      "vendor": "Sentry",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787136533073,
+      "fetchedAt": 1787136758142,
+      "permalink": "https://status.sentry.io"
+    },
+    "vendor-anthropic": {
+      "method": "vendor-reported",
+      "vendor": "Anthropic",
+      "state": "All Systems Operational",
+      "vendorUpdatedAt": 1787136567340,
+      "fetchedAt": 1787136758218,
+      "permalink": "https://status.claude.com"
     },
     "vendor-openai": {
       "method": "vendor-reported",
       "vendor": "OpenAI",
       "state": "All Systems Operational",
       "vendorUpdatedAt": 1783625156000,
-      "fetchedAt": 1787134939046,
+      "fetchedAt": 1787136758346,
       "permalink": "https://status.openai.com"
     }
   },
