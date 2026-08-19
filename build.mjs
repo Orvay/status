@@ -1256,6 +1256,7 @@ var attempt = async (target, fetchImpl, clock) => {
     return { kind: "failed", failure: classifyError(error) };
   }
 };
+var wasChallenged = (headers) => headers["cf-mitigated"] !== void 0 && headers["cf-mitigated"].length > 0;
 var gradeResponse = (target, responded) => {
   if (responded.status >= 500) return { level: "major-outage", note: `status ${responded.status}` };
   if (responded.status !== target.expectStatus) {
@@ -1283,6 +1284,7 @@ var probeTarget = async (target, fetchImpl, clock, delay = sleep) => {
   for (let n = 1; n <= CONFIRMATIONS; n += 1) {
     const result = await attempt(target, fetchImpl, clock);
     if (result.kind === "responded") {
+      if (wasChallenged(result.headers)) return { kind: "blocked", reason: "challenged" };
       const graded = gradeResponse(target, result);
       return { kind: "measured", level: graded.level, latencyMs: result.latencyMs, note: graded.note };
     }
@@ -1295,6 +1297,10 @@ var applyPositiveControl = (readings) => {
   const anythingAnswered = [...readings.values()].some((r) => r.kind === "measured");
   const resolved = /* @__PURE__ */ new Map();
   for (const [key, reading] of readings) {
+    if (reading.kind === "blocked") {
+      resolved.set(key, { kind: "unknown", reason: reading.reason });
+      continue;
+    }
     if (reading.kind === "measured") {
       resolved.set(key, {
         kind: "measured",
@@ -1509,6 +1515,7 @@ var REASON_TEXT = {
   "unexpected-status": "the response was not what we expect",
   "body-marker-missing": "the page did not contain its expected content",
   "probe-errored": "our own check could not run, so this says nothing about the service",
+  challenged: "a bot filter stopped our own check before it reached the service, so this says nothing about whether the service is working",
   "artifact-unreachable": "we could not read our own internal report",
   "artifact-malformed": "our own internal report was not readable",
   stale: "the last measurement is too old to rely on"
@@ -1801,7 +1808,7 @@ var transitions = (previous, current, labels, at) => {
 var append = (history, entries) => ({ schema: 1, entries: [...entries, ...history.entries] });
 
 // src/build.ts
-var sourceCommit = true ? "b93f8bd" : "unknown";
+var sourceCommit = true ? "572cfcc" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
