@@ -1578,9 +1578,8 @@ var renderPage = (input) => {
     );
   }).join("");
   const channels = input.fallbackChannels ?? [];
-  const fallback = channels.length === 0 ? "We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage." : `If this page is unreachable, look at ${channels.map(
-    (c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`
-  ).join(", or ")}. Neither is served from our own infrastructure, so a problem with ours does not take them with it.`;
+  const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
+  const fallback = channels.length === 0 ? "We have not yet published a second place to look. Until we do, this limitation is stated here rather than left for you to discover during an outage." : channels.length === 1 ? `If this page is unreachable, look at ${links}. It is not served from our own infrastructure, so a problem with ours does not take it down too.` : `If this page is unreachable, look at ${links}. None of them is served from our own infrastructure, so a problem with ours does not take them down too.`;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -1859,7 +1858,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "572cfcc" : "unknown";
+var sourceCommit = true ? "bd3a0d0" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
