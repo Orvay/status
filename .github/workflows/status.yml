@@ -1,0 +1,82 @@
+# Rebuild the public status page.
+#
+# THIS WORKFLOW HOLDS NO SECRET, and that is a deliberate property rather than a
+# convenience. `GITHUB_TOKEN` is scoped to this repository alone, every probe
+# target is a public URL, and every vendor feed is public. Nothing here can reach
+# Orvay's infrastructure, so a compromise of this repository yields an attacker
+# the ability to publish a wrong status page and nothing else.
+#
+# It runs on GitHub's own runners, which is the point of the whole design: the
+# machine measuring Orvay is on a different network, owned by a different
+# company, from the one Orvay runs on. A probe inside Cloudflare reporting on
+# Cloudflare is asking the question of the party that would have to answer
+# honestly.
+name: status
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub QUEUES scheduled workflows and does not guarantee
+    # the interval, which is why the page never claims a check frequency: it
+    # prints the time each row was actually last checked, and lets the reader
+    # draw their own conclusion. Publishing "checked every 15 minutes" beside a
+    # real interval of forty would be the artifact-versus-claim failure.
+    - cron: '*/15 * * * *'
+  # Fired by apps/orchestrator the moment a public-audience incident opens or
+  # closes, so publication is sub-minute rather than waiting for the schedule.
+  repository_dispatch:
+    types: [status-changed]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['build.mjs', '.github/workflows/status.yml']
+
+# One run at a time. Two concurrent runs would race on the gh-pages branch and
+# the loser would silently drop a history entry.
+concurrency:
+  group: status
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the prober
+        uses: actions/checkout@v4
+
+      - name: Check out the published page
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: out
+          # The previous run's summary.json and history.json must be on disk
+          # before the build starts. The history is a DIFF against them, so a
+          # missing checkout would silently produce a page with no history and
+          # no error.
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Probe, mirror, render
+        run: node build.mjs out
+
+      - name: Publish
+        working-directory: out
+        run: |
+          git config user.name  "orvay-status"
+          git config user.email "status@users.noreply.github.com"
+          git add -A
+          # Nothing changed means nothing to publish. An empty commit every
+          # fifteen minutes would bury the real transitions in the log that is
+          # supposed to be the audit trail.
+          if git diff --cached --quiet; then
+            echo "no change"
+            exit 0
+          fi
+          git commit -m "status: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
