@@ -1463,6 +1463,27 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 .tip-state[data-s='major-outage']::before { background: var(--risk-critical-solid); }
 .tip-state[data-s='not-measured']::before { background: var(--o-neutral-6); }
 .tip-state[data-s='none']::before { background: var(--o-neutral-5); }
+/* A cell repainted because our OWN check was at fault, not the service.
+
+   The colour now says what the service was doing, which is true, so the hatch
+   and the sentence carry the part the colour cannot: that this cell is a
+   correction rather than a reading. §7 forbids colour as the sole carrier, and a
+   3px cell has no room for a glyph, so the tooltip does the work and the hatch
+   makes the cell findable by someone looking for it.
+
+   background-IMAGE, never the shorthand: `.cell` sets `background-clip:
+   content-box` to draw the gap, and the shorthand resets it. That has broken the
+   bar twice. */
+.cell--corrected { background-image: var(--provenance-hatch); }
+.tip-note {
+  padding: var(--o-space-3); border-top: 1px solid var(--line-rule);
+  font: var(--o-text-micro-11); color: var(--fg-secondary); line-height: 1.5;
+  /* An explicit measure, because `.tip` shrink-wraps: it is positioned against a
+     3px cell, so its available width is 3px and it collapses to min-content.
+     A max-width would never be reached and the note would read as a 45-character
+     column. */
+  white-space: normal; width: min(19rem, 62vw); text-wrap: pretty;
+}
 
 /* Button and footer ------------------------------------------------------ */
 .cta { display: flex; justify-content: center; margin: var(--o-space-7) 0 var(--o-space-6); }
@@ -1519,10 +1540,6 @@ ul.incidents { list-style: none; margin: 0; padding: 0; }
   transition: background var(--o-dur-quick) var(--o-ease-standard);
 }
 .incident-card:hover { background: var(--bg-subtle); }
-/* A correction is not a link and must not look like one. */
-.incident-card[data-correction='true'] { background-image: var(--provenance-hatch); }
-.incident-card[data-correction='true']:hover { background-color: transparent; }
-.corr-lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); font: var(--o-text-label-14); max-width: 66ch; }
 .incident-card:focus-within { background: var(--bg-subtle); }
 .incident-rail { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
 .incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

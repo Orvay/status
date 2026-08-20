@@ -1463,6 +1463,27 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 .tip-state[data-s='major-outage']::before { background: var(--risk-critical-solid); }
 .tip-state[data-s='not-measured']::before { background: var(--o-neutral-6); }
 .tip-state[data-s='none']::before { background: var(--o-neutral-5); }
+/* A cell repainted because our OWN check was at fault, not the service.
+
+   The colour now says what the service was doing, which is true, so the hatch
+   and the sentence carry the part the colour cannot: that this cell is a
+   correction rather than a reading. §7 forbids colour as the sole carrier, and a
+   3px cell has no room for a glyph, so the tooltip does the work and the hatch
+   makes the cell findable by someone looking for it.
+
+   background-IMAGE, never the shorthand: `.cell` sets `background-clip:
+   content-box` to draw the gap, and the shorthand resets it. That has broken the
+   bar twice. */
+.cell--corrected { background-image: var(--provenance-hatch); }
+.tip-note {
+  padding: var(--o-space-3); border-top: 1px solid var(--line-rule);
+  font: var(--o-text-micro-11); color: var(--fg-secondary); line-height: 1.5;
+  /* An explicit measure, because `.tip` shrink-wraps: it is positioned against a
+     3px cell, so its available width is 3px and it collapses to min-content.
+     A max-width would never be reached and the note would read as a 45-character
+     column. */
+  white-space: normal; width: min(19rem, 62vw); text-wrap: pretty;
+}
 
 /* Button and footer ------------------------------------------------------ */
 .cta { display: flex; justify-content: center; margin: var(--o-space-7) 0 var(--o-space-6); }
@@ -1519,10 +1540,6 @@ ul.incidents { list-style: none; margin: 0; padding: 0; }
   transition: background var(--o-dur-quick) var(--o-ease-standard);
 }
 .incident-card:hover { background: var(--bg-subtle); }
-/* A correction is not a link and must not look like one. */
-.incident-card[data-correction='true'] { background-image: var(--provenance-hatch); }
-.incident-card[data-correction='true']:hover { background-color: transparent; }
-.corr-lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); font: var(--o-text-label-14); max-width: 66ch; }
 .incident-card:focus-within { background: var(--bg-subtle); }
 .incident-rail { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
 .incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -1602,7 +1619,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
   <div class="page-head">
     <h1>History</h1>
-    <p>Every change of state we have recorded, newest first. Entries are never removed. When one turns out to describe a fault in our own checking rather than in the service, a correction is added beside it and the entry stays exactly as it was recorded.</p>
+    <p>Every incident we have recorded, newest first. Nothing is deleted from the record. When a recorded change turns out to describe a fault in our own checking rather than something happening to the service, it stays in the published record and is left out of this list.</p>
   </div>
 
     <section class="month">
@@ -1621,57 +1638,6 @@ ul.updates .when { font: var(--o-text-mono-13); }
         </li>
       </ul>
     </section>
-
-  <section class="month">
-    <h2>Corrections</h2>
-    <p class="corr-lede">These entries are still in the record above. Each turned out to be a defect in our own checking rather than an event in the service, so it is marked here rather than deleted.</p>
-    <ul class="incidents">
-      <li class="incident-row">
-        <div class="incident-date"><span class="dd">20</span> <span class="ddow">Thu</span></div>
-        <div class="incident-card" data-correction="true">
-          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
-          <div class="incident-main">
-            <strong class="incident-title">Public website: measurement artifact</strong>
-            <p>Our own check looked for a sentence that had been rewritten on the site. The page was serving normally in about a quarter of a second. The check now looks for something the page structure carries rather than something a writer edits.</p>
-          </div>
-          <div class="incident-time">15:56</div>
-        </div>
-      </li>
-      <li class="incident-row">
-        <div class="incident-date"><span class="dd">19</span> <span class="ddow">Wed</span></div>
-        <div class="incident-card" data-correction="true">
-          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
-          <div class="incident-main">
-            <strong class="incident-title">Published websites: measurement artifact</strong>
-            <p>The same bot filter, once the prober learned to recognise it. This entry records our check becoming honest about being blocked, not a change in the service.</p>
-          </div>
-          <div class="incident-time">04:59</div>
-        </div>
-      </li>
-      <li class="incident-row">
-        <div class="incident-date"><span class="dd">19</span> <span class="ddow">Wed</span></div>
-        <div class="incident-card" data-correction="true">
-          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
-          <div class="incident-main">
-            <strong class="incident-title">Published websites: measurement artifact</strong>
-            <p>Our own check was stopped by a bot filter in front of the sites, and graded that as the sites being broken. Every published website was serving normally throughout.</p>
-          </div>
-          <div class="incident-time">04:51</div>
-        </div>
-      </li>
-      <li class="incident-row">
-        <div class="incident-date"><span class="dd">18</span> <span class="ddow">Tue</span></div>
-        <div class="incident-card" data-correction="true">
-          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
-          <div class="incident-main">
-            <strong class="incident-title">Website studio: measurement artifact</strong>
-            <p>Our own check was wrong, not the studio. It expected the page to refuse an unauthenticated visitor and the page correctly served one, so the check called a working page a partial outage. Fixed in the prober the same day.</p>
-          </div>
-          <div class="incident-time">21:12</div>
-        </div>
-      </li>
-    </ul>
-  </section>
 
 
   <footer>
