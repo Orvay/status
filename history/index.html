@@ -1383,13 +1383,16 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
 .bar { display: flex; align-items: stretch; height: 32px; }
 .cell {
   flex: 1 1 0; min-width: 3px; border-radius: 2px;
-  padding: 0 1px;
+  padding: 0 1.5px;
   background-clip: content-box;
 }
 /* Barely there on purpose. A visible grey cell reads as a measurement that went
    badly; this has to read as a day we were not yet watching, which is what an
    empty track says and a filled one cannot. */
-.cell--none { background: var(--o-neutral-3); }
+/* background-COLOR, not the shorthand. `background:` resets background-clip to
+   border-box, which paints the tint through the padding that is the gap. That
+   happened twice: once here and once in the inline style on each cell. */
+.cell--none { background-color: var(--o-neutral-3); }
 .bar-scale { display: flex; justify-content: space-between; align-items: baseline; font: var(--o-text-micro-11); color: var(--fg-secondary); letter-spacing: 0.02em; }
 .bar-count { font-variant-numeric: tabular-nums; }
 
@@ -1439,17 +1442,17 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
   display: flex; flex-direction: column;
 }
 /* Anchored so a tooltip near either end cannot leave the card. */
-.cell[data-tip='start'] .tip, .seg[data-tip='start'] .tip { left: 0; transform: translateY(4px); }
-.cell[data-tip='end'] .tip, .seg[data-tip='end'] .tip { left: auto; right: 0; transform: translateY(4px); }
+.cell[data-tip='start'] .tip, .zone[data-tip='start'] .tip { left: 0; transform: translateY(4px); }
+.cell[data-tip='end'] .tip, .zone[data-tip='end'] .tip { left: auto; right: 0; transform: translateY(4px); }
 .cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip,
-.seg:hover .tip, .seg:focus .tip, .seg:focus-visible .tip {
+.zone:hover .tip, .zone:focus .tip, .zone:focus-visible .tip {
   opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
   transition-delay: 60ms, 60ms, 0s;
 }
 .cell[data-tip='start']:hover .tip, .cell[data-tip='start']:focus .tip,
 .cell[data-tip='end']:hover .tip, .cell[data-tip='end']:focus .tip,
-.seg[data-tip='start']:hover .tip, .seg[data-tip='start']:focus .tip,
-.seg[data-tip='end']:hover .tip, .seg[data-tip='end']:focus .tip { transform: translateY(0); }
+.zone[data-tip='start']:hover .tip, .zone[data-tip='start']:focus .tip,
+.zone[data-tip='end']:hover .tip, .zone[data-tip='end']:focus .tip { transform: translateY(0); }
 .tip-day { padding: var(--o-space-3) var(--o-space-3) var(--o-space-2); font: var(--o-text-label-14); color: var(--fg-secondary); border-bottom: 1px solid var(--line-rule); white-space: nowrap; }
 .tip-state { padding: var(--o-space-3); font: var(--o-text-label-14); font-weight: var(--o-weight-medium); display: flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
 /* The dot repeats the colour; the WORD beside it is what carries the meaning. */
@@ -1530,15 +1533,17 @@ ul.incidents { list-style: none; margin: 0; padding: 0; }
 .incident-time { font: var(--o-text-mono-13); color: var(--fg-secondary); }
 .incident-meta { color: var(--fg-secondary); font: var(--o-text-label-14); }
 
-.timeline { display: flex; height: 26px; margin-top: var(--o-space-2); position: relative; }
-.timeline .seg {
-  flex: 1 1 0; min-width: 3px; border-radius: 2px; position: relative;
-  padding: 0 1px; background-clip: content-box;
-}
-.timeline .seg:hover, .timeline .seg:focus-within { z-index: 30; }
-.timeline .seg:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
+/* One block per phase, so the drawing says what happened and for how long. */
+.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); position: relative; }
+.phase { border-radius: 2px; position: relative; display: flex; min-width: 6px; }
+/* Transparent, contiguous hover zones inside the block. They are what makes the
+   tooltip appear under the cursor instead of at the left edge of a block that
+   can span the whole card, and they are invisible: the block is the drawing. */
+.zone { flex: 1 1 0; position: relative; }
+.zone:hover, .zone:focus-within { z-index: 30; }
+.zone:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
 /* Upward, like the day cells: the card clips, and there is room above. */
-.timeline .seg .tip { bottom: calc(100% + 8px); top: auto; }
+.zone .tip { bottom: calc(100% + 8px); top: auto; }
 .timeline-scale { display: flex; justify-content: space-between; font: var(--o-text-micro-11); color: var(--fg-secondary); margin-top: var(--o-space-2); }
 
 ul.updates { list-style: none; margin: 0; padding: 0; }
