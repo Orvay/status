@@ -1,71 +1,71 @@
 {
   "schema": 1,
-  "generatedAt": 1787226615202,
+  "generatedAt": 1787228927904,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787226615202,
+      "observedAt": 1787228927904,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 543.2524639999999
+        "latencyMs": 662.2794550000001
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787226615202,
+      "observedAt": 1787228927904,
       "observation": {
         "kind": "ok",
-        "level": "operational",
-        "latencyMs": 1311.074171
+        "level": "degraded",
+        "latencyMs": 3623.779644
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787226615202,
+      "observedAt": 1787228927904,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1363.304064
+        "latencyMs": 1362.3116759999998
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787226615202,
+      "observedAt": 1787228927904,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 260.595909
+        "latencyMs": 229.031026
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787226615202,
+      "observedAt": 1787228927904,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 257.644039
+        "latencyMs": 226.194143
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787226615202,
+      "observedAt": 1787228927904,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 641.217982
+        "latencyMs": 553.460256
       }
     }
   },
   "states": {
     "sign-in": "operational",
-    "control-plane": "operational",
+    "control-plane": "degraded",
     "website-studio": "operational",
     "tenant-sites": "operational",
     "marketing-site": "operational",
