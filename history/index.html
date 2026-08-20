@@ -1519,6 +1519,10 @@ ul.incidents { list-style: none; margin: 0; padding: 0; }
   transition: background var(--o-dur-quick) var(--o-ease-standard);
 }
 .incident-card:hover { background: var(--bg-subtle); }
+/* A correction is not a link and must not look like one. */
+.incident-card[data-correction='true'] { background-image: var(--provenance-hatch); }
+.incident-card[data-correction='true']:hover { background-color: transparent; }
+.corr-lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); font: var(--o-text-label-14); max-width: 66ch; }
 .incident-card:focus-within { background: var(--bg-subtle); }
 .incident-rail { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }
 .incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -1598,23 +1602,12 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
   <div class="page-head">
     <h1>History</h1>
-    <p>Every change of state we have recorded, newest first. Entries are never removed and never edited.</p>
+    <p>Every change of state we have recorded, newest first. Entries are never removed. When one turns out to describe a fault in our own checking rather than in the service, a correction is added beside it and the entry stays exactly as it was recorded.</p>
   </div>
 
     <section class="month">
       <h2>August 2026</h2>
       <ul class="incidents">
-        <li class="incident-row">
-          <div class="incident-date"><span class="dd">20</span> <span class="ddow">Thu</span></div>
-          <div class="incident-card">
-            <span class="incident-rail" style="background:var(--risk-high-solid)" aria-hidden="true"></span>
-            <div class="incident-main">
-              <a class="incident-title" href="/incidents/marketing-site-2026-08-20-1556/">Public website was partly down</a>
-              <p>Still going on. This page updates when the next check runs.</p>
-            </div>
-            <div class="incident-time">15:56</div>
-          </div>
-        </li>
         <li class="incident-row">
           <div class="incident-date"><span class="dd">20</span> <span class="ddow">Thu</span></div>
           <div class="incident-card">
@@ -1626,20 +1619,59 @@ ul.updates .when { font: var(--o-text-mono-13); }
             <div class="incident-time">12:28</div>
           </div>
         </li>
-        <li class="incident-row">
-          <div class="incident-date"><span class="dd">19</span> <span class="ddow">Wed</span></div>
-          <div class="incident-card">
-            <span class="incident-rail" style="background:var(--risk-high-solid)" aria-hidden="true"></span>
-            <div class="incident-main">
-              <a class="incident-title" href="/incidents/tenant-sites-2026-08-19-0451/">Published websites was partly down</a>
-              <p>Recovered after 23 h 46 min, at 20 Aug 2026, 04:37 UTC.</p>
-            </div>
-            <div class="incident-time">04:51</div>
-          </div>
-        </li>
       </ul>
     </section>
 
+  <section class="month">
+    <h2>Corrections</h2>
+    <p class="corr-lede">These entries are still in the record above. Each turned out to be a defect in our own checking rather than an event in the service, so it is marked here rather than deleted.</p>
+    <ul class="incidents">
+      <li class="incident-row">
+        <div class="incident-date"><span class="dd">20</span> <span class="ddow">Thu</span></div>
+        <div class="incident-card" data-correction="true">
+          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
+          <div class="incident-main">
+            <strong class="incident-title">Public website: measurement artifact</strong>
+            <p>Our own check looked for a sentence that had been rewritten on the site. The page was serving normally in about a quarter of a second. The check now looks for something the page structure carries rather than something a writer edits.</p>
+          </div>
+          <div class="incident-time">15:56</div>
+        </div>
+      </li>
+      <li class="incident-row">
+        <div class="incident-date"><span class="dd">19</span> <span class="ddow">Wed</span></div>
+        <div class="incident-card" data-correction="true">
+          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
+          <div class="incident-main">
+            <strong class="incident-title">Published websites: measurement artifact</strong>
+            <p>The same bot filter, once the prober learned to recognise it. This entry records our check becoming honest about being blocked, not a change in the service.</p>
+          </div>
+          <div class="incident-time">04:59</div>
+        </div>
+      </li>
+      <li class="incident-row">
+        <div class="incident-date"><span class="dd">19</span> <span class="ddow">Wed</span></div>
+        <div class="incident-card" data-correction="true">
+          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
+          <div class="incident-main">
+            <strong class="incident-title">Published websites: measurement artifact</strong>
+            <p>Our own check was stopped by a bot filter in front of the sites, and graded that as the sites being broken. Every published website was serving normally throughout.</p>
+          </div>
+          <div class="incident-time">04:51</div>
+        </div>
+      </li>
+      <li class="incident-row">
+        <div class="incident-date"><span class="dd">18</span> <span class="ddow">Tue</span></div>
+        <div class="incident-card" data-correction="true">
+          <span class="incident-rail" style="background-color:var(--o-neutral-8)" aria-hidden="true"></span>
+          <div class="incident-main">
+            <strong class="incident-title">Website studio: measurement artifact</strong>
+            <p>Our own check was wrong, not the studio. It expected the page to refuse an unauthenticated visitor and the page correctly served one, so the check called a working page a partial outage. Fixed in the prober the same day.</p>
+          </div>
+          <div class="incident-time">21:12</div>
+        </div>
+      </li>
+    </ul>
+  </section>
 
 
   <footer>

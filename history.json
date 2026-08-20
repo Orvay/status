@@ -2,11 +2,19 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1787241953270,
+      "component": "marketing-site",
+      "label": "Public website",
+      "from": "partial-outage",
+      "to": "operational"
+    },
+    {
       "at": 1787241384373,
       "component": "marketing-site",
       "label": "Public website",
       "from": "operational",
-      "to": "partial-outage"
+      "to": "partial-outage",
+      "correction": "Our own check looked for a sentence that had been rewritten on the site. The page was serving normally in about a quarter of a second. The check now looks for something the page structure carries rather than something a writer edits."
     },
     {
       "at": 1787232442801,
@@ -34,21 +42,24 @@
       "component": "tenant-sites",
       "label": "Published websites",
       "from": "partial-outage",
-      "to": "unknown"
+      "to": "unknown",
+      "correction": "The same bot filter, once the prober learned to recognise it. This entry records our check becoming honest about being blocked, not a change in the service."
     },
     {
       "at": 1787115089486,
       "component": "tenant-sites",
       "label": "Published websites",
       "from": "operational",
-      "to": "partial-outage"
+      "to": "partial-outage",
+      "correction": "Our own check was stopped by a bot filter in front of the sites, and graded that as the sites being broken. Every published website was serving normally throughout."
     },
     {
       "at": 1787087533380,
       "component": "website-studio",
       "label": "Website studio",
       "from": "partial-outage",
-      "to": "operational"
+      "to": "operational",
+      "correction": "Our own check was wrong, not the studio. It expected the page to refuse an unauthenticated visitor and the page correctly served one, so the check called a working page a partial outage. Fixed in the prober the same day."
     }
   ]
 }
