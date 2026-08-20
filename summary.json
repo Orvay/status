@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787245265372,
+  "generatedAt": 1787245761404,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787245265372,
+      "observedAt": 1787245761404,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 978.924301
+        "latencyMs": 541.7387859999999
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787245265372,
+      "observedAt": 1787245761404,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1150.643899
+        "latencyMs": 1266.7391189999998
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787245265372,
+      "observedAt": 1787245761404,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1456.182354
+        "latencyMs": 1314.691163
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787245265372,
+      "observedAt": 1787245761404,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 373.665591
+        "latencyMs": 171.831718
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787245265372,
+      "observedAt": 1787245761404,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 472.10918499999997
+        "latencyMs": 293.94454299999995
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787245265372,
+      "observedAt": 1787245761404,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 728.381531
+        "latencyMs": 532.7182280000001
       }
     }
   },
@@ -78,5 +78,5 @@
     "email-notifications": "not-measured"
   },
   "slowTargets": [],
-  "sourceCommit": "a6db448"
+  "sourceCommit": "e544275"
 }

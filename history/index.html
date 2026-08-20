@@ -1522,6 +1522,9 @@ footer nav a:hover { color: var(--fg-primary); text-decoration: underline; }
 .page-head { margin-bottom: var(--o-space-6); }
 .page-head h1 { font: var(--o-text-display-32); font-weight: var(--o-weight-regular); margin: 0 0 var(--o-space-2); letter-spacing: -0.018em; }
 .page-head p { margin: 0; color: var(--fg-secondary); max-width: 62ch; }
+/* The history page carries no lede, so its heading is the last child and the gap
+   it was holding open for a paragraph would double up with .page-head's own. */
+.page-head h1:last-child { margin-bottom: 0; }
 
 .month { margin-bottom: var(--o-space-6); }
 .month h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }
@@ -1619,7 +1622,6 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
   <div class="page-head">
     <h1>History</h1>
-    <p>Every incident we have recorded, newest first. Nothing is deleted from the record. When a recorded change turns out to describe a fault in our own checking rather than something happening to the service, it stays in the published record and is left out of this list.</p>
   </div>
 
     <section class="month">
