@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787262656332,
+  "generatedAt": 1787264239643,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787262656332,
+      "observedAt": 1787264239643,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 486.04829100000006
+        "latencyMs": 472.30134
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787262656332,
+      "observedAt": 1787264239643,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 697.326421
+        "latencyMs": 1200.856272
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787262656332,
+      "observedAt": 1787264239643,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 893.345706
+        "latencyMs": 1195.242348
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787262656332,
+      "observedAt": 1787264239643,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 98.904665
+        "latencyMs": 290.01659400000005
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787262656332,
+      "observedAt": 1787264239643,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 201.22411300000002
+        "latencyMs": 286.846796
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787262656332,
+      "observedAt": 1787264239643,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 545.3966109999999
+        "latencyMs": 745.5740599999999
       }
     }
   },
