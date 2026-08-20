@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787260776180,
+  "generatedAt": 1787261785936,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787260776180,
+      "observedAt": 1787261785936,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 557.873946
+        "latencyMs": 545.514445
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787260776180,
+      "observedAt": 1787261785936,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 978.2246949999999
+        "latencyMs": 893.9791649999999
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787260776180,
+      "observedAt": 1787261785936,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1208.2649529999999
+        "latencyMs": 1325.590461
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787260776180,
+      "observedAt": 1787261785936,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 384.852217
+        "latencyMs": 337.359169
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787260776180,
+      "observedAt": 1787261785936,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 288.458841
+        "latencyMs": 333.881129
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787260776180,
+      "observedAt": 1787261785936,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 581.506015
+        "latencyMs": 457.70063400000004
       }
     }
   },
@@ -78,5 +78,5 @@
     "email-notifications": "not-measured"
   },
   "slowTargets": [],
-  "sourceCommit": "e544275"
+  "sourceCommit": "dcaceac"
 }

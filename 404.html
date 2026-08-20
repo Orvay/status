@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>History · Orvay Status</title>
-<meta name="description" content="Every recorded change of state for Orvay, oldest kept forever.">
-<meta name="robots" content="index, follow">
+<title>Page not found · Orvay Status</title>
+<meta name="description" content="There is no page at this address.">
+<meta name="robots" content="noindex, follow">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="alternate" type="application/atom+xml" title="Orvay Status" href="/history.atom">
@@ -1856,6 +1856,376 @@ ul.updates .when { font: var(--o-text-mono-13); }
 .crumbs a:hover { color: var(--fg-primary); text-decoration: underline; }
 .crumb-sep { color: var(--line-strong); }
 
+/* =============================================================================
+   The button.
+
+   ITS OWN PARTIAL BECAUSE IT HAS A SECOND CONSUMER THAT CANNOT LOAD `ui.css`.
+   `apps/status` is a static generator with no React and no bundler pipeline for
+   stylesheets: it inlines `tokens.css` and `page.css` through esbuild's text
+   loader, and inlining the whole of `ui.css` to reach one control would drag in
+   fields, menus, overlays and navigation that page does not have. Its 404 uses
+   the same two controls as the product's, so this file is the one place their
+   shape is decided, exactly as `not-found.css` is for the lockup they sit under.
+
+   Moved out of `ui.css` verbatim. An `@import` has to precede every rule, so
+   these declarations now sit earlier in the cascade than they used to; nothing
+   in this package or its partials targets `.o-button`, so there is nothing for
+   the move to reorder. The app's own overrides live in `apps/app/src/app/app.css`
+   and still come after this file in full.
+   ============================================================================= */
+
+/* -------------------------------------------------------------- button ---- */
+
+.o-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--o-space-2);
+  min-height: var(--o-tap-min);
+  padding: 0 var(--o-space-5);
+  font: var(--o-text-label-14);
+  /* The control tracking, not the label tracking. This is the exact element the
+     flip was measured on: `.Button .Paragraph` OVERRIDES the paragraph's -1.5%
+     with -0.35px, so a button label is tracked ~46% tighter than identical body
+     text beside it (trap 8). The token existed and every new control used it
+     while the button, the halt and the switch still carried the body-tier
+     value, which put a 14px button label at half the tracking of a 14px menu
+     item in the same font. */
+  letter-spacing: var(--o-tracking-control);
+  font-weight: var(--o-weight-medium);
+  /* Fully round. Controls and surfaces are the only two shapes in the system,
+     which is what stops a UI drifting into a dozen near-identical radii. */
+  border-radius: var(--o-radius-pill);
+  border: var(--o-hairline) solid transparent;
+  cursor: pointer;
+  /* An <a> wearing this class is a real case: "go home" on the 404 page is a
+     navigation, so it must be an anchor, and a control that navigates should
+     look like the controls beside it. Without this the user agent underlines it
+     and it is the one button in the product with a line under its label. Inert
+     on a <button>, which has no default decoration to reset. */
+  text-decoration: none;
+  /* Declared, never inherited from the user agent.
+     A <button> with no background gets `buttonface`, which is a UA colour that
+     follows `color-scheme` rather than our tokens. It looked right in the light
+     theme purely because the two agreed there, and put near-white ink on a
+     near-white face in dark. A control in a themed system paints its own
+     surface, so that the surface and the ink are decided in the same place. */
+  background: var(--bg-component);
+  color: var(--fg-primary);
+  border-color: var(--line-control);
+  /* Padding is animated deliberately: the control breathes on interaction
+     rather than only changing colour, which reads as physical. */
+  transition:
+    background-color var(--o-dur-quick) var(--o-ease-standard),
+    box-shadow var(--o-dur-quick) var(--o-ease-standard),
+    padding var(--o-dur-quick) var(--o-ease-standard);
+}
+
+/* Approve is FILLED, Reject is OUTLINE. They differed only by hue in the draft
+   and collapsed to identical rectangles in greyscale and forced-colors. */
+/* The solid control: a slab with a faint vertical gradient, so the surface
+   reads as lit from above rather than as flat fill. It is dark in the light
+   theme and light in the dark theme, which is why its ink is a paired token. */
+.o-button[data-intent='primary'] {
+  background: linear-gradient(
+    var(--control-solid-top) 0%,
+    var(--control-solid-bottom) 100%
+  );
+  /* --control-solid-ink, NOT --fg-on-solid. The slab inverts between themes and
+     --o-neutral-9 (which --fg-on-solid is the ink for) does not, so the two
+     drift apart: this rule rendered near-black text on a near-black button at
+     1.21:1 in the LIGHT theme — the default one — on every primary button in
+     the product. A fill and its ink are one decision, made in tokens.css. */
+  color: var(--control-solid-ink);
+  box-shadow: var(--o-bevel-control-solid);
+}
+.o-button[data-intent='primary']:hover:not(:disabled) {
+  background: linear-gradient(
+    var(--control-solid-bottom) 0%,
+    var(--control-solid-bottom) 100%
+  );
+}
+
+/* The raised control: white, lifted off the ground by a white inset highlight
+   along its top edge plus a soft shadow beneath. This is the bevel that reads
+   as glass — no backdrop blur is involved (ADR: see tokens.css). */
+.o-button[data-intent='secondary'] {
+  background: var(--bg-raised);
+  color: var(--fg-primary);
+  border-color: transparent;
+  box-shadow: var(--o-bevel-control);
+}
+.o-button[data-intent='secondary']:hover:not(:disabled) {
+  padding-inline: var(--o-space-6);
+}
+
+.o-button[data-intent='danger'] {
+  background: var(--risk-critical-solid);
+  color: var(--risk-critical-on);
+}
+
+/* `[aria-disabled]`, NOT `:disabled`, and the difference was a shipped defect.
+
+   Button sets `aria-disabled` rather than the native attribute on purpose: the
+   native one removes the control from the tab order and announces nothing, so a
+   reader who tabs to a greyed Approve would never hear why it is unavailable.
+   That is right. But `:disabled` matches only the native attribute, so this rule
+   never applied to anything — a disabled button was inert to clicks, announced
+   as unavailable to a screen reader, and visually identical to a working one for
+   everybody else. Each half was individually correct, which is why nothing
+   caught it. Both selectors are listed so a caller using the native attribute
+   for a form control still gets the visual. */
+.o-button:disabled,
+.o-button[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.o-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   The 404 lockup.
+
+   THIS FILE IS THE ONE OWNER OF THE SHAPE, ACROSS TWO RENDERING TECHNOLOGIES.
+   `not-found.tsx` renders it as React for the marketing site and the
+   documentation. `apps/status/src/render-not-found.ts` renders the same class
+   names as an HTML string, because the status page is a static generator with
+   no React in it and is deliberately kept that way (it is a page whose whole
+   job is to work when the rest does not). So the MARKUP exists twice and the
+   STYLE exists once: the status build inlines this file through esbuild's text
+   loader exactly as it already inlines `tokens.css`, and
+   `apps/status/src/render-not-found.test.ts` asserts the two markups still name
+   the same classes. Two copies of a stylesheet would drift the first time somebody
+   adjusted one of them and nothing would fail.
+
+   Every colour and every measure below is a Tier 2 token. There is no literal.
+   ============================================================================= */
+
+.o-nf {
+  /* The lockup is sized in CONTAINER units, not viewport units, and that is the
+     load-bearing choice in this file.
+
+     `vw` includes the scrollbar, so a `24vw` glyph overflows a page that has one
+     and is fine on a machine that does not, which is a bug you cannot see on a
+     Mac. `cqi` is the container's own inline size, so the lockup fills the
+     column it is actually in: the site's 78rem shell, the documentation's card
+     and the status page's 58rem wrap each get a mark proportioned to themselves
+     rather than to a window none of them span. It also removes the need for an
+     upper bound on a wide monitor, because the container stops growing before
+     the viewport does. */
+  container-type: inline-size;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--o-space-3);
+  text-align: center;
+  padding-block: var(--o-space-8);
+
+  /* `svh`, never `vh`. On iOS `vh` counts the address bar that is not there, so
+     a block centred in `70vh` sits below the fold until the reader scrolls, and
+     on a 404 an apparently empty page is the worst available first impression.
+     `svh` is the small viewport, which is the one that is always visible. */
+  min-block-size: 62svh;
+}
+
+.o-nf__title {
+  margin: 0;
+  font: var(--o-text-display-32);
+  letter-spacing: var(--o-tracking-display-32);
+  /* `font:` is a SHORTHAND: it resets every longhand it does not name, and for
+     weight that is 400. This system has no bold, so weight is one of only four
+     hierarchy carriers and `font-synthesis: none` guarantees the browser cannot
+     paper over the loss. Every rule that sets `font:` restates the weight. */
+  font-weight: var(--o-weight-medium);
+  color: var(--fg-primary);
+  text-wrap: balance;
+  max-inline-size: 24ch;
+}
+
+.o-nf__body {
+  margin: 0;
+  font: var(--o-text-body-15);
+  letter-spacing: var(--o-tracking-body-15);
+  font-weight: var(--o-weight-regular);
+  color: var(--fg-secondary);
+  /* Wide enough that the sentence sits on ONE line at desktop, which is what
+     the composition wants under a centred headline: a two line body with two
+     words on the second reads as a mistake rather than as a paragraph. It still
+     wraps on a phone, where `balance` splits it evenly instead of leaving a
+     tail. */
+  text-wrap: balance;
+  max-inline-size: 62ch;
+}
+
+/* ---------------------------------------------------------------- code ---- */
+
+.o-nf__code {
+  /* NO MARGIN, and that is a decision rather than an omission.
+
+     A line box is taller than the ink inside it: with `line-height: 1` Inter
+     puts the cap line 0.137em below the top of the box and the baseline 0.136em
+     above the bottom. At 352px that is 48px of empty box on each side, so a
+     margin set in space tokens reads about 48px larger than the number says,
+     and reads correctly at 15px where the same tokens were calibrated. Spacing
+     this element in absolute units therefore means one value that is right at
+     one viewport.
+
+     The column's own `gap` plus that slack already comes to roughly a fifth of
+     the cap height, which is the proportion the reference composition uses, and
+     because the slack is in `em` it stays that proportion at every size the
+     lockup takes. */
+  margin: 0;
+  display: flex;
+  /* BASELINE, not centre. The mark stands in for a digit, so it has to sit on
+     the same line the two 4s sit on. A flex item with no baseline of its own
+     (which an <svg> is) synthesises one from its bottom margin edge, so aligning
+     on the baseline puts the bottom of the mark exactly on the type baseline and
+     `height: 1cap` then takes it to exactly cap height. Centring instead leaves
+     the mark floating a few pixels high at 300px, which reads as a mistake
+     rather than as a decision. */
+  align-items: baseline;
+  justify-content: center;
+
+  /* The optical gap between the glyphs. Inter's own side bearings are generous
+     at text sizes and vanish at display sizes, so the spacing is set here rather
+     than left to the font. `letter-spacing` is deliberately NOT used: it adds
+     the same space AFTER the final glyph, which shifts a centred lockup half a
+     gap to the left. */
+  gap: 0.07em;
+
+  color: var(--fg-primary);
+  font-family: var(--o-font-sans);
+  /* THE ONE PLACE IN THE PRODUCT THAT USES THE HEAVIEST WEIGHT, and it is here
+     because the mark is a FILLED silhouette while the digits are strokes. At
+     460 the two 4s read as noticeably lighter than the octagon between them and
+     the group looks like a logo somebody dropped into a sentence. 530 is the top
+     of the ramp this system has (there is no bold anywhere, by design), and it
+     does not close the gap so much as stop it being the first thing you see. */
+  font-weight: var(--o-weight-strong);
+  line-height: 1;
+  /* Tabular figures, so the two 4s are identical in width whatever the font
+     happens to do with proportional digits. */
+  font-variant-numeric: tabular-nums;
+
+  /* The size. `min()` keeps a bound for the case where a consumer puts this in a
+     container wider than the design ever anticipated. */
+  font-size: min(30cqi, 22rem);
+  /* An element cannot be selected across, so the digits are not text a reader
+     would ever want to copy; the accessible name on the group carries "404". */
+  user-select: none;
+}
+
+.o-nf__digit {
+  display: block;
+}
+
+.o-nf__mark {
+  /* The SVG's viewBox is cropped to the mark's own ink, so one `cap` of height
+     is one cap height of mark rather than one cap height of bounding box with
+     the silhouette floating inside it. See `MARK_INK_VIEWBOX` in `brand.tsx`.
+
+     Two declarations on purpose. The first is Inter's cap-height ratio written
+     out, which is a number this file should not have to know and is the honest
+     fallback for a browser without the `cap` unit; the second is the unit, which
+     asks the font rather than being told. A browser that understands `cap` takes
+     the second and the constant is never used. */
+  block-size: 0.727em;
+  block-size: 1cap;
+  inline-size: auto;
+  /* Optical overshoot. A round or chamfered form set flush to cap height reads
+     SMALLER than the flat-topped glyphs beside it, which is why every typeface
+     overshoots its O above the cap line. 2% is the low end of the range real
+     faces use, chosen because this mark is chamfered rather than truly round. */
+  scale: 1.02;
+  flex: none;
+}
+
+/* ------------------------------------------------------------- actions ---- */
+
+.o-nf__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--o-space-3);
+}
+
+/* -------------------------------------------------------------- motion ---- */
+
+/* One reveal, staggered down the column, and nothing else moves.
+
+   §9 is explicit that motion here means something rather than decorates: this
+   is the arrival of a page, which is the one event on a 404 there is. It travels
+   `--o-travel-reveal` (4px, measured off the design reference, where reveals
+   travel 4px and not 24px) on `--o-ease-reveal`.
+
+   THE REDUCED-MOTION CASE NEEDS NO BLOCK HERE, and that is the point of using
+   the tokens rather than literals. `tokens.css` zeroes `--o-dur-reveal`, the
+   stagger AND the travel under `prefers-reduced-motion: reduce`, so the delay
+   collapses to 0ms with them. Writing `50ms` here instead would leave a reader
+   who asked for no motion staring at `opacity: 0` for a fifth of a second, which
+   is the failure that block exists to prevent. §9: handled once, in one file. */
+@keyframes o-nf-rise {
+  from {
+    opacity: 0;
+    translate: 0 var(--o-travel-reveal);
+  }
+}
+
+.o-nf > * {
+  animation: o-nf-rise var(--o-dur-reveal) var(--o-ease-reveal) both;
+}
+.o-nf__body {
+  animation-delay: var(--o-stagger-unit);
+}
+.o-nf__code {
+  animation-delay: calc(var(--o-stagger-unit) * 2);
+}
+.o-nf__actions {
+  animation-delay: calc(var(--o-stagger-unit) * 3);
+}
+
+/* --------------------------------------------------------------- small ---- */
+
+/* The lockup grows as a FRACTION of a narrow column, because on a phone it is
+   the only thing on the screen and a mark proportioned for a 1200px column
+   reads as an afterthought at 358px. Measured against the reference's own
+   mobile layout, where the three glyphs span roughly 80% of the viewport. */
+@container (max-width: 44rem) {
+  .o-nf__code {
+    font-size: 42cqi;
+  }
+}
+
+@media (max-width: 44rem) {
+  .o-nf__title {
+    font: var(--o-text-title-24);
+    letter-spacing: var(--o-tracking-title-24);
+    font-weight: var(--o-weight-medium);
+  }
+  .o-nf {
+    min-block-size: 70svh;
+  }
+}
+
+/* Height, not width, and it is the case a desktop reviewer never sees: a laptop
+   with a bookmarks bar has plenty of width and about 600px of height, and a
+   300px lockup plus a headline plus two controls does not fit in it. */
+@media (max-height: 46rem) and (min-width: 44.0625rem) {
+  .o-nf {
+    min-block-size: 0;
+    padding-block: var(--o-space-6);
+  }
+  .o-nf__code {
+    margin-block: var(--o-space-4) var(--o-space-5);
+    font-size: min(22cqi, 13rem);
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1869,33 +2239,34 @@ ul.updates .when { font: var(--o-text-mono-13); }
     <span class="kicker">Service status</span>
   </header>
 
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Orvay Status</a><span class="crumb-sep" aria-hidden="true">/</span><span aria-current="page">History</span></nav>
 
+  <div class="o-nf">
+    <h1 class="o-nf__title">There is no page at this address.</h1>
+    <p class="o-nf__body">The link that leads here is out of date, or the address has a typo in it.</p>
+    <p class="o-nf__code" role="img" aria-label="404">
+      <span class="o-nf__digit">4</span>
+      <svg class="o-nf__mark" viewBox="133.6 122.9 756.8 778.2" focusable="false"><path fill="currentColor" fill-rule="nonzero" d="M359.5 122.9 L606.0 122.9 L722.7 239.6 L722.7 353.8 L822.0 353.8 L890.4 422.2 L890.4 675.2 L664.5 901.1 L418.0 901.1 L301.3 784.4 L301.3 670.2 L202.0 670.2 L133.6 601.8 L133.6 348.8 Z M284.0 400.7 L284.0 566.3 L466.0 748.3 L610.2 748.3 L737.6 620.9 L737.6 455.3 L555.6 273.3 L411.4 273.3 Z"/></svg>
+      <span class="o-nf__digit">4</span>
+    </p>
+    <!--
+      TWO REAL LINKS, AND NO "GO BACK", WHICH IS THE ONE PLACE THIS PAGE DIVERGES
+      FROM THE PRODUCT'S 404. There is no markup for the previous entry in a
+      browser's history, so that control needs JavaScript, and this page ships
+      none: it is the surface whose entire job is to answer when the rest of the
+      product cannot, and every script on it is one more thing that has to work
+      first. §7 says a visible control works or is not there, so it is not there.
 
-  <div class="page-head">
-    <h1>History</h1>
+      Secondary first, primary last, matching the order the component renders.
+    -->
+    <div class="o-nf__actions">
+      <a class="o-button" data-intent="secondary" href="/history/">Incident history</a>
+      <a class="o-button" data-intent="primary" href="/">Current status</a>
+    </div>
   </div>
-
-    <section class="month">
-      <h2>August 2026</h2>
-      <ul class="incidents">
-        <li class="incident-row">
-          <div class="incident-date"><span class="dd">20</span> <span class="ddow">Thu</span></div>
-          <div class="incident-card">
-            <span class="incident-rail" style="background:var(--risk-medium-solid)" aria-hidden="true"></span>
-            <div class="incident-main">
-              <a class="incident-title" href="/incidents/control-plane-2026-08-20-1228/">Company control plane was degraded</a>
-              <p>Recovered after 59 min, at 20 Aug 2026, 13:27 UTC.</p>
-            </div>
-            <div class="incident-time">12:28</div>
-          </div>
-        </li>
-      </ul>
-    </section>
 
 
   <footer>
-    <p>Each bar shows the last 90 days, one cell per day, coloured by the worst state we measured that day. Hover a cell to see the date and what it was. Checks run from outside our own network roughly every 15 minutes.</p>
+
     <nav aria-label="Orvay">
       <a href="https://orvayos.com">Orvay</a>
       <a href="https://app.orvayos.com">Sign in</a>

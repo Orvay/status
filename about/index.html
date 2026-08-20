@@ -302,7 +302,50 @@
      surface rendered in system-ui while the tokens claimed otherwise. */
   --o-font-sans: var(--o-font-sans-face, InterVariable), Inter, ui-sans-serif, system-ui, sans-serif;
   --o-font-mono: var(--o-font-mono-face, "IBM Plex Mono"), ui-monospace, SFMono-Regular, monospace;
+  /* The one serif in the system, and it exists for exactly one line of type:
+     the waitlist headline sets its final word in italic serif against the sans
+     it follows. Two voices in one line is a figure of speech; three is noise,
+     so nothing else in this repository may reach for this token.
 
+     TIMES-METRIC, AND NOT `ui-serif`. Measured against the design it copies:
+     `ui-serif` resolves on Windows to a face 21% wider, which put the italic
+     run 31px over its target while the sans on the line above sat 11px under.
+     Pinned to Times metrics it lands within 1px. Georgia is the wrong voice as
+     well as the wrong width -- the design's italic carries about 64% of the
+     sans's stroke, which is what makes it read as an aside rather than as a
+     second headline.
+
+     The three names are one metric family: Times New Roman on Windows, Times
+     on macOS, Liberation Serif on Linux, so the line breaks the same
+     everywhere. Stack-only, never a webfont: it is one word on one page. */
+  --o-font-serif: "Times New Roman", Times, "Liberation Serif", serif;
+
+  /* THE SLOT PATTERN ABOVE ARRIVED TWICE, INDEPENDENTLY, AND MAIN'S COPY WINS.
+
+     This branch reached the same conclusion in parallel: a family token naming a
+     face nothing loads is the same class of untruth as a badge for a certificate
+     nobody holds, so the name belongs here and the bytes belong to the app. Main
+     shipped it first, with Inter through next/font/google, and pinned the three
+     apps to identical loader calls in scripts/check-enforcement.mjs.
+
+     Two implementations of one idea is worse than either, so the duplicate here
+     is deleted rather than reconciled. The face itself is a separate decision and
+     a repo-wide one: changing it now would mean editing that enforcement rule and
+     both other apps, which is not a marketing-site change. */
+
+  /* The display tiers, which did not exist. 32px was the ceiling of the whole
+     system, so the marketing hero bypassed the scale with a raw
+     clamp(1.875rem, 3.4vw, 2.5rem) in site.css and capped at 40px. A tier that
+     is not in the scale is a tier nothing can assert, so these are declared
+     here and the clamp is deleted in the same change.
+
+     Tracking continues the inversion the scale already states: -0.04em at 32,
+     tightening as size grows, because the optical gap between letterforms grows
+     with the em and a display line set at body tracking reads as loose. */
+  --o-text-display-64: 4rem/4.2rem var(--o-font-sans);
+  --o-tracking-display-64: -0.05em;
+  --o-text-display-48: 3rem/3.3rem var(--o-font-sans);
+  --o-tracking-display-48: -0.045em;
   --o-text-display-32: 2rem/2.3rem var(--o-font-sans);
   --o-tracking-display-32: -0.04em;
   --o-text-title-24: 1.5rem/1.75rem var(--o-font-sans);
@@ -1151,6 +1194,168 @@
   --o-blur-l9: 25.6px;
   --o-blur-l10: 51.2px;
   --o-blur-band: 10%;
+
+  /* ---- The night scene ---------------------------------------------------
+
+     A SCENE, NOT A SURFACE, and that distinction is the whole reason these are
+     declared once here rather than restated in the dark block below.
+
+     Every other Tier 2 token answers "what is this rung of the ladder in this
+     theme". These answer "what is the ink on the photograph", and a photograph
+     does not invert when a reader prefers light mode. The waitlist hero is a
+     picture of a planet limb at dawn; repainting its type for the light theme
+     would not be theming it, it would be illegible. So they are theme-invariant
+     BY CONSTRUCTION: declared in the shared block, absent from the dark block,
+     and therefore incapable of drifting apart.
+
+     WHY THEY ARE NOT REACHED FOR FROM THE NEUTRAL RAMP. --bg-canvas is step 3
+     in light and step 1 in dark. A hero wired to it is near-white for the
+     default theme's reader, which is the one case this scene must not have. And
+     the ink is the same problem mirrored: --fg-primary is near-black in light,
+     so every word of the headline would vanish into the sky.
+
+     EVERY VALUE BELOW WAS SAMPLED OFF THE REFERENCE DESIGN rather than chosen.
+     The comp was read as raw pixels: fills as the median of a clean interior
+     rectangle, ink as the 90th percentile of the glyph pixels in its own
+     bounding box, both converted sRGB -> OKLCH. That is why the field is a
+     blue-grey at L 0.468 rather than the near-black a dark control usually
+     gets, and why the quiet ink is as light as it is -- neither is a taste
+     decision and neither should be "tidied" toward the neutral ramp.
+
+     THE ARITHMETIC, since nothing in pairing.test.ts covers these -- they are
+     deliberately named so that suite's fill discovery does not claim them, and
+     a fill it does not claim is a fill it cannot check.
+
+     --night-ground is the colour UNDER the photograph: what shows before the
+     image decodes, and what the DOM contrast walk resolves to. The numbers that
+     matter for the type on the sky, though, are against the PHOTOGRAPH, whose
+     text band was sampled as a luminance profile and whose brightest pixel
+     above 66% -- the depth the layout permits -- measures 0.0590. Both are
+     listed, because the gap between them is the honest state of this page and
+     the waitlist stylesheet says so at length:
+
+                          on --night-ground   on the photo's worst pixel
+       --night-ink            20.02:1                  9.63:1
+       --night-ink-quiet      11.35:1                  5.46:1
+
+     And the pairs that never touch the photograph, each on the opaque fill it
+     actually sits on:
+
+       --night-ink             on --night-field    6.92:1
+       --night-ink-placeholder on --night-field    4.91:1
+       --night-action-ink      on --night-action  17.72:1
+       --night-focus           on --night-field    3.72:1   (1.4.11, floor 3:1)
+
+     THE PLACEHOLDER IS ITS OWN STEP, AND IT HAS TO BE. The obvious wiring is
+     --night-ink-quiet, which is the de-emphasised ink everywhere else on this
+     scene. On the field it measures 3.92:1 and fails, because the field is far
+     lighter than the sky the quiet ink was chosen against. Nothing would have
+     caught it: the contrast walk in e2e only measures elements with their own
+     text nodes, an <input> has none, and ::placeholder is not an element at
+     all. The reference solves it the same way, with a lighter ink in the field
+     than in the prose, which is the tell that its designer hit this too.
+
+     The floor is 4.5:1 for ink and 3:1 for the ring. The smallest number above
+     is 4.91:1 -- the placeholder -- and that is the one to re-measure if any of
+     these move, or if the photograph is ever replaced. */
+  --night-ground: oklch(0.135 0.0055 268);
+  --night-ink: oklch(1.000 0.0000 268);
+  --night-ink-quiet: oklch(0.818 0.0268 279);
+  --night-ink-placeholder: oklch(0.886 0.0080 279);
+  --night-field: oklch(0.468 0.0328 276);
+  --night-edge: oklch(0.545 0.0300 276);
+  /* The submit control. Fixed light with fixed dark ink, for the reason the
+     whole group is fixed: --control-solid-* INVERTS between themes, so a button
+     wired to it is near-black on a near-black sky for every reader on the
+     default theme. That is CLAUDE.md §12c's 1.21:1 button, rediscovered on a
+     surface the theme cannot reach. */
+  --night-action: oklch(0.952 0.0010 268);
+  --night-action-ink: oklch(0.115 0.0020 272);
+  --night-focus: oklch(0.800 0.0700 250);
+
+  /* ---- The v5 landing scenes ---------------------------------------------
+
+     A second scene family, and the same contract as --night-*: these are
+     PICTURES, not surfaces. The v5 landing alternates full-bleed dark and
+     paper-white sections whose colours were sampled off the approved design
+     comp (claude.ai/design project f90fa068, "Orvay Landing v5"), and a comp
+     does not invert when a reader prefers the other theme. Declared once in
+     the shared block, absent from the dark block, incapable of drifting.
+
+     THE DARK RAMP IS NUMBERED BY LIGHTNESS (--v5-d15 is L 0.15) because the
+     comp genuinely uses a ramp: four radial-gradient grounds share one
+     blue-grey hue and differ only in how deep each stop sits. Semantic names
+     were tried and lied -- the same step is "card" in one section and
+     "gradient crown" in another. The number is the one honest name.
+
+     NEAR-DUPLICATES IN THE COMP WERE UNIFIED, deliberately and narrowly:
+     values within 0.002 chroma / 1 hue step of a neighbour collapse into it
+     (0.14 0.012 250, 0.14 0.011 250 and 0.14 0.01 250 are one token). Every
+     unification is below the threshold of vision at these lightnesses; the
+     comp's 154 distinct literals become 47 tokens without a visible delta.
+
+     ALPHA VARIANTS ARE NOT DECLARED HERE. The comp uses ~15 base colours at
+     dozens of opacities; v5.css derives every one as
+     color-mix(in oklab, var(--v5-x) N%, transparent), which is the owner
+     being used, not bypassed. Naming avoids the discovery suffixes on
+     purpose: nothing here ends in -tint, -solid or -text and nothing starts
+     with bg-, so pairing.test.ts does not claim fills it cannot check. The
+     contrast duties for this family are carried by the section's own audit
+     in v5.css, the same arrangement --night-* has. */
+  --v5-ink: oklch(0.955 0.005 250);
+  --v5-ink-dark: oklch(0.255 0.015 250);
+  --v5-ink-dark-hover: oklch(0.35 0.02 250);
+  --v5-ink-on-steel: oklch(0.13 0.02 240);
+  --v5-white: oklch(1 0 0);
+  /* Mask stop only: it is the opaque end of a mask-image gradient, where only
+     the alpha channel exists. It never paints. */
+  --v5-mask: oklch(0 0 0);
+
+  --v5-d05: oklch(0.05 0.01 250);
+  --v5-d10: oklch(0.1 0.01 250);
+  --v5-d11: oklch(0.11 0.01 250);
+  --v5-d13: oklch(0.13 0.01 250);
+  --v5-d135: oklch(0.135 0.01 250);
+  --v5-d14: oklch(0.14 0.011 250);
+  --v5-d15: oklch(0.15 0.012 250);
+  --v5-d155: oklch(0.155 0.012 250);
+  --v5-d16: oklch(0.16 0.012 250);
+  --v5-d165: oklch(0.165 0.014 248);
+  --v5-d17: oklch(0.17 0.015 248);
+  --v5-d185: oklch(0.185 0.016 246);
+  --v5-d19: oklch(0.19 0.016 246);
+  --v5-d20: oklch(0.2 0.02 245);
+  --v5-d22: oklch(0.22 0.02 245);
+  --v5-d24: oklch(0.24 0.022 244);
+  --v5-d26: oklch(0.26 0.03 240);
+  --v5-d27: oklch(0.27 0.03 240);
+  --v5-d30: oklch(0.3 0.035 240);
+  --v5-plate-live: oklch(0.3 0.045 238);
+
+  --v5-paper: oklch(0.985 0.004 250);
+  --v5-paper-hi: oklch(0.994 0.004 250);
+
+  --v5-steel: oklch(0.68 0.13 232);
+  --v5-steel-deep: oklch(0.62 0.13 232);
+  --v5-steel-strong: oklch(0.46 0.12 232);
+  --v5-steel-hover: oklch(0.73 0.12 232);
+  --v5-steel-link: oklch(0.75 0.12 232);
+  --v5-steel-tag: oklch(0.75 0.1 235);
+  --v5-steel-haze: oklch(0.72 0.09 235);
+  --v5-steel-beam: oklch(0.8 0.09 233);
+  --v5-steel-sheen: oklch(0.85 0.08 232);
+  --v5-steel-edge: oklch(0.78 0.11 233);
+  --v5-steel-ring: oklch(0.72 0.12 233);
+
+  --v5-signal: oklch(0.62 0.17 25);
+  --v5-signal-ink: oklch(0.78 0.12 25);
+  --v5-verdant: oklch(0.72 0.11 152);
+  --v5-verdant-deep: oklch(0.66 0.12 152);
+
+  --v5-slate-1: oklch(0.5 0.03 245);
+  --v5-slate-2: oklch(0.55 0.035 245);
+  --v5-slate-3: oklch(0.6 0.04 245);
+  --v5-slate-4: oklch(0.72 0.03 245);
 }
 
 
@@ -1282,6 +1487,53 @@
     --o-travel-reveal: 0px;
     --o-blur-enter: 0px;
   }
+}
+
+/* =============================================================================
+   Tier 3 — documentation chrome.
+
+   The docs are a third surface of the same product, so they get component-scoped
+   tokens here rather than a palette of their own in apps/docs. §4: one owner.
+
+   THE GEOMETRY IS ALREADY IN TIER 2, which is why this block is thin. The
+   reference layout is an "in-card view": the page canvas is RECESSED and the
+   prose sits on a LIFTED card with a hairline keyline. That is the structural
+   inversion the semantic layer above already commits to — ground is
+   --bg-canvas, a floating surface is --bg-raised, and the two swap steps
+   between themes so the lift stays a lift. Aliasing onto them means the docs
+   card inherits the flip for free and cannot drift from the app's cards.
+
+   Nothing here is restated per theme for exactly that reason. A value that
+   needed a dark override would be a value that had stopped deriving.
+   ============================================================================= */
+:root {
+  --docs-page-bg: var(--bg-canvas);
+  --docs-card-bg: var(--bg-raised);
+  --docs-card-line: var(--line-rule);
+  --docs-card-radius: var(--o-radius-lg);
+
+  /* The two fixed measures the whole shell is laid out against. Named because
+     four different rules need to agree about them: the card's height subtracts
+     the bar, the sidebar's top offset matches it, the main column's inline
+     start clears the rail, and the mobile drawer's width is the same rail. */
+  --docs-bar-h: 3.5rem;
+  --docs-rail-w: 16.5rem;
+
+  /* The sidebar has NO fill: it is chrome sitting on the canvas, so the card is
+     the only lifted surface in the shell. Its states are therefore washes, not
+     surfaces, or they would read as a second card. */
+  --docs-rail-fg: var(--fg-secondary);
+  --docs-rail-fg-active: var(--fg-primary);
+  --docs-rail-hover-bg: var(--o-neutral-a3);
+  --docs-rail-active-bg: var(--o-neutral-a4);
+
+  /* The table-of-contents rail. One continuous hairline with the active entry
+     painting its own segment, so position reads as a moving highlight rather
+     than a set of disconnected ticks. */
+  --docs-toc-rail: var(--line-rule);
+  --docs-toc-rail-active: var(--fg-primary);
+  --docs-toc-fg: var(--fg-secondary);
+  --docs-toc-fg-active: var(--fg-primary);
 }
 
 /*
