@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787239485121,
+  "generatedAt": 1787241384373,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787239485121,
+      "observedAt": 1787241384373,
       "observation": {
         "kind": "ok",
-        "level": "operational",
-        "latencyMs": 405.473813
+        "level": "partial-outage",
+        "latencyMs": 450.606726
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787239485121,
+      "observedAt": 1787241384373,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1136.364125
+        "latencyMs": 771.611207
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787239485121,
+      "observedAt": 1787241384373,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1171.989264
+        "latencyMs": 1192.402628
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787239485121,
+      "observedAt": 1787241384373,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 201.091141
+        "latencyMs": 180.554187
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787239485121,
+      "observedAt": 1787241384373,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 294.113897
+        "latencyMs": 162.41948200000002
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787239485121,
+      "observedAt": 1787241384373,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 531.75605
+        "latencyMs": 567.974424
       }
     }
   },
@@ -68,7 +68,7 @@
     "control-plane": "operational",
     "website-studio": "operational",
     "tenant-sites": "operational",
-    "marketing-site": "operational",
+    "marketing-site": "partial-outage",
     "documentation": "operational",
     "agent-runs": "not-measured",
     "independent-verification": "not-measured",
