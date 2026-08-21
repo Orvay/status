@@ -3301,7 +3301,51 @@ var LEGAL_SOURCE = {
   // `Canonical`, `Policy`) are defined by that RFC, are never translated, and
   // are correctly absent from this catalogue: `securityTxtFields` builds them
   // and a translated field name would produce a file no scanner can parse.
-  "legal.security.security-txt.p1": "The machine readable version of this page follows RFC 9116. It gives the contact address, the preferred languages, the canonical location of the file itself, and an expiry date after which it should not be trusted."
+  "legal.security.security-txt.p1": "The machine readable version of this page follows RFC 9116. It gives the contact address, the preferred languages, the canonical location of the file itself, and an expiry date after which it should not be trusted.",
+  // ---------------------------------------------------------------------------
+  // Twenty-three clauses that had no key at all, added 2026-08-21.
+  //
+  // A key the catalogue does not state is not an error: the renderer falls back
+  // to the English document, which is the same sentence. That is true, and it is
+  // why nothing failed. It is also why nobody noticed that twenty-three clauses
+  // were falling back in EVERY language, inside documents whose other clauses
+  // were translated, so an Italian privacy notice carried an English cookie
+  // section under an Italian heading.
+  //
+  // What was missing is not a random sample. The whole of section 7 (cookies and
+  // device storage), the tail of section 4 (the GDPR Art. 6(1)(f) basis, the
+  // Art. 21 right to object, the Art. 22 right to human review and the 30-day
+  // deadline), the legend that explains how to read the sub-processor list, and
+  // both federated sign-in vendors including their United States transfer
+  // disclosures. Those are the paragraphs their sections exist to communicate.
+  //
+  // `legal-parity.test.ts` now refuses a renderable clause that states no key,
+  // against an explicit allowlist of the eight that are a name, an address or an
+  // email address and must never be translated.
+  // ---------------------------------------------------------------------------
+  "legal.privacy.automated.p3": "Password reset stays open at the second-highest level on purpose, because the commonest honest way to reach it is somebody whose password is being guessed at by a stranger, and taking the reset away at that moment locks the real owner out while the attack runs.",
+  "legal.privacy.automated.p4": "The basis is our legitimate interest in keeping the service usable and its costs bounded (GDPR Art. 6(1)(f)). You can object to it under Art. 21, and you can ask a person to look at any refusal, using the address on this page. We answer within 30 days and it costs nothing.",
+  "legal.privacy.automated.p5": "Inside the product, agents propose actions. An action with a legal or similarly significant effect on a person requires a recorded human approval before it can run, and the approval is stored as a scoped, bounded record rather than a flag. That record is the evidence of the human involvement.",
+  "legal.privacy.cookies.heading": "Cookies and what is stored on your device",
+  "legal.privacy.cookies.p1": "The public website sets no cookie at all. It runs no analytics, no advertising and no third party embed, so there is nothing to ask you about and no banner to click away. A banner offering a choice that does not exist is worse than no banner, so there is not one.",
+  "legal.privacy.cookies.p2": "Signing in sets one cookie. It holds a random value that names your session on our side, it is marked so that no script on the page can read it, and it is bound to this one hostname so no other site can set or read it. It lasts ninety days and moves forward while you keep using Orvay, so somebody who visits weekly is never signed out and somebody who walks away is gone ninety days later. Signing out ends it immediately, and you can end any session from your account.",
+  "legal.privacy.cookies.p3": "The bot check on the credential forms may also store something on your device while it decides whether you are a person. That is Cloudflare, not us, and it is described in their documentation.",
+  "legal.privacy.cookies.p4": "Neither is optional, and neither asks for consent, because both are needed for something you asked for: staying signed in, and being let past the door. That is the exemption Swiss and EU rules both draw for strictly necessary storage. Refusing them is possible and the effect is plain: block cookies for this site in your browser and you can read the public pages but you cannot stay signed in.",
+  "legal.privacy.required.p2": "To create an account, yes. An address and a password are required to enter the contract, because they are how the account is reached and how you are told it is you. Without them there is no account to give you. That is the whole of it: nothing else on the sign-in screen is optional data we are collecting while we have your attention.",
+  "legal.subprocessors.how-to-read.pair1.term": "In use today",
+  "legal.subprocessors.how-to-read.pair2.term": "Wired, and receiving only where its credential is set",
+  "legal.subprocessors.how-to-read.pair3.term": "Named in the product, connected to nothing",
+  "legal.subprocessors.cloudflare.data6": "Bot check signals on every credential form: your network address, your browser and how it behaves, and a token proving the check was passed. Cloudflare uses these to tell people from scripts, and also to improve that judgement for its own service, which makes it a controller for that purpose rather than only our processor",
+  "legal.subprocessors.google.service": "Sign in with Google, when you choose that button rather than a password.",
+  "legal.subprocessors.google.data1": "The fact that you asked to sign in, and the address and basic profile Google returns to us afterwards",
+  "legal.subprocessors.google.location1": "Google processes in the United States and elsewhere",
+  "legal.subprocessors.google.safeguard": "Google is established in the United States. Transfers rest on the standard contractual clauses in its terms. Choosing a password instead means no data reaches Google at all.",
+  "legal.subprocessors.google.statusDetail": "Only reached if you press the button. Nothing is sent to Google by opening the sign-in page, and this entry was missing from the list until 20 August 2026 while the button was already on screen.",
+  "legal.subprocessors.github.service": "Sign in with GitHub, when you choose that button rather than a password.",
+  "legal.subprocessors.github.data1": "The fact that you asked to sign in, and the address and basic profile GitHub returns to us afterwards",
+  "legal.subprocessors.github.location1": "GitHub processes in the United States and elsewhere",
+  "legal.subprocessors.github.safeguard": "GitHub is established in the United States and owned by Microsoft. Transfers rest on the standard contractual clauses in its terms. Choosing a password instead means no data reaches GitHub at all.",
+  "legal.subprocessors.github.statusDetail": "Only reached if you press the button. Nothing is sent to GitHub by opening the sign-in page, and this entry was missing from the list until 20 August 2026 while the button was already on screen."
 };
 
 // ../../packages/content/src/messages/de.ts
@@ -4253,7 +4297,52 @@ var de_legal_default = {
   "legal.security.disclosure.p1": "Informieren Sie zuerst uns, und geben Sie uns {days} Tage, bevor Sie ver\xF6ffentlichen. Beheben wir es fr\xFCher, sagen wir Ihnen Bescheid, und Sie k\xF6nnen dann ver\xF6ffentlichen.",
   "legal.security.disclosure.p2": "Wenn wir uns nicht mehr melden, ver\xF6ffentlichen Sie. Unser Schweigen ist kein Grund, eine Schwachstelle geheim zu halten.",
   "legal.security.security-txt.heading": "security.txt",
-  "legal.security.security-txt.p1": "Die maschinenlesbare Version dieser Seite folgt RFC 9116. Sie enth\xE4lt die Kontaktadresse, die bevorzugten Sprachen, den kanonischen Ort der Datei selbst und ein Ablaufdatum, nach dem ihr nicht mehr vertraut werden sollte."
+  "legal.security.security-txt.p1": "Die maschinenlesbare Version dieser Seite folgt RFC 9116. Sie enth\xE4lt die Kontaktadresse, die bevorzugten Sprachen, den kanonischen Ort der Datei selbst und ein Ablaufdatum, nach dem ihr nicht mehr vertraut werden sollte.",
+  // -------------------------------------------------------------------------
+  // The twenty-three clauses that had no key at all, added 2026-08-21.
+  //
+  // Two lexical constraints were resolved by reading this file rather than the
+  // source. The three how-to-read pairN.term values are the legend for the
+  // per vendor badges, so they repeat legal.subprocessors.status.* verbatim;
+  // a paraphrase would leave a German reader with a legend whose terms do not
+  // appear on any entry. And the second sentence of automated.p5 is the same
+  // sentence as legal.dpa.security.item7, so it takes that entry's existing
+  // wording ("in Geltungsbereich und Umfang begrenzter Datensatz", not
+  // "bloßer Ja-Nein-Schalter") rather than a fresh rendering of the English.
+  //
+  // automated.p4 carries four separate commitments and none is merged: the
+  // Art. 6 Abs. 1 lit. f DSGVO basis, the Art. 21 DSGVO right to object, the
+  // right to have a person review a refusal, and 30 days at no cost. The last
+  // clause repeats legal.privacy.rights.p1 word for word, because it is the
+  // same promise and a reader comparing the two sections should find it so.
+  //
+  // cookies.p4 states a legal position and states it as one: both cookies fall
+  // under the strictly necessary exemption, which is a claim about the law and
+  // not a claim that Orvay has been assessed against it.
+  // -------------------------------------------------------------------------
+  "legal.privacy.automated.p3": "Auf der zweith\xF6chsten Stufe bleibt das Zur\xFCcksetzen des Passworts bewusst offen, denn der h\xE4ufigste redliche Weg dorthin ist jemand, dessen Passwort gerade von einem Fremden erraten wird, und ihm in diesem Moment das Zur\xFCcksetzen zu nehmen, sperrt genau die Person aus, der das Konto geh\xF6rt, w\xE4hrend der Angriff l\xE4uft.",
+  "legal.privacy.automated.p4": "Die Grundlage ist unser berechtigtes Interesse daran, den Dienst nutzbar und seine Kosten begrenzt zu halten (Art. 6 Abs. 1 lit. f DSGVO). Sie k\xF6nnen dieser Verarbeitung nach Art. 21 DSGVO widersprechen, und Sie k\xF6nnen \xFCber die auf dieser Seite genannte Adresse verlangen, dass eine Person jede Verweigerung \xFCberpr\xFCft. Wir antworten innerhalb von 30 Tagen, und es kostet nichts.",
+  "legal.privacy.automated.p5": "Innerhalb des Produkts schlagen Agenten Handlungen vor. Eine Handlung mit rechtlicher oder \xE4hnlich erheblicher Wirkung f\xFCr eine Person erfordert vor ihrer Ausf\xFChrung eine protokollierte menschliche Genehmigung, und die Genehmigung wird als ein in Geltungsbereich und Umfang begrenzter Datensatz gespeichert und nicht als blo\xDFer Ja-Nein-Schalter. Dieser Datensatz ist der Nachweis der menschlichen Beteiligung.",
+  "legal.privacy.cookies.heading": "Cookies und was auf Ihrem Ger\xE4t gespeichert wird",
+  "legal.privacy.cookies.p1": "Die \xF6ffentliche Website setzt \xFCberhaupt kein Cookie. Sie setzt keine Analyse ein, keine Werbung und keine Einbettung eines Drittanbieters, daher gibt es nichts, wozu wir Sie fragen m\xFCssten, und kein Banner zum Wegklicken. Ein Banner, das eine Wahl anbietet, die es gar nicht gibt, ist schlechter als kein Banner, daher gibt es keines.",
+  "legal.privacy.cookies.p2": "Die Anmeldung setzt ein einziges Cookie. Es enth\xE4lt einen Zufallswert, der Ihre Sitzung auf unserer Seite benennt, es ist so gekennzeichnet, dass kein Skript auf der Seite es lesen kann, und es ist an diesen einen Hostnamen gebunden, sodass keine andere Website es setzen oder lesen kann. Es gilt neunzig Tage, und diese Frist r\xFCckt vor, solange Sie Orvay weiter nutzen, sodass jemand, der w\xF6chentlich vorbeischaut, nie abgemeldet wird, und wer sich abwendet, neunzig Tage sp\xE4ter abgemeldet ist. Die Abmeldung beendet es sofort, und Sie k\xF6nnen jede Sitzung in Ihrem Konto beenden.",
+  "legal.privacy.cookies.p3": "Die Bot-Pr\xFCfung auf den Formularen f\xFCr Zugangsdaten kann ebenfalls etwas auf Ihrem Ger\xE4t ablegen, w\xE4hrend sie entscheidet, ob Sie eine Person sind. Das ist Cloudflare und nicht wir, und es ist in dessen Dokumentation beschrieben.",
+  "legal.privacy.cookies.p4": "Keines von beiden ist optional, und keines fragt nach einer Einwilligung, weil beide f\xFCr etwas n\xF6tig sind, das Sie verlangt haben: angemeldet zu bleiben und eingelassen zu werden. Das ist die Ausnahme, die das schweizerische und das EU-Recht \xFCbereinstimmend f\xFCr unbedingt erforderliche Speicherung vorsehen. Sie k\xF6nnen sie ablehnen, und die Folge ist eindeutig: Blockieren Sie Cookies f\xFCr diese Website in Ihrem Browser, dann k\xF6nnen Sie die \xF6ffentlichen Seiten lesen, aber nicht angemeldet bleiben.",
+  "legal.privacy.required.p2": "F\xFCr das Anlegen eines Kontos ja. Eine Adresse und ein Passwort sind erforderlich, um den Vertrag zu schlie\xDFen, denn \xFCber sie ist das Konto erreichbar, und \xFCber sie l\xE4sst sich feststellen, dass Sie es sind. Ohne sie gibt es kein Konto, das wir Ihnen geben k\xF6nnten. Mehr ist es nicht: Nichts sonst auf dem Anmeldebildschirm ist eine optionale Angabe, die wir erheben, solange wir Ihre Aufmerksamkeit haben.",
+  "legal.subprocessors.how-to-read.pair1.term": "Derzeit im Einsatz",
+  "legal.subprocessors.how-to-read.pair2.term": "Angebunden, und empf\xE4ngt nur dort, wo seine Zugangsdaten hinterlegt sind",
+  "legal.subprocessors.how-to-read.pair3.term": "Im Produkt genannt, mit nichts verbunden",
+  "legal.subprocessors.cloudflare.data6": "Signale der Bot-Pr\xFCfung auf jedem Formular f\xFCr Zugangsdaten: Ihre Netzwerkadresse, Ihr Browser und dessen Verhalten sowie ein Token, das die bestandene Pr\xFCfung belegt. Cloudflare nutzt diese, um Personen von Skripten zu unterscheiden, und au\xDFerdem, um diese Beurteilung f\xFCr den eigenen Dienst zu verbessern, wodurch es f\xFCr diesen Zweck Verantwortlicher wird und nicht nur unser Auftragsverarbeiter",
+  "legal.subprocessors.google.service": "Anmeldung mit Google, wenn Sie diese Schaltfl\xE4che statt eines Passworts w\xE4hlen.",
+  "legal.subprocessors.google.data1": "Die Tatsache, dass Sie sich anmelden wollten, sowie die Adresse und das grundlegende Profil, die Google uns danach zur\xFCckgibt",
+  "legal.subprocessors.google.location1": "Google verarbeitet in den Vereinigten Staaten und anderswo",
+  "legal.subprocessors.google.safeguard": "Google ist in den Vereinigten Staaten niedergelassen. \xDCbermittlungen st\xFCtzen sich auf die Standardvertragsklauseln in dessen Bedingungen. W\xE4hlen Sie stattdessen ein Passwort, erreichen Google \xFCberhaupt keine Daten.",
+  "legal.subprocessors.google.statusDetail": "Wird nur erreicht, wenn Sie die Schaltfl\xE4che dr\xFCcken. Durch das \xD6ffnen der Anmeldeseite wird nichts an Google gesendet, und dieser Eintrag fehlte bis zum 20. August 2026 auf dieser Liste, w\xE4hrend die Schaltfl\xE4che bereits auf dem Bildschirm zu sehen war.",
+  "legal.subprocessors.github.service": "Anmeldung mit GitHub, wenn Sie diese Schaltfl\xE4che statt eines Passworts w\xE4hlen.",
+  "legal.subprocessors.github.data1": "Die Tatsache, dass Sie sich anmelden wollten, sowie die Adresse und das grundlegende Profil, die GitHub uns danach zur\xFCckgibt",
+  "legal.subprocessors.github.location1": "GitHub verarbeitet in den Vereinigten Staaten und anderswo",
+  "legal.subprocessors.github.safeguard": "GitHub ist in den Vereinigten Staaten niedergelassen und geh\xF6rt Microsoft. \xDCbermittlungen st\xFCtzen sich auf die Standardvertragsklauseln in dessen Bedingungen. W\xE4hlen Sie stattdessen ein Passwort, erreichen GitHub \xFCberhaupt keine Daten.",
+  "legal.subprocessors.github.statusDetail": "Wird nur erreicht, wenn Sie die Schaltfl\xE4che dr\xFCcken. Durch das \xD6ffnen der Anmeldeseite wird nichts an GitHub gesendet, und dieser Eintrag fehlte bis zum 20. August 2026 auf dieser Liste, w\xE4hrend die Schaltfl\xE4che bereits auf dem Bildschirm zu sehen war."
 };
 
 // ../../packages/content/src/messages/fr.ts
@@ -5216,7 +5305,33 @@ var fr_legal_default = {
   "legal.security.disclosure.p1": "Pr\xE9venez-nous d'abord, et laissez-nous {days} jours avant de publier. Si nous corrigeons plus t\xF4t, nous vous le dirons et vous pourrez publier \xE0 ce moment-l\xE0.",
   "legal.security.disclosure.p2": "Si nous ne r\xE9pondons plus, publiez. Notre silence n'est pas une raison pour qu'une vuln\xE9rabilit\xE9 reste secr\xE8te.",
   "legal.security.security-txt.heading": "security.txt",
-  "legal.security.security-txt.p1": "La version lisible par machine de cette page suit la RFC 9116. Elle indique l'adresse de contact, les langues pr\xE9f\xE9r\xE9es, l'emplacement canonique du fichier lui-m\xEAme, et une date d'expiration au-del\xE0 de laquelle il ne devrait plus \xEAtre consid\xE9r\xE9 comme fiable."
+  "legal.security.security-txt.p1": "La version lisible par machine de cette page suit la RFC 9116. Elle indique l'adresse de contact, les langues pr\xE9f\xE9r\xE9es, l'emplacement canonique du fichier lui-m\xEAme, et une date d'expiration au-del\xE0 de laquelle il ne devrait plus \xEAtre consid\xE9r\xE9 comme fiable.",
+  // -------------------------------------------------------------------------
+  // Vingt-trois clauses qui n'avaient aucune clé, ajoutées le 21 août 2026.
+  // -------------------------------------------------------------------------
+  "legal.privacy.automated.p3": "La r\xE9initialisation du mot de passe reste ouverte \xE0 l'avant-dernier niveau, et c'est d\xE9lib\xE9r\xE9\xA0: la fa\xE7on honn\xEAte la plus courante d'y parvenir est d'\xEAtre quelqu'un dont un inconnu tente de deviner le mot de passe, et supprimer la r\xE9initialisation \xE0 cet instant priverait le v\xE9ritable titulaire de son compte pendant que l'attaque se poursuit.",
+  "legal.privacy.automated.p4": "La base est notre int\xE9r\xEAt l\xE9gitime \xE0 faire en sorte que le service reste utilisable et que ses co\xFBts restent born\xE9s, article 6, paragraphe 1, point f) du RGPD. Vous pouvez vous y opposer au titre de l'article 21 du RGPD, et vous pouvez demander qu'une personne examine tout refus, en \xE9crivant \xE0 l'adresse figurant sur cette page. Nous r\xE9pondons sous 30 jours, et cela ne co\xFBte rien.",
+  "legal.privacy.automated.p5": "\xC0 l'int\xE9rieur du produit, les agents proposent des actions. Une action produisant un effet juridique ou affectant une personne de mani\xE8re significative de fa\xE7on similaire requiert une approbation humaine enregistr\xE9e avant de pouvoir s'ex\xE9cuter, et cette approbation est conserv\xE9e sous forme d'enregistrement circonscrit et born\xE9 plut\xF4t que d'un simple indicateur. Cet enregistrement est la preuve de l'intervention humaine.",
+  "legal.privacy.cookies.heading": "Les cookies et ce qui est stock\xE9 sur votre appareil",
+  "legal.privacy.cookies.p1": "Le site public ne d\xE9pose aucun cookie. Il n'ex\xE9cute aucune mesure d'audience, aucune publicit\xE9 et aucun contenu tiers int\xE9gr\xE9, il n'y a donc rien \xE0 vous demander et aucune banni\xE8re \xE0 faire dispara\xEEtre d'un clic. Une banni\xE8re proposant un choix qui n'existe pas vaut moins que pas de banni\xE8re du tout, il n'y en a donc pas.",
+  "legal.privacy.cookies.p2": "La connexion d\xE9pose un seul cookie. Il contient une valeur al\xE9atoire qui d\xE9signe votre session de notre c\xF4t\xE9, il est marqu\xE9 de telle sorte qu'aucun script de la page ne peut le lire, et il est rattach\xE9 \xE0 ce seul nom d'h\xF4te, de sorte qu'aucun autre site ne peut le d\xE9poser ni le lire. Il dure quatre-vingt-dix jours et son \xE9ch\xE9ance avance tant que vous continuez \xE0 utiliser Orvay, de sorte que quelqu'un qui vient chaque semaine n'est jamais d\xE9connect\xE9 et que quelqu'un qui s'en va dispara\xEEt quatre-vingt-dix jours plus tard. La d\xE9connexion y met fin imm\xE9diatement, et vous pouvez mettre fin \xE0 n'importe quelle session depuis votre compte.",
+  "legal.privacy.cookies.p3": "La v\xE9rification anti-robot pr\xE9sente sur les formulaires d'identification peut elle aussi stocker quelque chose sur votre appareil pendant qu'elle d\xE9termine si vous \xEAtes une personne. Cela rel\xE8ve de Cloudflare et non de nous, et c'est d\xE9crit dans sa documentation.",
+  "legal.privacy.cookies.p4": "Ni l'un ni l'autre n'est facultatif, et ni l'un ni l'autre ne demande votre consentement, parce que tous deux sont n\xE9cessaires \xE0 quelque chose que vous avez demand\xE9\xA0: rester connect\xE9, et qu'on vous laisse franchir la porte. C'est l'exception que le droit suisse et le droit de l'Union r\xE9servent tous deux au stockage strictement n\xE9cessaire. Les refuser est possible et l'effet est simple\xA0: bloquez les cookies pour ce site dans votre navigateur et vous pourrez lire les pages publiques, mais vous ne pourrez pas rester connect\xE9.",
+  "legal.privacy.required.p2": "Pour cr\xE9er un compte, oui. Une adresse et un mot de passe sont n\xE9cessaires pour conclure le contrat, parce qu'ils sont le moyen par lequel on vous joint et le moyen par lequel il est \xE9tabli que c'est bien vous. Sans eux, il n'y a pas de compte \xE0 vous remettre. C'est tout\xA0: rien d'autre sur l'\xE9cran de connexion n'est une donn\xE9e facultative que nous collecterions pendant que nous avons votre attention.",
+  "legal.subprocessors.how-to-read.pair1.term": "Utilis\xE9 aujourd'hui",
+  "legal.subprocessors.how-to-read.pair2.term": "Configur\xE9, et ne recevant des donn\xE9es que l\xE0 o\xF9 son identifiant est renseign\xE9",
+  "legal.subprocessors.how-to-read.pair3.term": "Nomm\xE9 dans le produit, sans aucune connexion",
+  "legal.subprocessors.cloudflare.data6": "Signaux de la v\xE9rification anti-robot sur chaque formulaire d'identification\xA0: votre adresse r\xE9seau, votre navigateur et son comportement, et un jeton prouvant que la v\xE9rification a \xE9t\xE9 r\xE9ussie. Cloudflare les utilise pour distinguer les personnes des scripts, et aussi pour am\xE9liorer ce jugement au b\xE9n\xE9fice de son propre service, ce qui en fait un responsable du traitement pour cette finalit\xE9 et non uniquement notre sous-traitant",
+  "legal.subprocessors.google.service": "Connexion avec Google, lorsque vous choisissez ce bouton plut\xF4t qu'un mot de passe.",
+  "legal.subprocessors.google.data1": "Le fait que vous ayez demand\xE9 \xE0 vous connecter, ainsi que l'adresse et le profil de base que Google nous renvoie ensuite",
+  "legal.subprocessors.google.location1": "Google traite les donn\xE9es aux \xC9tats-Unis et ailleurs",
+  "legal.subprocessors.google.safeguard": "Google est \xE9tabli aux \xC9tats-Unis. Les transferts reposent sur les clauses contractuelles types figurant dans ses conditions. Choisir plut\xF4t un mot de passe signifie qu'absolument aucune donn\xE9e ne parvient \xE0 Google.",
+  "legal.subprocessors.google.statusDetail": "Atteint uniquement si vous appuyez sur le bouton. Ouvrir la page de connexion n'envoie rien \xE0 Google, et cette entr\xE9e \xE9tait absente de cette liste jusqu'au 20 ao\xFBt 2026 alors que le bouton \xE9tait d\xE9j\xE0 \xE0 l'\xE9cran.",
+  "legal.subprocessors.github.service": "Connexion avec GitHub, lorsque vous choisissez ce bouton plut\xF4t qu'un mot de passe.",
+  "legal.subprocessors.github.data1": "Le fait que vous ayez demand\xE9 \xE0 vous connecter, ainsi que l'adresse et le profil de base que GitHub nous renvoie ensuite",
+  "legal.subprocessors.github.location1": "GitHub traite les donn\xE9es aux \xC9tats-Unis et ailleurs",
+  "legal.subprocessors.github.safeguard": "GitHub est \xE9tabli aux \xC9tats-Unis et appartient \xE0 Microsoft. Les transferts reposent sur les clauses contractuelles types figurant dans ses conditions. Choisir plut\xF4t un mot de passe signifie qu'absolument aucune donn\xE9e ne parvient \xE0 GitHub.",
+  "legal.subprocessors.github.statusDetail": "Atteint uniquement si vous appuyez sur le bouton. Ouvrir la page de connexion n'envoie rien \xE0 GitHub, et cette entr\xE9e \xE9tait absente de cette liste jusqu'au 20 ao\xFBt 2026 alors que le bouton \xE9tait d\xE9j\xE0 \xE0 l'\xE9cran."
 };
 
 // ../../packages/content/src/messages/it.ts
@@ -6178,7 +6293,42 @@ var it_legal_default = {
   "legal.security.disclosure.p1": "Ditecelo per primi, e dateci {days} giorni prima di pubblicare. Se lo risolviamo prima, ve lo diremo e potrete pubblicare allora.",
   "legal.security.disclosure.p2": "Se rimaniamo in silenzio, pubblicate. Il nostro silenzio non \xE8 un motivo perch\xE9 una vulnerabilit\xE0 resti segreta.",
   "legal.security.security-txt.heading": "security.txt",
-  "legal.security.security-txt.p1": "La versione leggibile da macchina di questa pagina segue l'RFC 9116. Fornisce l'indirizzo di contatto, le lingue preferite, l'ubicazione canonica del file stesso, e una data di scadenza oltre la quale non dovrebbe essere considerato attendibile."
+  "legal.security.security-txt.p1": "La versione leggibile da macchina di questa pagina segue l'RFC 9116. Fornisce l'indirizzo di contatto, le lingue preferite, l'ubicazione canonica del file stesso, e una data di scadenza oltre la quale non dovrebbe essere considerato attendibile.",
+  // -------------------------------------------------------------------------
+  // The twenty-three clauses that stated no key at all until 2026-08-21, and
+  // therefore fell back to English inside an Italian document. Ordered as in
+  // the source: the rights paragraphs of the automated decisions section, the
+  // whole of the cookie and device storage section, the sign-in requirement,
+  // the legend that explains the sub-processor list, the bot check signals
+  // Cloudflare receives, and the two federated sign-in vendors.
+  //
+  // The three legend terms are word for word the three status badges above,
+  // because a legend whose wording differs from the badge it explains cannot
+  // be matched to it by a reader.
+  // -------------------------------------------------------------------------
+  "legal.privacy.automated.p3": "Il reset della password rimane aperto di proposito al penultimo livello, perch\xE9 il modo onesto pi\xF9 comune per arrivarci \xE8 essere una persona a cui uno sconosciuto sta tentando di indovinare la password, e togliere il reset proprio in quel momento chiude fuori il legittimo proprietario mentre l'attacco \xE8 in corso.",
+  "legal.privacy.automated.p4": "La base \xE8 il nostro legittimo interesse a mantenere il servizio utilizzabile e i suoi costi entro un limite (GDPR art. 6(1)(f)). Potete opporvi ai sensi dell'art. 21, e potete chiedere che una persona esamini qualsiasi rifiuto, scrivendo all'indirizzo indicato in questa pagina. Rispondiamo entro 30 giorni, e non costa nulla.",
+  "legal.privacy.automated.p5": "All'interno del prodotto, gli agenti propongono azioni. Un'azione che produce effetti giuridici su una persona, o che incide su di lei in modo analogo significativamente, richiede un'approvazione umana registrata prima di poter essere eseguita, e l'approvazione viene conservata come un record con un ambito e dei limiti definiti anzich\xE9 come un interruttore. Quel record \xE8 la prova del coinvolgimento umano.",
+  "legal.privacy.cookies.heading": "I cookie e ci\xF2 che viene memorizzato sul vostro dispositivo",
+  "legal.privacy.cookies.p1": "Il sito pubblico non imposta alcun cookie. Non esegue analisi, n\xE9 pubblicit\xE0, n\xE9 alcun elemento incorporato di terze parti, quindi non c'\xE8 nulla su cui chiedervi un consenso e nessun banner da chiudere. Un banner che offre una scelta inesistente \xE8 peggio di nessun banner, quindi non ce n'\xE8 uno.",
+  "legal.privacy.cookies.p2": "Accedere imposta un solo cookie. Contiene un valore casuale che identifica la vostra sessione dalla nostra parte, \xE8 contrassegnato in modo che nessuno script presente nella pagina possa leggerlo, ed \xE8 vincolato a questo solo nome host, cosicch\xE9 nessun altro sito possa impostarlo o leggerlo. Dura novanta giorni e si sposta in avanti finch\xE9 continuate a usare Orvay, cosicch\xE9 chi passa di qui ogni settimana non venga mai disconnesso e chi se ne va sparisca novanta giorni dopo. Uscire dall'account lo termina immediatamente, e potete terminare qualsiasi sessione dal vostro account.",
+  "legal.privacy.cookies.p3": "Anche il controllo antibot presente sui moduli delle credenziali pu\xF2 memorizzare qualcosa sul vostro dispositivo mentre decide se siete una persona. \xC8 Cloudflare a farlo, non noi, ed \xE8 descritto nella sua documentazione.",
+  "legal.privacy.cookies.p4": "Nessuno dei due \xE8 facoltativo e nessuno dei due chiede un consenso, perch\xE9 entrambi servono a qualcosa che avete chiesto voi: restare connessi, ed essere fatti passare dalla porta. \xC8 questa l'esenzione che tanto le norme svizzere quanto quelle dell'Unione Europea prevedono per la memorizzazione strettamente necessaria. Rifiutarli \xE8 possibile e l'effetto \xE8 evidente: bloccate i cookie per questo sito nel vostro browser e potrete leggere le pagine pubbliche, ma non potrete restare connessi.",
+  "legal.privacy.required.p2": "Per creare un account, s\xEC. Un indirizzo e una password sono necessari per concludere il contratto, perch\xE9 sono il modo in cui l'account viene raggiunto e il modo in cui ci viene detto che siete voi. Senza di essi non c'\xE8 alcun account da darvi. \xC8 tutto qui: nient'altro nella schermata di accesso \xE8 un dato facoltativo che raccogliamo mentre abbiamo la vostra attenzione.",
+  "legal.subprocessors.how-to-read.pair1.term": "In uso oggi",
+  "legal.subprocessors.how-to-read.pair2.term": "Configurato, e riceve dati solo dove la sua credenziale \xE8 impostata",
+  "legal.subprocessors.how-to-read.pair3.term": "Nominato nel prodotto, non connesso a nulla",
+  "legal.subprocessors.cloudflare.data6": "Segnali del controllo antibot su ogni modulo delle credenziali: il vostro indirizzo di rete, il vostro browser e il modo in cui si comporta, e un token che dimostra il superamento del controllo. Cloudflare li usa per distinguere le persone dagli script, e anche per migliorare quel giudizio per il proprio servizio, il che ne fa un titolare del trattamento per tale finalit\xE0 e non soltanto il nostro responsabile",
+  "legal.subprocessors.google.service": "Accesso con Google, quando scegliete quel pulsante anzich\xE9 una password.",
+  "legal.subprocessors.google.data1": "Il fatto che abbiate chiesto di accedere, e l'indirizzo e il profilo di base che Google ci restituisce in seguito",
+  "legal.subprocessors.google.location1": "Google elabora i dati negli Stati Uniti e altrove",
+  "legal.subprocessors.google.safeguard": "Google \xE8 stabilita negli Stati Uniti. I trasferimenti si fondano sulle clausole contrattuali standard contenute nelle sue condizioni. Scegliere invece una password significa che nessun dato raggiunge Google.",
+  "legal.subprocessors.google.statusDetail": "Viene raggiunta solo se premete il pulsante. Aprire la schermata di accesso non invia nulla a Google, e questa voce mancava dall'elenco fino al 20 agosto 2026 mentre il pulsante era gi\xE0 sullo schermo.",
+  "legal.subprocessors.github.service": "Accesso con GitHub, quando scegliete quel pulsante anzich\xE9 una password.",
+  "legal.subprocessors.github.data1": "Il fatto che abbiate chiesto di accedere, e l'indirizzo e il profilo di base che GitHub ci restituisce in seguito",
+  "legal.subprocessors.github.location1": "GitHub elabora i dati negli Stati Uniti e altrove",
+  "legal.subprocessors.github.safeguard": "GitHub \xE8 stabilita negli Stati Uniti ed \xE8 di propriet\xE0 di Microsoft. I trasferimenti si fondano sulle clausole contrattuali standard contenute nelle sue condizioni. Scegliere invece una password significa che nessun dato raggiunge GitHub.",
+  "legal.subprocessors.github.statusDetail": "Viene raggiunta solo se premete il pulsante. Aprire la schermata di accesso non invia nulla a GitHub, e questa voce mancava dall'elenco fino al 20 agosto 2026 mentre il pulsante era gi\xE0 sullo schermo."
 };
 
 // ../../packages/content/src/messages/es.ts
@@ -6196,7 +6346,7 @@ var es_default = {
   "waitlist.heading": "\xDAnase a la lista de espera",
   "waitlist.lead": "No hace falta esperar para mirar alrededor. Las cuentas est\xE1n abiertas, y crear una empresa lleva un minuto. Lo que no est\xE1 listo es que un agente ejecute trabajo, as\xED que deje una direcci\xF3n y le escribiremos una vez, cuando pueda.",
   "waitlist.email.label": "Correo de trabajo",
-  "waitlist.email.placeholder": "you@company.com",
+  "waitlist.email.placeholder": "usted@empresa.com",
   "waitlist.submit": "\xDAnase a la lista de espera",
   "waitlist.submitting": "Uni\xE9ndose",
   "waitlist.consent": "Acepto recibir correos electr\xF3nicos ocasionales sobre Orvay. Un solo mensaje cuando los agentes puedan ejecutar trabajo, y nada m\xE1s. Puede darse de baja desde cualquier mensaje.",
@@ -7132,7 +7282,41 @@ var es_legal_default = {
   "legal.security.disclosure.p1": "Comun\xEDquenoslo primero, y denos {days} d\xEDas antes de publicarlo. Si lo solucionamos antes, se lo diremos y podr\xE1 publicarlo entonces.",
   "legal.security.disclosure.p2": "Si dejamos de responder, publ\xEDquelo. Nuestro silencio no es una raz\xF3n para que una vulnerabilidad siga siendo secreta.",
   "legal.security.security-txt.heading": "security.txt",
-  "legal.security.security-txt.p1": "La versi\xF3n legible por m\xE1quina de esta p\xE1gina sigue la RFC 9116. Indica la direcci\xF3n de contacto, los idiomas preferidos, la ubicaci\xF3n can\xF3nica del propio archivo, y una fecha de caducidad a partir de la cual no deber\xEDa considerarse fiable."
+  "legal.security.security-txt.p1": "La versi\xF3n legible por m\xE1quina de esta p\xE1gina sigue la RFC 9116. Indica la direcci\xF3n de contacto, los idiomas preferidos, la ubicaci\xF3n can\xF3nica del propio archivo, y una fecha de caducidad a partir de la cual no deber\xEDa considerarse fiable.",
+  // -------------------------------------------------------------------------
+  // Twenty-three clauses that had no key and were falling back to English,
+  // added 2026-08-21. Appended at the end of the file in the same order as the
+  // English source, even though several belong to sections declared above.
+  //
+  // The three how-to-read terms reuse the status badge wording above
+  // ('legal.subprocessors.status.*') word for word. The legend only explains
+  // anything if the reader recognises in it the same label shown against every
+  // entry in the list, so these three are a lexical match rather than a
+  // separate translation of the same idea.
+  // -------------------------------------------------------------------------
+  "legal.privacy.automated.p3": "El restablecimiento de contrase\xF1a sigue abierto en el segundo nivel m\xE1s alto a prop\xF3sito, porque la forma honesta m\xE1s habitual de llegar hasta ah\xED es que un desconocido est\xE9 intentando adivinar su contrase\xF1a, y retirar el restablecimiento en ese preciso momento deja fuera al verdadero titular mientras dura el ataque.",
+  "legal.privacy.automated.p4": "La base es nuestro inter\xE9s leg\xEDtimo en mantener el servicio utilizable y sus costes acotados (art. 6.1.f RGPD). Puede oponerse a ella al amparo del art. 21 RGPD, y puede pedir que una persona revise cualquier denegaci\xF3n, escribiendo a la direcci\xF3n que figura en esta p\xE1gina. Respondemos en un plazo de 30 d\xEDas y no tiene ning\xFAn coste.",
+  "legal.privacy.automated.p5": "Dentro del producto, los agentes proponen acciones. Una acci\xF3n con efectos jur\xEDdicos o de significaci\xF3n similar sobre una persona exige una aprobaci\xF3n humana registrada antes de poder ejecutarse, y esa aprobaci\xF3n se guarda como un registro delimitado y acotado en lugar de como un simple indicador. Ese registro es la prueba de la intervenci\xF3n humana.",
+  "legal.privacy.cookies.heading": "Cookies y lo que se almacena en su dispositivo",
+  "legal.privacy.cookies.p1": "El sitio web p\xFAblico no instala ninguna cookie en absoluto. No ejecuta anal\xEDtica, ni publicidad, ni ning\xFAn contenido incrustado de terceros, as\xED que no hay nada sobre lo que preguntarle ni ning\xFAn banner que descartar con un clic. Un banner que ofrece una elecci\xF3n que no existe es peor que no tener ninguno, as\xED que no lo hay.",
+  "legal.privacy.cookies.p2": "Iniciar sesi\xF3n instala una sola cookie. Contiene un valor aleatorio que identifica su sesi\xF3n en nuestro lado, est\xE1 marcada de modo que ning\xFAn script de la p\xE1gina puede leerla, y est\xE1 ligada a este \xFAnico nombre de host, por lo que ning\xFAn otro sitio puede establecerla ni leerla. Dura noventa d\xEDas y se prorroga mientras usted siga usando Orvay, de modo que quien entra una vez por semana nunca ve cerrada su sesi\xF3n y quien se marcha desaparece noventa d\xEDas despu\xE9s. Cerrar sesi\xF3n la termina de inmediato, y puede cerrar cualquier sesi\xF3n desde su cuenta.",
+  "legal.privacy.cookies.p3": "La comprobaci\xF3n antibots de los formularios de credenciales tambi\xE9n puede almacenar algo en su dispositivo mientras decide si usted es una persona. Eso es cosa de Cloudflare y no nuestra, y est\xE1 descrito en su documentaci\xF3n.",
+  "legal.privacy.cookies.p4": "Ninguna de las dos es opcional, y ninguna pide su consentimiento, porque ambas son necesarias para algo que usted ha pedido: seguir con la sesi\xF3n iniciada, y que se le deje pasar de la puerta. Esa es la excepci\xF3n que tanto la normativa suiza como la de la Uni\xF3n Europea establecen para el almacenamiento estrictamente necesario. Rechazarlas es posible y el efecto es sencillo: bloquee las cookies de este sitio en su navegador y podr\xE1 leer las p\xE1ginas p\xFAblicas, pero no podr\xE1 mantener la sesi\xF3n iniciada.",
+  "legal.privacy.required.p2": "Para crear una cuenta, s\xED. Una direcci\xF3n y una contrase\xF1a son necesarias para celebrar el contrato, porque son la v\xEDa por la que se llega a la cuenta y la forma de saber que es usted. Sin ellas no hay ninguna cuenta que darle. Eso es todo: nada m\xE1s de lo que aparece en la pantalla de inicio de sesi\xF3n son datos opcionales que estemos recopilando mientras tenemos su atenci\xF3n.",
+  "legal.subprocessors.how-to-read.pair1.term": "En uso hoy",
+  "legal.subprocessors.how-to-read.pair2.term": "Configurado, y recibe datos solo donde su credencial est\xE1 activa",
+  "legal.subprocessors.how-to-read.pair3.term": "Nombrado en el producto, sin conexi\xF3n a nada",
+  "legal.subprocessors.cloudflare.data6": "Se\xF1ales de la comprobaci\xF3n antibots en cada formulario de credenciales: su direcci\xF3n de red, su navegador y c\xF3mo se comporta, y un token que acredita que la comprobaci\xF3n se super\xF3. Cloudflare las utiliza para distinguir a las personas de los scripts, y tambi\xE9n para mejorar ese criterio en su propio servicio, lo que la convierte en responsable del tratamiento para esa finalidad y no solo en nuestra encargada",
+  "legal.subprocessors.google.service": "Inicio de sesi\xF3n con Google, cuando elige ese bot\xF3n en lugar de una contrase\xF1a.",
+  "legal.subprocessors.google.data1": "El hecho de que haya solicitado iniciar sesi\xF3n, y la direcci\xF3n y el perfil b\xE1sico que Google nos devuelve despu\xE9s",
+  "legal.subprocessors.google.location1": "Google trata los datos en Estados Unidos y en otros lugares",
+  "legal.subprocessors.google.safeguard": "Google est\xE1 establecida en Estados Unidos. Las transferencias se basan en las cl\xE1usulas contractuales tipo de sus condiciones. Elegir una contrase\xF1a en su lugar significa que no llega ning\xFAn dato a Google.",
+  "legal.subprocessors.google.statusDetail": "Solo se alcanza si pulsa el bot\xF3n. Abrir la p\xE1gina de inicio de sesi\xF3n no env\xEDa nada a Google, y esta entrada faltaba en esta lista hasta el 20 de agosto de 2026 mientras el bot\xF3n ya estaba en pantalla.",
+  "legal.subprocessors.github.service": "Inicio de sesi\xF3n con GitHub, cuando elige ese bot\xF3n en lugar de una contrase\xF1a.",
+  "legal.subprocessors.github.data1": "El hecho de que haya solicitado iniciar sesi\xF3n, y la direcci\xF3n y el perfil b\xE1sico que GitHub nos devuelve despu\xE9s",
+  "legal.subprocessors.github.location1": "GitHub trata los datos en Estados Unidos y en otros lugares",
+  "legal.subprocessors.github.safeguard": "GitHub est\xE1 establecida en Estados Unidos y es propiedad de Microsoft. Las transferencias se basan en las cl\xE1usulas contractuales tipo de sus condiciones. Elegir una contrase\xF1a en su lugar significa que no llega ning\xFAn dato a GitHub.",
+  "legal.subprocessors.github.statusDetail": "Solo se alcanza si pulsa el bot\xF3n. Abrir la p\xE1gina de inicio de sesi\xF3n no env\xEDa nada a GitHub, y esta entrada faltaba en esta lista hasta el 20 de agosto de 2026 mientras el bot\xF3n ya estaba en pantalla."
 };
 
 // ../../packages/content/src/messages/pt.ts
@@ -7791,8 +7975,8 @@ var pt_legal_default = {
   "legal.privacy.collected.heading": "O que recolhemos",
   "legal.privacy.collected.p1": "O site p\xFAblico recolhe um \xFAnico item de dado pessoal, e somente se o fornecer: o endere\xE7o de email que introduz no formul\xE1rio de lista de espera.",
   "legal.privacy.collected.p2": "Enviar esse formul\xE1rio grava um registo de consentimento. Ele cont\xE9m seu endere\xE7o em letras min\xFAsculas, o texto exato da frase de consentimento que foi exibida, a data e a hora, um r\xF3tulo informando que o endere\xE7o veio do formul\xE1rio de lista de espera do nosso site institucional e n\xE3o foi confirmado por resposta, e um digest SHA-256 do endere\xE7o, que usamos para montar seu link de cancelamento. Esse \xE9 o registo completo.",
-  "legal.privacy.collected.p3": "N\xE3o pedimos seu nome. N\xE3o definimos cookie de analytics, n\xE3o usamos pixel de rastreamento e n\xE3o usamos nenhum servi\xE7o de analytics de terceiros no site p\xFAblico. N\xE3o compramos endere\xE7os e n\xE3o enriquecemos o seu a partir de nenhuma outra fonte.",
-  "legal.privacy.collected.p4": "A Cloudflare serve o site e, ao faz\xEA-lo, processa os detalhes t\xE9cnicos de cada requisi\xE7\xE3o, incluindo seu endere\xE7o IP. Isso acontece independentemente de preencher o formul\xE1rio, porque \xE9 assim que a p\xE1gina chega at\xE9 si. O registo de requisi\xE7\xF5es est\xE1 ativado, portanto esses dados s\xE3o retidos pela Cloudflare de acordo com seu pr\xF3prio per\xEDodo de reten\xE7\xE3o.",
+  "legal.privacy.collected.p3": "N\xE3o pedimos o seu nome. N\xE3o definimos cookie de analytics, n\xE3o usamos pixel de rastreamento e n\xE3o usamos nenhum servi\xE7o de analytics de terceiros no site p\xFAblico. N\xE3o compramos endere\xE7os e n\xE3o enriquecemos o seu a partir de nenhuma outra fonte.",
+  "legal.privacy.collected.p4": "A Cloudflare serve o site e, ao faz\xEA-lo, processa os detalhes t\xE9cnicos de cada requisi\xE7\xE3o, incluindo o seu endere\xE7o IP. Isso acontece independentemente de preencher o formul\xE1rio, porque \xE9 assim que a p\xE1gina chega at\xE9 si. O registo de requisi\xE7\xF5es est\xE1 ativado, portanto esses dados s\xE3o retidos pela Cloudflare de acordo com seu pr\xF3prio per\xEDodo de reten\xE7\xE3o.",
   "legal.privacy.collected.p5": "Iniciar sess\xE3o envolve mais dados, e este aviso agora descreve-os, em vez de apenas prometer faz\xEA-lo. Criar uma conta ou iniciar sess\xE3o recolhe o endere\xE7o de email que introduz, a palavra-passe que escolhe (armazenada apenas como hash, nunca como texto, e nunca leg\xEDvel por n\xF3s), o endere\xE7o de rede a partir do qual o seu navegador estabelece liga\xE7\xE3o, e um registo do navegador e do dispositivo para que possa ver e revogar as suas pr\xF3prias sess\xF5es. Depois disso, abrange os registos que a sua empresa cria.",
   "legal.privacy.purposes.heading": "Por que tratamos os dados, e com base em que",
   "legal.privacy.purposes.pair1.term": "Escrever para si quando a Orvay for lan\xE7ada",
@@ -7969,7 +8153,7 @@ var pt_legal_default = {
   "legal.subprocessors.title": "Subcontratantes ulteriores",
   "legal.subprocessors.lead": "Todo terceiro que processa dados para n\xF3s: o que recebe, onde processa, e se est\xE1 a receber algo hoje.",
   "legal.subprocessors.status.in_use": "Em uso hoje",
-  "legal.subprocessors.status.configured": "Configurado, e recebendo dados apenas onde sua credencial estiver definida",
+  "legal.subprocessors.status.configured": "Configurado, e recebendo dados apenas onde a sua credencial estiver definida",
   "legal.subprocessors.status.not_engaged": "Nomeado no produto, sem conex\xE3o a nada",
   "legal.subprocessors.how-to-read.heading": "Como ler isto",
   "legal.subprocessors.how-to-read.p1": "Esta lista deriva da configura\xE7\xE3o de implanta\xE7\xE3o, e n\xE3o da mem\xF3ria: as vincula\xE7\xF5es que cada Worker possui, as vari\xE1veis de ambiente que ele pode carregar, e as bibliotecas de fornecedores no c\xF3digo-fonte. Cada entrada carrega um dos tr\xEAs estados.",
@@ -8117,7 +8301,39 @@ var pt_legal_default = {
   "legal.security.disclosure.p1": "Avise-nos primeiro, e d\xEA-nos {days} dias antes de publicar. Se corrigirmos antes, dir-lhe-emos, e a decis\xE3o de publicar passa a ser sua.",
   "legal.security.disclosure.p2": "Se ficarmos em sil\xEAncio, publique. Nosso sil\xEAncio n\xE3o \xE9 motivo para uma vulnerabilidade permanecer em segredo.",
   "legal.security.security-txt.heading": "security.txt",
-  "legal.security.security-txt.p1": "A vers\xE3o leg\xEDvel por m\xE1quina desta p\xE1gina segue a RFC 9116. Ela fornece o endere\xE7o de contacto, os idiomas preferidos, a localiza\xE7\xE3o can\xF3nica do pr\xF3prio ficheiro, e uma data de expira\xE7\xE3o ap\xF3s a qual ele n\xE3o deve mais ser considerado confi\xE1vel."
+  "legal.security.security-txt.p1": "A vers\xE3o leg\xEDvel por m\xE1quina desta p\xE1gina segue a RFC 9116. Ela fornece o endere\xE7o de contacto, os idiomas preferidos, a localiza\xE7\xE3o can\xF3nica do pr\xF3prio ficheiro, e uma data de expira\xE7\xE3o ap\xF3s a qual ele n\xE3o deve mais ser considerado confi\xE1vel.",
+  // ---------------------------------------------------------------------------
+  // Twenty-three clauses that had no key at all, added 2026-08-21. They were
+  // falling back to the English source inside an otherwise Portuguese document:
+  // the whole of the cookie section, the tail of the automated-decisions
+  // section, the legend that explains the sub-processor list, and both
+  // federated sign-in vendors. The three `how-to-read.pairN.term` values are
+  // verbatim copies of `legal.subprocessors.status.*` above, because the legend
+  // has to name the badge in the same words or it explains nothing.
+  // ---------------------------------------------------------------------------
+  "legal.privacy.automated.p3": "A redefini\xE7\xE3o da palavra-passe permanece deliberadamente aberta no pen\xFAltimo n\xEDvel, porque a forma honesta mais comum de l\xE1 chegar \xE9 algu\xE9m cuja palavra-passe est\xE1 a ser adivinhada por um estranho, e retirar a redefini\xE7\xE3o nesse momento tranca o leg\xEDtimo dono da conta do lado de fora enquanto o ataque decorre.",
+  "legal.privacy.automated.p4": "A base \xE9 o nosso interesse leg\xEDtimo em manter o servi\xE7o utiliz\xE1vel e os seus custos limitados (art. 6(1)(f) do GDPR). Pode opor-se a ele nos termos do art. 21, e pode pedir que uma pessoa analise qualquer recusa, usando o endere\xE7o indicado nesta p\xE1gina. Respondemos em at\xE9 30 dias, e isso n\xE3o custa nada.",
+  "legal.privacy.automated.p5": "Dentro do produto, os agentes prop\xF5em a\xE7\xF5es. Uma a\xE7\xE3o com efeito jur\xEDdico ou similarmente significativo sobre uma pessoa exige aprova\xE7\xE3o humana registada antes de poder ser executada, e a aprova\xE7\xE3o \xE9 armazenada como um registo delimitado e com escopo definido, e n\xE3o como uma marca\xE7\xE3o. Esse registo \xE9 a evid\xEAncia do envolvimento humano.",
+  "legal.privacy.cookies.heading": "Cookies e o que fica armazenado no seu dispositivo",
+  "legal.privacy.cookies.p1": "O site p\xFAblico n\xE3o define cookie algum. N\xE3o usa analytics, n\xE3o usa publicidade e n\xE3o incorpora nada de terceiros, portanto n\xE3o h\xE1 nada a perguntar-lhe e nenhum banner para dispensar. Um banner que oferece uma escolha que n\xE3o existe \xE9 pior do que banner nenhum, portanto n\xE3o h\xE1 nenhum.",
+  "legal.privacy.cookies.p2": "Iniciar sess\xE3o define um cookie. Ele cont\xE9m um valor aleat\xF3rio que identifica a sua sess\xE3o do nosso lado, est\xE1 marcado de modo que nenhum script na p\xE1gina o consiga ler, e est\xE1 vinculado apenas a este nome de anfitri\xE3o, de modo que nenhum outro site o pode definir ou ler. Dura noventa dias e \xE9 prolongado enquanto continuar a usar a Orvay, portanto quem entra todas as semanas nunca tem a sess\xE3o terminada, e quem se afasta deixa de ter sess\xE3o noventa dias depois. Terminar sess\xE3o encerra-o de imediato, e pode terminar qualquer sess\xE3o a partir da sua conta.",
+  "legal.privacy.cookies.p3": "A verifica\xE7\xE3o anti-rob\xF4s nos formul\xE1rios de credenciais tamb\xE9m pode guardar algo no seu dispositivo enquanto decide se \xE9 uma pessoa. Isso \xE9 da Cloudflare, e n\xE3o nosso, e est\xE1 descrito na documenta\xE7\xE3o dela.",
+  "legal.privacy.cookies.p4": "Nenhum dos dois \xE9 opcional, e nenhum pede consentimento, porque ambos s\xE3o necess\xE1rios para algo que pediu: manter a sess\xE3o iniciada, e ser deixado entrar. \xC9 essa a exce\xE7\xE3o que tanto as regras su\xED\xE7as como as da UE abrem para o armazenamento estritamente necess\xE1rio. Recus\xE1-los \xE9 poss\xEDvel e o efeito \xE9 claro: bloqueie os cookies deste site no seu navegador e poder\xE1 ler as p\xE1ginas p\xFAblicas, mas n\xE3o conseguir\xE1 manter a sess\xE3o iniciada.",
+  "legal.privacy.required.p2": "Para criar uma conta, sim. Um endere\xE7o e uma palavra-passe s\xE3o exigidos para celebrar o contrato, porque \xE9 assim que se chega \xE0 conta e \xE9 assim que se confirma que \xE9 mesmo quem diz ser. Sem eles n\xE3o h\xE1 conta alguma para lhe dar. \xC9 tudo: nada mais no ecr\xE3 de in\xEDcio de sess\xE3o \xE9 um dado opcional que estejamos a recolher enquanto temos a sua aten\xE7\xE3o.",
+  "legal.subprocessors.how-to-read.pair1.term": "Em uso hoje",
+  "legal.subprocessors.how-to-read.pair2.term": "Configurado, e recebendo dados apenas onde a sua credencial estiver definida",
+  "legal.subprocessors.how-to-read.pair3.term": "Nomeado no produto, sem conex\xE3o a nada",
+  "legal.subprocessors.cloudflare.data6": "Sinais da verifica\xE7\xE3o anti-rob\xF4s em cada formul\xE1rio de credenciais: o seu endere\xE7o de rede, o seu navegador e a forma como se comporta, e um token que comprova que a verifica\xE7\xE3o foi passada. A Cloudflare usa-os para distinguir pessoas de scripts, e tamb\xE9m para melhorar esse ju\xEDzo no seu pr\xF3prio servi\xE7o, o que faz dela um respons\xE1vel pelo tratamento para essa finalidade, e n\xE3o apenas o nosso subcontratante",
+  "legal.subprocessors.google.service": "Iniciar sess\xE3o com o Google, quando escolhe esse bot\xE3o em vez de uma palavra-passe.",
+  "legal.subprocessors.google.data1": "O facto de ter pedido para iniciar sess\xE3o, e o endere\xE7o e o perfil b\xE1sico que o Google nos devolve depois",
+  "legal.subprocessors.google.location1": "O Google processa dados nos Estados Unidos e noutros locais",
+  "legal.subprocessors.google.safeguard": "O Google est\xE1 estabelecido nos Estados Unidos. As transfer\xEAncias baseiam-se nas cl\xE1usulas contratuais padr\xE3o dos seus termos. Escolher antes uma palavra-passe significa que nenhum dado chega ao Google.",
+  "legal.subprocessors.google.statusDetail": "S\xF3 \xE9 alcan\xE7ado se premir o bot\xE3o. Abrir a p\xE1gina de in\xEDcio de sess\xE3o n\xE3o envia nada ao Google, e esta entrada esteve ausente desta lista at\xE9 20 de agosto de 2026, enquanto o bot\xE3o j\xE1 estava no ecr\xE3.",
+  "legal.subprocessors.github.service": "Iniciar sess\xE3o com o GitHub, quando escolhe esse bot\xE3o em vez de uma palavra-passe.",
+  "legal.subprocessors.github.data1": "O facto de ter pedido para iniciar sess\xE3o, e o endere\xE7o e o perfil b\xE1sico que o GitHub nos devolve depois",
+  "legal.subprocessors.github.location1": "O GitHub processa dados nos Estados Unidos e noutros locais",
+  "legal.subprocessors.github.safeguard": "O GitHub est\xE1 estabelecido nos Estados Unidos e \xE9 propriedade da Microsoft. As transfer\xEAncias baseiam-se nas cl\xE1usulas contratuais padr\xE3o dos seus termos. Escolher antes uma palavra-passe significa que nenhum dado chega ao GitHub.",
+  "legal.subprocessors.github.statusDetail": "S\xF3 \xE9 alcan\xE7ado se premir o bot\xE3o. Abrir a p\xE1gina de in\xEDcio de sess\xE3o n\xE3o envia nada ao GitHub, e esta entrada esteve ausente desta lista at\xE9 20 de agosto de 2026, enquanto o bot\xE3o j\xE1 estava no ecr\xE3."
 };
 
 // ../../packages/content/src/messages/catalogues.ts
@@ -8249,6 +8465,7 @@ var shell = (input) => `<!doctype html>
 <title>${esc(input.title)}</title>
 <meta name="description" content="${esc(input.description)}">
 <meta name="robots" content="${esc(input.robots ?? "index, follow")}">
+${input.canonical === void 0 ? "" : `<link rel="canonical" href="${esc(input.canonical)}">`}
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
 <link rel="alternate" type="application/atom+xml" title="${esc(BRAND.name)} Status" href="/history.atom">
@@ -8462,6 +8679,7 @@ var renderPage = (input) => {
 `;
   }).join("");
   return shell({
+    canonical: `${HOSTS.status}/`,
     title: `${BRAND.name} Status`,
     description: `Live operational status for ${BRAND.name}, with the way each component is measured stated beside it.`,
     tokensCss: input.tokensCss,
@@ -8549,6 +8767,7 @@ var renderHistoryPage = (input) => {
   const empty = `
     <p class="empty">Nothing has changed state since we started recording. This page fills itself as things happen, and entries are never removed from it.</p>`;
   return shell({
+    canonical: `${HOSTS.status}/history/`,
     title: `History \xB7 ${BRAND.name} Status`,
     description: `Every recorded change of state for ${BRAND.name}, oldest kept forever.`,
     tokensCss: input.tokensCss,
@@ -8604,6 +8823,7 @@ var renderIncidentPage = (input) => {
       </li>`
   ).join("");
   return shell({
+    canonical: `${HOSTS.status}/incidents/${incident.id}/`,
     title: `${incident.label} \xB7 ${BRAND.name} Status`,
     description: `A recorded incident affecting ${incident.label}.`,
     tokensCss: input.tokensCss,
@@ -8665,6 +8885,7 @@ var renderAboutPage = (input) => {
   const links = channels.map((c) => `<a href="${esc(c.url)}" rel="noreferrer noopener">${esc(c.label)}</a>`).join(", or ");
   const fallback = channels.length === 0 ? "We have not yet published a second place to look when this page is unreachable. Until we do, the limitation is stated here rather than left for you to discover during an outage." : `If the status page is unreachable, look at ${links}. ${channels.length === 1 ? "It is not" : "None of them is"} served from our own infrastructure, so a problem with ours does not take ${channels.length === 1 ? "it" : "them"} down too.`;
   return shell({
+    canonical: `${HOSTS.status}/about/`,
     title: `About this page \xB7 ${BRAND.name} Status`,
     description: `How ${BRAND.name} measures what this status page reports, and what it deliberately does not claim.`,
     tokensCss: input.tokensCss,
@@ -8702,6 +8923,48 @@ var renderAboutPage = (input) => {
 `
   });
 };
+
+// src/sitemap.ts
+var xml = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
+var stamp = (ms) => new Date(ms).toISOString();
+var pagesFor = (origin, incidents) => {
+  const moments = incidents.flatMap((incident) => [
+    incident.startedAt,
+    ...incident.resolvedAt === void 0 ? [] : [incident.resolvedAt]
+  ]);
+  const newest = moments.length > 0 ? Math.max(...moments) : void 0;
+  const standing = [
+    { loc: `${origin}/`, ...newest === void 0 ? {} : { lastModified: newest } },
+    { loc: `${origin}/history/`, ...newest === void 0 ? {} : { lastModified: newest } },
+    // The about page describes how measurement works. It changes when the
+    // method changes, which the incident record knows nothing about, so it
+    // carries no date rather than borrowing one that would be wrong.
+    { loc: `${origin}/about/` }
+  ];
+  const records = incidents.map((incident) => ({
+    loc: `${origin}/incidents/${incident.id}/`,
+    // An incident's page stops changing when the incident does. While it is
+    // still open, the last thing that happened to it is its start.
+    lastModified: incident.resolvedAt ?? incident.startedAt
+  }));
+  return [...standing, ...records];
+};
+var renderSitemap = (entries) => `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.map(
+  (entry2) => `  <url>
+    <loc>${xml(entry2.loc)}</loc>
+${entry2.lastModified === void 0 ? "" : `    <lastmod>${stamp(entry2.lastModified)}</lastmod>
+`}  </url>`
+).join("\n")}
+</urlset>
+`;
+var renderRobots = (origin) => `User-agent: *
+Allow: /
+Disallow: /404.html
+
+Sitemap: ${origin}/sitemap.xml
+`;
 
 // src/render-not-found.ts
 var inkCrop = (path) => {
@@ -8949,7 +9212,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "dcaceac" : "unknown";
+var sourceCommit = true ? "1740083" : "unknown";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
   try {
@@ -9134,6 +9397,11 @@ var main = async (outDir, options = {}) => {
         renderIncidentPage({ tokensCss: tokens_default, pageCss: page_default, incident })
       )
     ),
+    // The crawler surfaces. Emitted rather than committed, because the page set
+    // grows an entry every time an incident is recorded and a hand-maintained
+    // list would silently omit every one of them. See `sitemap.ts`.
+    writeFile(join(outDir, "sitemap.xml"), renderSitemap(pagesFor(HOSTS.status, incidents))),
+    writeFile(join(outDir, "robots.txt"), renderRobots(HOSTS.status)),
     // Served by GitHub Pages for every address it has no file for, which is why
     // it is `404.html` at the root and not a directory like the others. Without
     // it a mistyped path under our own status domain answers with GitHub's error
