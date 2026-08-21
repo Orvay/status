@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787344029930,
+  "generatedAt": 1787345344491,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787344029930,
+      "observedAt": 1787345344491,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1235.496017
+        "latencyMs": 653.286477
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787344029930,
+      "observedAt": 1787345344491,
       "observation": {
         "kind": "ok",
         "level": "partial-outage",
-        "latencyMs": 1306.12769
+        "latencyMs": 1048.028529
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787344029930,
+      "observedAt": 1787345344491,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 931.628932
+        "latencyMs": 973.4125479999999
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787344029930,
+      "observedAt": 1787345344491,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 210.232
+        "latencyMs": 154.78670599999998
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787344029930,
+      "observedAt": 1787345344491,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 296.17978000000005
+        "latencyMs": 264.88388499999996
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787344029930,
+      "observedAt": 1787345344491,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 724.277024
+        "latencyMs": 620.849247
       }
     }
   },
