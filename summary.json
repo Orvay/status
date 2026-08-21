@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787343600185,
+  "generatedAt": 1787344029930,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787343600185,
+      "observedAt": 1787344029930,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 608.740132
+        "latencyMs": 1235.496017
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787343600185,
+      "observedAt": 1787344029930,
       "observation": {
         "kind": "ok",
         "level": "partial-outage",
-        "latencyMs": 1328.926731
+        "latencyMs": 1306.12769
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787343600185,
+      "observedAt": 1787344029930,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 863.6950240000001
+        "latencyMs": 931.628932
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787343600185,
+      "observedAt": 1787344029930,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 121.73218599999998
+        "latencyMs": 210.232
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787343600185,
+      "observedAt": 1787344029930,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 191.40250099999997
+        "latencyMs": 296.17978000000005
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787343600185,
+      "observedAt": 1787344029930,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 653.554087
+        "latencyMs": 724.277024
       }
     }
   },
