@@ -1357,6 +1357,81 @@
   --v5-slate-2: oklch(0.55 0.035 245);
   --v5-slate-3: oklch(0.6 0.04 245);
   --v5-slate-4: oklch(0.72 0.03 245);
+
+  /* ---- The v6 landing, the white one --------------------------------------
+
+     A THIRD SCENE FAMILY, under the same contract as --night-* and --v5-*:
+     these are PICTURES rather than surfaces, so they are declared once here
+     and are absent from the dark block. A printed dossier does not invert
+     when a reader prefers dark mode, and v6's whole argument is that it is a
+     printed thing.
+
+     WHY A SEPARATE FAMILY RATHER THAN --v5-* REUSED. v6 is not v5 inverted.
+     v5's ramp is numbered by lightness because its four grounds differ only
+     in depth; v6 has ONE ground (white paper) and spends its budget on an
+     INK ramp instead, because on paper the hierarchy is carried by how dark
+     a mark is, never by how deep the surface behind it sits. The two
+     families therefore have different shapes, not different values.
+
+     THE INK RAMP IS AUDITED AND THE AA LINE IS DRAWN INSIDE IT. Computed as
+     sRGB relative luminance against --v6-paper, which is what a browser
+     actually paints:
+
+       --v6-ink     L 0.17   ~14.4:1   headlines, values, anything load-bearing
+       --v6-ink-2   L 0.40    ~6.5:1   body copy and secondary prose
+       --v6-ink-3   L 0.49    ~4.7:1   mono labels and metadata, the AA floor
+       --v6-ink-4   L 0.62    ~2.9:1   ORNAMENT ONLY, and every use is
+                                       aria-hidden: register marks, the
+                                       drafting grid, a rule that is drawn
+                                       rather than read
+
+     Nothing a person must read is allowed below --v6-ink-3, and v6.css
+     repeats that rule where it is applied.
+
+     THE ACCENT IS ORVAY BLUE AT PAPER LIGHTNESS, not a new hue: hue 236 is
+     the same family --v5-steel sits in, dropped to L 0.47 so it clears 4.5:1
+     on white. The bright steel of the dark comp measures 2.4:1 here, which
+     is the exact mistake §12c records as the 1.21:1 button, so the tint that
+     reads on a night ground is deliberately not carried across.
+
+     The two system indicators are equally restrained: --v6-void for a
+     refusal and --v6-seal for a verification, both dark enough to be read as
+     text and desaturated enough that neither becomes a decorative colour.
+     Colour is never their only carrier; the word beside them says the same
+     thing (§5, WCAG 1.4.1).
+
+     ALPHA VARIANTS ARE NOT DECLARED HERE, same arrangement as --v5-*:
+     v6.css derives every one with color-mix(in oklab, var(--v6-x) N%,
+     transparent), which is the owner being used rather than bypassed. No
+     name here ends in -tint, -solid or -text and none begins with bg-, so
+     pairing.test.ts makes no claim about fills it cannot check. */
+  --v6-paper: oklch(1 0 0);
+  --v6-paper-warm: oklch(0.985 0.002 90);
+  --v6-paper-cool: oklch(0.975 0.003 250);
+  --v6-paper-deep: oklch(0.955 0.004 250);
+
+  --v6-ink: oklch(0.17 0.008 260);
+  --v6-ink-2: oklch(0.4 0.008 260);
+  --v6-ink-3: oklch(0.49 0.006 260);
+  --v6-ink-4: oklch(0.62 0.005 260);
+
+  --v6-rule: oklch(0.905 0.003 260);
+  --v6-rule-2: oklch(0.84 0.004 260);
+
+  --v6-blue: oklch(0.47 0.13 236);
+  --v6-blue-deep: oklch(0.37 0.11 236);
+  --v6-blue-wash: oklch(0.965 0.018 236);
+
+  --v6-void: oklch(0.46 0.15 27);
+  --v6-seal: oklch(0.44 0.1 155);
+
+  /* The sculptural model: three neutral faces and the shadow it casts. Read
+     as one object lit from the upper left, which is why the top plane is the
+     darkest of the three and the right face the lightest. */
+  --v6-face: oklch(0.95 0.003 260);
+  --v6-face-lit: oklch(0.985 0.002 260);
+  --v6-face-top: oklch(0.915 0.004 260);
+  --v6-shade: oklch(0.74 0.008 260);
 }
 
 
@@ -1535,6 +1610,423 @@
   --docs-toc-rail-active: var(--fg-primary);
   --docs-toc-fg: var(--fg-secondary);
   --docs-toc-fg-active: var(--fg-primary);
+}
+
+/* =============================================================================
+   Tier 3 — the application shell.
+
+   The Company OS is the fourth surface of the same product, so its chrome gets
+   component-scoped tokens here rather than a palette of its own in apps/app.
+   §4: one owner.
+
+   THE GEOMETRY IS ALREADY IN TIER 2, and that is the whole reason this block is
+   thin. The reference shell (app-zenovay) is three surfaces: a RECESSED ground
+   the sidebar sits on, and a LIFTED card the content lives in, floating in a
+   small gutter. Tier 2 already commits to exactly that inversion — ground is
+   --bg-canvas, a floating surface is --bg-raised — and the two SWAP ramp steps
+   between themes so the lift stays a lift once the ramp runs the other way.
+
+   So nothing here declares a colour. Aliasing means the app's shell inherits
+   the theme flip for free, cannot drift from the docs card or from the app's
+   own panels, and stays inside the contrast proof: tokens.test.ts asserts
+   primary ink at 7:1 across canvases 1-5 in BOTH themes, and every surface
+   named below is one of those steps. A hand-written --bg-sidebar would have
+   been a fourth surface outside that proof, unmeasured on the one surface a
+   person reads navigation labels off.
+
+   WHAT IS DELIBERATELY ABSENT. The reference carries a third ink tier
+   (--fg-subtle) beneath its muted one. It is not ported. Orvay asserts a floor
+   for primary (7:1) and secondary (4.5:1) and nothing below, so a third tier is
+   either ink under 4.5:1, which §7a forbids, or a second name for
+   --fg-secondary. Every --fg-subtle usage in the reference maps to
+   --fg-secondary here.
+   ============================================================================= */
+
+/* Typed so the rail's width INTERPOLATES. See --app-rail-shown below: an
+   unregistered custom property is an opaque string, so the well's padding would
+   snap while the rail glides. `inherits` is true because the well is not a
+   descendant of the rail and both read the same value off the root. */
+@property --app-rail-shown {
+  syntax: '<length>';
+  initial-value: 16rem;
+  inherits: true;
+}
+
+:root {
+  /* The three fixed measures the shell is laid out against. Named because
+     several rules have to agree about them: the well clears the rail, the card
+     subtracts the gutter twice, and the card's own header row is subtracted
+     again by the scrollport inside it. */
+  --app-rail-w: 16rem;
+  --app-gutter: var(--o-space-3);
+  --app-bar-h: 3rem;
+
+  /* REGISTERED, and this is load-bearing rather than decoration.
+
+     The rail collapses by translating off-canvas while the well's inline
+     padding shrinks to match. Those two have to move together or the content
+     jumps out from under the rail and back. An unregistered custom property is
+     an opaque string to the interpolator, so `padding-inline-start` SNAPS while
+     the transform glides, which is a visible flicker on every collapse. Typing
+     it as a <length> is what makes the padding animate at all. */
+  --app-rail-shown: var(--app-rail-w);
+
+  /* The rail has NO fill: it is chrome sitting directly on the canvas, so the
+     card is the only lifted surface in the shell. Its states are therefore
+     washes rather than surfaces, or an active row would read as a second card
+     floating on the first. Same construction and same reason as --docs-rail-*.
+
+     Alpha washes rather than ramp steps, because the rail sits on --bg-canvas
+     in light and on the inverted step in dark; a fixed step that lifts on one
+     would sink on the other. */
+  --app-rail-fg: var(--fg-secondary);
+  --app-rail-fg-active: var(--fg-primary);
+  --app-rail-hover-bg: var(--o-neutral-a3);
+  --app-rail-active-bg: var(--o-neutral-a4);
+  --app-rail-group-fg: var(--fg-secondary);
+
+  /* The redundant carrier on the active row. §5 and WCAG 1.4.1 both refuse
+     colour as the sole signal, and the wash above is discarded outright under
+     forced-colors, which is precisely the mode where a reader most needs to
+     know where they are. The rail survives both. */
+  --app-rail-marker: var(--fg-primary);
+  --app-rail-marker-w: 2px;
+
+  /* The card. Same three values as the docs card and deliberately not shared
+     with it: the two surfaces are allowed to diverge later, and one alias
+     pretending they are one thing is how a change to the docs silently
+     restyles the product.
+
+     THE RADIUS IS 20px AND THE REFERENCE'S IS 16px, which is the one measured
+     value in this file that is not carried across, so it is worth saying why
+     rather than leaving it as a rounding error. Orvay's radius scale has no
+     16: it offers 12 and 20, deliberately, because §9a's two-shape doctrine
+     treats an in-between radius as the thing that makes a set of surfaces look
+     assembled rather than designed. Both neighbours were available and 20 wins
+     for a reason outside this app: the documentation card shipped on
+     --o-radius-lg on 2026-08-20 and is the same in-card idea on the same
+     product. A customer moving between docs.orvayos.com and the product should
+     not see the corner change. */
+  --app-card-bg: var(--bg-raised);
+  --app-card-line: var(--line-rule);
+  --app-card-radius: var(--o-radius-lg);
+}
+
+/* =============================================================================
+   Absences, failures, and the one thing that blinks.
+   ============================================================================= */
+
+/* --------------------------------------------------------------- notice ---- */
+
+.o-notice {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--o-space-3);
+  padding: var(--o-space-3) var(--o-space-4);
+  border-radius: var(--o-radius-md);
+  background: var(--bg-subtle);
+  color: var(--fg-primary);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.o-notice__glyph {
+  margin-block-start: 0.15em;
+  color: var(--fg-secondary);
+}
+
+.o-notice__title {
+  margin: 0;
+  font: var(--o-text-body-15);
+  letter-spacing: var(--o-tracking-body-15);
+  font-weight: var(--o-weight-medium);
+}
+
+.o-notice__detail {
+  margin-block-start: var(--o-space-2);
+  font: var(--o-text-label-14);
+  letter-spacing: var(--o-tracking-label-14);
+  color: var(--fg-secondary);
+}
+
+/* The tint is the second carrier, never the first. The glyph differs per tone
+   and the screen-reader word states it outright, so all four survive
+   forced-colors, greyscale print and achromatopsia. */
+/* One column, because an untinted notice renders no glyph. Leaving the `auto`
+   track in place would indent the text past a column that is never filled. */
+.o-notice[data-tone='info'] { grid-template-columns: 1fr; }
+
+.o-notice[data-tone='ok'] { background: var(--risk-low-tint); }
+.o-notice[data-tone='ok'] .o-notice__glyph { color: var(--verified-text); }
+.o-notice[data-tone='warning'] { background: var(--risk-medium-tint); }
+.o-notice[data-tone='warning'] .o-notice__glyph { color: var(--risk-medium-text); }
+.o-notice[data-tone='error'] { background: var(--risk-critical-tint); }
+.o-notice[data-tone='error'] .o-notice__glyph { color: var(--risk-critical-text); }
+
+@media (forced-colors: active) {
+  .o-notice { border: 1px solid CanvasText; }
+}
+
+/* ---------------------------------------------------------------- empty ---- */
+
+.o-empty {
+  display: grid;
+  gap: var(--o-space-2);
+  justify-items: start;
+  padding: var(--o-space-6) var(--o-space-5);
+  border-radius: var(--o-radius-lg);
+  /* Recessed, not raised. An absence is not a result being presented, and
+     giving it the card treatment makes emptiness look like content. */
+  background: var(--bg-subtle);
+  box-shadow: var(--o-bevel-inset);
+}
+
+.o-empty__title {
+  margin: 0;
+  font: var(--o-text-title-19);
+  letter-spacing: var(--o-tracking-title-19);
+  font-weight: var(--o-weight-medium);
+  color: var(--fg-primary);
+}
+
+.o-empty__because {
+  margin: 0;
+  max-inline-size: 52ch;
+  font: var(--o-text-body-15);
+  letter-spacing: var(--o-tracking-body-15);
+  color: var(--fg-secondary);
+}
+
+.o-empty__action { margin-block-start: var(--o-space-2); }
+
+/* ---------------------------------------------------------------- error ---- */
+
+.o-error {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--o-space-3);
+  padding: var(--o-space-4);
+  border-radius: var(--o-radius-lg);
+  background: var(--risk-critical-tint);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.o-error__glyph {
+  margin-block-start: 0.15em;
+  color: var(--risk-critical-text);
+}
+
+.o-error__title {
+  margin: 0;
+  font: var(--o-text-body-15);
+  letter-spacing: var(--o-tracking-body-15);
+  font-weight: var(--o-weight-medium);
+  color: var(--fg-primary);
+}
+
+/* What still works is set in primary ink, not muted. It is the sentence the
+   reader most needs and the one a design instinct most wants to de-emphasise. */
+.o-error__still {
+  margin: var(--o-space-2) 0 0;
+  font: var(--o-text-body-15);
+  letter-spacing: var(--o-tracking-body-15);
+  color: var(--fg-primary);
+}
+
+.o-error__detail {
+  margin: var(--o-space-2) 0 0;
+  font: var(--o-text-mono-13);
+  font-family: var(--o-font-mono);
+  color: var(--fg-secondary);
+  overflow-wrap: break-word;
+}
+
+.o-error__action { margin-block-start: var(--o-space-3); }
+
+@media (forced-colors: active) {
+  .o-error { border: 1px solid CanvasText; }
+}
+
+/* -------------------------------------------------------------- loading ---- */
+
+/* Loading is the provenance hatch, and it does not move.
+
+   A loading state and an unverified state are both "this is not yet a fact",
+   so they look related (§6.2). A shimmer says the opposite — it says something
+   is happening on a surface whose whole argument is that it shows only what has
+   been established — and it is the most common source of ambient motion in a
+   product that permits none. */
+.o-loading {
+  display: grid;
+  gap: var(--o-space-2);
+}
+
+.o-loading__line {
+  display: block;
+  block-size: 0.75rem;
+  border-radius: var(--o-radius-sm);
+  background-color: var(--bg-subtle);
+  background-image: var(--provenance-hatch);
+}
+
+.o-loading__line:nth-child(2) { inline-size: 82%; }
+.o-loading__line:nth-child(3) { inline-size: 64%; }
+
+/* ------------------------------------------------------------- progress ---- */
+
+.o-progress { display: grid; gap: var(--o-space-2); }
+
+.o-progress__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--o-space-3);
+  font: var(--o-text-label-14);
+  letter-spacing: var(--o-tracking-label-14);
+}
+
+.o-progress__label { color: var(--fg-primary); }
+
+.o-progress__count {
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--o-tracking-numeric);
+}
+
+.o-progress__track {
+  block-size: 6px;
+  border-radius: var(--o-radius-pill);
+  background: var(--bg-subtle);
+  box-shadow: var(--o-bevel-inset);
+  overflow: hidden;
+}
+
+.o-progress__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: inherit;
+  background: linear-gradient(var(--control-solid-top) 0%, var(--control-solid-bottom) 100%);
+  /* The fill transitions when the fraction changes, and does not animate on
+     load. Series and figures draw instantly (§6.2); this is a state change,
+     which is one of the four permitted meanings. */
+  transition: inline-size var(--o-dur-considered) var(--o-ease-standard);
+}
+
+@media (forced-colors: active) {
+  .o-progress__track { border: 1px solid CanvasText; }
+  .o-progress__fill { background: CanvasText; }
+}
+
+/* ---------------------------------------------------------------- stale ---- */
+
+/* THE ONLY LOOP IN THE PRODUCT.
+
+   A run whose platform-observed heartbeat has gone quiet while it still reports
+   itself as running. 0.8 Hz at 70% duty is the low-priority flash rate from the
+   NASA display standard, and this is deliberately the only moving thing on any
+   screen, which is precisely why it will be seen.
+
+   The reference's reduced-motion block deletes its equivalent indicator and
+   substitutes nothing (trap 19). Here the glyph carries a hatch and the literal
+   word STALE at all times, so standing the pulse down removes the movement and
+   not the message. */
+.o-stale {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--o-space-2);
+  padding: 2px var(--o-space-2);
+  border-radius: var(--o-radius-sm);
+  background-color: var(--risk-medium-tint);
+  background-image: var(--provenance-hatch);
+  color: var(--fg-primary);
+  font: var(--o-text-micro-11);
+  letter-spacing: 0.06em;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.o-stale__glyph { color: var(--risk-medium-text); }
+
+.o-stale__word { font-weight: var(--o-weight-strong); }
+
+.o-stale__since {
+  letter-spacing: var(--o-tracking-badge);
+  color: var(--fg-secondary);
+  text-transform: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Declared INSIDE no-preference, so the reduced path needs no code and
+     therefore cannot be got wrong (§6.3). */
+  .o-stale__glyph {
+    animation: o-stale-pulse 1250ms steps(1, end) infinite;
+  }
+}
+
+/* 0.8 Hz = 1250ms. 70% duty: lit for 875ms of every cycle. `steps(1, end)`
+   rather than an eased fade, because a flash rate is defined by its duty cycle
+   and a crossfade has no duty cycle. */
+@keyframes o-stale-pulse {
+  0%, 69.99% { opacity: 1; }
+  70%, 100% { opacity: 0.35; }
+}
+
+@media (forced-colors: active) {
+  .o-stale { border: 1px solid CanvasText; }
+}
+
+/* -------------------------------------------------------------- tooltip ---- */
+
+.o-tooltip { position: relative; display: inline-flex; }
+
+.o-tooltip__bubble {
+  position: absolute;
+  inset-block-end: calc(100% + var(--o-space-2));
+  inset-inline-start: 50%;
+  z-index: var(--o-z-overlay);
+  translate: -50% 0;
+  inline-size: max-content;
+  max-inline-size: 22rem;
+  padding: var(--o-space-2) var(--o-space-3);
+  border-radius: var(--o-radius-sm);
+  background: var(--bg-raised);
+  color: var(--fg-primary);
+  box-shadow: var(--o-bevel-raised);
+  font: var(--o-text-label-14);
+  letter-spacing: var(--o-tracking-label-14);
+  opacity: 0;
+  /* Hidden from the pointer AND from paint, but never removed from the DOM: the
+     trigger's aria-describedby has to keep resolving whether or not the bubble
+     is visible, and display:none would break that association. */
+  visibility: hidden;
+  transition:
+    opacity var(--o-dur-exit) var(--o-ease-exit),
+    visibility var(--o-dur-exit);
+  pointer-events: none;
+}
+
+/* Focus as well as hover. A tooltip that only answers to a pointer is invisible
+   to a keyboard reader and absent from a touch device. */
+.o-tooltip:hover .o-tooltip__bubble,
+.o-tooltip:focus-within .o-tooltip__bubble {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity var(--o-dur-enter) var(--o-ease-enter),
+    visibility 0s;
+}
+
+/* Escape dismisses while the trigger keeps focus (WCAG 1.4.13). A tooltip a
+   reader cannot dismiss can cover the content they were trying to read. */
+.o-tooltip[data-dismissed] .o-tooltip__bubble,
+.o-tooltip[data-dismissed]:hover .o-tooltip__bubble,
+.o-tooltip[data-dismissed]:focus-within .o-tooltip__bubble {
+  opacity: 0;
+  visibility: hidden;
+}
+
+@media (forced-colors: active) {
+  .o-tooltip__bubble { border: 1px solid CanvasText; }
 }
 
 /*
@@ -1857,6 +2349,49 @@ ul.updates .when { font: var(--o-text-mono-13); }
 .crumbs a:hover { color: var(--fg-primary); text-decoration: underline; }
 .crumb-sep { color: var(--line-strong); }
 
+/* ------------------------------------------------------- the live notice ---- */
+
+/* `hidden` LOSES TO A CLASS, AND THAT IS NOT A DETAIL.
+
+   The attribute works through the user agent stylesheet's `[hidden] { display:
+   none }`, which is one specificity point. `.o-notice` sets `display: grid`,
+   which is ten, so the borrowed component ignored `hidden` completely and the
+   notice rendered on every load as an empty tinted box with a warning glyph and
+   no sentence in it.
+
+   It shipped nowhere, because the browser test caught it on its first run. Worth
+   the comment anyway: nothing about the markup looks wrong, `pnpm verify`
+   without an e2e would have been fully green, and the failure is on the one
+   surface whose entire job is not to alarm people incorrectly. §12a. */
+#live-notice[hidden] {
+  display: none;
+}
+
+/* SPACING ONLY, AND THAT IS THE DECISION RATHER THAN THE LEFTOVER.
+
+   This briefly gave the notice `--bg-raised` and a card border, because
+   `.o-notice` tints itself with amber at 12% alpha and that reads on a card
+   while it nearly vanishes on this page's canvas.
+
+   It was wrong twice. An id selector outranks `.o-notice[data-tone='warning']`,
+   so a background here does not sit behind the component's tint, it replaces it,
+   and the notice rendered plain white with no tone at all. Reaching around that
+   needs a copy of a token §9b gives to one owner.
+
+   Understated is also the better answer on its own terms. The glyph and the
+   screen-reader word are the carriers §7a rule 2 requires, both present and both
+   measured, so the tint was never permitted to be the only one. §9a says the
+   instinct to add a border and a fill is the instinct to resist. */
+#live-notice {
+  margin-bottom: var(--o-space-5);
+}
+
+/* The reader's own clock, filled in by `live.ts`. Empty and therefore invisible
+   when no script runs, which is the no-JavaScript page exactly as it was. */
+.age:empty {
+  display: none;
+}
+
 </style>
 </head>
 <body>
@@ -1871,13 +2406,23 @@ ul.updates .when { font: var(--o-text-mono-13); }
   </header>
 
 
+  <div id="live-notice" class="o-notice" data-tone="warning" hidden
+    data-unreachable="We cannot reach this page's own data right now. What you see below is the last we could confirm, and it may have changed since."
+    data-stale="These checks have not reported since the time shown below. Treat what you see as unconfirmed.">
+    <svg class="glyph o-notice__glyph" viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="currentColor"><path d="M8 2.6 14 12.9H2Z"/></svg>
+    <div class="o-notice__body">
+      <p class="o-notice__title"><span class="sr-only">Warning: </span><span id="live-notice-text"></span></p>
+    </div>
+  </div>
+  <p id="live-announce" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+  <div id="live" data-generated-at="1787343600185">
   <div class="banner" data-level="partial-outage">
     <div class="banner-head">
       <h1>Something we measure is not working</h1>
     </div>
     <div class="banner-body">
       <p>6 of 12 components are checked from outside our network. The other 6 are not watched yet, and each one says so.</p>
-      <p class="updated">Last checked 21 Aug 2026, 19:58 UTC.</p>
+      <p class="updated">Last checked 21 Aug 2026, 20:20 UTC<span class="age"></span>.</p>
     </div>
   </div>
 
@@ -1887,7 +2432,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
       <p>The pages and applications you open.</p>
     </div>
     <ul class="rows">
-      <li class="row">
+      <li class="row" data-component="sign-in" data-state="operational">
         <div class="row-head">
           <h3 class="row-label">Sign in</h3>
           <span class="state" style="color:var(--verified-text)">
@@ -1901,9 +2446,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
           <div class="bar" role="img" aria-label="Sign in: history for the last 90 days. 3 days recorded."><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">24 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">25 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">26 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">27 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">28 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">29 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">30 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">31 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">31 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">14 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">15 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">16 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">17 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">18 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">19 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">20 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">21 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span></div>
           <div class="bar-scale"><span>90 days ago</span><span class="bar-count">3 days recorded</span><span>Today</span></div>
         </div>
-        <p class="row-method">Checked from outside our network at 21 Aug 2026, 19:58 UTC, answered in 902 ms.</p>
+        <p class="row-method">Checked from outside our network at 21 Aug 2026, 20:20 UTC, answered in 864 ms.</p>
       </li>
-      <li class="row">
+      <li class="row" data-component="control-plane" data-state="partial-outage">
         <div class="row-head">
           <h3 class="row-label">Company control plane</h3>
           <span class="state" style="color:var(--risk-high-text)">
@@ -1917,9 +2462,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
           <div class="bar" role="img" aria-label="Company control plane: history for the last 90 days. 3 days recorded."><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">24 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">25 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">26 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">27 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">28 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">29 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">30 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">31 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">31 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">14 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">15 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">16 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">17 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">18 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">19 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--risk-medium-solid)"><span class="tip"><span class="tip-day">20 Aug 2026</span><span class="tip-state" data-s="degraded">Degraded</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--risk-high-solid)"><span class="tip"><span class="tip-day">21 Aug 2026</span><span class="tip-state" data-s="partial-outage">Partial outage</span></span></span></div>
           <div class="bar-scale"><span>90 days ago</span><span class="bar-count">3 days recorded</span><span>Today</span></div>
         </div>
-        <p class="row-method">Checked from outside our network at 21 Aug 2026, 19:58 UTC, answered in 1781 ms.</p>
+        <p class="row-method">Checked from outside our network at 21 Aug 2026, 20:20 UTC, answered in 1329 ms.</p>
       </li>
-      <li class="row">
+      <li class="row" data-component="website-studio" data-state="operational">
         <div class="row-head">
           <h3 class="row-label">Website studio</h3>
           <span class="state" style="color:var(--verified-text)">
@@ -1933,9 +2478,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
           <div class="bar" role="img" aria-label="Website studio: history for the last 90 days. 3 days recorded."><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">24 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">25 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">26 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">27 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">28 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">29 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">30 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">31 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">31 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">14 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">15 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">16 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">17 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">18 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">19 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">20 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">21 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span></div>
           <div class="bar-scale"><span>90 days ago</span><span class="bar-count">3 days recorded</span><span>Today</span></div>
         </div>
-        <p class="row-method">Checked from outside our network at 21 Aug 2026, 19:58 UTC, answered in 193 ms.</p>
+        <p class="row-method">Checked from outside our network at 21 Aug 2026, 20:20 UTC, answered in 122 ms.</p>
       </li>
-      <li class="row">
+      <li class="row" data-component="tenant-sites" data-state="operational">
         <div class="row-head">
           <h3 class="row-label">Published websites</h3>
           <span class="state" style="color:var(--verified-text)">
@@ -1949,9 +2494,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
           <div class="bar" role="img" aria-label="Published websites: history for the last 90 days. 3 days recorded."><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">24 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">25 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">26 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">27 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">28 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">29 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">30 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">31 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">31 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">14 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">15 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">16 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">17 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">18 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--corrected" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">19 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span><span class="tip-note">Our own check was stopped by a bot filter in front of the sites, and graded that as the sites being broken. Every published website was serving normally throughout.</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">20 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">21 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span></div>
           <div class="bar-scale"><span>90 days ago</span><span class="bar-count">3 days recorded</span><span>Today</span></div>
         </div>
-        <p class="row-method">Checked from outside our network at 21 Aug 2026, 19:58 UTC, answered in 221 ms.</p>
+        <p class="row-method">Checked from outside our network at 21 Aug 2026, 20:20 UTC, answered in 191 ms.</p>
       </li>
-      <li class="row">
+      <li class="row" data-component="marketing-site" data-state="operational">
         <div class="row-head">
           <h3 class="row-label">Public website</h3>
           <span class="state" style="color:var(--verified-text)">
@@ -1965,9 +2510,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
           <div class="bar" role="img" aria-label="Public website: history for the last 90 days. 3 days recorded."><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">24 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">25 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">26 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">27 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">28 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">29 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">30 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">31 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">31 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">14 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">15 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">16 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">17 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">18 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">19 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell cell--corrected" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">20 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span><span class="tip-note">Our own check looked for a sentence that had been rewritten on the site. The page was serving normally in about a quarter of a second. The check now looks for something the page structure carries rather than something a writer edits.</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">21 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span></div>
           <div class="bar-scale"><span>90 days ago</span><span class="bar-count">3 days recorded</span><span>Today</span></div>
         </div>
-        <p class="row-method">Checked from outside our network at 21 Aug 2026, 19:58 UTC, answered in 490 ms.</p>
+        <p class="row-method">Checked from outside our network at 21 Aug 2026, 20:20 UTC, answered in 609 ms.</p>
       </li>
-      <li class="row">
+      <li class="row" data-component="documentation" data-state="operational">
         <div class="row-head">
           <h3 class="row-label">Documentation</h3>
           <span class="state" style="color:var(--verified-text)">
@@ -1981,7 +2526,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
           <div class="bar" role="img" aria-label="Documentation: history for the last 90 days. 3 days recorded."><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">24 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">25 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">26 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">27 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">28 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">29 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">30 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="start"><span class="tip"><span class="tip-day">31 May 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jun 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">14 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">15 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">16 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">17 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">18 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">19 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">20 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">21 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">22 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">23 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">24 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">25 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">26 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">27 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">28 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">29 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">30 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">31 Jul 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">01 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">02 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">03 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">04 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">05 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">06 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">07 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">08 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">09 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">10 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">11 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">12 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0"><span class="tip"><span class="tip-day">13 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">14 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">15 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">16 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">17 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell cell--none" tabindex="0" data-tip="end"><span class="tip"><span class="tip-day">18 Aug 2026</span><span class="tip-state" data-s="none">Not recorded</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">19 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">20 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span><span class="cell" tabindex="0" data-tip="end" style="background-color:var(--verified-solid)"><span class="tip"><span class="tip-day">21 Aug 2026</span><span class="tip-state" data-s="operational">Operational</span></span></span></div>
           <div class="bar-scale"><span>90 days ago</span><span class="bar-count">3 days recorded</span><span>Today</span></div>
         </div>
-        <p class="row-method">Checked from outside our network at 21 Aug 2026, 19:58 UTC, answered in 512 ms.</p>
+        <p class="row-method">Checked from outside our network at 21 Aug 2026, 20:20 UTC, answered in 654 ms.</p>
       </li>
     </ul>
   </section>
@@ -1992,7 +2537,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
       <p>The machinery that proposes work, does it, and proves it was done.</p>
     </div>
     <ul class="rows">
-      <li class="row" data-unmeasured="true">
+      <li class="row" data-component="agent-runs" data-state="not-measured" data-unmeasured="true">
         <div class="row-head">
           <h3 class="row-label">Agent runs</h3>
           <span class="state" style="color:var(--fg-secondary)">
@@ -2008,7 +2553,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
         </div>
         <p class="row-method">Nothing watches this yet. Run health has to come from real customer traffic rather than from an outside check, and that measurement is not built.</p>
       </li>
-      <li class="row" data-unmeasured="true">
+      <li class="row" data-component="independent-verification" data-state="not-measured" data-unmeasured="true">
         <div class="row-head">
           <h3 class="row-label">Independent verification</h3>
           <span class="state" style="color:var(--fg-secondary)">
@@ -2024,7 +2569,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
         </div>
         <p class="row-method">Nothing watches this yet. Verification health has to come from real customer traffic rather than from an outside check, and that measurement is not built.</p>
       </li>
-      <li class="row" data-unmeasured="true">
+      <li class="row" data-component="scheduled-work" data-state="not-measured" data-unmeasured="true">
         <div class="row-head">
           <h3 class="row-label">Scheduled work</h3>
           <span class="state" style="color:var(--fg-secondary)">
@@ -2040,7 +2585,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
         </div>
         <p class="row-method">Nothing watches this yet. A timer that stops is silent by nature, so this row needs a check that lives outside our own systems. It is not built.</p>
       </li>
-      <li class="row" data-unmeasured="true">
+      <li class="row" data-component="evidence-archive" data-state="not-measured" data-unmeasured="true">
         <div class="row-head">
           <h3 class="row-label">Evidence archive</h3>
           <span class="state" style="color:var(--fg-secondary)">
@@ -2065,7 +2610,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
       <p>Plans, payment, and the messages we send you.</p>
     </div>
     <ul class="rows">
-      <li class="row" data-unmeasured="true">
+      <li class="row" data-component="checkout-and-billing" data-state="not-measured" data-unmeasured="true">
         <div class="row-head">
           <h3 class="row-label">Checkout and billing</h3>
           <span class="state" style="color:var(--fg-secondary)">
@@ -2081,7 +2626,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
         </div>
         <p class="row-method">Nothing watches this yet. Checkout health has to come from real attempts rather than from a test payment, and that measurement is not built.</p>
       </li>
-      <li class="row" data-unmeasured="true">
+      <li class="row" data-component="email-notifications" data-state="not-measured" data-unmeasured="true">
         <div class="row-head">
           <h3 class="row-label">Email notifications</h3>
           <span class="state" style="color:var(--fg-secondary)">
@@ -2100,6 +2645,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
     </ul>
   </section>
 
+  </div>
   <div class="cta">
     <a class="button" href="/history/">
       <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="2.5" y="3.2" width="11" height="10" rx="2"/><path d="M2.5 6.4h11M5.5 2v2.4M10.5 2v2.4"/></svg>
@@ -2109,7 +2655,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
 
   <footer>
-    <p>Each bar shows the last 90 days, one cell per day, coloured by the worst state we measured that day. Hover a cell to see the date and what it was. Checks run from outside our own network roughly every 15 minutes.</p>
+    <p>Each bar shows the last 90 days, one cell per day, coloured by the worst state we measured that day. Hover a cell to see the date and what it was. Checks run from outside our own network, and each row states when it was last measured.</p>
     <nav aria-label="Orvay">
       <a href="https://orvayos.com">Orvay</a>
       <a href="https://app.orvayos.com">Sign in</a>
@@ -2121,5 +2667,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
   </footer>
 
 </main>
+<script>
+"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();
+
+</script>
 </body>
 </html>

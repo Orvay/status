@@ -1357,6 +1357,81 @@
   --v5-slate-2: oklch(0.55 0.035 245);
   --v5-slate-3: oklch(0.6 0.04 245);
   --v5-slate-4: oklch(0.72 0.03 245);
+
+  /* ---- The v6 landing, the white one --------------------------------------
+
+     A THIRD SCENE FAMILY, under the same contract as --night-* and --v5-*:
+     these are PICTURES rather than surfaces, so they are declared once here
+     and are absent from the dark block. A printed dossier does not invert
+     when a reader prefers dark mode, and v6's whole argument is that it is a
+     printed thing.
+
+     WHY A SEPARATE FAMILY RATHER THAN --v5-* REUSED. v6 is not v5 inverted.
+     v5's ramp is numbered by lightness because its four grounds differ only
+     in depth; v6 has ONE ground (white paper) and spends its budget on an
+     INK ramp instead, because on paper the hierarchy is carried by how dark
+     a mark is, never by how deep the surface behind it sits. The two
+     families therefore have different shapes, not different values.
+
+     THE INK RAMP IS AUDITED AND THE AA LINE IS DRAWN INSIDE IT. Computed as
+     sRGB relative luminance against --v6-paper, which is what a browser
+     actually paints:
+
+       --v6-ink     L 0.17   ~14.4:1   headlines, values, anything load-bearing
+       --v6-ink-2   L 0.40    ~6.5:1   body copy and secondary prose
+       --v6-ink-3   L 0.49    ~4.7:1   mono labels and metadata, the AA floor
+       --v6-ink-4   L 0.62    ~2.9:1   ORNAMENT ONLY, and every use is
+                                       aria-hidden: register marks, the
+                                       drafting grid, a rule that is drawn
+                                       rather than read
+
+     Nothing a person must read is allowed below --v6-ink-3, and v6.css
+     repeats that rule where it is applied.
+
+     THE ACCENT IS ORVAY BLUE AT PAPER LIGHTNESS, not a new hue: hue 236 is
+     the same family --v5-steel sits in, dropped to L 0.47 so it clears 4.5:1
+     on white. The bright steel of the dark comp measures 2.4:1 here, which
+     is the exact mistake §12c records as the 1.21:1 button, so the tint that
+     reads on a night ground is deliberately not carried across.
+
+     The two system indicators are equally restrained: --v6-void for a
+     refusal and --v6-seal for a verification, both dark enough to be read as
+     text and desaturated enough that neither becomes a decorative colour.
+     Colour is never their only carrier; the word beside them says the same
+     thing (§5, WCAG 1.4.1).
+
+     ALPHA VARIANTS ARE NOT DECLARED HERE, same arrangement as --v5-*:
+     v6.css derives every one with color-mix(in oklab, var(--v6-x) N%,
+     transparent), which is the owner being used rather than bypassed. No
+     name here ends in -tint, -solid or -text and none begins with bg-, so
+     pairing.test.ts makes no claim about fills it cannot check. */
+  --v6-paper: oklch(1 0 0);
+  --v6-paper-warm: oklch(0.985 0.002 90);
+  --v6-paper-cool: oklch(0.975 0.003 250);
+  --v6-paper-deep: oklch(0.955 0.004 250);
+
+  --v6-ink: oklch(0.17 0.008 260);
+  --v6-ink-2: oklch(0.4 0.008 260);
+  --v6-ink-3: oklch(0.49 0.006 260);
+  --v6-ink-4: oklch(0.62 0.005 260);
+
+  --v6-rule: oklch(0.905 0.003 260);
+  --v6-rule-2: oklch(0.84 0.004 260);
+
+  --v6-blue: oklch(0.47 0.13 236);
+  --v6-blue-deep: oklch(0.37 0.11 236);
+  --v6-blue-wash: oklch(0.965 0.018 236);
+
+  --v6-void: oklch(0.46 0.15 27);
+  --v6-seal: oklch(0.44 0.1 155);
+
+  /* The sculptural model: three neutral faces and the shadow it casts. Read
+     as one object lit from the upper left, which is why the top plane is the
+     darkest of the three and the right face the lightest. */
+  --v6-face: oklch(0.95 0.003 260);
+  --v6-face-lit: oklch(0.985 0.002 260);
+  --v6-face-top: oklch(0.915 0.004 260);
+  --v6-shade: oklch(0.74 0.008 260);
 }
 
 
@@ -1535,6 +1610,106 @@
   --docs-toc-rail-active: var(--fg-primary);
   --docs-toc-fg: var(--fg-secondary);
   --docs-toc-fg-active: var(--fg-primary);
+}
+
+/* =============================================================================
+   Tier 3 — the application shell.
+
+   The Company OS is the fourth surface of the same product, so its chrome gets
+   component-scoped tokens here rather than a palette of its own in apps/app.
+   §4: one owner.
+
+   THE GEOMETRY IS ALREADY IN TIER 2, and that is the whole reason this block is
+   thin. The reference shell (app-zenovay) is three surfaces: a RECESSED ground
+   the sidebar sits on, and a LIFTED card the content lives in, floating in a
+   small gutter. Tier 2 already commits to exactly that inversion — ground is
+   --bg-canvas, a floating surface is --bg-raised — and the two SWAP ramp steps
+   between themes so the lift stays a lift once the ramp runs the other way.
+
+   So nothing here declares a colour. Aliasing means the app's shell inherits
+   the theme flip for free, cannot drift from the docs card or from the app's
+   own panels, and stays inside the contrast proof: tokens.test.ts asserts
+   primary ink at 7:1 across canvases 1-5 in BOTH themes, and every surface
+   named below is one of those steps. A hand-written --bg-sidebar would have
+   been a fourth surface outside that proof, unmeasured on the one surface a
+   person reads navigation labels off.
+
+   WHAT IS DELIBERATELY ABSENT. The reference carries a third ink tier
+   (--fg-subtle) beneath its muted one. It is not ported. Orvay asserts a floor
+   for primary (7:1) and secondary (4.5:1) and nothing below, so a third tier is
+   either ink under 4.5:1, which §7a forbids, or a second name for
+   --fg-secondary. Every --fg-subtle usage in the reference maps to
+   --fg-secondary here.
+   ============================================================================= */
+
+/* Typed so the rail's width INTERPOLATES. See --app-rail-shown below: an
+   unregistered custom property is an opaque string, so the well's padding would
+   snap while the rail glides. `inherits` is true because the well is not a
+   descendant of the rail and both read the same value off the root. */
+@property --app-rail-shown {
+  syntax: '<length>';
+  initial-value: 16rem;
+  inherits: true;
+}
+
+:root {
+  /* The three fixed measures the shell is laid out against. Named because
+     several rules have to agree about them: the well clears the rail, the card
+     subtracts the gutter twice, and the card's own header row is subtracted
+     again by the scrollport inside it. */
+  --app-rail-w: 16rem;
+  --app-gutter: var(--o-space-3);
+  --app-bar-h: 3rem;
+
+  /* REGISTERED, and this is load-bearing rather than decoration.
+
+     The rail collapses by translating off-canvas while the well's inline
+     padding shrinks to match. Those two have to move together or the content
+     jumps out from under the rail and back. An unregistered custom property is
+     an opaque string to the interpolator, so `padding-inline-start` SNAPS while
+     the transform glides, which is a visible flicker on every collapse. Typing
+     it as a <length> is what makes the padding animate at all. */
+  --app-rail-shown: var(--app-rail-w);
+
+  /* The rail has NO fill: it is chrome sitting directly on the canvas, so the
+     card is the only lifted surface in the shell. Its states are therefore
+     washes rather than surfaces, or an active row would read as a second card
+     floating on the first. Same construction and same reason as --docs-rail-*.
+
+     Alpha washes rather than ramp steps, because the rail sits on --bg-canvas
+     in light and on the inverted step in dark; a fixed step that lifts on one
+     would sink on the other. */
+  --app-rail-fg: var(--fg-secondary);
+  --app-rail-fg-active: var(--fg-primary);
+  --app-rail-hover-bg: var(--o-neutral-a3);
+  --app-rail-active-bg: var(--o-neutral-a4);
+  --app-rail-group-fg: var(--fg-secondary);
+
+  /* The redundant carrier on the active row. §5 and WCAG 1.4.1 both refuse
+     colour as the sole signal, and the wash above is discarded outright under
+     forced-colors, which is precisely the mode where a reader most needs to
+     know where they are. The rail survives both. */
+  --app-rail-marker: var(--fg-primary);
+  --app-rail-marker-w: 2px;
+
+  /* The card. Same three values as the docs card and deliberately not shared
+     with it: the two surfaces are allowed to diverge later, and one alias
+     pretending they are one thing is how a change to the docs silently
+     restyles the product.
+
+     THE RADIUS IS 20px AND THE REFERENCE'S IS 16px, which is the one measured
+     value in this file that is not carried across, so it is worth saying why
+     rather than leaving it as a rounding error. Orvay's radius scale has no
+     16: it offers 12 and 20, deliberately, because §9a's two-shape doctrine
+     treats an in-between radius as the thing that makes a set of surfaces look
+     assembled rather than designed. Both neighbours were available and 20 wins
+     for a reason outside this app: the documentation card shipped on
+     --o-radius-lg on 2026-08-20 and is the same in-card idea on the same
+     product. A customer moving between docs.orvayos.com and the product should
+     not see the corner change. */
+  --app-card-bg: var(--bg-raised);
+  --app-card-line: var(--line-rule);
+  --app-card-radius: var(--o-radius-lg);
 }
 
 /*
@@ -1857,6 +2032,49 @@ ul.updates .when { font: var(--o-text-mono-13); }
 .crumbs a:hover { color: var(--fg-primary); text-decoration: underline; }
 .crumb-sep { color: var(--line-strong); }
 
+/* ------------------------------------------------------- the live notice ---- */
+
+/* `hidden` LOSES TO A CLASS, AND THAT IS NOT A DETAIL.
+
+   The attribute works through the user agent stylesheet's `[hidden] { display:
+   none }`, which is one specificity point. `.o-notice` sets `display: grid`,
+   which is ten, so the borrowed component ignored `hidden` completely and the
+   notice rendered on every load as an empty tinted box with a warning glyph and
+   no sentence in it.
+
+   It shipped nowhere, because the browser test caught it on its first run. Worth
+   the comment anyway: nothing about the markup looks wrong, `pnpm verify`
+   without an e2e would have been fully green, and the failure is on the one
+   surface whose entire job is not to alarm people incorrectly. §12a. */
+#live-notice[hidden] {
+  display: none;
+}
+
+/* SPACING ONLY, AND THAT IS THE DECISION RATHER THAN THE LEFTOVER.
+
+   This briefly gave the notice `--bg-raised` and a card border, because
+   `.o-notice` tints itself with amber at 12% alpha and that reads on a card
+   while it nearly vanishes on this page's canvas.
+
+   It was wrong twice. An id selector outranks `.o-notice[data-tone='warning']`,
+   so a background here does not sit behind the component's tint, it replaces it,
+   and the notice rendered plain white with no tone at all. Reaching around that
+   needs a copy of a token §9b gives to one owner.
+
+   Understated is also the better answer on its own terms. The glyph and the
+   screen-reader word are the carriers §7a rule 2 requires, both present and both
+   measured, so the tint was never permitted to be the only one. §9a says the
+   instinct to add a border and a fill is the instinct to resist. */
+#live-notice {
+  margin-bottom: var(--o-space-5);
+}
+
+/* The reader's own clock, filled in by `live.ts`. Empty and therefore invisible
+   when no script runs, which is the no-JavaScript page exactly as it was. */
+.age:empty {
+  display: none;
+}
+
 </style>
 </head>
 <body>
@@ -1880,7 +2098,8 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
   <section class="notes">
     <h2>How a component is checked</h2>
-    <p>A request runs from outside our own network, on a machine we do not own, roughly every 15 minutes. It asks for a real page and checks that the answer contains something only that page carries, because a 200 proves something answered and not that the product did.</p>
+    <p>A request runs from outside our own network, on a machine we do not own. It asks for a real page and checks that the answer contains something only that page carries, because a 200 proves something answered and not that the product did.</p>
+    <p>We do not publish how often that happens, because we cannot promise it. The checks are scheduled, the schedule is queued by somebody else, and it is sometimes late. Every row carries the time it was actually last measured, and the page tells you how long ago that was, so you can judge it rather than take our word for the interval.</p>
     <p>Each bar shows the last 90 days, one cell per day, coloured by the <strong>worst</strong> state we measured that day. A day with one hour of trouble and twenty-three of health is shown as trouble. Days before we started recording are blank rather than green.</p>
 
     <h2>What the states mean</h2>
@@ -1904,7 +2123,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
 
   <footer>
-    <p>Each bar shows the last 90 days, one cell per day, coloured by the worst state we measured that day. Hover a cell to see the date and what it was. Checks run from outside our own network roughly every 15 minutes.</p>
+    <p>Each bar shows the last 90 days, one cell per day, coloured by the worst state we measured that day. Hover a cell to see the date and what it was. Checks run from outside our own network, and each row states when it was last measured.</p>
     <nav aria-label="Orvay">
       <a href="https://orvayos.com">Orvay</a>
       <a href="https://app.orvayos.com">Sign in</a>
@@ -1916,5 +2135,6 @@ ul.updates .when { font: var(--o-text-mono-13); }
   </footer>
 
 </main>
+
 </body>
 </html>

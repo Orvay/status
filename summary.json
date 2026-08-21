@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787342338451,
+  "generatedAt": 1787343600185,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787342338451,
+      "observedAt": 1787343600185,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 490.28646100000003
+        "latencyMs": 608.740132
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787342338451,
+      "observedAt": 1787343600185,
       "observation": {
         "kind": "ok",
         "level": "partial-outage",
-        "latencyMs": 1781.44274
+        "latencyMs": 1328.926731
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787342338451,
+      "observedAt": 1787343600185,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 902.3299440000001
+        "latencyMs": 863.6950240000001
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787342338451,
+      "observedAt": 1787343600185,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 193.040064
+        "latencyMs": 121.73218599999998
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787342338451,
+      "observedAt": 1787343600185,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 220.646248
+        "latencyMs": 191.40250099999997
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787342338451,
+      "observedAt": 1787343600185,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 512.265121
+        "latencyMs": 653.554087
       }
     }
   },
@@ -78,5 +78,5 @@
     "email-notifications": "not-measured"
   },
   "slowTargets": [],
-  "sourceCommit": "83f2bd5"
+  "sourceCommit": "49c76a4"
 }
