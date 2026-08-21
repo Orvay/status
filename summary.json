@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787339963478,
+  "generatedAt": 1787341501801,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787339963478,
+      "observedAt": 1787341501801,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 808.1982390000001
+        "latencyMs": 664.310008
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787339963478,
+      "observedAt": 1787341501801,
       "observation": {
         "kind": "ok",
         "level": "partial-outage",
-        "latencyMs": 1794.941213
+        "latencyMs": 1925.846006
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787339963478,
+      "observedAt": 1787341501801,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1552.769223
+        "latencyMs": 1061.268779
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787339963478,
+      "observedAt": 1787341501801,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 307.93594499999995
+        "latencyMs": 281.09373800000003
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787339963478,
+      "observedAt": 1787341501801,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 344.383128
+        "latencyMs": 283.013452
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787339963478,
+      "observedAt": 1787341501801,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 736.923463
+        "latencyMs": 576.3610920000001
       }
     }
   },
