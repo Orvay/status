@@ -499,8 +499,25 @@ var TARGETS = [
     //
     // What it still cannot prove is what a signed-in customer sees, and the
     // row's own summary says so rather than leaving it implied.
-    bodyMarker: `url=${LOGIN_PATH}`,
-    expectStatus: 200,
+    //
+    // THE MARKER MOVED FROM THE BODY TO THE `Location` HEADER ON 2026-08-21,
+    // after this row published a false partial outage for hours.
+    //
+    // It asserted a 200 carrying `url=/login`, because `apps/app` served its
+    // guard redirects as a one second `<meta http-equiv="refresh">` inside a
+    // Suspense shell. Removing that shell made the app answer a real `307` with
+    // a `Location`, which is better in every way and is a WCAG 2.2.1 fix. This
+    // row read the improvement as an outage.
+    //
+    // Following the redirect is NOT the fix and was considered: the login page
+    // it lands on does not contain the marker either, and asserting something on
+    // that page would make this row a copy of the sign-in row while silently
+    // giving up on the property that matters, which is that `/` refuses a
+    // signed-out visitor. So the probe stops at the redirect and reads where it
+    // points.
+    redirect: "manual",
+    location: LOGIN_PATH,
+    expectStatus: 307,
     thresholds: APP,
     checkCertificate: true
   },
@@ -582,7 +599,10 @@ var attempt = async (target, fetchImpl, clock, probeSecret) => {
       // from a cache we warmed. `no-store` also stops a runner-side cache
       // reporting a page that has since stopped being served.
       cache: "no-store",
-      redirect: "follow",
+      // `manual` for a target whose whole assertion IS the redirect. Following
+      // it would discard the status and the `Location`, which for those targets
+      // is the only evidence there is.
+      redirect: target.redirect ?? "follow",
       headers: {
         // Identifying the prober is a courtesy that also makes our own traffic
         // filterable out of analytics, so the page cannot inflate its own
@@ -610,7 +630,15 @@ var gradeResponse = (target, responded, previousWasSlow = false) => {
   if (responded.status !== target.expectStatus) {
     return { level: "partial-outage", note: `status ${responded.status}` };
   }
-  if (!responded.body.includes(target.bodyMarker)) {
+  if (target.redirect === "manual") {
+    const location = responded.headers["location"] ?? "";
+    if (!location.includes(target.location)) {
+      return {
+        level: "partial-outage",
+        note: location === "" ? "redirected nowhere" : "redirected somewhere unexpected"
+      };
+    }
+  } else if (!responded.body.includes(target.bodyMarker)) {
     return { level: "partial-outage", note: "page did not contain its expected content" };
   }
   for (const assertion of target.headers ?? []) {
@@ -10293,6 +10321,12 @@ var append = (history, entries) => ({ schema: 1, entries: [...entries, ...histor
 // src/corrections.ts
 var CORRECTIONS = [
   {
+    at: 1787338403574,
+    component: "control-plane",
+    note: "Our own check was wrong, not the app. The app improved: it started refusing signed-out visitors with a proper redirect instead of a page that bounced them a second later. Our check was still looking for the old behaviour and called the improvement a partial outage. Fixed in the prober the same day.",
+    day: { recorded: "partial-outage", actual: "operational" }
+  },
+  {
     at: 1787087533380,
     component: "website-studio",
     note: "Our own check was wrong, not the studio. It expected the page to refuse an unauthenticated visitor and the page correctly served one, so the check called a working page a partial outage. Fixed in the prober the same day.",
@@ -10386,7 +10420,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "49c76a4" : "unknown";
+var sourceCommit = true ? "1bfb783" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
