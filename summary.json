@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787269652573,
+  "generatedAt": 1787273123613,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787269652573,
+      "observedAt": 1787273123613,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 792.8339729999999
+        "latencyMs": 621.3240989999999
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787269652573,
+      "observedAt": 1787273123613,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 927.7431590000001
+        "latencyMs": 1536.339571
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787269652573,
+      "observedAt": 1787273123613,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1026.306782
+        "latencyMs": 820.5401479999999
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787269652573,
+      "observedAt": 1787273123613,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 313.59904900000004
+        "latencyMs": 207.43630699999997
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787269652573,
+      "observedAt": 1787273123613,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 323.057972
+        "latencyMs": 215.544225
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787269652573,
+      "observedAt": 1787273123613,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 523.26776
+        "latencyMs": 482.62998000000005
       }
     }
   },
