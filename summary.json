@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787341501801,
+  "generatedAt": 1787342338451,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787341501801,
+      "observedAt": 1787342338451,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 664.310008
+        "latencyMs": 490.28646100000003
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787341501801,
+      "observedAt": 1787342338451,
       "observation": {
         "kind": "ok",
         "level": "partial-outage",
-        "latencyMs": 1925.846006
+        "latencyMs": 1781.44274
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787341501801,
+      "observedAt": 1787342338451,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1061.268779
+        "latencyMs": 902.3299440000001
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787341501801,
+      "observedAt": 1787342338451,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 281.09373800000003
+        "latencyMs": 193.040064
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787341501801,
+      "observedAt": 1787342338451,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 283.013452
+        "latencyMs": 220.646248
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787341501801,
+      "observedAt": 1787342338451,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 576.3610920000001
+        "latencyMs": 512.265121
       }
     }
   },
