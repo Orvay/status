@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787304529148,
+  "generatedAt": 1787305004687,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787304529148,
+      "observedAt": 1787305004687,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 534.282714
+        "latencyMs": 512.646921
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787304529148,
+      "observedAt": 1787305004687,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 740.738631
+        "latencyMs": 801.8432
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787304529148,
+      "observedAt": 1787305004687,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 885.0032649999999
+        "latencyMs": 791.6494849999999
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787304529148,
+      "observedAt": 1787305004687,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 167.48023
+        "latencyMs": 258.63588400000003
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787304529148,
+      "observedAt": 1787305004687,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 210.85157399999997
+        "latencyMs": 256.17904799999997
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787304529148,
+      "observedAt": 1787305004687,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 636.935599
+        "latencyMs": 560.85836
       }
     }
   },
@@ -78,5 +78,5 @@
     "email-notifications": "not-measured"
   },
   "slowTargets": [],
-  "sourceCommit": "1740083"
+  "sourceCommit": "83f2bd5"
 }

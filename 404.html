@@ -2034,6 +2034,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
   min-block-size: 62svh;
 }
 
+
 .o-nf__title {
   margin: 0;
   font: var(--o-text-display-32);
@@ -2225,6 +2226,32 @@ ul.updates .when { font: var(--o-text-mono-13); }
     margin-block: var(--o-space-4) var(--o-space-5);
     font-size: min(22cqi, 13rem);
   }
+}
+
+/* -------------------------------------------------------- the whole page ---- */
+
+/* The lockup as the entire page, rather than a block inside one.
+
+   THE TWO CASES ARE GENUINELY DIFFERENT, which is why this is a modifier and not
+   a second component. An address that matched no route has no shell around it,
+   because nothing matched for a shell to belong to, so the lockup IS the page
+   and is centred in the viewport. A `notFound()` raised from INSIDE a route
+   still has its shell, and a reader who was mid-task wants the navigation they
+   were using rather than a bare screen.
+
+   `100svh` and not `100vh`: on a phone `100vh` counts browser chrome that is not
+   there, so a centred block sits low and the buttons fall under it.
+
+   IT IS DECLARED LAST, AND THAT IS LOAD-BEARING RATHER THAN TIDINESS. The
+   breakpoint blocks above restate `.o-nf`'s own `min-block-size`, at the same
+   (0,1,0) specificity, and a media query adds none of its own. Declared beside
+   `.o-nf` at the top of this file, the modifier LOST to them: measured at
+   390x844 it produced a 591px block, which is 70svh, the phone rule's value.
+   The page looked almost right, which is why it needed measuring rather than
+   looking. Anything added below this line has to keep that in mind. */
+.o-nf--standalone {
+  min-block-size: 100svh;
+  padding-inline: var(--o-space-5);
 }
 
 </style>
