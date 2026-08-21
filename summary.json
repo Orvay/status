@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787338403574,
+  "generatedAt": 1787339963478,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787338403574,
+      "observedAt": 1787339963478,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 670.801297
+        "latencyMs": 808.1982390000001
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787338403574,
+      "observedAt": 1787339963478,
       "observation": {
         "kind": "ok",
         "level": "partial-outage",
-        "latencyMs": 1542.9225410000001
+        "latencyMs": 1794.941213
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787338403574,
+      "observedAt": 1787339963478,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1360.277268
+        "latencyMs": 1552.769223
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787338403574,
+      "observedAt": 1787339963478,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 211.93655700000002
+        "latencyMs": 307.93594499999995
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787338403574,
+      "observedAt": 1787339963478,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 260.502764
+        "latencyMs": 344.383128
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787338403574,
+      "observedAt": 1787339963478,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 761.149894
+        "latencyMs": 736.923463
       }
     }
   },
