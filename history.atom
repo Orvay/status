@@ -5,13 +5,20 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-08-21T18:53:23.574Z</updated>
+  <updated>2026-08-21T20:51:13.163Z</updated>
+  <entry>
+    <id>tag:status,2026-08-21:control-plane:1787345473163</id>
+    <title>Company control plane is now operational</title>
+    <updated>2026-08-21T20:51:13.163Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from a partial outage to operational at 2026-08-21T20:51:13.163Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-08-21:control-plane:1787338403574</id>
-    <title>Company control plane is now a partial outage</title>
+    <title>Company control plane: a fault in our own checking, not in the service</title>
     <updated>2026-08-21T18:53:23.574Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Company control plane changed from operational to a partial outage at 2026-08-21T18:53:23.574Z.</content>
+    <content type="text">Our own check was wrong, not the app. The app improved: it started refusing signed-out visitors with a proper redirect instead of a page that bounced them a second later. Our check was still looking for the old behaviour and called the improvement a partial outage. Fixed in the prober the same day. We recorded Company control plane changing from operational to a partial outage at 2026-08-21T18:53:23.574Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
   </entry>
   <entry>
     <id>tag:status,2026-08-20:marketing-site:1787241953270</id>

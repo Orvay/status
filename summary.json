@@ -1,71 +1,71 @@
 {
   "schema": 1,
-  "generatedAt": 1787345344491,
+  "generatedAt": 1787345473163,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787345344491,
+      "observedAt": 1787345473163,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 653.286477
+        "latencyMs": 516.4622919999999
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787345344491,
+      "observedAt": 1787345473163,
       "observation": {
         "kind": "ok",
-        "level": "partial-outage",
-        "latencyMs": 1048.028529
+        "level": "operational",
+        "latencyMs": 1160.938717
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787345344491,
+      "observedAt": 1787345473163,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 973.4125479999999
+        "latencyMs": 1158.755148
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787345344491,
+      "observedAt": 1787345473163,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 154.78670599999998
+        "latencyMs": 114.11034000000004
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787345344491,
+      "observedAt": 1787345473163,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 264.88388499999996
+        "latencyMs": 198.40243
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787345344491,
+      "observedAt": 1787345473163,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 620.849247
+        "latencyMs": 452.61617
       }
     }
   },
   "states": {
     "sign-in": "operational",
-    "control-plane": "partial-outage",
+    "control-plane": "operational",
     "website-studio": "operational",
     "tenant-sites": "operational",
     "marketing-site": "operational",
@@ -78,5 +78,5 @@
     "email-notifications": "not-measured"
   },
   "slowTargets": [],
-  "sourceCommit": "49c76a4"
+  "sourceCommit": "1bfb783"
 }

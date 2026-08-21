@@ -2,11 +2,19 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1787345473163,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "partial-outage",
+      "to": "operational"
+    },
+    {
       "at": 1787338403574,
       "component": "control-plane",
       "label": "Company control plane",
       "from": "operational",
-      "to": "partial-outage"
+      "to": "partial-outage",
+      "correction": "Our own check was wrong, not the app. The app improved: it started refusing signed-out visitors with a proper redirect instead of a page that bounced them a second later. Our check was still looking for the old behaviour and called the improvement a partial outage. Fixed in the prober the same day."
     },
     {
       "at": 1787241953270,
