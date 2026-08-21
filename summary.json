@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787305004687,
+  "generatedAt": 1787305016683,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787305004687,
+      "observedAt": 1787305016683,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 512.646921
+        "latencyMs": 447.297871
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787305004687,
+      "observedAt": 1787305016683,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 801.8432
+        "latencyMs": 855.2896410000001
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787305004687,
+      "observedAt": 1787305016683,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 791.6494849999999
+        "latencyMs": 1225.5355160000001
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787305004687,
+      "observedAt": 1787305016683,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 258.63588400000003
+        "latencyMs": 217.087276
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787305004687,
+      "observedAt": 1787305016683,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 256.17904799999997
+        "latencyMs": 221.15797500000002
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787305004687,
+      "observedAt": 1787305016683,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 560.85836
+        "latencyMs": 533.229867
       }
     }
   },
