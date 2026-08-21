@@ -1,65 +1,65 @@
 {
   "schema": 1,
-  "generatedAt": 1787299510618,
+  "generatedAt": 1787302511531,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787299510618,
+      "observedAt": 1787302511531,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 384.544292
+        "latencyMs": 384.89934500000004
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787299510618,
+      "observedAt": 1787302511531,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1089.062022
+        "latencyMs": 1150.068318
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787299510618,
+      "observedAt": 1787302511531,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 1089.6991620000001
+        "latencyMs": 1089.4821109999998
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787299510618,
+      "observedAt": 1787302511531,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 226.336392
+        "latencyMs": 161.43753999999998
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787299510618,
+      "observedAt": 1787302511531,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 285.89726
+        "latencyMs": 186.80056400000004
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1787299510618,
+      "observedAt": 1787302511531,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 535.6740020000001
+        "latencyMs": 543.6476260000001
       }
     }
   },
@@ -78,5 +78,5 @@
     "email-notifications": "not-measured"
   },
   "slowTargets": [],
-  "sourceCommit": "dcaceac"
+  "sourceCommit": "1740083"
 }
