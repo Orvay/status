@@ -362,10 +362,17 @@ var COMPONENTS = [
           load-bearing: an invitation that never arrives looks, from the inviter's
           side, exactly like one the recipient has not opened.
     
-          What the probe answers is narrow and the sentence says so: whether this
-          deployment is still WIRED to send. That is the failure §13b names, where a
-          deploy drops a binding or a `wrangler deploy` without `--keep-vars` wipes
-          a var, and nothing errors anywhere.
+          What the probe answers is narrow: whether this deployment is still WIRED
+          to send. That is the failure §13b names, where a deploy drops a binding or
+          a `wrangler deploy` without `--keep-vars` wipes a var, and nothing errors
+          anywhere.
+    
+          THE SUMMARY IS TWO CLAUSES AND WAS FOUR. At 350 characters it was by far
+          the longest row on the page against a median of about 55, and a status row
+          is skimmed rather than read. The mechanism moved up here, where a developer
+          is already reading; what stayed is the only half a customer needs, which is
+          that this is not a delivery test. Cutting that clause would have made the
+          row shorter and dishonest.
     
           It deliberately does NOT claim delivery. Proving a message arrived needs a
           real send, and a status probe that mails somebody every fifteen minutes is
@@ -374,7 +381,7 @@ var COMPONENTS = [
         */
     group: "account",
     label: "Email notifications",
-    summary: "Messages we send you about your own company. We check that this deployment can still send: whether the mail binding and the sending address are in place. That catches a deploy quietly removing the ability to send, which is the failure you would not otherwise hear about. It is not a delivery test, and it cannot tell you a message reached your inbox.",
+    summary: "Messages we send you about your own company. We check that this deployment can still send, not that a message arrived.",
     budget: { staleAfterMs: 6 * HOUR }
   }
 ];
@@ -1290,8 +1297,8 @@ var PRODUCT_SOURCE = {
   // 3b — The connect path's domain lookup. These used to be hardcoded English
   // inside the client component, which is how a German customer got a German
   // heading above an English form. §5b.
-  "onboarding.company.domain.label": "Your website",
-  "onboarding.company.domain.hint": "Optional. Just the hostname, like acme.com. {brand} reads the homepage once and suggests a name from it.",
+  "onboarding.company.domain.label": "Company domain",
+  "onboarding.company.domain.hint": "Just the hostname, like acme.com. {brand} reads the site and drafts goals from what it finds there.",
   "onboarding.company.domain.submit": "Look it up",
   "onboarding.company.domain.pending": "Reading the site",
   "onboarding.company.domain.failed-title": "That site could not be read",
@@ -2184,16 +2191,31 @@ var PRODUCT_SOURCE = {
   // Short, because it sits beside the switched-off control rather than in the
   // notice above it.
   "studio.offline.reason": "The build service is not connected here.",
-  // The five ways a request stops before it becomes a decision.
+  // The seven ways a request stops before it becomes a decision.
   //
   // They are the other half of the pair `outcome.*` opened. A DECISION has three
   // exact sentences and has had them since the policy engine shipped; a request
-  // that never became a decision had none, so all five of these rendered as
+  // that never became a decision had none, so all of these rendered as
   // "the builder cannot reach the build service". That sentence is true of
-  // exactly one of them and is wrong about the other four, and it is wrong in
+  // exactly one of them and is wrong about the rest, and it is wrong in
   // the expensive direction: somebody whose address was malformed was handed a
   // fact about our infrastructure at the moment they were looking for a fact
   // about their own typing.
+  //
+  // THE LAST TWO ARE THE TWO CEILINGS, AND THEY ARE NOT THE SAME SENTENCE.
+  // A model call is refused before it is made by whichever of two limits is
+  // reached first: the customer's own plan, or the deployment cap that bounds
+  // what the business can be billed across every company at once. Both used to
+  // read as "the build service did not answer", which was false about a service
+  // that had answered in nine milliseconds and said which one it was.
+  //
+  //   - `allowance` is theirs. It is the one a customer can act on, so it says
+  //     what ran out and what changes it.
+  //   - `unavailable` is ours. It names no number and no limit, because a spend
+  //     ceiling published to a customer is a fact about our bill and about what
+  //     it costs to take this surface down. It says the thing that IS theirs to
+  //     know, which is that they were not charged and it was not their fault.
+  //     A translator must not helpfully add a cause here.
   //
   // EVERY ONE OF THEM SAYS WHAT DID NOT HAPPEN, and a translator must keep that
   // half exactly as blunt as the English. "Nothing has been spent", "nothing was
@@ -2206,6 +2228,8 @@ var PRODUCT_SOURCE = {
   "studio.refused.text": "Those words are not on the page, or they appear more than once. Nothing changed.",
   "studio.refused.records": "{brand} could not read your company\u2019s records, so nothing was decided and nothing ran.",
   "studio.refused.build-service": "The build service did not answer. Nothing was published and nothing was spent.",
+  "studio.refused.allowance": "The credits included in this plan are used up for this period, so nothing was built and nothing was spent. A larger plan is what makes more available.",
+  "studio.refused.unavailable": "The site builder is not taking new work at the moment, so nothing was built and nothing was spent. This is a limit on our side rather than on yours. Try again later.",
   // Roles, and the team screen that hands them out
   //
   // A role NAMES a capability bundle and gates nothing (CLAUDE.md §6b). The
@@ -4604,8 +4628,8 @@ var de_default = {
   "notfound.home": "Zur Startseite",
   "onboarding.company.created": "Dieses Unternehmen existiert bereits, es wurde also nichts ein zweites Mal erstellt. \xC4ndern Sie den Namen unten, falls er nicht stimmt, und fahren Sie dann fort.",
   "onboarding.company.error.could-not-rename": "Dieser Name konnte nicht gespeichert werden. Versuchen Sie es erneut.",
-  "onboarding.company.domain.label": "Ihre Website",
-  "onboarding.company.domain.hint": "Optional. Nur der Hostname, zum Beispiel acme.com. {brand} liest die Homepage einmal und schl\xE4gt daraus einen Namen vor.",
+  "onboarding.company.domain.label": "Unternehmens-Domain",
+  "onboarding.company.domain.hint": "Nur der Hostname, etwa acme.com. {brand} liest die Website und entwirft daraus Ziele.",
   "onboarding.company.domain.submit": "Abrufen",
   "onboarding.company.domain.pending": "Website wird gelesen",
   "onboarding.company.domain.failed-title": "Diese Website konnte nicht gelesen werden",
@@ -4765,6 +4789,8 @@ var de_default = {
   "studio.refused.text": "Diese W\xF6rter stehen nicht auf der Seite, oder sie kommen mehr als einmal vor. Es wurde nichts ge\xE4ndert.",
   "studio.refused.records": "{brand} konnte die Aufzeichnungen Ihres Unternehmens nicht lesen, deshalb wurde nichts entschieden und nichts ausgef\xFChrt.",
   "studio.refused.build-service": "Der Build-Dienst hat nicht geantwortet. Es wurde nichts ver\xF6ffentlicht und nichts verbraucht.",
+  "studio.refused.allowance": "Die in diesem Plan enthaltenen Credits sind f\xFCr diesen Zeitraum aufgebraucht, deshalb wurde nichts erstellt und nichts verbraucht. Ein gr\xF6\xDFerer Plan macht mehr davon verf\xFCgbar.",
+  "studio.refused.unavailable": "Der Baukasten nimmt im Moment keine neuen Auftr\xE4ge an, deshalb wurde nichts erstellt und nichts verbraucht. Das ist eine Grenze auf unserer Seite und nicht auf Ihrer. Versuchen Sie es sp\xE4ter erneut.",
   // ---------------------------------------------------------------------------
   // Rollen und der Team-Bildschirm
   //
@@ -5891,8 +5917,8 @@ var fr_default = {
   "notfound.home": "Accueil",
   "onboarding.company.created": "Cette entreprise existe d\xE9j\xE0, rien n'a donc \xE9t\xE9 cr\xE9\xE9 une seconde fois. Modifiez le nom ci-dessous s'il n'est pas correct, puis continuez.",
   "onboarding.company.error.could-not-rename": "Ce nom n'a pas pu \xEAtre enregistr\xE9. R\xE9essayez.",
-  "onboarding.company.domain.label": "Votre site web",
-  "onboarding.company.domain.hint": "Facultatif. Uniquement le nom d'h\xF4te, comme acme.com. {brand} lit la page d'accueil une fois et vous propose un nom \xE0 partir de celle-ci.",
+  "onboarding.company.domain.label": "Domaine de l'entreprise",
+  "onboarding.company.domain.hint": "Uniquement le nom d'h\xF4te, comme acme.com. {brand} lit le site et en tire des objectifs.",
   "onboarding.company.domain.submit": "Rechercher",
   "onboarding.company.domain.pending": "Lecture du site",
   "onboarding.company.domain.failed-title": "Ce site n'a pas pu \xEAtre lu",
@@ -6053,6 +6079,8 @@ var fr_default = {
   "studio.refused.text": "Ces mots ne figurent pas sur la page, ou ils y figurent plusieurs fois. Rien n'a \xE9t\xE9 modifi\xE9.",
   "studio.refused.records": "{brand} n'a pas pu lire les registres de votre entreprise, donc rien n'a \xE9t\xE9 d\xE9cid\xE9 et rien n'a \xE9t\xE9 ex\xE9cut\xE9.",
   "studio.refused.build-service": "Le service de construction n'a pas r\xE9pondu. Rien n'a \xE9t\xE9 publi\xE9 et rien n'a \xE9t\xE9 consomm\xE9.",
+  "studio.refused.allowance": "Les cr\xE9dits inclus dans ce plan sont \xE9puis\xE9s pour cette p\xE9riode, donc rien n'a \xE9t\xE9 cr\xE9\xE9 et rien n'a \xE9t\xE9 consomm\xE9. Un plan plus grand est ce qui en rend davantage disponibles.",
+  "studio.refused.unavailable": "Le g\xE9n\xE9rateur n'accepte pas de nouveau travail pour le moment, donc rien n'a \xE9t\xE9 cr\xE9\xE9 et rien n'a \xE9t\xE9 consomm\xE9. C'est une limite de notre c\xF4t\xE9 et non du v\xF4tre. R\xE9essayez plus tard.",
   // ---------------------------------------------------------------------------
   // Rôles, et l'écran d'équipe qui les attribue
   //
@@ -7160,8 +7188,8 @@ var it_default = {
   "notfound.home": "Pagina iniziale",
   "onboarding.company.created": "Questa azienda esiste gi\xE0, quindi non \xE8 stato creato nulla una seconda volta. Modifica il nome qui sotto se non \xE8 corretto, poi prosegui.",
   "onboarding.company.error.could-not-rename": "Non \xE8 stato possibile salvare questo nome. Riprova.",
-  "onboarding.company.domain.label": "Il Suo sito web",
-  "onboarding.company.domain.hint": "Facoltativo. Solo il nome host, come acme.com. {brand} legge la homepage una volta e da l\xEC suggerisce un nome.",
+  "onboarding.company.domain.label": "Dominio aziendale",
+  "onboarding.company.domain.hint": "Solo il nome host, come acme.com. {brand} legge il sito e ne ricava degli obiettivi.",
   "onboarding.company.domain.submit": "Lo cerchi",
   "onboarding.company.domain.pending": "Lettura del sito in corso",
   "onboarding.company.domain.failed-title": "Non \xE8 stato possibile leggere il sito",
@@ -7321,6 +7349,8 @@ var it_default = {
   "studio.refused.text": "Quelle parole non sono sulla pagina, oppure compaiono pi\xF9 di una volta. Non \xE8 cambiato nulla.",
   "studio.refused.records": "{brand} non \xE8 riuscito a leggere i registri della Sua azienda, quindi non \xE8 stato deciso nulla e non \xE8 stato eseguito nulla.",
   "studio.refused.build-service": "Il servizio di costruzione non ha risposto. Non \xE8 stato pubblicato nulla e non \xE8 stato consumato nulla.",
+  "studio.refused.allowance": "I crediti inclusi in questo piano sono esauriti per questo periodo, quindi non \xE8 stato creato nulla e non \xE8 stato consumato nulla. Un piano pi\xF9 grande \xE8 ci\xF2 che ne rende disponibili altri.",
+  "studio.refused.unavailable": "Il generatore non accetta nuovo lavoro in questo momento, quindi non \xE8 stato creato nulla e non \xE8 stato consumato nulla. \xC8 un limite dalla nostra parte e non dalla Sua. Riprovi pi\xF9 tardi.",
   // ---------------------------------------------------------------------------
   // Ruoli, e la schermata del team che li assegna
   //
@@ -8428,8 +8458,8 @@ var es_default = {
   "notfound.home": "Ir al inicio",
   "onboarding.company.created": "Esta empresa ya existe, as\xED que no se cre\xF3 nada por segunda vez. Cambia el nombre de abajo si no es correcto y contin\xFAa.",
   "onboarding.company.error.could-not-rename": "No se pudo guardar ese nombre. Int\xE9ntalo de nuevo.",
-  "onboarding.company.domain.label": "Su sitio web",
-  "onboarding.company.domain.hint": "Opcional. Solo el nombre de host, como acme.com. {brand} lee la p\xE1gina de inicio una sola vez y sugiere un nombre a partir de ella.",
+  "onboarding.company.domain.label": "Dominio de la empresa",
+  "onboarding.company.domain.hint": "Solo el nombre de host, como acme.com. {brand} lee el sitio y redacta objetivos a partir de lo que encuentra.",
   "onboarding.company.domain.submit": "Buscar",
   "onboarding.company.domain.pending": "Leyendo el sitio",
   "onboarding.company.domain.failed-title": "No se ha podido leer ese sitio",
@@ -8590,6 +8620,8 @@ var es_default = {
   "studio.refused.text": "Esas palabras no est\xE1n en la p\xE1gina, o aparecen m\xE1s de una vez. No ha cambiado nada.",
   "studio.refused.records": "{brand} no ha podido leer los registros de su empresa, as\xED que no se ha decidido nada y no se ha ejecutado nada.",
   "studio.refused.build-service": "El servicio de construcci\xF3n no ha respondido. No se ha publicado nada y no se ha gastado nada.",
+  "studio.refused.allowance": "Los cr\xE9ditos incluidos en este plan se han agotado para este periodo, as\xED que no se ha creado nada y no se ha gastado nada. Un plan mayor es lo que pone m\xE1s a su disposici\xF3n.",
+  "studio.refused.unavailable": "El generador no acepta trabajo nuevo en este momento, as\xED que no se ha creado nada y no se ha gastado nada. Es un l\xEDmite por nuestra parte y no por la suya. Vuelva a intentarlo m\xE1s tarde.",
   // ---------------------------------------------------------------------------
   // Roles, y la pantalla de equipo que los reparte
   //
@@ -9726,8 +9758,8 @@ var pt_default = {
   "notfound.home": "Ir para o in\xEDcio",
   "onboarding.company.created": "Esta empresa j\xE1 existe, portanto nada foi criado uma segunda vez. Altere o nome abaixo se n\xE3o estiver correto e continue.",
   "onboarding.company.error.could-not-rename": "N\xE3o foi poss\xEDvel guardar esse nome. Tente novamente.",
-  "onboarding.company.domain.label": "O seu site",
-  "onboarding.company.domain.hint": "Opcional. Apenas o nome do anfitri\xE3o, como acme.com. O {brand} l\xEA a p\xE1gina inicial uma vez e sugere um nome a partir dela.",
+  "onboarding.company.domain.label": "Dom\xEDnio da empresa",
+  "onboarding.company.domain.hint": "Apenas o nome do anfitri\xE3o, como acme.com. {brand} l\xEA o site e redige objetivos a partir do que encontra.",
   "onboarding.company.domain.submit": "Consultar",
   "onboarding.company.domain.pending": "A ler o site",
   "onboarding.company.domain.failed-title": "N\xE3o foi poss\xEDvel ler esse site",
@@ -9887,6 +9919,8 @@ var pt_default = {
   "studio.refused.text": "Essas palavras n\xE3o est\xE3o na p\xE1gina, ou aparecem mais do que uma vez. N\xE3o mudou nada.",
   "studio.refused.records": "{brand} n\xE3o conseguiu ler os registos da sua empresa, por isso n\xE3o foi decidido nada e n\xE3o foi executado nada.",
   "studio.refused.build-service": "O servi\xE7o de constru\xE7\xE3o n\xE3o respondeu. N\xE3o foi publicado nada e n\xE3o foi gasto nada.",
+  "studio.refused.allowance": "Os cr\xE9ditos inclu\xEDdos neste plano est\xE3o esgotados para este per\xEDodo, por isso n\xE3o foi criado nada e n\xE3o foi gasto nada. Um plano maior \xE9 o que disponibiliza mais.",
+  "studio.refused.unavailable": "O gerador n\xE3o est\xE1 a aceitar trabalho novo neste momento, por isso n\xE3o foi criado nada e n\xE3o foi gasto nada. Este \xE9 um limite do nosso lado e n\xE3o do seu. Tente novamente mais tarde.",
   // ---------------------------------------------------------------------------
   // Funções, e o ecrã de equipa que as atribui
   //
@@ -11239,7 +11273,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "f8cd8e9" : "unknown";
+var sourceCommit = true ? "ed72080" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
