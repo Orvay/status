@@ -353,11 +353,29 @@ var COMPONENTS = [
   },
   {
     id: "email-notifications",
+    /*
+          THE SUMMARY SAYS WHAT IS CHECKED, NOT WHAT THE ROW IS ABOUT, and the
+          difference is the whole of §13c's honesty rule.
+    
+          This row carried `notMeasuredWhy` from before anything in the product
+          could send at all. Orvay now emails invitations, so the row is
+          load-bearing: an invitation that never arrives looks, from the inviter's
+          side, exactly like one the recipient has not opened.
+    
+          What the probe answers is narrow and the sentence says so: whether this
+          deployment is still WIRED to send. That is the failure §13b names, where a
+          deploy drops a binding or a `wrangler deploy` without `--keep-vars` wipes
+          a var, and nothing errors anywhere.
+    
+          It deliberately does NOT claim delivery. Proving a message arrived needs a
+          real send, and a status probe that mails somebody every fifteen minutes is
+          a status probe that gets the sending domain blocked. Saying "email is
+          working" here would be the green tile `reading.ts` opens by refusing.
+        */
     group: "account",
     label: "Email notifications",
-    summary: "Messages we send you about your own company. Listed separately because a failure here is the one failure you would not otherwise hear about.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. The check is not built."
+    summary: "Messages we send you about your own company. We check that this deployment can still send: whether the mail binding and the sending address are in place. That catches a deploy quietly removing the ability to send, which is the failure you would not otherwise hear about. It is not a delivery test, and it cannot tell you a message reached your inbox.",
+    budget: { staleAfterMs: 6 * HOUR }
   }
 ];
 
@@ -651,6 +669,20 @@ var TARGETS = [
     ]
   }
 ];
+var HEALTH_TARGETS = [
+  {
+    component: "email-notifications",
+    url: `${HOSTS.app}/api/health/email`,
+    // The endpoint answers in words rather than only in a status code, which is
+    // §13c's rule that a 200 is never evidence the product answered. It reports
+    // whether this deployment is still WIRED to send; it sends nothing, because
+    // a probe that mails somebody every fifteen minutes gets the sending domain
+    // blocked.
+    bodyMarker: "email-sending-configured",
+    expectStatus: 200,
+    thresholds: APP
+  }
+];
 var SECONDARY_TARGETS = [
   {
     component: "documentation",
@@ -662,7 +694,7 @@ var SECONDARY_TARGETS = [
     checkCertificate: true
   }
 ];
-var ALL_TARGETS = [...TARGETS, ...SECONDARY_TARGETS];
+var ALL_TARGETS = [...TARGETS, ...SECONDARY_TARGETS, ...HEALTH_TARGETS];
 
 // src/probe.ts
 import { connect as tlsConnect } from "node:tls";
@@ -1160,9 +1192,6 @@ var PRODUCT_SOURCE = {
   // ---------------------------------------------------------------------------
   "account.language.heading": "Language",
   "account.language.body": "This is stored against your account rather than this browser, so it follows you to a new device. It changes what {brand} says to you and nothing about what it does.",
-  "onboarding.welcome.heading": "Set up your company",
-  "onboarding.welcome.body": "A few short questions, so {brand} knows what this company is and how much it may do on its own. You can change every answer later.",
-  "onboarding.welcome.start": "Start",
   "onboarding.language.heading": "Is this the right language?",
   "onboarding.language.body": "We guessed from your browser. Nothing is stored until you answer, and you can change it later in your account.",
   "onboarding.language.confirm": "Yes, continue",
@@ -1221,9 +1250,8 @@ var PRODUCT_SOURCE = {
   // 4 — Purpose. One sentence, and {brand} proposes against it immediately.
   "onboarding.drafted.heading": "{brand} read {host}",
   "onboarding.drafted.body": "These are drafts, not goals. Nothing has been proposed against them and nothing happens until you accept one. Untick anything that is wrong, and edit it later on the goals page.",
-  "onboarding.drafted.why": "Why {brand} suggested this",
   "onboarding.drafted.own": "Or write your own",
-  "onboarding.drafted.pages": "Read {count} pages of that site.",
+  "onboarding.company.notice.name-kept": "The company kept its existing name. Renaming is not permitted for this company, so setup carried on without the change.",
   "onboarding.purpose.heading": "What is this company trying to do?",
   "onboarding.purpose.body": "One sentence is enough. {brand} proposes against a stated goal and never invents one, so this is what everything it suggests will be measured against.",
   "onboarding.purpose.label": "The goal",
@@ -4108,9 +4136,6 @@ var de_default = {
   "docs.foot.rights": "Alle Rechte vorbehalten.",
   "account.language.heading": "Sprache",
   "account.language.body": "Dies wird bei Ihrem Konto gespeichert, nicht bei diesem Browser, sodass es Sie zu einem neuen Ger\xE4t begleitet. Es \xE4ndert, was {brand} zu Ihnen sagt, und nichts an dem, was es tut.",
-  "onboarding.welcome.heading": "Richten Sie Ihr Unternehmen ein",
-  "onboarding.welcome.body": "Ein paar kurze Fragen, damit {brand} wei\xDF, was dieses Unternehmen ist und wie viel es eigenst\xE4ndig tun darf. Sie k\xF6nnen jede Antwort sp\xE4ter \xE4ndern.",
-  "onboarding.welcome.start": "Starten",
   "onboarding.language.heading": "Ist das die richtige Sprache?",
   "onboarding.language.body": "Wir haben sie anhand Ihres Browsers gesch\xE4tzt. Es wird nichts gespeichert, bis Sie antworten, und Sie k\xF6nnen sie sp\xE4ter in Ihrem Konto \xE4ndern.",
   "onboarding.language.confirm": "Ja, weiter",
@@ -4132,9 +4157,8 @@ var de_default = {
   "onboarding.company.error.could-not-create": "Das Unternehmen konnte nicht erstellt werden. Es wurde nichts gespeichert, Sie k\xF6nnen es also erneut versuchen.",
   "onboarding.drafted.heading": "{brand} hat {host} gelesen",
   "onboarding.drafted.body": "Das sind Entw\xFCrfe, keine Ziele. Es wurde nichts dagegen vorgeschlagen, und es passiert nichts, bis Sie eines annehmen. Nehmen Sie den Haken weg, wo etwas nicht stimmt, und bearbeiten Sie es sp\xE4ter auf der Zielseite.",
-  "onboarding.drafted.why": "Warum {brand} das vorschl\xE4gt",
   "onboarding.drafted.own": "Oder schreiben Sie ein eigenes",
-  "onboarding.drafted.pages": "{count} Seiten dieser Website gelesen.",
+  "onboarding.company.notice.name-kept": "Das Unternehmen hat seinen bisherigen Namen behalten. Umbenennen ist f\xFCr dieses Unternehmen nicht erlaubt, daher wurde die Einrichtung ohne die \xC4nderung fortgesetzt.",
   "onboarding.purpose.heading": "Was versucht dieses Unternehmen zu erreichen?",
   "onboarding.purpose.body": "Ein Satz gen\xFCgt. {brand} macht Vorschl\xE4ge nur im Hinblick auf ein erkl\xE4rtes Ziel und erfindet nie eines. An diesem Ziel wird alles gemessen, was vorgeschlagen wird.",
   "onboarding.purpose.label": "Das Ziel",
@@ -5407,9 +5431,6 @@ var fr_default = {
   // Language, in the product
   "account.language.heading": "Langue",
   "account.language.body": "Ce choix est enregistr\xE9 sur votre compte plut\xF4t que sur ce navigateur, si bien qu'il vous suit sur un nouvel appareil. Il change ce que {brand} vous dit, et rien de ce qu'il fait.",
-  "onboarding.welcome.heading": "Configurez votre entreprise",
-  "onboarding.welcome.body": "Quelques questions br\xE8ves, pour que {brand} sache ce qu'est cette entreprise et ce qu'elle peut faire seule. Vous pouvez modifier chacune de ces r\xE9ponses plus tard.",
-  "onboarding.welcome.start": "Commencer",
   "onboarding.language.heading": "Est-ce la bonne langue\xA0?",
   "onboarding.language.body": "Nous l'avons devin\xE9e d'apr\xE8s votre navigateur. Rien n'est enregistr\xE9 tant que vous n'avez pas r\xE9pondu, et vous pourrez la changer plus tard dans votre compte.",
   "onboarding.language.confirm": "Oui, continuer",
@@ -5431,9 +5452,8 @@ var fr_default = {
   "onboarding.company.error.could-not-create": "L'entreprise n'a pas pu \xEAtre cr\xE9\xE9e. Rien n'a \xE9t\xE9 enregistr\xE9, vous pouvez donc r\xE9essayer.",
   "onboarding.drafted.heading": "{brand} a lu {host}",
   "onboarding.drafted.body": "Ce sont des brouillons, pas des objectifs. Rien n'a \xE9t\xE9 propos\xE9 \xE0 partir d'eux et rien ne se passe tant que vous n'en acceptez pas un. D\xE9cochez ce qui est faux, et modifiez-le plus tard sur la page des objectifs.",
-  "onboarding.drafted.why": "Pourquoi {brand} le sugg\xE8re",
   "onboarding.drafted.own": "Ou \xE9crivez le v\xF4tre",
-  "onboarding.drafted.pages": "{count} pages de ce site ont \xE9t\xE9 lues.",
+  "onboarding.company.notice.name-kept": "L'entreprise a gard\xE9 son nom actuel. Le changement de nom n'est pas autoris\xE9 pour cette entreprise, la configuration a donc continu\xE9 sans la modification.",
   "onboarding.purpose.heading": "Que cherche \xE0 faire cette entreprise\xA0?",
   "onboarding.purpose.body": "Une phrase suffit. {brand} formule ses propositions au regard d'un objectif \xE9nonc\xE9 et n'en invente jamais. C'est donc \xE0 cet objectif que sera mesur\xE9 tout ce qu'il propose.",
   "onboarding.purpose.label": "L'objectif",
@@ -6680,9 +6700,6 @@ var it_default = {
   "docs.foot.rights": "Tutti i diritti riservati.",
   "account.language.heading": "Lingua",
   "account.language.body": "Viene memorizzata nel Suo account anzich\xE9 in questo browser, quindi La segue su un nuovo dispositivo. Cambia ci\xF2 che {brand} Le dice e nulla di ci\xF2 che fa.",
-  "onboarding.welcome.heading": "Configuri la Sua azienda",
-  "onboarding.welcome.body": "Poche domande brevi, cos\xEC {brand} sa che cosa \xE8 questa azienda e quanto pu\xF2 fare da sola. Puoi modificare ogni risposta in seguito.",
-  "onboarding.welcome.start": "Inizi",
   "onboarding.language.heading": "\xC8 questa la lingua giusta?",
   "onboarding.language.body": "L'abbiamo dedotta dal Suo browser. Nulla viene memorizzato finch\xE9 non risponde, e potr\xE0 cambiarla in seguito nel Suo account.",
   "onboarding.language.confirm": "S\xEC, continua",
@@ -6704,9 +6721,8 @@ var it_default = {
   "onboarding.company.error.could-not-create": "Non \xE8 stato possibile creare l'azienda. Non \xE8 stato salvato nulla, quindi pu\xF2 riprovare.",
   "onboarding.drafted.heading": "{brand} ha letto {host}",
   "onboarding.drafted.body": "Queste sono bozze, non obiettivi. Non \xE8 stato proposto nulla a partire da esse e non succede nulla finch\xE9 non ne accetti una. Togli la spunta a ci\xF2 che non va, e modificalo pi\xF9 tardi nella pagina degli obiettivi.",
-  "onboarding.drafted.why": "Perch\xE9 {brand} lo suggerisce",
   "onboarding.drafted.own": "Oppure scrivi il tuo",
-  "onboarding.drafted.pages": "Lette {count} pagine di quel sito.",
+  "onboarding.company.notice.name-kept": "L'azienda ha mantenuto il nome che aveva. La rinomina non \xE8 consentita per questa azienda, quindi la configurazione \xE8 proseguita senza la modifica.",
   "onboarding.purpose.heading": "Che cosa cerca di fare questa azienda?",
   "onboarding.purpose.body": "Basta una frase. {brand} propone rispetto a un obiettivo dichiarato e non ne inventa mai uno, quindi \xE8 questo il metro su cui verr\xE0 misurato tutto ci\xF2 che suggerisce.",
   "onboarding.purpose.label": "L'obiettivo",
@@ -7952,9 +7968,6 @@ var es_default = {
   "docs.foot.rights": "Todos los derechos reservados.",
   "account.language.heading": "Idioma",
   "account.language.body": "Esto se guarda en su cuenta y no en este navegador, as\xED que le sigue a un nuevo dispositivo. Cambia lo que {brand} le dice y nada de lo que hace.",
-  "onboarding.welcome.heading": "Configure su empresa",
-  "onboarding.welcome.body": "Unas pocas preguntas breves, para que {brand} sepa qu\xE9 es esta empresa y cu\xE1nto puede hacer por su cuenta. Puedes cambiar cada respuesta m\xE1s adelante.",
-  "onboarding.welcome.start": "Comenzar",
   "onboarding.language.heading": "\xBFEs este el idioma correcto?",
   "onboarding.language.body": "Lo hemos deducido de su navegador. No se guarda nada hasta que responda, y puede cambiarlo despu\xE9s en su cuenta.",
   "onboarding.language.confirm": "S\xED, continuar",
@@ -7976,9 +7989,8 @@ var es_default = {
   "onboarding.company.error.could-not-create": "No se pudo crear la empresa. No se guard\xF3 nada, as\xED que puede intentarlo de nuevo.",
   "onboarding.drafted.heading": "{brand} ha le\xEDdo {host}",
   "onboarding.drafted.body": "Son borradores, no objetivos. No se ha propuesto nada a partir de ellos y no ocurre nada hasta que aceptes uno. Desmarca lo que est\xE9 mal, y ed\xEDtalo m\xE1s tarde en la p\xE1gina de objetivos.",
-  "onboarding.drafted.why": "Por qu\xE9 {brand} lo sugiere",
   "onboarding.drafted.own": "O escribe el tuyo",
-  "onboarding.drafted.pages": "Se leyeron {count} p\xE1ginas de ese sitio.",
+  "onboarding.company.notice.name-kept": "La empresa mantuvo el nombre que ten\xEDa. Cambiar el nombre no est\xE1 permitido para esta empresa, as\xED que la configuraci\xF3n continu\xF3 sin el cambio.",
   "onboarding.purpose.heading": "\xBFQu\xE9 intenta hacer esta empresa?",
   "onboarding.purpose.body": "Con una frase basta. {brand} propone en funci\xF3n de un objetivo declarado y nunca inventa uno, as\xED que todo lo que sugiera se medir\xE1 contra esto.",
   "onboarding.purpose.label": "El objetivo",
@@ -9254,9 +9266,6 @@ var pt_default = {
   // ---------------------------------------------------------------------------
   "account.language.heading": "Idioma",
   "account.language.body": "Isso fica guardado na sua conta, n\xE3o neste navegador, ent\xE3o acompanha-o at\xE9 um novo dispositivo. Isso muda o que a {brand} lhe diz, e nada sobre o que ela faz.",
-  "onboarding.welcome.heading": "Configure a sua empresa",
-  "onboarding.welcome.body": "Algumas perguntas breves, para que {brand} saiba o que \xE9 esta empresa e quanto pode fazer sozinha. Pode alterar cada resposta mais tarde.",
-  "onboarding.welcome.start": "Come\xE7ar",
   "onboarding.language.heading": "Este \xE9 o idioma certo?",
   "onboarding.language.body": "Adivinh\xE1mos a partir do seu navegador. Nada fica guardado at\xE9 responder, e pode mudar depois na sua conta.",
   "onboarding.language.confirm": "Sim, continuar",
@@ -9278,9 +9287,8 @@ var pt_default = {
   "onboarding.company.error.could-not-create": "N\xE3o foi poss\xEDvel criar a empresa. Nada foi guardado, por isso pode tentar de novo.",
   "onboarding.drafted.heading": "{brand} leu {host}",
   "onboarding.drafted.body": "Estes s\xE3o rascunhos, n\xE3o objetivos. Nada foi proposto a partir deles e nada acontece at\xE9 que aceite um. Retire a marca do que estiver errado, e edite mais tarde na p\xE1gina de objetivos.",
-  "onboarding.drafted.why": "Porque {brand} o sugere",
   "onboarding.drafted.own": "Ou escreva o seu",
-  "onboarding.drafted.pages": "Foram lidas {count} p\xE1ginas desse site.",
+  "onboarding.company.notice.name-kept": "A empresa manteve o nome que tinha. Mudar o nome n\xE3o \xE9 permitido para esta empresa, por isso a configura\xE7\xE3o continuou sem a altera\xE7\xE3o.",
   "onboarding.purpose.heading": "O que \xE9 que esta empresa est\xE1 a tentar fazer?",
   "onboarding.purpose.body": "Uma frase chega. O {brand} prop\xF5e sempre em fun\xE7\xE3o de um objetivo declarado e nunca inventa um, por isso \xE9 por aqui que se mede tudo o que sugerir.",
   "onboarding.purpose.label": "O objetivo",
@@ -11231,7 +11239,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "535f248" : "unknown";
+var sourceCommit = true ? "f8cd8e9" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
