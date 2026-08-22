@@ -1011,7 +1011,24 @@
      This is the trap-6 fix. The reference removes focus indication entirely;
      replacing it with an indicator that misses the non-text floor would have
      been the same defect wearing a fix's clothes. */
-  --focus-ring: var(--o-steel-11);
+  /*
+     INK, NOT STEEL, SINCE 2026-08-21. This was `--o-steel-11`, a saturated blue,
+     and it was the one place in the product that spent hue on something that is
+     not risk. §9a's whole argument is that this product is three opaque colours
+     and a quiet one; a blue ring on every focused field is the single loudest
+     thing on a form and it reads as somebody else's design system.
+
+     WHAT DID NOT CHANGE IS THAT THERE IS A RING. §7a rule 3 makes a visible focus
+     indicator law here, and §9a trap 6 records the reference implementation
+     removing it as a defect we deliberately do not copy. Ink at 2px with a 2px
+     offset clears WCAG 1.4.11's 3:1 non-text floor by a wide margin on every
+     surface in both themes, because it is the same ink the body text is set in.
+
+     It stays STRUCTURALLY distinct from a border rather than only chromatically:
+     2px against the field's 1.5px, and offset, so it reads as a ring around the
+     control rather than as a heavier edge on it. That distinction is what a
+     hue was doing before. */
+  --focus-ring: var(--fg-primary);
 
   /* Risk — the one family that spends hue. Low is the ABSENCE of hue. */
   --risk-low-tint: transparent;
@@ -1710,6 +1727,226 @@
   --app-card-bg: var(--bg-raised);
   --app-card-line: var(--line-rule);
   --app-card-radius: var(--o-radius-lg);
+}
+
+/* =============================================================================
+   The builder surface — a ground the theme cannot reach, and the tokens for it.
+
+   The builder is the two-pane workbench a person generates a site in: a chat
+   pane, a preview, and a top bar over both. Its ramp is MEASURED rather than
+   chosen, off the live Lovable editor in a browser, and the numbers plus the
+   method are in docs/research/lovable-measurements.md §2 and §7. Four grounds, a
+   hairline, and exactly one saturated colour in the entire surface — which is
+   the same discipline §9a already makes law here, arrived at independently by
+   somebody else, and the most useful thing the measurement found.
+
+   IT IS A CONTEXT, NOT A RUNG OF THE LADDER, and that is the decision everything
+   else here follows from. Every other surface token in this file answers "what
+   is this rung in this theme". These answer "what is this rung on a workbench",
+   and a workbench is pinned dark: what was measured is a dark ramp, and a light
+   counterpart would be invented rather than measured. Inventing one and stamping
+   it with the measurement's authority is exactly the move §12b calls a
+   placeholder. So the builder is a scope, it declares `color-scheme: dark` (the
+   note at the top of this file is the argument: without it the UA keeps drawing
+   its own controls, scrollbars and autofill in the reader's theme, and that is
+   how a 1.14:1 Reject button once shipped), and it RESTATES every semantic token
+   that carries a ground assumption. Which is what the dark theme block does, for
+   the same reason, in the same shape.
+
+   THE NAMES ARE THE SYSTEM'S, DELIBERATELY. There is no --builder-raised, and
+   there must not be one: --bg-raised already means "a surface floating on the
+   ground", and every primitive in @orvay/ui reads --bg-raised, --fg-primary,
+   --line-rule and --focus-ring. Re-pointing those means Notice, Field, Dropdown
+   and the rest render correctly inside the builder with no change at all. A
+   parallel --builder-* family would mean restyling each of them, and then
+   restyling each of them again the next time one of them changed.
+
+   THE OBVIOUS FIRST ATTEMPT DOES NOT WORK, and it is worth a paragraph because
+   it looks like it should. Re-pointing the Tier 1 ramp inside the scope --
+   --o-neutral-1 and friends -- changes nothing, because a custom property has
+   its var() substituted at computed-value time ON THE ELEMENT THAT DECLARES IT.
+   --bg-canvas: var(--o-neutral-3) is computed at :root and inherited as a
+   literal colour; a descendant that redefines --o-neutral-3 is redefining
+   something --bg-canvas has already stopped reading. The same rule is why the
+   alpha washes (--o-neutral-a3 and the rest) cannot follow this scope either,
+   and why anything inside the builder that wants one has to be given a token
+   here instead.
+
+   THE MEASURED LADDER, WITH A SURPRISE IN IT. Ordered by lightness, which is not
+   the order the measurement table lists them in:
+
+     pane ground     L 0.2300   rgb(29,29,28)   measured
+     root background L 0.2389   rgb(31,31,30)   measured
+     raised surface  L 0.2474   rgb(33,33,32)   measured
+     message bubble  L 0.2720   rgb(39,39,38)   measured
+
+   The document's own background is NOT the bottom rung: the panes are painted
+   two units of 255 BELOW it, so they are recessed into the shell rather than
+   floating on it. That is a fact about how that editor is built and not a
+   naming accident, and it is why --bg-canvas takes the pane and --bg-subtle
+   takes the root background rather than the other way round.
+
+   AND THE LIFT IS TOO SMALL FOR OUR OWN LADDER. Canvas to raised measures
+   0.0174, under the 0.02 'elevation is monotonic' asks of a card in tokens.test.ts,
+   which is to say Lovable does not hold a surface up with luminance at all: it
+   holds it up with an opaque hairline. So the hairline here is load-bearing
+   rather than decoration, the test asserts it stays lighter than every rung it
+   separates, and a future session that "tidies" the rungs closer together is
+   removing the only separation this surface has.
+
+   THE INK IS NOT PURE WHITE, THOUGH THE MEASUREMENT IS. Lovable's root ink is
+   rgb(255,255,255). The note above --o-ink-solid-* says body ink in this system
+   is deliberately not pure, and that is not a preference to discard for one
+   surface: pure white on a near-black ground halates. The cost is measured
+   rather than assumed -- 16.89:1 becomes 14.82:1 on the pane -- and both are so
+   far above the 7:1 floor that the choice costs nothing a reader can use.
+
+   THE ACCENT IS BOXED IN ON THREE SIDES, and this is the one measured value that
+   could not be shipped as it stands without an argument.
+
+   Measured: oklch(0.5243 0.2396 264.41), the Publish button and nothing else.
+   Against the pane it sits on that is 2.92:1, and against the message bubble
+   2.59:1. WCAG 1.4.11 wants 3:1 for the visual information that identifies a
+   control, and §7a makes that law here rather than taste; Lovable is a US
+   product with no European Accessibility Act duty and is free to ship it.
+
+   The instinct is to lighten the fill until it passes. It does not fit:
+
+     L 0.5582   the lowest lightness clearing 3:1 on every rung
+     L 0.5637   the highest lightness still inside sRGB at this chroma and hue
+     L 0.5748   the highest lightness whose light ink still clears 4.5:1
+
+   That is a legal window 0.0055 wide, and a fill sitting in it is one rounding
+   away from either clipping or taking its own label below the floor. So the
+   FILL ships as measured and the RIM carries the boundary: --accent-line is
+   3.93:1 at its worst rung, which is what 1.4.11 actually asks for, and it is
+   the same answer --line-control already gives for the same problem on the
+   neutral ramp. A builder control filled with --accent-solid MUST draw that rim;
+   the fill alone does not identify it.
+
+   The one lift that does fit inside the window is the hover state, which is why
+   --accent-hover is L 0.560: 3.02:1 on the bubble, 4.74:1 for its own label, and
+   inside sRGB by 0.0037. It is derived, not measured. Nothing measured a hover.
+
+   WHAT THIS BLOCK DOES NOT RESTATE, said plainly rather than left to be
+   discovered. The chromatic families still resolve to the reader's theme, so
+   --risk-medium-text and --verified-text are near-black ink for a reader in
+   light mode and would land on a near-black ground. The builder renders none of
+   them today. Whichever session first needs a risk chip in here either gives it
+   an ink in this block or puts it on a themed surface, and either is fine; what
+   is not fine is assuming it inherited something safe. The bevels are the same
+   story with a better excuse: the measurement found no computed shadow anywhere
+   in that editor, so the builder is flat by construction, and reaching for
+   --o-bevel-raised inside it would paint the light theme's white inset onto a
+   dark card, which is the halo bug this file already fixed once.
+   ============================================================================= */
+:root {
+  /* Tier 1, internal, and declared HERE rather than up with the other primitives
+     on purpose: the block that consumes them is the next twenty lines. Proximity
+     is the mechanism, the same one the slab and its ink needed after drifting
+     700 lines apart. Hue is 107 on every one of these; the two values converted
+     out of sRGB measured 106.54 and 106.72 and are written as 107 with the rest,
+     which is a unification well under the threshold of vision and the same one
+     the v5 family makes for the same reason. */
+  --o-workbench-pane: oklch(0.230 0.0020 107);
+  --o-workbench-shell: oklch(0.239 0.0019 107);
+  --o-workbench-raised: oklch(0.2474 0.0020 107);
+  --o-workbench-bubble: oklch(0.272 0.0020 107);
+  /* Derived. Nothing measured a hover or an active row, so these continue the
+     ladder at the 0.030 spacing the dark neutral ramp uses at the same rungs
+     rather than at a spacing somebody liked the look of. */
+  --o-workbench-hover: oklch(0.302 0.0020 107);
+  --o-workbench-active: oklch(0.332 0.0020 107);
+  /* The hairline, measured, and the only separation this surface has. 1.65:1 on
+     the pane, which is a divider and not a boundary -- exactly the honest range
+     the note above --line-control describes for steps 6 to 8. */
+  --o-workbench-rule: oklch(0.374 0.0067 107);
+  /* Derived. The measurement offers ONE hairline and this system asks for three
+     weights of line, so these two continue the same ladder. Both sit under 3:1
+     and are meant to; a line that has to be SEEN is --o-workbench-edge.
+
+     THE WORDING HERE IS LOAD-BEARING AND THAT IS ABSURD, SO IT IS WRITTEN DOWN.
+     This comment used to open its second sentence with the word "N-e-i-t-h-e-r",
+     and that failed `apps/status/src/render.test.ts`. Not a flake: `build.ts`
+     inlines this entire file into the status page document, and that test
+     asserts the rendered page does NOT contain that word, because the page's
+     fallback sentence must read as singular when only one channel is down. The
+     assertion searches the whole document, so every prose comment in this file
+     is inside the haystack for a copy test in another package.
+
+     Left as prose rather than "fixed" by deleting the comment, because §4 says
+     the tokens are one owner and this file's comments are how the arithmetic is
+     auditable. The real fix belongs to the status page: scope that assertion to
+     the rendered copy instead of the document. Raised as a handoff. */
+  --o-workbench-border: oklch(0.435 0.0060 107);
+  --o-workbench-strong: oklch(0.520 0.0055 107);
+  /* The control boundary, 3.98:1 at its worst rung. Derived at the lightness the
+     dark neutral ramp already uses for the same job, because the job is the
+     same: WCAG 1.4.11, and a border that identifies a control rather than
+     decorating a table. */
+  --o-workbench-edge: oklch(0.665 0.0050 107);
+  /* 5.65:1 at its worst rung against a 4.5:1 floor, and 7.87:1 on the pane. */
+  --o-workbench-ink-quiet: oklch(0.760 0.0040 107);
+  /* 10.64:1 at its worst rung against a 7:1 floor, and 14.82:1 on the pane. */
+  --o-workbench-ink: oklch(0.955 0.0040 107);
+  /* The solid-control slab, re-derived for this ground rather than inherited:
+     --control-solid-* INVERTS between themes, so a button inside a pinned-dark
+     pane would be a near-black slab on a near-black ground for every reader on
+     the light theme. That is §12c's 1.21:1 button rediscovered on a surface the
+     theme cannot reach, which is the same sentence the night scene needed. Its
+     ink is the shared dark ink at 15.56:1 on the top stop and 12.50:1 on the
+     bottom, and the slab reads 13.75:1 against the pane, so the control has an
+     edge without needing to draw one. */
+  --o-workbench-control: oklch(0.930 0.0030 107);
+  --o-workbench-control-low: oklch(0.860 0.0030 107);
+  /* The single accent, measured. Read the argument above before moving it. */
+  --o-workbench-accent: oklch(0.5243 0.2396 264.41);
+  --o-workbench-accent-hover: oklch(0.560 0.2396 264.41);
+  /* The rim that identifies an accent-filled control, since its fill cannot.
+     3.93:1 at the worst rung. */
+  --o-workbench-accent-line: oklch(0.665 0.1200 264.41);
+  /* The accent as INK, which is the same trap the neutral ramp's step 9 sets:
+     the measured accent as text is 2.92:1 on the pane. This is 5.61:1 at its
+     worst rung, and it is a FREE ink -- nothing pairs it with a fill, so it is
+     held to the worst rung rather than to the one anybody had in mind. */
+  --o-workbench-accent-text: oklch(0.760 0.1000 264.41);
+}
+
+/* Tier 2, restated for this ground. The attribute goes on the element that wraps
+   the workbench; custom properties inherit, so everything under it follows.
+   Nothing outside the builder may set it. */
+[data-surface='builder'] {
+  color-scheme: dark;
+
+  --bg-canvas: var(--o-workbench-pane);
+  --bg-subtle: var(--o-workbench-shell);
+  --bg-raised: var(--o-workbench-raised);
+  --bg-component: var(--o-workbench-bubble);
+  --bg-hover: var(--o-workbench-hover);
+  --bg-active: var(--o-workbench-active);
+
+  --line-rule: var(--o-workbench-rule);
+  --line-border: var(--o-workbench-border);
+  --line-strong: var(--o-workbench-strong);
+  --line-control: var(--o-workbench-edge);
+
+  --fg-primary: var(--o-workbench-ink);
+  --fg-secondary: var(--o-workbench-ink-quiet);
+
+  --control-solid-top: var(--o-workbench-control);
+  --control-solid-bottom: var(--o-workbench-control-low);
+  --control-solid-ink: var(--o-ink-solid-dark);
+
+  --accent-solid: var(--o-workbench-accent);
+  --accent-hover: var(--o-workbench-accent-hover);
+  --accent-line: var(--o-workbench-accent-line);
+  --accent-text: var(--o-workbench-accent-text);
+  --accent-on-solid: var(--o-ink-solid-light);
+  /* The ring is ink, not a fill, and it binds to the accent's ink step for the
+     reason the note on --focus-ring gives at length: a fill anchor is chosen to
+     CARRY ink, which makes it too dark to BE ink. 5.61:1 at the worst rung
+     against a 3:1 floor. */
+  --focus-ring: var(--o-workbench-accent-text);
 }
 
 /*
