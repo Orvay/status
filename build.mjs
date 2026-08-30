@@ -427,6 +427,41 @@ var COMPONENTS = [
     budget: { staleAfterMs: 6 * HOUR }
   },
   {
+    id: "inbound-mail",
+    /*
+          ADDED BECAUSE THE ROW WAS ABSENT WHILE THE SURFACE EXISTED, which is the
+          exact failure §13c names: an absent row is a gap nobody can see, and a
+          `not-measured` row is a gap on the roadmap. `inbound-orvay` has been
+          deployed since 2026-08-29 and `orvay.app` carries Cloudflare's Email
+          Routing MX records, so a company that has been given its address has a
+          surface it depends on and the status page said nothing about it at all.
+    
+          IT IS A SEPARATE ROW FROM `email-notifications` ON PURPOSE, and the two are
+          opposite directions that fail independently. Sending can be perfectly wired
+          while nothing inbound is routed, and mail can arrive while nothing we send
+          leaves. One row covering both would go green on half a truth.
+    
+          WHY IT CANNOT BE MEASURED, precisely. Proving mail ARRIVED needs mail to be
+          SENT, and a probe that emails a tenant address every fifteen minutes is a
+          probe that gets `orvay.app` classified. That is the same reason
+          `email-notifications` checks wiring rather than delivery, and it is worth
+          restating here rather than assumed: the two rows reach the same wall from
+          opposite sides.
+    
+          WHAT WOULD CLOSE IT is a health endpoint under `/api/health/` named for
+          this component, reporting whether the service binding and the routing rule
+          are still in place. That is the shape the rule already allows for a
+          non-surface row, and it answers the failure that actually happens, which is
+          a binding or a rule quietly going away rather than the internet losing
+          email.
+        */
+    group: "work",
+    label: "Mail sent to your company",
+    summary: "Messages people send to your company address. We do not yet watch whether they arrive.",
+    budget: { staleAfterMs: 6 * HOUR },
+    notMeasuredWhy: "Nothing watches this yet. Proving a message arrived means sending one, and a check that emails your address every fifteen minutes would get the sending domain blocked. What is missing is a check of whether the address is still connected, rather than a test message."
+  },
+  {
     id: "voice-mode",
     /*
           ADDED IN THE SAME CHANGE THAT SHIPPED THE SURFACE, which is the whole of
@@ -1778,9 +1813,13 @@ var PRODUCT_SOURCE = {
   // Shared for both aria-label and h2 heading.
   "site.footer.nav.language": "Language",
   "site.footer.nav.contact": "Contact",
-  // v6's fourth footer column: this page's own table of contents. The other
-  // three headings reuse the shared footer's keys, which are already translated.
-  "site.v6.footer.on-this-page": "On this page",
+  // The footer's status pill. Five sentences, and the fifth exists because a
+  // rollup that cannot establish a level must say so rather than stay quiet.
+  "site.v6.status.operational": "All systems operational",
+  "site.v6.status.degraded": "Degraded performance",
+  "site.v6.status.outage": "Service disruption",
+  "site.v6.status.unknown": "Status unavailable",
+  "site.v6.status.partial": ", partly measured",
   // Coincides in English with waitlist.heading / waitlist.submit, but is a sep
   // arate hardcoded string in this file (not an import of the WAITLIST content
   //  constant), so kept as its own key rather than reused.
@@ -14799,7 +14838,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "939a328" : "unknown";
+var sourceCommit = true ? "a1f91b6" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
