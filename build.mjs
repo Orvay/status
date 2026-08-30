@@ -468,12 +468,21 @@ var COMPONENTS = [
           §13c: an absent row is a gap nobody can see, and a `not-measured` row is a
           gap on the roadmap.
     
-          WHY IT IS NOT MEASURED, precisely rather than vaguely. A probe would have
-          to hold a session, because the surface refuses a stranger at gate 1, and
-          then spend a real speech call at a vendor on every run. `apps/status`
-          probes from outside our network with no credentials by design, so this is
-          not "nobody got round to it": it is a row whose check needs a different
-          kind of prober than the one that exists.
+          IT IS MEASURED NOW, AND ONLY HALF OF IT CAN BE. This comment used to
+          explain why nothing watched it: a probe would have to hold a session and
+          spend a real speech call, and `apps/status` probes from outside with no
+          credentials. That is still true OF THE VENDOR, and synthesis and
+          transcription remain unwatched.
+    
+          What changed is that the other half turned out to be observable from
+          exactly where this prober stands. Voice needs two permissions from the
+          deployment before any vendor is reached, both granted by response headers,
+          and on 2026-08-30 both shipped wrong: an empty `microphone=()` allowlist
+          disabled the microphone for the page itself, and a missing `media-src`
+          blocked the spoken answer. Neither is visible to a test against a
+          development server, and both are plainly visible to a stranger with curl.
+          A row that watches the failure that actually happened beats a row that
+          waits for a prober that can afford to talk.
     
           THE SUMMARY NAMES THE HALF A CUSTOMER CARES ABOUT and does not promise
           transcription, because a deployment can have synthesis working and
@@ -482,9 +491,15 @@ var COMPONENTS = [
         */
     group: "surfaces",
     label: "Voice mode",
-    summary: "Talking to your company in the console, and deciding by voice.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. A check would have to sign in and spend a real speech call, and the page probes from outside with no account. Typing in the console goes through the same steps and is watched by the control plane row."
+    /*
+      THE SUMMARY NAMES THE BOUND, because the row is now measured and a measured
+      row is read as "this works". It measures the two permissions the browser
+      needs before any vendor is reached, and it does not measure the vendor.
+      Saying so in the summary is what keeps the row from claiming more than it
+      checks, which §13c calls worse than not measuring at all.
+    */
+    summary: "Talking to your company in the console, and deciding by voice. This watches whether the browser is still allowed to open your microphone and play the answer. It does not check the speech service itself.",
+    budget: { staleAfterMs: 6 * HOUR }
   }
 ];
 
@@ -759,6 +774,64 @@ var TARGETS = [
     // One host, one certificate: the control plane already reads it, and a
     // second handshake against the same name would only report the same expiry
     // twice under a different heading.
+  },
+  /*
+      VOICE MODE, MEASURED BY THE TWO HEADERS THAT DECIDE WHETHER IT CAN WORK AT
+      ALL, and this row exists because both of them were WRONG in production on
+      2026-08-30 and nothing noticed.
+  
+      WHAT THIS CANNOT DO, said first so the row is not read for more than it
+      earns. It cannot prove the speech vendor answers, because a check would have
+      to hold a session and spend real money at a vendor on every run, and this
+      page probes from outside with no account. Synthesis and transcription are
+      still unwatched.
+  
+      WHAT IT DOES PROVE IS NOT NOTHING, and it is the half that failed. Voice
+      needs two permissions from this deployment before any vendor is reached: the
+      browser must be allowed to open a microphone on the page, and the page must
+      be allowed to play the audio that comes back. Both are granted by response
+      headers, both are invisible to every test that runs against a development
+      server, and both were shipped wrong:
+  
+        `Permissions-Policy: microphone=()` disabled the microphone for the
+        document ITSELF, so `getUserMedia` was refused before a prompt was ever
+        shown. It rejects with `NotAllowedError`, the same name a person pressing
+        Block produces, so the surface told people their browser was blocking them
+        and to allow it in the address bar, which they could not do.
+  
+        A missing `media-src` left audio inheriting `default-src 'self'`, and a
+        `blob:` URL is not `'self'`, so every synthesised answer was blocked.
+        `play()` rejects that with `NotSupportedError`, which names the audio, and
+        the audio was correct.
+  
+      Neither failure was visible from inside: they are properties of the deployed
+      response, which is exactly what this prober can see and a unit test cannot.
+      A header assertion grades `partial-outage`, which is the honest level: the
+      console still works, and one channel of it cannot.
+  
+      The path is the login page rather than the console, because the console
+      redirects a stranger and this needs a 200 whose headers are the app's own.
+    */
+  {
+    component: "voice-mode",
+    url: `${HOSTS.app}${LOGIN_PATH}`,
+    // The same marker the sign-in row uses. This row is not about the form; the
+    // assertions below are the check, and this only proves a document came back.
+    bodyMarker: "a-auth__title",
+    expectStatus: 200,
+    thresholds: APP,
+    headers: [
+      {
+        name: "permissions-policy",
+        contains: "microphone=(self)",
+        because: "an empty allowlist disables the microphone for the page itself, so the browser refuses without ever asking and the reader is told their browser is blocking them"
+      },
+      {
+        name: "content-security-policy",
+        contains: "media-src",
+        because: "without it the spoken answer inherits default-src and a blob: URL is refused, so voice mode is silent while reporting no error"
+      }
+    ]
   },
   {
     component: "tenant-sites",
@@ -1683,6 +1756,8 @@ var PRODUCT_SOURCE = {
   "console.voice.not-heard": "That was not turned into words, so nothing was recorded. Say it again, or type it: typing goes through the same steps.",
   "console.voice.state.idle": "Ready",
   "console.voice.no-microphone": "No microphone reached this page, so nothing is being heard. Check the browser has permission, or type instead: typing goes through the same steps.",
+  "console.voice.plan": "Talking to your company is included from the Max plan upward, and your plan does not include it yet. Nothing was sent and nothing was charged.",
+  "console.voice.microphone-blocked": "The browser is not allowing the microphone on this page. Allow it in the address bar and press start again, or type instead: typing goes through the same steps.",
   "console.voice.unavailable": "No speech service is connected here, so there is no microphone on this screen. Typing works and goes through the same steps.",
   "console.refused.why": "The question itself was refused, so nothing was read, nothing was searched, and no model was asked.",
   "console.source.searched": "Searched the web for {query}",
@@ -1813,13 +1888,9 @@ var PRODUCT_SOURCE = {
   // Shared for both aria-label and h2 heading.
   "site.footer.nav.language": "Language",
   "site.footer.nav.contact": "Contact",
-  // The footer's status pill. Five sentences, and the fifth exists because a
-  // rollup that cannot establish a level must say so rather than stay quiet.
-  "site.v6.status.operational": "All systems operational",
-  "site.v6.status.degraded": "Degraded performance",
-  "site.v6.status.outage": "Service disruption",
-  "site.v6.status.unknown": "Status unavailable",
-  "site.v6.status.partial": ", partly measured",
+  // v6's fourth footer column: this page's own table of contents. The other
+  // three headings reuse the shared footer's keys, which are already translated.
+  "site.v6.footer.on-this-page": "On this page",
   // Coincides in English with waitlist.heading / waitlist.submit, but is a sep
   // arate hardcoded string in this file (not an import of the WAITLIST content
   //  constant), so kept as its own key rather than reused.
@@ -5769,6 +5840,8 @@ var de_default = {
   "console.voice.not-heard": "Das wurde nicht in Worte gefasst, daher wurde nichts festgehalten. Sagen Sie es noch einmal, oder tippen Sie es: Tippen durchl\xE4uft dieselben Schritte.",
   "console.voice.state.idle": "Bereit",
   "console.voice.no-microphone": "Kein Mikrofon hat diese Seite erreicht, daher wird nichts geh\xF6rt. Pr\xFCfen Sie, ob der Browser die Berechtigung hat, oder tippen Sie stattdessen: Tippen durchl\xE4uft dieselben Schritte.",
+  "console.voice.plan": "Mit Ihrem Unternehmen zu sprechen ist ab dem Max Tarif enthalten, und Ihr Tarif enth\xE4lt es noch nicht. Es wurde nichts gesendet und nichts berechnet.",
+  "console.voice.microphone-blocked": "Der Browser l\xE4sst das Mikrofon auf dieser Seite nicht zu. Erlauben Sie es in der Adressleiste und starten Sie erneut, oder tippen Sie stattdessen: Tippen durchl\xE4uft dieselben Schritte.",
   "console.voice.unavailable": "Hier ist kein Sprachdienst angebunden, daher gibt es auf diesem Bildschirm kein Mikrofon. Tippen funktioniert und durchl\xE4uft dieselben Schritte.",
   "console.refused.why": "Die Frage selbst wurde abgelehnt, daher wurde nichts gelesen, nichts gesucht und kein Modell gefragt.",
   "console.source.searched": "Im Web gesucht nach {query}",
@@ -7580,6 +7653,8 @@ var fr_default = {
   "console.voice.not-heard": "Cela n\u2019a pas \xE9t\xE9 transcrit en mots, donc rien n\u2019a \xE9t\xE9 consign\xE9. Redites-le, ou \xE9crivez-le: \xE9crire passe par les m\xEAmes \xE9tapes.",
   "console.voice.state.idle": "Pr\xEAt",
   "console.voice.no-microphone": "Aucun microphone n\u2019a atteint cette page, donc rien n\u2019est entendu. V\xE9rifiez que le navigateur en a l\u2019autorisation, ou \xE9crivez plut\xF4t: \xE9crire passe par les m\xEAmes \xE9tapes.",
+  "console.voice.plan": "Parler \xE0 votre entreprise est inclus \xE0 partir du forfait Max, et votre forfait ne l\u2019inclut pas encore. Rien n\u2019a \xE9t\xE9 envoy\xE9 et rien n\u2019a \xE9t\xE9 factur\xE9.",
+  "console.voice.microphone-blocked": "Le navigateur n\u2019autorise pas le microphone sur cette page. Autorisez-le dans la barre d\u2019adresse et relancez, ou \xE9crivez plut\xF4t: \xE9crire passe par les m\xEAmes \xE9tapes.",
   "console.voice.unavailable": "Aucun service vocal n\u2019est connect\xE9 ici, il n\u2019y a donc pas de microphone sur cet \xE9cran. \xC9crire fonctionne et passe par les m\xEAmes \xE9tapes.",
   "console.refused.why": "La question elle-m\xEAme a \xE9t\xE9 refus\xE9e, donc rien n\u2019a \xE9t\xE9 lu, rien n\u2019a \xE9t\xE9 recherch\xE9 et aucun mod\xE8le n\u2019a \xE9t\xE9 interrog\xE9.",
   "console.source.searched": "Recherche sur le web de {query}",
@@ -9375,6 +9450,8 @@ var it_default = {
   "console.voice.not-heard": "Non \xE8 stato trasformato in parole, quindi non \xE8 stato registrato nulla. Lo ripeta, oppure lo scriva: scrivere attraversa gli stessi passaggi.",
   "console.voice.state.idle": "Pronto",
   "console.voice.no-microphone": "Nessun microfono ha raggiunto questa pagina, quindi non si sente nulla. Verifichi che il browser abbia il permesso, oppure scriva: scrivere attraversa gli stessi passaggi.",
+  "console.voice.plan": "Parlare con la sua azienda \xE8 incluso a partire dal piano Max, e il suo piano non lo include ancora. Non \xE8 stato inviato nulla e non \xE8 stato addebitato nulla.",
+  "console.voice.microphone-blocked": "Il browser non consente il microfono su questa pagina. Lo autorizzi dalla barra degli indirizzi e riavvii, oppure scriva: scrivere attraversa gli stessi passaggi.",
   "console.voice.unavailable": "Qui non \xE8 collegato alcun servizio vocale, quindi su questo schermo non c\u2019\xE8 un microfono. Scrivere funziona e attraversa gli stessi passaggi.",
   "console.refused.why": "La domanda stessa \xE8 stata rifiutata, quindi non \xE8 stato letto nulla, non \xE8 stata fatta alcuna ricerca e non \xE8 stato interrogato alcun modello.",
   "console.source.searched": "Cercato sul web {query}",
@@ -11169,6 +11246,8 @@ var es_default = {
   "console.voice.not-heard": "Eso no se convirti\xF3 en palabras, as\xED que no se registr\xF3 nada. D\xEDgalo otra vez, o escr\xEDbalo: escribir pasa por los mismos pasos.",
   "console.voice.state.idle": "Listo",
   "console.voice.no-microphone": "Ning\xFAn micr\xF3fono lleg\xF3 a esta p\xE1gina, as\xED que no se oye nada. Compruebe que el navegador tenga permiso, o escriba en su lugar: escribir pasa por los mismos pasos.",
+  "console.voice.plan": "Hablar con su empresa se incluye a partir del plan Max, y su plan todav\xEDa no lo incluye. No se envi\xF3 nada y no se cobr\xF3 nada.",
+  "console.voice.microphone-blocked": "El navegador no permite el micr\xF3fono en esta p\xE1gina. Perm\xEDtalo en la barra de direcciones y vuelva a empezar, o escriba en su lugar: escribir pasa por los mismos pasos.",
   "console.voice.unavailable": "Aqu\xED no hay ning\xFAn servicio de voz conectado, as\xED que no hay micr\xF3fono en esta pantalla. Escribir funciona y pasa por los mismos pasos.",
   "console.refused.why": "La pregunta misma fue rechazada, as\xED que no se ley\xF3 nada, no se busc\xF3 nada y no se consult\xF3 ning\xFAn modelo.",
   "console.source.searched": "Buscado en la web {query}",
@@ -12993,6 +13072,8 @@ var pt_default = {
   "console.voice.not-heard": "Isso n\xE3o foi convertido em palavras, por isso nada foi registado. Diga outra vez, ou escreva: escrever passa pelos mesmos passos.",
   "console.voice.state.idle": "Pronto",
   "console.voice.no-microphone": "Nenhum microfone chegou a esta p\xE1gina, por isso nada est\xE1 a ser ouvido. Verifique se o navegador tem permiss\xE3o, ou escreva: escrever passa pelos mesmos passos.",
+  "console.voice.plan": "Falar com a sua empresa est\xE1 inclu\xEDdo a partir do plano Max, e o seu plano ainda n\xE3o o inclui. Nada foi enviado e nada foi cobrado.",
+  "console.voice.microphone-blocked": "O navegador n\xE3o est\xE1 a permitir o microfone nesta p\xE1gina. Autorize-o na barra de endere\xE7o e comece de novo, ou escreva: escrever passa pelos mesmos passos.",
   "console.voice.unavailable": "N\xE3o est\xE1 aqui ligado nenhum servi\xE7o de voz, por isso n\xE3o h\xE1 microfone neste ecr\xE3. Escrever funciona e passa pelos mesmos passos.",
   "console.refused.why": "A pr\xF3pria pergunta foi recusada, por isso nada foi lido, nada foi pesquisado e nenhum modelo foi consultado.",
   "console.source.searched": "Pesquisado na web {query}",
@@ -14838,7 +14919,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "a1f91b6" : "unknown";
+var sourceCommit = true ? "e0da3d5" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
