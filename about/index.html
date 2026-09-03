@@ -67,17 +67,20 @@
   font-synthesis: none;
 
   /* ---- Tier 1: primitives (light) ---- */
-    /* neutral — hue 250 */
-    --o-neutral-1: oklch(1.000 0.0000 250);
-    --o-neutral-2: oklch(0.978 0.0010 250);
-    --o-neutral-3: oklch(0.955 0.0000 250);
-    --o-neutral-4: oklch(0.935 0.0015 250);
-    --o-neutral-5: oklch(0.912 0.0020 250);
-    --o-neutral-6: oklch(0.888 0.0025 250);
-    --o-neutral-7: oklch(0.852 0.0030 250);
-    --o-neutral-8: oklch(0.795 0.0035 250);
-    --o-neutral-9: oklch(0.620 0.0045 250);
-    --o-neutral-10: oklch(0.570 0.0050 250);
+    /* neutral — hue 260, the paper ramp. Steps 1 to 3 are the site's
+       --v6-paper, --v6-paper-cool and --v6-paper-deep; 6 and 7 its two rules;
+       9 its ornament ink; 11 and 12 its --v6-ink-3 and --v6-ink. One material
+       for the site and the product, docs/plan/26-brand-and-design-language.md §4. */
+    --o-neutral-1: oklch(1.000 0.0000 260);
+    --o-neutral-2: oklch(0.975 0.0030 260);
+    --o-neutral-3: oklch(0.955 0.0040 260);
+    --o-neutral-4: oklch(0.940 0.0040 260);
+    --o-neutral-5: oklch(0.925 0.0040 260);
+    --o-neutral-6: oklch(0.905 0.0030 260);
+    --o-neutral-7: oklch(0.840 0.0040 260);
+    --o-neutral-8: oklch(0.795 0.0040 260);
+    --o-neutral-9: oklch(0.620 0.0050 260);
+    --o-neutral-10: oklch(0.570 0.0050 260);
     /* L 0.500 measured 4.29:1 against step 6, which is --bg-active. The floor is
        4.5:1 and nothing caught it, because the contrast suite enumerated INKS
        against a fixed list of canvases rather than enumerating FILLS. That
@@ -86,13 +89,13 @@
        (steps 4, 5, 6 = component, hover, active) had no secondary assertion at
        all. 0.485 clears it at 4.57:1 and still reads as secondary, at 6.39:1 on
        the raised surface against primary ink's 15:1. */
-    --o-neutral-11: oklch(0.485 0.0055 250);
-    --o-neutral-12: oklch(0.216 0.0075 248);
+    --o-neutral-11: oklch(0.485 0.0060 260);
+    --o-neutral-12: oklch(0.170 0.0080 260);
     /* The solid-control slab. Not part of the 12-step ramp because it is a
        two-stop gradient, not a scale position — the faint vertical fall is what
        makes the control read as lit from above rather than as flat fill. */
-    --o-slab-top: oklch(0.383 0.0000 250);
-    --o-slab-bottom: oklch(0.256 0.0000 250);
+    --o-slab-top: oklch(0.383 0.0000 260);
+    --o-slab-bottom: oklch(0.256 0.0000 260);
     /* The slab's ink, declared HERE and never anywhere else.
        The slab inverts between themes and --o-neutral-9 does not: neutral-9 is
        L 0.620 in both, so the ink that suits it (dark) is fixed, while the slab
@@ -117,16 +120,16 @@
     --o-neutral-on-9: var(--o-ink-solid-dark);
 
     /* steel — hue 232 */
-    --o-steel-1: oklch(0.994 0.0087 232);
-    --o-steel-2: oklch(0.978 0.0145 232);
-    --o-steel-3: oklch(0.958 0.0232 232);
-    --o-steel-4: oklch(0.938 0.0319 232);
-    --o-steel-5: oklch(0.918 0.0435 232);
-    --o-steel-6: oklch(0.895 0.0551 232);
-    --o-steel-7: oklch(0.858 0.0725 232);
-    --o-steel-8: oklch(0.800 0.0957 232);
-    --o-steel-9: oklch(0.620 0.1450 232);
-    --o-steel-10: oklch(0.575 0.1421 232);
+    --o-steel-1: oklch(0.994 0.0087 236);
+    --o-steel-2: oklch(0.978 0.0145 236);
+    --o-steel-3: oklch(0.958 0.0232 236);
+    --o-steel-4: oklch(0.938 0.0319 236);
+    --o-steel-5: oklch(0.918 0.0435 236);
+    --o-steel-6: oklch(0.895 0.0551 236);
+    --o-steel-7: oklch(0.858 0.0725 236);
+    --o-steel-8: oklch(0.800 0.0957 236);
+    --o-steel-9: oklch(0.620 0.1450 236);
+    --o-steel-10: oklch(0.575 0.1421 236);
   /* Step 11 is the INK step, and it has to clear 4.5:1 on every rung of the
      background ladder rather than on the three anybody thought to check.
 
@@ -140,8 +143,8 @@
      These are FREE inks: nothing pairs them with a particular fill, so any of
      them can land on any surface, and the only honest floor is the worst rung.
      Dark needed no change; its step 11 sits at L 0.760 against dark grounds. */
-    --o-steel-11: oklch(0.478 0.1044 232);
-    --o-steel-12: oklch(0.255 0.0609 232);
+    --o-steel-11: oklch(0.478 0.1044 236);
+    --o-steel-12: oklch(0.255 0.0609 236);
     --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);
     --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);
     --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);
@@ -270,8 +273,8 @@
      theme-invariant, so is its ink. Which one each ramp takes is derived from
      the contrast maths, not chosen: only signal-9 is dark enough for light ink.
      Asserted in tokens.test.ts. */
-  --o-ink-solid-dark: oklch(0.170 0.006 250);
-  --o-ink-solid-light: oklch(0.985 0.004 250);
+  --o-ink-solid-dark: oklch(0.170 0.008 260);
+  --o-ink-solid-light: oklch(0.985 0.004 260);
 
   /* ---- Weight ramp: off the CSS keyword ladder (§4.1), and capped ----
 
@@ -531,21 +534,21 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* neutral — hue 250 */
-    --o-neutral-1: oklch(0.160 0.0040 250);
-    --o-neutral-2: oklch(0.190 0.0055 250);
-    --o-neutral-3: oklch(0.220 0.0069 250);
-    --o-neutral-4: oklch(0.250 0.0084 250);
-    --o-neutral-5: oklch(0.280 0.0098 250);
-    --o-neutral-6: oklch(0.310 0.0113 250);
-    --o-neutral-7: oklch(0.365 0.0113 250);
-    --o-neutral-8: oklch(0.435 0.0098 250);
-    --o-neutral-9: oklch(0.620 0.0084 250);
-    --o-neutral-10: oklch(0.665 0.0069 250);
-    --o-neutral-11: oklch(0.760 0.0055 250);
-    --o-neutral-12: oklch(0.955 0.0040 250);
-    --o-slab-top: oklch(0.930 0.0030 250);
-    --o-slab-bottom: oklch(0.860 0.0030 250);
+    /* neutral — hue 260, the paper ramp inverted: ink as ground, paper as ink. */
+    --o-neutral-1: oklch(0.160 0.0060 260);
+    --o-neutral-2: oklch(0.190 0.0065 260);
+    --o-neutral-3: oklch(0.220 0.0070 260);
+    --o-neutral-4: oklch(0.250 0.0075 260);
+    --o-neutral-5: oklch(0.280 0.0080 260);
+    --o-neutral-6: oklch(0.310 0.0080 260);
+    --o-neutral-7: oklch(0.365 0.0080 260);
+    --o-neutral-8: oklch(0.435 0.0070 260);
+    --o-neutral-9: oklch(0.620 0.0050 260);
+    --o-neutral-10: oklch(0.665 0.0050 260);
+    --o-neutral-11: oklch(0.760 0.0055 260);
+    --o-neutral-12: oklch(0.955 0.0040 260);
+    --o-slab-top: oklch(0.930 0.0030 260);
+    --o-slab-bottom: oklch(0.860 0.0030 260);
     /* Inverted with the slab. See the note in the light block. */
     --o-slab-ink: var(--o-ink-solid-dark);
     --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);
@@ -563,18 +566,18 @@
     --o-neutral-on-9: var(--o-ink-solid-dark);
 
     /* steel — hue 232 */
-    --o-steel-1: oklch(0.160 0.0079 232);
-    --o-steel-2: oklch(0.190 0.0132 232);
-    --o-steel-3: oklch(0.220 0.0211 232);
-    --o-steel-4: oklch(0.250 0.0290 232);
-    --o-steel-5: oklch(0.280 0.0396 232);
-    --o-steel-6: oklch(0.310 0.0501 232);
-    --o-steel-7: oklch(0.365 0.0660 232);
-    --o-steel-8: oklch(0.435 0.0871 232);
-    --o-steel-9: oklch(0.620 0.1319 232);
-    --o-steel-10: oklch(0.665 0.1293 232);
-    --o-steel-11: oklch(0.760 0.0950 232);
-    --o-steel-12: oklch(0.955 0.0554 232);
+    --o-steel-1: oklch(0.160 0.0079 236);
+    --o-steel-2: oklch(0.190 0.0132 236);
+    --o-steel-3: oklch(0.220 0.0211 236);
+    --o-steel-4: oklch(0.250 0.0290 236);
+    --o-steel-5: oklch(0.280 0.0396 236);
+    --o-steel-6: oklch(0.310 0.0501 236);
+    --o-steel-7: oklch(0.365 0.0660 236);
+    --o-steel-8: oklch(0.435 0.0871 236);
+    --o-steel-9: oklch(0.620 0.1319 236);
+    --o-steel-10: oklch(0.665 0.1293 236);
+    --o-steel-11: oklch(0.760 0.0950 236);
+    --o-steel-12: oklch(0.955 0.0554 236);
     --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);
     --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);
     --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);
@@ -747,21 +750,21 @@
 }
 
 :root[data-theme='dark'] {
-    /* neutral — hue 250 */
-    --o-neutral-1: oklch(0.160 0.0040 250);
-    --o-neutral-2: oklch(0.190 0.0055 250);
-    --o-neutral-3: oklch(0.220 0.0069 250);
-    --o-neutral-4: oklch(0.250 0.0084 250);
-    --o-neutral-5: oklch(0.280 0.0098 250);
-    --o-neutral-6: oklch(0.310 0.0113 250);
-    --o-neutral-7: oklch(0.365 0.0113 250);
-    --o-neutral-8: oklch(0.435 0.0098 250);
-    --o-neutral-9: oklch(0.620 0.0084 250);
-    --o-neutral-10: oklch(0.665 0.0069 250);
-    --o-neutral-11: oklch(0.760 0.0055 250);
-    --o-neutral-12: oklch(0.955 0.0040 250);
-    --o-slab-top: oklch(0.930 0.0030 250);
-    --o-slab-bottom: oklch(0.860 0.0030 250);
+    /* neutral — hue 260, the paper ramp inverted: ink as ground, paper as ink. */
+    --o-neutral-1: oklch(0.160 0.0060 260);
+    --o-neutral-2: oklch(0.190 0.0065 260);
+    --o-neutral-3: oklch(0.220 0.0070 260);
+    --o-neutral-4: oklch(0.250 0.0075 260);
+    --o-neutral-5: oklch(0.280 0.0080 260);
+    --o-neutral-6: oklch(0.310 0.0080 260);
+    --o-neutral-7: oklch(0.365 0.0080 260);
+    --o-neutral-8: oklch(0.435 0.0070 260);
+    --o-neutral-9: oklch(0.620 0.0050 260);
+    --o-neutral-10: oklch(0.665 0.0050 260);
+    --o-neutral-11: oklch(0.760 0.0055 260);
+    --o-neutral-12: oklch(0.955 0.0040 260);
+    --o-slab-top: oklch(0.930 0.0030 260);
+    --o-slab-bottom: oklch(0.860 0.0030 260);
     /* Inverted with the slab. See the note in the light block. */
     --o-slab-ink: var(--o-ink-solid-dark);
     --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);
@@ -779,18 +782,18 @@
     --o-neutral-on-9: var(--o-ink-solid-dark);
 
     /* steel — hue 232 */
-    --o-steel-1: oklch(0.160 0.0079 232);
-    --o-steel-2: oklch(0.190 0.0132 232);
-    --o-steel-3: oklch(0.220 0.0211 232);
-    --o-steel-4: oklch(0.250 0.0290 232);
-    --o-steel-5: oklch(0.280 0.0396 232);
-    --o-steel-6: oklch(0.310 0.0501 232);
-    --o-steel-7: oklch(0.365 0.0660 232);
-    --o-steel-8: oklch(0.435 0.0871 232);
-    --o-steel-9: oklch(0.620 0.1319 232);
-    --o-steel-10: oklch(0.665 0.1293 232);
-    --o-steel-11: oklch(0.760 0.0950 232);
-    --o-steel-12: oklch(0.955 0.0554 232);
+    --o-steel-1: oklch(0.160 0.0079 236);
+    --o-steel-2: oklch(0.190 0.0132 236);
+    --o-steel-3: oklch(0.220 0.0211 236);
+    --o-steel-4: oklch(0.250 0.0290 236);
+    --o-steel-5: oklch(0.280 0.0396 236);
+    --o-steel-6: oklch(0.310 0.0501 236);
+    --o-steel-7: oklch(0.365 0.0660 236);
+    --o-steel-8: oklch(0.435 0.0871 236);
+    --o-steel-9: oklch(0.620 0.1319 236);
+    --o-steel-10: oklch(0.665 0.1293 236);
+    --o-steel-11: oklch(0.760 0.0950 236);
+    --o-steel-12: oklch(0.955 0.0554 236);
     --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);
     --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);
     --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);
@@ -966,30 +969,35 @@
    ============================================================================= */
 
 :root, :root[data-theme='dark'] {
-  /* THE STRUCTURAL INVERSION, and the single biggest visual decision here.
-     The ground is GREY and surfaces are WHITE floating on it — the opposite of
-     the usual white-page-with-grey-panels. It is what makes the reference feel
-     calm and dimensional rather than flat, and it costs nothing: the same ramp,
-     read from a different step.
+  /* PAPER. The ground is the site's --v6-paper-cool (step 2) and a surface
+     that floats (a menu, a dialog, an inspector) is paper itself (step 1).
+     The product used to draw a white card on a grey well, the shell copied
+     from another product; docs/plan/26-brand-and-design-language.md §5
+     deletes the card, so the sheet is the ground and nothing sits inset in it.
 
-     WHICH step is not theme-portable, and that is the subtle part. The invariant
-     is "a raised surface is LIGHTER than the ground it floats on". In light that
-     means the ground is step 3 and the surface is step 1, because step 1 is the
-     lightest. In dark the ramp runs the other way — step 1 is the DARKEST — so
-     these same two mappings put every card BELOW its own ground: a hole punched
-     into the canvas rather than a surface floating on it. The dark override
-     below swaps them, and `elevation is monotonic` in tokens.test.ts is what
-     stops this being rediscovered by looking at a screenshot. */
-  --bg-canvas: var(--o-neutral-3);
+     Step 2 rather than step 1 for the ground is the one place the product's
+     paper differs from the site's sheet, and it is forced by the invariant
+     "a raised surface is LIGHTER than the ground it floats on", which
+     `elevation is monotonic` in tokens.test.ts holds in both themes: a
+     popover needs somewhere to float from, and above pure white there is
+     nowhere. A lift of 0.025 is a hairline's worth of tone, invisible until
+     a panel opens, which is exactly when it should show. The dark override
+     below reverses the two steps, because in dark step 1 is the darkest. */
+  --bg-canvas: var(--o-neutral-2);
   --bg-raised: var(--o-neutral-1);
-  --bg-subtle: var(--o-neutral-2);
+  --bg-subtle: var(--o-neutral-3);
   --bg-component: var(--o-neutral-4);
   --bg-hover: var(--o-neutral-5);
   --bg-active: var(--o-neutral-6);
 
-  --line-rule: var(--o-neutral-a6);
-  --line-border: var(--o-neutral-a7);
-  --line-strong: var(--o-neutral-a8);
+  /* SOLID, NOT ALPHA. On paper a hairline does structural work (docs/plan/26
+     §2, §4): it separates rows and frames tables, and a 30% wash of step 6
+     over paper resolves to L 0.97, a line nobody sees. Step 6 is the site's
+     --v6-rule and step 7 its --v6-rule-2, so the product's rules are the
+     site's rules. */
+  --line-rule: var(--o-neutral-6);
+  --line-border: var(--o-neutral-7);
+  --line-strong: var(--o-neutral-8);
   /* A border that IDENTIFIES a control, not a decorative rule. Steps 6-8 are
      hairlines for table rules and dividers and legitimately sit below WCAG
      1.4.11's 3:1 — at step 7 a control border is 1.5:1 on canvas, which is not
@@ -1560,6 +1568,17 @@
   --v6-void: oklch(0.46 0.15 27);
   --v6-seal: oklch(0.44 0.1 155);
 
+  /* THE HEAT. Five bands for the landing hero's mound, hot at the crest and
+     cold at the foot, the one place on the site where colour is spent as
+     colour. Decorative by declaration: nothing reads on them, nothing is
+     encoded by them, and pairing.test.ts makes no claim about them because
+     none is named as a fill or an ink. */
+  --v6-heat-1: oklch(0.62 0.25 20);
+  --v6-heat-2: oklch(0.72 0.19 50);
+  --v6-heat-3: oklch(0.9 0.18 95);
+  --v6-heat-4: oklch(0.82 0.1 225);
+  --v6-heat-5: oklch(0.6 0.18 255);
+
   /* The sculptural model: three neutral faces and the shadow it casts. Read
      as one object lit from the upper left, which is why the top plane is the
      darkest of the three and the right face the lightest. */
@@ -1639,19 +1658,19 @@
    ============================================================================= */
 @media print {
   :root, :root[data-theme='dark'], :root:not([data-theme='light']) {
-    --o-neutral-1: oklch(1.000 0.0000 250);
-    --o-neutral-2: oklch(0.978 0.0010 250);
-    --o-neutral-3: oklch(0.955 0.0000 250);
+    --o-neutral-1: oklch(1.000 0.0000 260);
+    --o-neutral-2: oklch(0.975 0.0030 260);
+    --o-neutral-3: oklch(0.955 0.0040 260);
     /* Mirrors the light value exactly. It had drifted to L 0.528 / C 0.0090
        against light's 0.500 / 0.0055, which is a third ramp nobody chose: the
        block's whole purpose is to restate the LIGHT ramp so a dark-mode reader
        printing an exhibit gets ink on paper. A print-only value that agrees
        with neither theme is how an exhibit stops matching the screen it was
        taken from. tokens.test.ts now asserts the mirroring. */
-    --o-neutral-11: oklch(0.485 0.0055 250);
-    --o-neutral-12: oklch(0.216 0.0075 248);
-    --bg-canvas: var(--o-neutral-3);
-    --bg-subtle: var(--o-neutral-2);
+    --o-neutral-11: oklch(0.485 0.0060 260);
+    --o-neutral-12: oklch(0.170 0.0080 260);
+    --bg-canvas: var(--o-neutral-2);
+    --bg-subtle: var(--o-neutral-3);
     --bg-raised: var(--o-neutral-1);
   }
 }
@@ -1812,7 +1831,7 @@
      several rules have to agree about them: the well clears the rail, the card
      subtracts the gutter twice, and the card's own header row is subtracted
      again by the scrollport inside it. */
-  --app-rail-w: 16rem;
+  --app-rail-w: 15rem;
   --app-gutter: var(--o-space-3);
   --app-bar-h: 3rem;
 
@@ -1918,7 +1937,7 @@
      not see the corner change. */
   --app-card-bg: var(--bg-raised);
   --app-card-line: var(--line-rule);
-  --app-card-radius: var(--o-radius-lg);
+  --app-card-radius: var(--o-radius-md);
 }
 
 /* =============================================================================
@@ -2177,7 +2196,7 @@
      them as a consequence of the six steps pinned above: overriding an input
      without its outputs is the defect, and the scan states it in those words. */
   --o-ember-11: oklch(0.760 0.1081 45);
-  --o-steel-11: oklch(0.760 0.0950 232);
+  --o-steel-11: oklch(0.760 0.0950 236);
   /* AND WHAT THOSE TWO FEED, which the scan named only once they were pinned.
      Closing one layer reveals the next, and that is the graph being walked
      rather than the scan being fussy: `--risk-high-text` is the third risk ink
