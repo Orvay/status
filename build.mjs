@@ -271,6 +271,9 @@ var displayFor = (reading, now, budget) => {
       if (observation.kind === "unknown") {
         return { kind: "unknown", reason: observation.reason, method, vantage, observedAt };
       }
+      if (reading.method === "telemetry" && reading.sampleCount === 0) {
+        return { kind: "unknown", reason: "no-traffic", method, vantage, observedAt };
+      }
       return {
         kind: "measured",
         level: observation.level,
@@ -18765,6 +18768,10 @@ var REASON_TEXT = {
   // measures. A reader must not take this for an outage, so the sentence says
   // what it says nothing about before it says anything else.
   "probe-unauthorized": "our own check was not allowed in, so this says nothing about whether the service is working",
+  // Worded as an absence of events rather than an absence of health. A reader
+  // must not take "nothing happened" for "something is wrong", and must not take
+  // it for "everything is fine" either.
+  "no-traffic": "nothing happened in the period we measure, so there was nothing to check",
   "artifact-unreachable": "we could not read our own internal report",
   "artifact-malformed": "our own internal report was not readable",
   stale: "the last measurement is too old to rely on"
@@ -18814,7 +18821,7 @@ var historyBar = (series, endDay, label, notes, component) => {
 var methodNote = (display) => {
   switch (display.kind) {
     case "measured":
-      return `Checked from outside our network at ${esc(utc(display.observedAt))}${display.latencyMs === void 0 || display.latencyMs <= 0 ? "" : `, answered in ${Math.round(display.latencyMs)} ms`}.`;
+      return `${display.method === "telemetry" ? "Reported by our own systems" : "Checked from outside our network"} at ${esc(utc(display.observedAt))}${display.latencyMs === void 0 || display.latencyMs <= 0 ? "" : `, answered in ${Math.round(display.latencyMs)} ms`}.`;
     case "unknown":
       return `Last attempt at ${esc(utc(display.observedAt))}: ${esc(REASON_TEXT[display.reason])}.`;
     case "not-measured":
@@ -19435,7 +19442,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "f0fff41b" : "unknown";
+var sourceCommit = true ? "e0e4264d" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
