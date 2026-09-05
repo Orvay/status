@@ -1832,6 +1832,11 @@
      subtracts the gutter twice, and the card's own header row is subtracted
      again by the scrollport inside it. */
   --app-rail-w: 15rem;
+  /* The collapsed rail, and it is a WIDTH rather than an absence: 56px holds a
+     32px tile centred in 12px of padding, which is the spec's icon rail
+     (26 §5.2). `rail-state.tsx` carries the same number for the width it
+     reserves; that file's note says why the two must agree. */
+  --app-rail-icon: 56px;
   --app-gutter: var(--o-space-3);
   --app-bar-h: 3rem;
 
@@ -2284,6 +2289,432 @@
      against a 3:1 floor. */
   --focus-ring: var(--o-workbench-accent-text);
 }
+
+/* =============================================================================
+   THE PAPER SURFACE — the product app's ground, and a fourth set of grounds.
+
+   The app was copied from another product's shell and reads as a settings
+   screen: a grey canvas with white cards inset on it, every control lifted on a
+   bevel, the primary button a gradient slab. The operator's decision is PAPER
+   FIRST. One sheet from the rail to the foot, hairlines as the structural
+   element, almost no fills, one accent, and a dark scheme derived from the same
+   ramp at hue 260. docs/plan/26-brand-and-design-language.md is the spec.
+
+   WHY A SCOPE AND NOT A CHANGE TO :root. Three apps import this file. The site
+   is invariant paper already, through its own --v6-* family, and apps/docs
+   inherits the neutral ramp; repainting Tier 2 for everybody would restyle two
+   surfaces this change has neither measured nor screenshotted. CLAUDE.md §9e
+   says the site argues and the product works and they are allowed to look
+   different. So the app opts in by stamping `data-surface="paper"` on <html>,
+   exactly as the builder opts into its pinned-dark workbench above.
+
+   ELEVATION ON PAPER IS A LINE, NOT A LIFT, AND THAT IS THE WHOLE IDEA.
+   The Tier 2 block above states the invariant "a raised surface is lighter than
+   the ground it floats on", and `elevation is monotonic` in tokens.test.ts
+   enforces it. That invariant cannot hold here: the sheet is oklch(1 0 0) and
+   nothing is lighter than white. So the doctrine is RESTATED rather than
+   dropped, and the restatement is the design:
+
+     A surface on paper is separated by its EDGE and its SHADOW, never by its
+     fill. Resting is a hairline; raised is the same hairline plus a soft
+     shadow; the primary control is flat.
+
+   THE HAIRLINE DOES NOT GET LIGHTER ON THE WAY DOWN, and that is not laziness.
+   An input's boundary identifies a control and is bound by WCAG 1.4.11 at 3:1,
+   so it cannot be the weaker half of a resting/raised pair. The ascent is
+   therefore the SHADOW: resting has none, raised has two layers. Stated this
+   way it is countable, which is what `the paper surface` asserts.
+
+   That is one sentence and it is testable, so `the paper surface` in
+   tokens.test.ts measures it: the edge weights must ascend, and no bevel on
+   this surface may carry a fill lift.
+
+   WHAT THIS BUYS FOR ONE ATTRIBUTE. Every control in @orvay/ui reads its depth
+   from --o-bevel-*, and `.o-input` has NO border at all: its only definition is
+   --o-bevel-resting. So rebinding six bevel tokens re-materialises every input,
+   button, menu, popover, dialog and Notice in the product at once, with no
+   component edited. Setting them to `none` instead would have made every input
+   an invisible white box on a white sheet, which is why resting is a hairline
+   here and not an absence.
+
+   THE RAMP RUNS DOWN, NOT UP. In the neutral system the ground is step 3 and a
+   surface is step 1. Here the ground IS the lightest value, so the five rungs
+   descend from the sheet and the ink ramp is the v6 one, unchanged, because the
+   landing page a customer sees first is already set in it.
+
+   MEASURED, NOT CHOSEN BY EYE. Every ratio below was computed through
+   ./oklch.ts against the WORST rung a token can land on, not against the
+   flattering one, which is the correction --o-neutral-11 already carries a note
+   about. The control boundary is the case that changed: at the v6 ornament
+   step (L 0.62) it read 2.70:1 on --bg-active and failed WCAG 1.4.11's 3:1, so
+   it is L 0.56 here.
+   ============================================================================= */
+:root {
+  /* Tier 1, internal, declared beside the block that consumes them for the same
+     reason the workbench family is: proximity is what stopped the slab and its
+     ink drifting 700 lines apart. Hue 260 throughout, which is the v6 ink hue.
+
+       --o-paper-sheet      1.000   the one sheet; canvas AND raised
+       --o-paper-quiet      0.985   a quiet band: table head, a fold, a footer
+       --o-paper-component  0.960   a control's own ground
+       --o-paper-hover      0.930
+       --o-paper-active     0.900   the worst rung, and what every ink below is
+                                    held against
+  */
+  --o-paper-sheet: oklch(1.000 0.0000 260);
+  --o-paper-quiet: oklch(0.985 0.0020 260);
+  --o-paper-component: oklch(0.960 0.0030 260);
+  --o-paper-hover: oklch(0.930 0.0040 260);
+  --o-paper-active: oklch(0.900 0.0050 260);
+
+  /* The two hairlines, taken from v6 unchanged. 1.33:1 on the sheet, which is a
+     divider and not a boundary, exactly the honest range the note above
+     --line-control describes. A line that must be SEEN is --o-paper-edge. */
+  --o-paper-rule: oklch(0.905 0.0030 260);
+  --o-paper-rule-2: oklch(0.840 0.0040 260);
+  --o-paper-rule-3: oklch(0.740 0.0050 260);
+  /* The control boundary. 3.45:1 on --bg-active and 4.65:1 on the sheet,
+     against WCAG 1.4.11's 3:1 floor. v6's ornament step is L 0.62 and reads
+     2.70:1 here, so this is derived for the job rather than borrowed. */
+  --o-paper-edge: oklch(0.560 0.0050 260);
+
+  /* The v6 ink ramp. 19.12:1 and 9.21:1 on the sheet; 14.19:1 and 6.83:1 on
+     the worst rung.
+
+     TWO STEPS, NOT v6's THREE. The third, L 0.490, is the AA floor v6 spends on
+     mono labels and metadata, and it is not declared here because nothing in
+     this scope would bind it: --fg-primary is the first ink and --fg-secondary
+     is the second, and there is no Tier 2 token for meta text yet. A primitive
+     no semantic reads is the §4 case of a value that looks owned and is not, so
+     the third ink arrives with `--fg-meta` and the tabular rows that consume
+     it, and not before. */
+  --o-paper-ink: oklch(0.170 0.0080 260);
+  --o-paper-ink-2: oklch(0.400 0.0080 260);
+
+  /* The one accent, the v6 blue, spent on the active row, the focus ring and a
+     link. 4.81:1 as ink on the worst rung, 6.48:1 on the sheet, and 6.48:1
+     carrying white as a fill. */
+  --o-paper-blue: oklch(0.470 0.1300 236);
+  --o-paper-blue-hover: oklch(0.370 0.1100 236);
+
+  /* NIGHT — the same ladder inverted, hue 260 throughout, for the reader who
+     chose dark and for a 23:00 halt from a phone. Derived, not measured from a
+     reference, because there is no dark reference: the spec asks for the paper
+     ramp read the other way.
+
+     17.28:1 and 8.91:1 on the sheet; 11.25:1 and 5.80:1 on the worst rung. Two
+     steps, for the reason the paper ramp above gives. The blue moves up the
+     ramp because a L 0.47 blue is 4.11:1 on a L 0.17 ground and would fail as
+     ink. */
+  --o-night-sheet: oklch(0.170 0.0080 260);
+  --o-night-quiet: oklch(0.205 0.0080 260);
+  --o-night-component: oklch(0.245 0.0080 260);
+  --o-night-hover: oklch(0.285 0.0080 260);
+  --o-night-active: oklch(0.325 0.0080 260);
+
+  --o-night-rule: oklch(0.300 0.0080 260);
+  --o-night-rule-2: oklch(0.360 0.0080 260);
+  --o-night-rule-3: oklch(0.440 0.0080 260);
+  /* 3.42:1 on --bg-active, 5.25:1 on the sheet. */
+  --o-night-edge: oklch(0.620 0.0100 260);
+
+  --o-night-ink: oklch(0.965 0.0040 260);
+  --o-night-ink-2: oklch(0.760 0.0080 260);
+
+  /* 4.75:1 as ink on the worst rung, 7.29:1 on the sheet. The fill is a
+     separate step because a fill is chosen to CARRY ink and is therefore too
+     light to BE ink here, which is the same trap --accent-text exists for.
+     4.95:1 carrying the shared dark ink. */
+  --o-night-blue: oklch(0.700 0.1100 236);
+  --o-night-blue-hover: oklch(0.760 0.1100 236);
+  --o-night-blue-fill: oklch(0.600 0.1300 236);
+}
+
+/* Tier 2, restated for paper. The attribute goes on <html> in apps/app; custom
+   properties inherit, so every route follows. Nothing outside apps/app may set
+   it, and apps/site and apps/docs are untouched by this whole section.
+
+   THE NEUTRAL RAMP IS DELIBERATELY NOT OVERRIDDEN HERE, which is what keeps
+   this block short. Every alpha family (--o-neutral-a3, the risk tints, the
+   autonomy lines) is translucent and composites correctly over whatever ground
+   it lands on, and each already flips with the reader's theme through the
+   blocks far above. Restating them would fork them. Only the semantics that
+   carry a GROUND ASSUMPTION move, plus every token derived from one of those,
+   because a property is computed where it is DECLARED and overriding an input
+   upstream of its output changes nothing. */
+[data-surface='paper'] {
+  color-scheme: light;
+
+  /* One sheet. --bg-raised is the SAME value as --bg-canvas on purpose: a card
+     inset on a darker ground is the frame-inside-a-frame this redesign deletes,
+     and on paper the hairline is what says where a surface begins. */
+  --bg-canvas: var(--o-paper-sheet);
+  --bg-raised: var(--o-paper-sheet);
+  --bg-subtle: var(--o-paper-quiet);
+  --bg-component: var(--o-paper-component);
+  --bg-hover: var(--o-paper-hover);
+  --bg-active: var(--o-paper-active);
+
+  --line-rule: var(--o-paper-rule);
+  --line-border: var(--o-paper-rule-2);
+  --line-strong: var(--o-paper-rule-3);
+  --line-control: var(--o-paper-edge);
+
+  --fg-primary: var(--o-paper-ink);
+  --fg-secondary: var(--o-paper-ink-2);
+
+  /* THE PRIMARY CONTROL IS A FLAT BLACK PILL, and it is flattened here rather
+     than in button.css. The rule reads
+     `linear-gradient(var(--control-solid-top), var(--control-solid-bottom))`,
+     so binding both stops to one ink produces a flat fill with no component
+     edited and no second code path. Paired ink at 19.12:1. */
+  --control-solid-top: var(--o-paper-ink);
+  --control-solid-bottom: var(--o-paper-ink);
+  --control-solid-ink: var(--o-ink-solid-light);
+
+  /* Derived upstream from --control-solid-* and --bg-subtle, so restated here
+     or the press preview would mix the neutral theme's near-black against this
+     sheet. Same three lines the builder scope needs, for the same reason. */
+  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
+  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
+  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+
+  --accent-solid: var(--o-paper-blue);
+  --accent-hover: var(--o-paper-blue-hover);
+  --accent-line: var(--o-paper-blue);
+  --accent-text: var(--o-paper-blue);
+  --accent-on-solid: var(--o-ink-solid-light);
+
+  /* Derived upstream from --fg-primary, which this scope moves. The spec spends
+     the accent on the active row, the focus ring and a link, so the ring is the
+     blue rather than the ink: 4.81:1 at its worst rung against a 3:1 floor. */
+  --focus-ring: var(--o-paper-blue);
+
+  /* Derived upstream from --accent-solid and the neutral ramp. The light
+     formulation, because this surface is paper whatever the reader chose. */
+  --o-orb-core: color-mix(in oklab, var(--accent-solid) 18%, var(--o-paper-sheet));
+  --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-paper-sheet));
+  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-paper-ink));
+
+  /* The shell's Tier 3, every one of them derived from a Tier 2 token this
+     scope moves. Left out, the rail would paint the old grey canvas against a
+     paper sheet and the seam would be the most visible thing on the screen. */
+  /* THE FRAME'S GEOMETRY, ZEROED, because on paper there is no frame. The
+     names stay so app.css keeps stating no values, and the handle's own
+     hairline derives from both, so a full-height sheet gets a full-height
+     edge with no second rule. */
+  --app-gutter: 0px;
+  --app-card-radius: 0px;
+  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.
+     §2 of the design language reads "never 16px or above" and §4 is exact: 2px
+     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.
+     The shared scale runs 8, 12, 20 and 30, so every surface in the app was
+     between four and fifteen times the spec, and a 30px panel corner is what
+     makes a settings screen read as a consumer app rather than a register.
+     Restated here rather than at :root because the site's own language is
+     built on the same four names and is not this. The pill is untouched: a
+     control is a pill or a surface, and those are the only two shapes. */
+  --o-radius-sm: 2px;
+  --o-radius-md: 2px;
+  --o-radius-lg: 2px;
+  --o-radius-panel: 2px;
+  /* Derived from --o-radius-lg, which the four lines above move. Inert in this
+     app, like the nine --docs-* bindings further down, and declared for the same
+     reason: eleven correct lines cost less than one frozen list. */
+  --docs-card-radius: var(--o-radius-lg);
+  --app-rail-bg: var(--bg-canvas);
+  --app-rail-fg: var(--fg-secondary);
+  --app-rail-fg-active: var(--fg-primary);
+  --app-card-bg: var(--bg-raised);
+  --app-card-line: var(--line-rule);
+
+  /* THE RAIL'S TWO WASHES, WHICH THE DERIVATION SCAN CANNOT SEE.
+     They are `--o-neutral-a3` and `--o-neutral-a4`, alphas of the NEUTRAL ramp,
+     which this scope deliberately leaves alone: every other alpha family
+     composites correctly over any ground, so they were reasoned safe as a
+     class. These two are the exception, and the exception is arithmetic rather
+     than theory. Both mix toward a near-white step (0.955 and 0.940) at 12% and
+     16%, which over a grey canvas was a faint darkening and over PAPER is a mix
+     of white into white. The hovered row and the CURRENT row both came out at
+     the sheet, so the rail had no selected state at all.
+     Restated as mixes of the surface's OWN ink, which is the rule: a wash on
+     paper is pulled toward the ink, never inherited from a ramp that was
+     lightening a different ground. */
+  --app-rail-hover-bg: color-mix(in oklab, var(--o-paper-ink) 5%, transparent);
+  --app-rail-active-bg: color-mix(in oklab, var(--o-paper-ink) 9%, transparent);
+
+  /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.
+     tests/schema/token-scopes.test.ts walks the derivation graph and reported
+     these as overriding an input without its outputs. Two are live in this app
+     today: `--syntax-*` colour every code block the markdown renderer emits, and
+     without these lines a code sample on paper would take the neutral theme's
+     secondary ink. The nine `--docs-*` are consumed only by apps/docs, which
+     never sets this attribute, so they are inert here; they are declared anyway
+     because eleven correct lines cost less than one frozen list that somebody
+     later reads as permission. */
+  --docs-page-bg: var(--bg-canvas);
+  --docs-card-bg: var(--bg-raised);
+  --docs-card-line: var(--line-rule);
+  --docs-rail-fg: var(--fg-secondary);
+  --docs-rail-fg-active: var(--fg-primary);
+  --docs-toc-fg: var(--fg-secondary);
+  --docs-toc-fg-active: var(--fg-primary);
+  --docs-toc-rail: var(--line-rule);
+  --docs-toc-rail-active: var(--fg-primary);
+  --syntax-comment: var(--fg-secondary);
+  --syntax-punctuation: var(--fg-secondary);
+
+  /* THE SIX BEVELS, WHICH ARE THE WHOLE MATERIAL CHANGE.
+     Resting is a hairline. Raised is that hairline plus two shadow layers.
+     The solid control is flat. Shadows are mixed from black, never from an ink
+     step, which is the rule the theme blocks above already carry. */
+  --o-bevel-control-solid: none;
+  /* --o-bevel-control IS A HAIRLINE AND --o-bevel-resting IS A BOUNDARY, and
+     the two were the same line until it was measured on a real page.
+     WCAG 1.4.11 asks for 3:1 on a boundary that IDENTIFIES a control. An empty
+     input is identified by nothing else, so it keeps --line-control. A
+     secondary pill, a dropdown trigger and a menu button all carry a label, so
+     the 4.65:1 ring was doing no work the words were not already doing, and the
+     spec asks for "a hairline pill in ink" rather than an outlined one. */
+  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);
+  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);
+  --o-bevel-raised:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    0 1px 2px -1px color-mix(in oklab, black 10%, transparent),
+    0 12px 28px -14px color-mix(in oklab, black 20%, transparent);
+  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
+  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
+}
+
+/* A NOTE FOR WHOEVER RE-ARMS THE BUILDER. `[data-surface='builder']` above is
+   dead today by an operator decision recorded in builder.tsx, and it does not
+   restate the bevels. It sits BELOW <html>, so the day anything sets it again
+   it will inherit the six declarations above: a hairline resolved from
+   `--line-control` AS THAT TOKEN COMPUTES ON <html>, which is the paper edge,
+   painted onto a pinned-dark pane. A property is computed where it is declared,
+   so re-arming that scope means restating these six there. Not written here in
+   advance, because a scope nothing selects is CSS nobody can see is wrong.
+   `a token scope is selected by something` in tests/schema/token-scopes.test.ts
+   holds the builder VALUE frozen so this stays a line somebody can read. */
+
+/* NIGHT. The reader who chose dark, on the same surface. `data-theme` is always
+   stamped by apps/app, server-side and then by the switcher, so this attribute
+   pair is the only selector needed: there is no `system` theme in this product
+   and a paper surface with no theme attribute is paper, which is the default
+   the spec asks for. */
+[data-surface='paper'][data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-canvas: var(--o-night-sheet);
+  --bg-raised: var(--o-night-sheet);
+  --bg-subtle: var(--o-night-quiet);
+  --bg-component: var(--o-night-component);
+  --bg-hover: var(--o-night-hover);
+  --bg-active: var(--o-night-active);
+
+  --line-rule: var(--o-night-rule);
+  --line-border: var(--o-night-rule-2);
+  --line-strong: var(--o-night-rule-3);
+  --line-control: var(--o-night-edge);
+
+  --fg-primary: var(--o-night-ink);
+  --fg-secondary: var(--o-night-ink-2);
+
+  /* The pill inverts, as the slab does everywhere else in this system: a black
+     pill on a near-black sheet is the 1.21:1 button §12c records. 17.28:1. */
+  --control-solid-top: var(--o-night-ink);
+  --control-solid-bottom: var(--o-night-ink);
+  --control-solid-ink: var(--o-ink-solid-dark);
+
+  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
+  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
+  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+
+  /* The fill and the ink are two steps, because a fill is chosen to CARRY ink
+     and is therefore too light to BE ink. 4.95:1 and 4.75:1 respectively. */
+  --accent-solid: var(--o-night-blue-fill);
+  --accent-hover: var(--o-night-blue);
+  --accent-line: var(--o-night-blue);
+  --accent-text: var(--o-night-blue);
+  --accent-on-solid: var(--o-ink-solid-dark);
+  --focus-ring: var(--o-night-blue);
+
+  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-night-ink));
+  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-night-ink));
+  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-night-sheet));
+
+  /* THE FRAME'S GEOMETRY, ZEROED, because on paper there is no frame. The
+     names stay so app.css keeps stating no values, and the handle's own
+     hairline derives from both, so a full-height sheet gets a full-height
+     edge with no second rule. */
+  --app-gutter: 0px;
+  --app-card-radius: 0px;
+  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.
+     §2 of the design language reads "never 16px or above" and §4 is exact: 2px
+     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.
+     The shared scale runs 8, 12, 20 and 30, so every surface in the app was
+     between four and fifteen times the spec, and a 30px panel corner is what
+     makes a settings screen read as a consumer app rather than a register.
+     Restated here rather than at :root because the site's own language is
+     built on the same four names and is not this. The pill is untouched: a
+     control is a pill or a surface, and those are the only two shapes. */
+  --o-radius-sm: 2px;
+  --o-radius-md: 2px;
+  --o-radius-lg: 2px;
+  --o-radius-panel: 2px;
+  /* Derived from --o-radius-lg, which the four lines above move. Inert in this
+     app, like the nine --docs-* bindings further down, and declared for the same
+     reason: eleven correct lines cost less than one frozen list. */
+  --docs-card-radius: var(--o-radius-lg);
+  --app-rail-bg: var(--bg-canvas);
+  --app-rail-fg: var(--fg-secondary);
+  --app-rail-fg-active: var(--fg-primary);
+  --app-card-bg: var(--bg-raised);
+  --app-card-line: var(--line-rule);
+
+  /* The same two washes, pulled the other way. "Toward the ink" is toward
+     near-white here, and the percentages are higher because a light film over a
+     dark ground carries less than a dark film over a light one. */
+  --app-rail-hover-bg: color-mix(in oklab, var(--o-night-ink) 8%, transparent);
+  --app-rail-active-bg: color-mix(in oklab, var(--o-night-ink) 14%, transparent);
+
+  /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.
+     tests/schema/token-scopes.test.ts walks the derivation graph and reported
+     these as overriding an input without its outputs. Two are live in this app
+     today: `--syntax-*` colour every code block the markdown renderer emits, and
+     without these lines a code sample on paper would take the neutral theme's
+     secondary ink. The nine `--docs-*` are consumed only by apps/docs, which
+     never sets this attribute, so they are inert here; they are declared anyway
+     because eleven correct lines cost less than one frozen list that somebody
+     later reads as permission. */
+  --docs-page-bg: var(--bg-canvas);
+  --docs-card-bg: var(--bg-raised);
+  --docs-card-line: var(--line-rule);
+  --docs-rail-fg: var(--fg-secondary);
+  --docs-rail-fg-active: var(--fg-primary);
+  --docs-toc-fg: var(--fg-secondary);
+  --docs-toc-fg-active: var(--fg-primary);
+  --docs-toc-rail: var(--line-rule);
+  --docs-toc-rail-active: var(--fg-primary);
+  --syntax-comment: var(--fg-secondary);
+  --syntax-punctuation: var(--fg-secondary);
+
+  /* Restated, not inherited. The two shadow layers are mixed from black on a
+     near-black ground, where they do almost nothing, so the hairline carries
+     the whole separation and is a rung lighter than paper's for it. */
+  --o-bevel-control-solid: none;
+  /* The same split as the paper arm: a hairline on a labelled control, a
+     boundary on an input that has no label inside it. */
+  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);
+  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);
+  --o-bevel-raised:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    0 1px 2px -1px color-mix(in oklab, black 40%, transparent),
+    0 12px 28px -14px color-mix(in oklab, black 60%, transparent);
+  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
+  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
+}
+
 
 /*
  * The status pages' own styles. Every colour is a token from tokens.css, which
