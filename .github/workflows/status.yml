@@ -1,15 +1,29 @@
 # Rebuild the public status page.
 #
-# IT HOLDS EXACTLY ONE SECRET, and none that reaches Orvay. `GITHUB_TOKEN` is
-# scoped to this repository alone; every probe target and every vendor feed is a
-# public URL; and `BSKY_APP_PASSWORD` is an app password for a social account,
-# revocable in one click and useful for nothing else. So a compromise of this
-# repository buys an attacker the ability to publish a wrong status page and a
-# wrong post about it, and no path at all into the product.
+# WHAT A COMPROMISE OF THIS REPOSITORY WOULD BUY, updated again because this
+# header has now been wrong twice and each time the file itself is the warning.
+# It said "holds no secret" until the Bluesky step, and "exactly one secret, and
+# none that reaches Orvay" until the health endpoints were gated.
 #
-# That sentence said "holds no secret" until the Bluesky step was added, which
-# would have made this file's own header the kind of stale claim the page it
-# builds exists to refuse.
+# There are three, and only one of them points at the product:
+#
+#   GITHUB_TOKEN            scoped to this repository alone.
+#   BSKY_APP_PASSWORD       an app password for a social account, revocable in
+#                           one click and useful for nothing else.
+#   ORVAY_STATUS_PROBE_KEY  signs the /api/health/* probes against
+#                           app.orvayos.com. THIS ONE REACHES ORVAY, and the
+#                           honest description of what it can do is: read eleven
+#                           booleans about whether subsystems are wired.
+#
+# That key authorises no effect, spends no money, touches no customer data, and
+# names no tenant. It exists because those endpoints open a database connection
+# on every call, so unauthenticated they are an amplifier anybody can spend. A
+# leak would let somebody read the same eleven booleans this page publishes in
+# prose, and would be worth rotating rather than worth an incident. Rotating is
+# two commands and needs no code change: `wrangler secret put
+# STATUS_PROBE_SECRET` on app-orvay, and `gh secret set ORVAY_STATUS_PROBE_KEY`
+# here. Set the Worker first: while the two disagree, every health row reads
+# "not checked" and none of them reports an outage.
 #
 # It runs on GitHub's own runners, which is the point of the whole design: the
 # machine measuring Orvay is on a different network, owned by a different
@@ -96,7 +110,24 @@ jobs:
             SECRET_ARG=(--probe-secret "${{ secrets.ORVAY_PROBE_SECRET }}")
           fi
 
-          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}" "${SECRET_ARG[@]}"
+          # The signing key for the eleven /api/health/* rows, and a DIFFERENT
+          # secret from the one above on purpose. That one is a Cloudflare WAF
+          # skip rule presented to orvay.app, which serves untrusted,
+          # model-authored tenant content; this one authenticates to
+          # app.orvayos.com. One value for both would hand the credential that
+          # opens the health endpoints to the one host whose content we do not
+          # write.
+          #
+          # ABSENT IS SAFE AND VISIBLE. Without it those rows answer 401, which
+          # the prober reads as `probe-unauthorized` and the page renders as "not
+          # checked". It never becomes an outage, which is the property that made
+          # gating those endpoints safe to switch on at all.
+          KEY_ARG=()
+          if [ -n "${{ secrets.ORVAY_STATUS_PROBE_KEY }}" ]; then
+            KEY_ARG=(--probe-key "${{ secrets.ORVAY_STATUS_PROBE_KEY }}")
+          fi
+
+          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}" "${SECRET_ARG[@]}" "${KEY_ARG[@]}"
 
       # ---------------------------------------------------------------------
       # The second channel, for the outage this page cannot report on itself.

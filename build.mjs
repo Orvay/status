@@ -43,6 +43,19 @@ var IdempotencyKey = make();
 var Sha256 = make();
 var Instant = (ms) => ms;
 
+// ../../packages/domain/src/money.ts
+var money = (minor, currency) => ({
+  minor: typeof minor === "bigint" ? minor : BigInt(Math.round(minor)),
+  currency
+});
+var scale = (m, numerator, denominator) => {
+  if (denominator === 0n) throw new RangeError("scale: denominator must be non-zero");
+  const scaled = m.minor * numerator;
+  const half = denominator / 2n;
+  const adjusted = scaled >= 0n ? scaled + half : scaled - half;
+  return { minor: adjusted / denominator, currency: m.currency };
+};
+
 // ../../packages/domain/src/capability.ts
 var CHANNELS = ["email", "voice", "sms"];
 var RESERVED_RESOURCE_PREFIXES = ["communicate", ...CHANNELS].map(
@@ -51,11 +64,13 @@ var RESERVED_RESOURCE_PREFIXES = ["communicate", ...CHANNELS].map(
 
 // ../../packages/domain/src/roles.ts
 var ROLE_ORDER = Object.freeze([
+  "guest",
   "viewer",
   "member",
   "admin",
   "owner"
 ]);
+var GUEST = ["company:read:company"];
 var VIEWER = [
   "company:read:company",
   // Reading a document is its own capability so it can be taken away on its own.
@@ -94,6 +109,20 @@ var ADMIN = [
   "analyze:*:company",
   "member:invite:company",
   "member:grant:company",
+  /*
+      REMOVING A COLLEAGUE, with inviting and granting rather than with the
+      member's own work, and for the reason that pair is here: it is company-wide
+      authority over who occupies a seat, not authority over a piece of work.
+  
+      Admin and not member, deliberately, and the test is the one the memory row
+      below uses. A member who could remove colleagues could empty the company of
+      everyone inside their own envelope; that is not recoverable by policy after
+      the fact, and the reverse mistake, an admin who cannot remove a departed
+      contractor, is recoverable by an owner in one click.
+  
+      An owner needs no entry: `OWNER` is `*:*:*` and already covers it.
+    */
+  "member:remove:company",
   "company.halt:engage:company",
   "company.halt:release:company",
   "integration:connect:company",
@@ -130,6 +159,7 @@ var ADMIN = [
 ];
 var OWNER = ["*:*:*"];
 var ROLES = Object.freeze({
+  guest: Object.freeze(GUEST),
   viewer: Object.freeze(VIEWER),
   member: Object.freeze(MEMBER),
   admin: Object.freeze(ADMIN),
@@ -265,6 +295,7 @@ var overallFrom = (displays) => {
     level,
     complete: unknown === 0 && notMeasured === 0,
     measured: levels.length,
+    impaired: levels.filter((l) => l !== "operational").length,
     unknown,
     notMeasured
   };
@@ -272,7 +303,6 @@ var overallFrom = (displays) => {
 
 // ../../packages/status/src/components.ts
 var MINUTE = 60 * 1e3;
-var HOUR = 60 * MINUTE;
 var GROUPS = [
   {
     id: "surfaces",
@@ -357,56 +387,63 @@ var COMPONENTS = [
     budget: { staleAfterMs: 45 * MINUTE }
   },
   // -------------------------------------------------------------------------
-  // What runs for you. None of this is visible from outside, and every row says
-  // so rather than showing a colour nothing earned.
+  // What runs for you.
+  //
+  // THIS COMMENT USED TO READ "none of this is visible from outside, and every
+  // row says so rather than showing a colour nothing earned". That was true for
+  // as long as it was true, and it stopped being true when every row here gained
+  // a signed health endpoint at `/api/health/<id>`. Leaving it would be §11a's
+  // worst shape: prose that is wrong about behaviour which still exists under
+  // the same name, in the file a reader checks first.
+  //
+  // WHAT IS VISIBLE FROM OUTSIDE IS WIRING, NOT WORK, and every summary below
+  // says which. A probe with no session and no tenant scope can see that a
+  // subsystem is present and connected. It cannot see a customer's run, because
+  // RESTRICTIVE row-level security returns zero rows to an unscoped connection,
+  // which means a count here would read zero, conclude "quiet" and publish
+  // green. The narrower claim is the one these can support.
   // -------------------------------------------------------------------------
   {
     id: "agent-runs",
     group: "work",
     label: "Agent runs",
-    summary: "Work being proposed and carried out by agents.",
-    budget: { staleAfterMs: 2 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Run health has to come from real customer traffic rather than from an outside check, and that measurement is not built."
+    summary: "Work being proposed and carried out by agents. We check that the machinery which records a run is present and reachable. It cannot tell you whether your own run succeeded.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "in-app-notifications",
     group: "work",
     label: "Notifications in the product",
-    summary: "Being told inside the product when something in your company is waiting for a decision from you. A separate row from email notifications, because one can work while the other does not.",
-    budget: { staleAfterMs: 2 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. A notification is written in the same transaction as the work it is about, so an outside check cannot tell a quiet week from a broken one without creating real work to be notified about."
+    summary: "Being told inside the product when something in your company is waiting for a decision from you. A separate row from email notifications, because one can work while the other does not. We check that the place notifications are written is present. A quiet week and a broken one look alike from outside, so nothing here counts them.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "independent-verification",
     group: "work",
     label: "Independent verification",
-    summary: "Checking finished work with a second, separate actor. A different row from agent runs on purpose: work can still be running while nothing can be independently verified.",
-    budget: { staleAfterMs: 2 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Verification health has to come from real customer traffic rather than from an outside check, and that measurement is not built."
+    summary: "Checking finished work with a second, separate actor. A different row from agent runs on purpose: work can still be running while nothing can be independently verified. We check that the database still refuses to record a check performed by whoever did the work.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "webhook-delivery",
     group: "work",
     label: "Webhook delivery",
-    summary: "Sending your company's events to an address you gave us, signed so your server can check they came from Orvay.",
-    budget: { staleAfterMs: 2 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. A delivery goes to an address you chose, so the only honest check is whether your own server answered, and that reading belongs to you rather than to us. Until this row is measured, the record of every attempt and every reply is on the endpoint's own page in the product."
+    summary: "Sending your company's events to an address you gave us, signed so your server can check they came from Orvay. We check that a delivery can still be queued and signed. Whether your own server answered is on the endpoint's own page in the product.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "scheduled-work",
     group: "work",
     label: "Scheduled work",
-    summary: "Background work that runs on a timer rather than when you ask for it.",
-    budget: { staleAfterMs: 2 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. A timer that stops is silent by nature, so this row needs a check that lives outside our own systems. It is not built."
+    summary: "Background work that runs on a timer rather than when you ask for it. The timer leaves a mark every five minutes, and this row reads how old that mark is. A scheduler that has stopped shows here within fifteen minutes.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "evidence-archive",
     group: "work",
     label: "Evidence archive",
-    summary: "The off-site, tamper-evident copy of your audit trail.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. The check is not built."
+    summary: "The off-site, tamper-evident copy of your audit trail. We read the archive on every check, so storage we can no longer reach shows up here rather than on the day somebody needs it.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   // -------------------------------------------------------------------------
   // Your account.
@@ -415,9 +452,8 @@ var COMPONENTS = [
     id: "checkout-and-billing",
     group: "account",
     label: "Checkout and billing",
-    summary: "Starting a plan, changing a plan, and paying for one.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Checkout health has to come from real attempts rather than from a test payment, and that measurement is not built."
+    summary: "Starting a plan, changing a plan, and paying for one. We check that this deployment can take a payment and hear the result back. No test payment is made.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "email-notifications",
@@ -450,7 +486,13 @@ var COMPONENTS = [
     group: "account",
     label: "Email notifications",
     summary: "Messages we send you about your own company. We check that this deployment can still send, not that a message arrived.",
-    budget: { staleAfterMs: 6 * HOUR }
+    // TIGHTENED FROM SIX HOURS when this became a signed health endpoint like
+    // its ten new siblings. It is probed on the same cadence as every other row,
+    // so a six-hour budget only meant a probe could be dead for most of a
+    // working day while the tile stayed green. That is the stale-green failure
+    // `reading.ts` exists to refuse, and a budget is the one place it can be
+    // reintroduced without anybody writing the word green.
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "inbound-mail",
@@ -483,9 +525,8 @@ var COMPONENTS = [
         */
     group: "work",
     label: "Mail sent to your company",
-    summary: "Messages people send to your company address. We do not yet watch whether they arrive.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Proving a message arrived means sending one, and a check that emails your address every fifteen minutes would get the sending domain blocked. What is missing is a check of whether the address is still connected, rather than a test message."
+    summary: "Messages people send to your company address. We check that an arriving message can still be received and routed to the right company. No test message is sent, so this cannot tell you the address is reachable from the outside world.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "voice-mode",
@@ -525,7 +566,14 @@ var COMPONENTS = [
       checks, which §13c calls worse than not measuring at all.
     */
     summary: "Talking to your company in the console, and deciding by voice. This watches whether the browser is still allowed to open your microphone and play the answer. It does not check the speech service itself.",
-    budget: { staleAfterMs: 6 * HOUR }
+    // FORTY-FIVE MINUTES, LIKE EVERY OTHER ROW, and the six hours it carried was
+    // a leftover from when this row was unmeasured. Every component is probed on
+    // ONE cadence, so a budget six hours wide did not describe this row's
+    // freshness, it just meant a prober that died after breakfast kept this tile
+    // green until the afternoon. That is the stale-green failure `reading.ts`
+    // exists to refuse, reintroduced through the one field where nobody has to
+    // write the word green.
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "mailbox",
@@ -540,9 +588,8 @@ var COMPONENTS = [
     */
     group: "surfaces",
     label: "Connected mailbox",
-    summary: "Reading and answering a mailbox you connected by signing in at Microsoft. Nothing sends on its own; a reply goes only when you press Send.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Reading a mailbox needs the grant you gave at Microsoft, and the status prober holds no grant, so it cannot tell whether Microsoft is answering."
+    summary: "Reading and answering a mailbox you connected by signing in at Microsoft. Nothing sends on its own; a reply goes only when you press Send. We check that a mailbox can still be connected and that your connection is stored. Reading one needs the grant you gave at Microsoft, so this cannot tell whether Microsoft is answering for you.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "repository-changes",
@@ -559,11 +606,12 @@ var COMPONENTS = [
         */
     group: "surfaces",
     label: "Repository changes",
-    summary: "Proposing a change to a repository you connected, and opening the pull request once a person approves it. Nothing is opened until somebody presses Run.",
-    budget: { staleAfterMs: 6 * HOUR },
-    notMeasuredWhy: "Nothing watches this yet. Opening a pull request uses the GitHub token you stored, and the status prober holds no token, so it cannot tell whether GitHub is answering for you."
+    summary: "Proposing a change to a repository you connected, and opening the pull request once a person approves it. Nothing is opened until somebody presses Run. We check that your connection is stored and readable. Opening a pull request uses the GitHub token you stored, so this cannot tell whether GitHub is answering for you.",
+    budget: { staleAfterMs: 45 * MINUTE }
   }
 ];
+var readyMarker = (id) => `${id}-ready`;
+var degradedMarker = (id) => `${id}-degraded`;
 
 // ../../packages/status/src/daily.ts
 var EMPTY_DAILY = { schema: 1, days: {} };
@@ -722,6 +770,194 @@ var humanDuration = (ms) => {
   const days = Math.floor(hours / 24);
   return `${days} d ${hours % 24} h`;
 };
+
+// ../../packages/entitlements/src/index.ts
+var CREDIT_COST_MINOR = 6n;
+var PLANS = {
+  free: {
+    tier: "free",
+    priceMinor: 0n,
+    // 25 credits. Round because it is READ by a person, and derived from the
+    // money rather than the other way round: 25 x CREDIT_COST_MINOR = 150.
+    allowanceMinor: 150n,
+    features: [],
+    limits: { members: 3, departments: 1, concurrentRuns: 1 },
+    heartbeatSeconds: 86400
+  },
+  standard: {
+    tier: "standard",
+    priceMinor: 2000n,
+    // 100 credits, $6.00 of model spend, 30% of price.
+    allowanceMinor: 600n,
+    features: ["console_propose", "voice", "site_unbranded"],
+    limits: { members: 5, departments: 3, concurrentRuns: 2 },
+    heartbeatSeconds: 86400
+  },
+  pro: {
+    tier: "pro",
+    priceMinor: 5000n,
+    // 300 credits, $18.00, 36% of price.
+    allowanceMinor: 1800n,
+    features: ["console_propose", "voice", "audit_export", "site_export", "site_unbranded"],
+    limits: { members: 25, departments: 10, concurrentRuns: 8 },
+    heartbeatSeconds: 3600
+  },
+  max: {
+    tier: "max",
+    priceMinor: 20000n,
+    // 1,500 credits, $90.00, 45% of price.
+    allowanceMinor: 9000n,
+    features: [
+      "console_propose",
+      "audit_export",
+      "site_export",
+      "site_unbranded",
+      "crypto_shred",
+      "custom_policy",
+      "voice"
+    ],
+    limits: { members: 100, departments: Number.MAX_SAFE_INTEGER, concurrentRuns: 32 },
+    heartbeatSeconds: 900
+  },
+  max2: {
+    tier: "max2",
+    priceMinor: 50000n,
+    // 4,000 credits, $240.00, 48% of price.
+    allowanceMinor: 24000n,
+    features: [
+      "console_propose",
+      "audit_export",
+      "site_export",
+      "site_unbranded",
+      "crypto_shred",
+      "custom_policy",
+      "voice"
+    ],
+    limits: { members: 250, departments: Number.MAX_SAFE_INTEGER, concurrentRuns: 64 },
+    heartbeatSeconds: 900
+  },
+  max3: {
+    tier: "max3",
+    priceMinor: 99900n,
+    // 9,000 credits, $540.00, 54% of price. 43.02% gross margin once the
+    // worst-case processor fee is taken off ($29.27 on a $999 charge), and
+    // ~18% for a customer who also uses SSO and burns the whole allowance. That
+    // is the thinnest supported combination and it is deliberate: see the Tier
+    // comment. The 46% and 21% figures this comment used to carry were computed
+    // before payment processing was modelled at all.
+    allowanceMinor: 54000n,
+    features: [
+      "console_propose",
+      "sso",
+      "scim",
+      "audit_export",
+      "site_export",
+      "site_unbranded",
+      "crypto_shred",
+      "custom_policy",
+      "byo_model_keys",
+      "voice"
+    ],
+    limits: {
+      members: Number.MAX_SAFE_INTEGER,
+      departments: Number.MAX_SAFE_INTEGER,
+      concurrentRuns: 128
+    },
+    heartbeatSeconds: 900
+  }
+};
+var PLAN_CURRENCY = "USD";
+var PACK_RATE_BPS = 15000n;
+var packRateMinorFor = (tier) => {
+  const plan = PLANS[tier];
+  if (plan.priceMinor === "negotiated") return null;
+  if (plan.priceMinor === 0n) return null;
+  const credits = plan.allowanceMinor / CREDIT_COST_MINOR;
+  if (credits === 0n) return null;
+  return scale(money(plan.priceMinor, PLAN_CURRENCY), PACK_RATE_BPS, credits * 10000n).minor;
+};
+var packPriceMinorFor = (tier, credits) => {
+  const rate = packRateMinorFor(tier);
+  if (rate === null || credits <= 0n) return null;
+  return rate * credits;
+};
+
+// ../../packages/billing/src/prices.ts
+var PRICE_LOOKUP_KEYS = {
+  standard: "orvay_standard_usd_monthly",
+  pro: "orvay_pro_usd_monthly",
+  max: "orvay_max_usd_monthly",
+  max2: "orvay_max2_usd_monthly",
+  max3: "orvay_max3_usd_monthly"
+};
+
+// ../../packages/billing/src/signature.ts
+var HEX = "0123456789abcdef";
+var toHex = (bytes) => {
+  let out = "";
+  for (const byte of bytes) {
+    out += (HEX[byte >> 4] ?? "") + (HEX[byte & 15] ?? "");
+  }
+  return out;
+};
+var signPayload = async (secret, timestampSeconds, payload) => {
+  const encoder = new TextEncoder();
+  const key2 = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const digest = await crypto.subtle.sign(
+    "HMAC",
+    key2,
+    encoder.encode(`${timestampSeconds}.${payload}`)
+  );
+  return toHex(new Uint8Array(digest));
+};
+
+// ../../packages/billing/src/packs.ts
+var PACK_GRANTS_MINOR = [600n, 3000n, 12000n];
+var packLabelFor = (grantMinor) => Number(grantMinor / CREDIT_COST_MINOR);
+var isKnownPackGrant = (grantMinor) => PACK_GRANTS_MINOR.includes(grantMinor);
+var packPriceMinor = (tier, grantMinor) => {
+  if (!isKnownPackGrant(grantMinor)) return null;
+  return packPriceMinorFor(tier, grantMinor / CREDIT_COST_MINOR);
+};
+var packLookupKeyFor = (tier, grantMinor) => isKnownPackGrant(grantMinor) ? `orvay_pack_${tier}_${String(packLabelFor(grantMinor))}_usd` : null;
+var PACK_SKUS = Object.keys(PRICE_LOOKUP_KEYS).flatMap((key2) => {
+  const tier = key2;
+  return PACK_GRANTS_MINOR.flatMap((grantMinor) => {
+    const priceMinor = packPriceMinor(tier, grantMinor);
+    const lookupKey = packLookupKeyFor(tier, grantMinor);
+    return priceMinor === null || lookupKey === null ? [] : [{ tier, grantMinor, priceMinor, lookupKey }];
+  });
+});
+
+// ../../packages/billing/src/pack-events.ts
+var PACK_EVENT_TYPES = [
+  "checkout.session.completed",
+  "checkout.session.async_payment_succeeded",
+  "payment_intent.succeeded",
+  "payment_intent.payment_failed"
+];
+
+// ../../packages/billing/src/events.ts
+var SUBSCRIPTION_EVENT_TYPES = [
+  "checkout.session.completed",
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted"
+];
+var HANDLED_EVENT_TYPES = [
+  ...SUBSCRIPTION_EVENT_TYPES,
+  ...PACK_EVENT_TYPES.filter((type) => !SUBSCRIPTION_EVENT_TYPES.includes(type))
+];
+
+// ../../packages/status/src/probe-auth.ts
+var PROBE_SIGNATURE_HEADER = "orvay-probe-signature";
+var probeSignatureHeader = async (secret, timestampSeconds, path) => `t=${timestampSeconds},v1=${await signPayload(secret, timestampSeconds, path)}`;
 
 // src/targets.ts
 var EDGE = {
@@ -922,9 +1158,153 @@ var HEALTH_TARGETS = [
     // whether this deployment is still WIRED to send; it sends nothing, because
     // a probe that mails somebody every fifteen minutes gets the sending domain
     // blocked.
-    bodyMarker: "email-sending-configured",
+    //
+    // THE MARKER MOVED FROM `email-sending-configured` TO THE DERIVED FORM when
+    // this endpoint was brought under the signed rule with the other ten. The
+    // literal was the last hand-typed marker on the page.
+    bodyMarker: readyMarker("email-notifications"),
+    degradedMarker: degradedMarker("email-notifications"),
     expectStatus: 200,
-    thresholds: APP
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "agent-runs",
+    url: `${HOSTS.app}/api/health/agent-runs`,
+    // `orvay.contracts` and `orvay.execution_runs` present. A run is a proposal
+    // plus an attempt at it, so a deployment missing either cannot record work
+    // at all, which is what a deploy-without-a-migration produces.
+    bodyMarker: readyMarker("agent-runs"),
+    degradedMarker: degradedMarker("agent-runs"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "in-app-notifications",
+    url: `${HOSTS.app}/api/health/in-app-notifications`,
+    bodyMarker: readyMarker("in-app-notifications"),
+    degradedMarker: degradedMarker("in-app-notifications"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "independent-verification",
+    url: `${HOSTS.app}/api/health/independent-verification`,
+    /*
+          THE ONLY TARGET ON THIS PAGE THAT ASSERTS A LAW RATHER THAN A SERVICE.
+    
+          The endpoint checks that `verifier_is_not_executor` is still a constraint
+          on `orvay.verification_results`. That constraint IS Law 1, written where it
+          cannot be forgotten, and losing it leaves verification recording happily
+          while the independence that makes it worth anything is gone. Nothing else
+          in the product would notice.
+    
+          A degraded marker rather than a failure, because the subsystem would still
+          be there and still be working. What would be missing is the guarantee.
+        */
+    bodyMarker: readyMarker("independent-verification"),
+    degradedMarker: degradedMarker("independent-verification"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "webhook-delivery",
+    url: `${HOSTS.app}/api/health/webhook-delivery`,
+    bodyMarker: readyMarker("webhook-delivery"),
+    degradedMarker: degradedMarker("webhook-delivery"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "scheduled-work",
+    url: `${HOSTS.app}/api/health/scheduled-work`,
+    /*
+          THE ONE ROW WHOSE CHECK IS A MEASUREMENT RATHER THAN AN INVENTORY, and the
+          row that has wanted this since the page existed: "a timer that stops is
+          silent by nature, so this row needs a check that lives outside our own
+          systems".
+    
+          The orchestrator's five-minute sweep calls `/api/unattended`, which now
+          leaves a mark. This reads its age. A scheduler that has stopped shows up as
+          a degraded row within fifteen minutes, where previously it showed up as
+          nothing at all, on any surface, indefinitely.
+        */
+    bodyMarker: readyMarker("scheduled-work"),
+    degradedMarker: degradedMarker("scheduled-work"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "evidence-archive",
+    url: `${HOSTS.app}/api/health/evidence-archive`,
+    /*
+          THE ONLY HEALTH ENDPOINT THAT TOUCHES ITS DEPENDENCY. A `head` on a key
+          chosen to be absent costs nothing and creates nothing, so the argument that
+          stops the email and billing rows from contacting their vendors does not
+          apply.
+    
+          It exists because a PRESENT binding is not a REACHABLE bucket:
+          `evidence-orvay` is pinned to the `eu` jurisdiction permanently, and a
+          binding that loses its matching `jurisdiction` line resolves against the
+          default and finds no bucket, while still answering `get`.
+        */
+    bodyMarker: readyMarker("evidence-archive"),
+    degradedMarker: degradedMarker("evidence-archive"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "checkout-and-billing",
+    url: `${HOSTS.app}/api/health/checkout-and-billing`,
+    // Stripe configuration and the idempotency record, read. Nothing is called:
+    // a probe that opened a checkout session every fifteen minutes would create
+    // real objects in a real account.
+    bodyMarker: readyMarker("checkout-and-billing"),
+    degradedMarker: degradedMarker("checkout-and-billing"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "inbound-mail",
+    url: `${HOSTS.app}/api/health/inbound-mail`,
+    // The receiving half only. The Email Routing rule and the MX records on
+    // `orvay.app` stay unwatched, because proving a message arrived means
+    // sending one, and the component summary keeps saying so.
+    bodyMarker: readyMarker("inbound-mail"),
+    degradedMarker: degradedMarker("inbound-mail"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "mailbox",
+    url: `${HOSTS.app}/api/health/mailbox`,
+    // Degraded when the OAuth client is absent: nobody could CONNECT a mailbox,
+    // while everything already connected is still stored and still readable.
+    bodyMarker: readyMarker("mailbox"),
+    degradedMarker: degradedMarker("mailbox"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "repository-changes",
+    url: `${HOSTS.app}/api/health/repository-changes`,
+    // The connection store only. Opening a pull request uses the customer's own
+    // token, so there is nothing here that could ask GitHub whether it answers
+    // for them, and the component's note already refused to claim otherwise.
+    bodyMarker: readyMarker("repository-changes"),
+    degradedMarker: degradedMarker("repository-changes"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
   }
 ];
 var SECONDARY_TARGETS = [
@@ -1010,7 +1390,14 @@ var classifyError = (error) => {
   return "probe-errored";
 };
 var PROBE_SECRET_HEADER = "x-orvay-probe";
-var attempt = async (target, fetchImpl, clock, probeSecret) => {
+var signatureFor = async (target, probeKey) => {
+  if (target.signed !== true || probeKey === void 0 || probeKey === "") return {};
+  const path = new URL(target.url).pathname;
+  const header = await probeSignatureHeader(probeKey, Math.floor(Date.now() / 1e3), path);
+  return { [PROBE_SIGNATURE_HEADER]: header };
+};
+var attempt = async (target, fetchImpl, clock, probeSecret, probeKey) => {
+  const signature = await signatureFor(target, probeKey);
   const started = clock();
   try {
     const response = await fetchImpl(target.url, {
@@ -1028,7 +1415,8 @@ var attempt = async (target, fetchImpl, clock, probeSecret) => {
         // visitor numbers.
         "user-agent": USER_AGENT,
         accept: "text/html,application/xhtml+xml",
-        ...probeSecret === void 0 ? {} : { [PROBE_SECRET_HEADER]: probeSecret }
+        ...probeSecret === void 0 ? {} : { [PROBE_SECRET_HEADER]: probeSecret },
+        ...signature
       },
       signal: AbortSignal.timeout(target.thresholds.timeoutMs)
     });
@@ -1058,6 +1446,9 @@ var gradeResponse = (target, responded, previousWasSlow = false) => {
       };
     }
   } else if (!responded.body.includes(target.bodyMarker)) {
+    if (target.degradedMarker !== void 0 && responded.body.includes(target.degradedMarker)) {
+      return { level: "degraded", note: "reported a fault in itself" };
+    }
     return { level: "partial-outage", note: "page did not contain its expected content" };
   }
   for (const assertion of target.headers ?? []) {
@@ -1074,12 +1465,15 @@ var gradeResponse = (target, responded, previousWasSlow = false) => {
 var sleep = (ms) => new Promise((resolve2) => {
   setTimeout(resolve2, ms);
 });
-var probeTarget = async (target, fetchImpl, clock, delay = sleep, probeSecret, previousWasSlow = false) => {
+var probeTarget = async (target, fetchImpl, clock, delay = sleep, probeSecret, previousWasSlow = false, probeKey) => {
   let last = "probe-errored";
   for (let n = 1; n <= CONFIRMATIONS; n += 1) {
-    const result = await attempt(target, fetchImpl, clock, probeSecret);
+    const result = await attempt(target, fetchImpl, clock, probeSecret, probeKey);
     if (result.kind === "responded") {
       if (wasChallenged(result.headers)) return { kind: "blocked", reason: "challenged" };
+      if (target.signed === true && result.status === 401) {
+        return { kind: "blocked", reason: "probe-unauthorized" };
+      }
       const graded = gradeResponse(target, result, previousWasSlow);
       return {
         kind: "measured",
@@ -1587,6 +1981,9 @@ var PRODUCT_SOURCE = {
   // significant effect on a person keeps recorded human involvement whatever is
   // chosen here, and that record is the evidence the obligation was met.
   "onboarding.authority.open.risk": "Most work will happen before you see it. Anything with a legal effect on a person still waits for you.",
+  "onboarding.timezone.label": "Time zone",
+  "onboarding.timezone.hint": "Orvay works on goals overnight and reports in the morning. This is the clock it uses.",
+  "onboarding.timezone.now": "Current time there:",
   "onboarding.authority.note": "This records a starting posture. The rules it turns into are set on the policies page, where you can see and change each one.",
   // 6 — Done.
   "onboarding.done.heading": "Your company is set up",
@@ -1714,6 +2111,50 @@ var PRODUCT_SOURCE = {
     one: "{count} recorded event since this company was created.",
     other: "{count} recorded events since this company was created."
   },
+  /*
+      WHAT A NOTIFICATION SAYS, IN THE READER'S LANGUAGE.
+  
+      These were eight English sentences in a `Record` in `apps/app`, rendered on
+      /activity and used as the title of every push notification. Both are surfaces
+      a customer reads, so §5b applies and did not hold.
+  
+      ONE SENTENCE PER KIND, and the `Record` over the kind union stays: a kind
+      added without a sentence is still a compile error. What changed is that the
+      sentence is a key rather than the words. The ternary this arrangement
+      replaced gave every kind but one the else branch, and told a company that had
+      been STOPPED that it had a decision waiting.
+    */
+  "notification.headline.approval.waiting": "A contract is waiting on a decision",
+  "notification.headline.message.received": "Someone emailed your company address",
+  // NOT "waiting". The policy allowed it and nobody was asked, which is the one
+  // thing this row exists to say.
+  "notification.headline.run.auto_allowed": "Work ran without anybody being asked",
+  "notification.headline.company.halted": "This company was stopped",
+  // IT NAMES THE WAIT, because that is the only new information. The first line
+  // already said a decision is waiting; this one exists because a day passed.
+  "notification.headline.approval.escalated": "A decision has been waiting since yesterday",
+  // NOT "waiting". A briefing asks nothing of anybody; it reports.
+  "notification.headline.briefing.ready": "Your morning briefing is ready",
+  // Says who did it, because "you were mentioned" reads as the product talking
+  // and this is a person asking for a person.
+  "notification.headline.comment.mentioned": "Somebody asked for you by name",
+  // BOTH FACTS, because either alone is misleading: a goal that keeps failing is
+  // not news if it is still running, and a goal that stopped is not news if
+  // nobody knows why.
+  "notification.headline.goal.thrashing": "A goal kept failing and was stopped",
+  /*
+    THE REST OF A PUSH NOTIFICATION. The title above is the headline; these are
+    the two lines under it and the one shown when nothing is waiting. A push with
+    a German title and an English body is worse than either on its own.
+  */
+  "notification.push.none.title": "Nothing is waiting in {company}",
+  "notification.push.none.body": "You are up to date.",
+  "notification.push.only": "In {company}.",
+  "notification.push.more": {
+    one: "In {company}, with {count} more waiting.",
+    other: "In {company}, with {count} more waiting."
+  },
+  "home.loading": "Loading your company",
   "home.metrics.label": "What {brand} knows",
   "home.metric.running": "Running now",
   "home.metric.waiting": "Waiting on you",
@@ -1723,6 +2164,19 @@ var PRODUCT_SOURCE = {
   "home.metric.spent": "Spent this period",
   "home.running.heading": "What is running",
   "home.running.none": "Nothing is running right now. Work starts when you approve it, or on its own where your policy already allows it.",
+  /*
+    WHAT IS RUNNING, NAMED. This panel used to render `home.recorded`, whose text
+    is about the event log, so a customer with one run in flight read "1 recorded
+    events since this company was created" under a heading about running work.
+    Wrong subject, and the wrong plural arm too, because `render` takes `.other`
+    at every count.
+  */
+  "home.running.since": "Started {when}",
+  "home.running.unnamed": "Work with no contract on file",
+  "home.running.more": {
+    one: "and {count} more running.",
+    other: "and {count} more running."
+  },
   "home.needs.heading": "What needs you",
   "home.needs.none": "Nothing is waiting on a human.",
   "home.needs.noneProposed": "Nothing has been proposed yet either.",
@@ -1736,6 +2190,7 @@ var PRODUCT_SOURCE = {
   "home.empty.title": "Your company has no record yet",
   "home.empty.because": "An entry is written for every proposal, decision, run and verification. Yours is empty because nothing has been proposed. Give it a goal and it will propose the first actions against it.",
   "home.empty.action": "Set the first goal",
+  "nav.skip": "Skip to the page",
   "nav.sections": "Sections",
   "nav.overview": "Overview",
   "nav.approvals": "Approvals",
@@ -3156,8 +3611,13 @@ var PRODUCT_SOURCE = {
   // custom row reads `role.custom.summary` followed by exactly one of the three
   // bound sentences below. Two checkable containment claims beat one false one.
   // ---------------------------------------------------------------------------
+  // The guest summary names the ONE thing that separates it from a viewer,
+  // because a person choosing between two read-only roles has no other way to
+  // tell them apart. Saying "limited access" here would be true and useless.
+  "role.guest.label": "Guest",
+  "role.guest.summary": "Reads this company, changes nothing, and cannot open the files.",
   "role.viewer.label": "Viewer",
-  "role.viewer.summary": "Reads this company and changes nothing.",
+  "role.viewer.summary": "Reads this company, including the files, and changes nothing.",
   "role.member.label": "Member",
   "role.member.summary": "Proposes work, runs it, and approves or refuses what an agent proposes. All of it stays inside this company.",
   "role.admin.label": "Admin",
@@ -3278,6 +3738,7 @@ var PRODUCT_SOURCE = {
   "usage.phase.build": "Building",
   "usage.phase.search": "Searching",
   "usage.phase.speech": "Speaking",
+  "usage.phase.console": "Answering",
   "usage.phase.other": "Not recorded",
   "usage.byGoal": "By goal",
   "usage.noGoal": "Not tied to a goal",
@@ -3331,8 +3792,26 @@ var PRODUCT_SOURCE = {
   "shell.halt.idle": "Halt",
   "shell.credits.low": "Running low",
   "evidence.raw": "Raw",
+  "evidence.check.ok": "Recomputed in your browser: the hash matches the record.",
+  "evidence.check.bad": "Recomputed in your browser: the hash does NOT match, so this record changed after it was written.",
+  "evidence.check.unknown": "This record cannot be recomputed in the browser.",
   "product.notes": "What the run could not determine",
   "product.inconclusive": "This run did not reach a conclusion from what it was given.",
+  "inbox.none": "Nothing has been proposed in this company.",
+  "inbox.counts": "{waiting} waiting on a human, {decided} already decided.",
+  "inbox.capped": "Showing the most recent {shown} of {total}. Older proposals are not on this page yet.",
+  "inbox.showingAll": "{total} in all.",
+  "inbox.empty.title": "Nothing has been proposed",
+  "inbox.empty.body": "{brand} proposes actions against a goal. This company has no proposals because it has no goal yet, or because nothing has been proposed against the ones it has.",
+  "inbox.empty.action": "Set a goal",
+  "inbox.waiting": "Waiting on you",
+  "inbox.refusedAt": "refused at {gate}",
+  "inbox.needsYou": "needs you",
+  "inbox.unattended": "would run unattended",
+  "inbox.decided": "Already decided",
+  "inbox.refused": "refused",
+  "inbox.checked": "checked by another actor",
+  "inbox.notEstablished": "ran, not established",
   "contract.tabs": "Views of this contract",
   "contract.tab.contract": "Contract",
   "contract.tab.output": "Output",
@@ -3372,8 +3851,59 @@ var PRODUCT_SOURCE = {
   "contract.check.notEstablishes": "What it does not",
   "contract.check.defaultEstablishes": "the stored record is consistent",
   "contract.check.defaultNot": "that anything left this system",
+  "contract.check.next": "What to do next",
+  "contract.check.next.body": "A check that did not hold does not mean the action failed. It means a different actor could not confirm it from the record. Read the evidence below first. If the effect could still be reaching something outside the company, stop all autonomy from the rail, which takes effect on the next gate. This contract will not run a second time: a retry is a new contract, so set the goal again to have one proposed.",
+  "contract.check.next.goal": "Set the goal again",
   "contract.evidence": "Evidence",
   "contract.proposedBy": "Proposed by {actor}, and hash-addressed: the seal below is computed from the contract's own content, so an approval cannot be moved to a different action.",
+  "contract.replaces.title": "Replaces an earlier proposal",
+  "contract.replaces.link": "Earlier proposal {hash}",
+  "contract.replaces.same": "The terms are the same. Only the time and the lineage differ.",
+  "contract.replacedBy.title": "Replaced by a later proposal",
+  "contract.replacedBy.body": "This one can no longer be decided. Decide on the later proposal instead.",
+  "contract.replacedBy.link": "Later proposal {hash}",
+  "contract.change.was": "Was",
+  "contract.change.now": "Now",
+  "contract.change.objective": "Objective",
+  "contract.change.capabilities": "Capability",
+  "contract.change.steps": "Steps",
+  "contract.change.reach": "Reaches",
+  "contract.change.bearer": "Consequence borne by",
+  "contract.change.reversible": "Reversible",
+  "contract.change.expires": "Expires",
+  "contract.change.claims": "Claims",
+  "contract.change.cites": "Cites",
+  "decision.error.notContract": "that is not a contract",
+  "decision.error.gate": "refused at the {gate} gate: {reason}",
+  "decision.error.signedOut": "you are not signed in",
+  "decision.error.notHere": "that contract is not in this company",
+  "decision.error.decided": "somebody already decided this one; the page has been refreshed",
+  "decision.error.superseded": "a later proposal replaced this one, so it can no longer be decided",
+  "decision.error.notApproved": "this contract has not been approved, so there is nothing to run",
+  // TWO VALUES AND NO COUNT NOUN. "needs {n} more people" would bind a number to
+  // a plural, and French takes the singular below two (§8b).
+  "decision.ok.endorsed": "Recorded. Agreed by {have} of {need}. It cannot run until the others have looked at it.",
+  "comment.error.empty": "Write something first.",
+  "comment.error.tooLong": "That is longer than {limit} characters. Shorten it, or attach a file.",
+  "comment.ok.posted": "Posted.",
+  // The count is a value and "were told" carries no plural noun bound to it, so
+  // this needs no plural rule in any of the six languages (Â§8b).
+  "comment.ok.mentioned": "Posted. {count} of your colleagues were told.",
+  "comment.label": "Add a note",
+  "comment.hint": "Type @ and somebody\u2019s address to ask them by name. A note cannot be edited or deleted afterwards.",
+  "comment.submit": "Post",
+  "comment.none": "Nothing has been said about this yet.",
+  "comment.title": "Notes",
+  "decision.ok.approved": "Approved.",
+  "decision.ok.refused": "Refused.",
+  "decision.ok.ran": "Ran, and a different actor confirmed the record matches the contract.",
+  "decision.error.unverified": "Ran, and verification did NOT establish it: {why}",
+  "decision.revise": "Ask for a revision",
+  "decision.revise.hint": "To send it back, say what should change. The proposer answers with a revised proposal that replaces this one.",
+  "decision.error.needsWords": "Say what should change, so the proposer knows what to revise.",
+  "decision.ok.revised": "Revision requested.",
+  "contract.revisionBy": "Revision requested by {name} on {when}",
+  "contract.revision.open": "This proposal stays open until a revised one replaces it or somebody decides on it.",
   "decision.error.title": "That did not go through",
   "decision.done": "Done",
   "decision.ran.title": "This has already run",
@@ -3389,6 +3919,9 @@ var PRODUCT_SOURCE = {
   "decision.halted": "Autonomy is halted. Release the halt before anything runs, including something you have already approved.",
   "decision.run.note": "Running executes the plan and then hands the result to a different actor to check. No adapter is connected on this deployment, so the effect is simulated and every artifact it produces says so.",
   "decision.refused.title": "This was refused",
+  "decision.recheck": "Check again",
+  "decision.rechecking": "Checking",
+  "decision.recheck.note": "Asks the outside world whether this is still there, without using your credentials.",
   "decision.refused.body": "A refusal is recorded and final. Propose a new contract rather than reversing this one: amendment creates a new contract that supersedes the old, so the record of what was refused survives.",
   "product.email.from": "From",
   "product.email.to": "To",
@@ -3515,6 +4048,11 @@ var PRODUCT_SOURCE = {
   "billing.subscription.plan": "Plan you pay for",
   "billing.subscription.periodEnds": "Billing period ends",
   "billing.subscription.reference": "Subscription reference",
+  "billing.limited.title": "Your subscription is not being paid, so your plan is limited",
+  "billing.limited.body": "Nothing has been deleted and you can still read all of it. What stops is new work that costs money. Update your card with the provider to restore the plan.",
+  "billing.limited.subscribed": "Plan you pay for",
+  "billing.limited.status": "Status with the provider",
+  "billing.limited.runningOn": "Running on",
   "billing.choice.current": "This is the plan this organization is already on.",
   "billing.choice.halted": "This company is stopped, and the stop covers every change including this one. Release it from the header, then change plan.",
   "billing.choice.noProvider": "No payment provider is connected to this deployment, so a card cannot be charged from here.",
@@ -3557,8 +4095,45 @@ var PRODUCT_SOURCE = {
   "goals.cadence.finished": "Ran once. Nothing further is scheduled.",
   "goals.cadence.due": "Due on the next sweep",
   "goals.cadence.next": "Next pass {when}",
+  // WHAT ORVAY DID, NOT WHAT THE GOAL IS. "Paused" would read as somebody's
+  // choice and "failed" as the goal's own verdict; this one was a decision the
+  // product took, and the sentence has to carry both the reason and the fact
+  // that it can be undone by a person.
+  /*
+      FIVE GOALS SOMEBODY CAN START FROM, AND EVERY ONE IS SOMETHING THE LOOP CAN
+      ACTUALLY DO TODAY.
+  
+      Checked against the runner registry rather than written from imagination: the
+      only outward runners that exist are `social.post`, `github.pull-request` and
+      `github.fix`, and everything else a goal produces is a written work product
+      stored in Files and verified. A starter goal promising something the product
+      cannot reach would be §12b's lie on the first screen a new company uses.
+  
+      NO SOCIAL TEMPLATE, deliberately. The path works; a starter whose first act is
+      public content on a stranger's timeline is the wrong default, and §7a's
+      posture is that we do not put a customer one click from that.
+  
+      TWO OF THE FIVE NAME THEIR OWN PRECONDITION, because a goal that needs a
+      connected inbox or a connected repository and does not say so reads as broken
+      rather than as unconfigured.
+    */
+  "goals.templates.heading": "Or start from one of these",
+  "goals.templates.competitors": "Read the public sites of the companies we compete with, once a week, and write what changed since last time.",
+  "goals.templates.claims": "Read our own website and list every claim on it we could not support today.",
+  "goals.templates.week": "Every Friday, write what this company actually did this week, from its own runs, and say plainly what did not hold.",
+  "goals.templates.inbox": "Read the company inbox each morning and draft a reply to anything that needs one. Nothing is sent until a person presses Send.",
+  "goals.templates.repo": "Find small, self-contained problems in our repository and open one pull request for each. Never merge.",
+  "goals.cadence.stopped": "Stopped after repeated failures. Change it or run it yourself.",
+  // WHO IS ON IT. `nobody` is a real choice and not an empty state: unassigning
+  // has to be possible or the first name written to a goal would be permanent.
+  "goals.assignee.label": "Who is on it",
+  "goals.assignee.nobody": "Nobody",
+  "goals.assignee.saved": "Saved.",
+  "goals.assignee.error": "That is not somebody in this company.",
+  "goals.assignee.on": "On it: {who}",
   "goals.cadence.change": "Change",
   "goals.cadence.saved": "Saved.",
+  "goals.schedule.zone": "Scheduled passes run in the morning, {zone}.",
   "log.title": "Build log",
   "log.lead": "What changed, when, and which half was true. Appended to, never rewritten.",
   "log.english-note.title": "These entries are in English",
@@ -3587,6 +4162,202 @@ var PRODUCT_SOURCE = {
   "portability.honest.body": "A portability page is easy to write as a promise and hard to write as a fact. Two of the three things a page like this usually claims, your domain and your payment account, are not true here, so they are named above as not offered rather than left out. The one that is true, your own data, is true on every plan and is the one that matters if you ever want to leave.",
   "portability.status.included": "Available",
   "portability.status.planned": "Not built yet",
+  /* -------------------------------------------------------------------------
+       THE COMPARISON PAGES.
+  
+       Every sentence about another company is a sentence somebody can be sued
+       over or, more likely, quietly discredited by. So the vocabulary here is
+       deliberately narrow: their DOCUMENTATION SAYS, their README ASKS FOR,
+       their page STATES. Nothing on this page asserts that their software
+       behaves as described, because nobody here has run it, and the sources
+       section says so in as many words.
+  
+       NOTHING IS QUOTED. Their copy carries em dashes, which §5a bans from every
+       string a visitor reads and `catalogues.test.ts` refuses in English as well
+       as in the five translations. A recast sentence presented as a quotation
+       would be a worse fault than paraphrase, so every one of these is written
+       as a paraphrase and reads like one.
+  
+       THE CLAIM VOCABULARY APPLIES HERE TOO. No form of "certif", "complian",
+       "audited" or "attest" appears below in any language, which is why the
+       residency paragraph says where the database is and what inference does
+       rather than reaching for a word about status.
+       ------------------------------------------------------------------------- */
+  "vs.eyebrow": "Comparison",
+  "vs.index.title": "Comparisons",
+  "vs.index.lead": "One page for each product we have been asked about most, written the same way: what they do well first, then five questions put to both, then the pages every claim was read from.",
+  "vs.index.meta.description": "Sourced comparisons of Orvay against other products that run work for a company. Every claim links the page it was read from, with the date.",
+  "vs.index.more": "More will follow. A comparison is only added once there is public documentation to read, because a page that guesses at somebody else is worth less than no page.",
+  "vs.paperclip.index.blurb": "Open source, self-hosted, with an approval queue that lets a reviewer send work back rather than only refuse it.",
+  "vs.polsia.index.blurb": "Hosted, and it reaches further into running the business: domains, payments and deploys from one place.",
+  "vs.paperclip.name": "Paperclip",
+  "vs.paperclip.title": "Orvay and Paperclip",
+  "vs.paperclip.lead": "Both put a person in front of an agent before it acts. They are built for different buyers, and they are candid about different things. Everything said here about Paperclip was read from a public page, and that page is linked at the foot with the date it was read.",
+  "vs.paperclip.meta.description": "A sourced comparison of Orvay and Paperclip on approvals, checking the work, taking your data out, where data sits, and who runs the software. Every claim links to the page it was read from.",
+  "vs.method.heading": "How this page is sourced",
+  "vs.method.lead": "A comparison page is the easiest place on a website to be wrong about somebody else. These are the rules this one follows, so you can check whether it kept them.",
+  "vs.method.rule.sourced": "Every statement about {name} was read from a public page, linked at the foot of this page with the date it was read. Anything we could not read for ourselves, we left out.",
+  "vs.method.rule.claims": "We say what their documentation describes rather than presenting it as a finding. A company writing about its own product is evidence that it said so, which is a different thing from proof that it works.",
+  "vs.method.rule.numbers": "No figure about their size appears here. Not stars, not funding, not revenue, not a count of users. None of it tells you how either product treats your work.",
+  "vs.method.rule.today": "Orvay is described as it is today rather than as it is planned. Where {name} ships something we have not built, the answer above says so in the same sentence.",
+  "vs.paperclip.credit.heading": "What Paperclip does well",
+  "vs.paperclip.credit.lead": "This comes first because it is the honest part of any comparison, and because these are decisions we would not argue with.",
+  "vs.paperclip.credit.open": "Paperclip is open source under the MIT licence and you can run all of it yourself. Its README asks for Node.js and a package manager locally, and a Postgres of your own in production, so nothing about it obliges you to trust somebody else's host.",
+  "vs.paperclip.credit.approvals": "Its approval queue gives a reviewer three outcomes where most products give two: accept, refuse, or send the proposal back to be revised, with no cap on how many times that can go round. Refusal is final and revision is a loop, and keeping those two apart is a better design than one button meaning no.",
+  "vs.paperclip.credit.trust": "Its low trust review holds work from an agent it does not fully trust apart from everything else, and the documentation states plainly that raw untrusted output is never quietly upgraded. A person has to look at it and write the clean version, and the record of that step keeps who did it and when.",
+  "vs.axes.heading": "Five questions, both answers",
+  "vs.axes.lead": "The same five questions put to each product. Their side describes what their documentation sets out. Our side describes what Orvay does today, which on one of the five is less.",
+  "vs.paperclip.axis.approvals.heading": "Approvals by design",
+  "vs.paperclip.axis.approvals.them": "Paperclip treats an approval as a queue item with three outcomes, under an execution policy the runtime applies, so an agent does not have to remember to ask. A stage carries who takes part and how many approvals it needs.",
+  "vs.paperclip.axis.approvals.us": "Orvay treats an approval as a scoped object rather than a yes. It is granted once, or as a standing permission, or bounded by a limit, and it is stored in that shape, because an approval that cannot say what it covered is no use to the person reading it back a year later. Every action passes one function with eight checks in a fixed order, and a company that has been halted stops even for its owner.",
+  "vs.paperclip.axis.verification.heading": "Who is allowed to check the work",
+  "vs.paperclip.axis.verification.them": "Paperclip answers this with quarantine and a person. Untrusted output is held apart, nothing moves up automatically, and a trusted reviewer writes the clean version. The record of that step names the actor and the time.",
+  "vs.paperclip.axis.verification.us": "Orvay answers it with a rule about the checker rather than about the checkpoint. Evidence made by whatever ran the work does not establish that the work happened, so the thing that checks has to be something else. Orvay also keeps count of how often a run reported success with no independent evidence behind it and shows that share for each capability, because a system that counted only its successes would be marking its own paper.",
+  "vs.paperclip.axis.portability.heading": "Taking your work somewhere else",
+  "vs.paperclip.axis.portability.them": "Paperclip exports a whole organisation as readable files that can be brought back in: agents, projects, skills, tasks, routines and attachments. Its documentation is just as clear about what does not travel, and that part is worth reading before you lean on it. Approvals, cost history and activity log entries stay behind on the instance you left.",
+  "vs.paperclip.axis.portability.us": "This is the question where Paperclip ships and Orvay does not, so we will put it in the same sentence. Your own personal data can be taken out on every plan including the free one, because that is a right rather than a feature and charging for it would not be a pricing decision. The larger exports are not built. The status beside each one below is read from the same table the price list reads, so this page cannot claim more than that one does.",
+  "vs.paperclip.axis.consent.heading": "Where the data sits, and what contact rests on",
+  "vs.paperclip.axis.consent.them": "Because you run Paperclip, this is your decision rather than theirs. Their documentation tells you to point it at a Postgres you control and deploy it however you like, so a company carrying a duty about where data lives can meet it by choosing the machine.",
+  "vs.paperclip.axis.consent.us": "Orvay is hosted, so we have to answer this rather than hand it to you. The database is in Zurich. Model inference does not happen in Switzerland, and a sentence about where data lives that leaves that out is not worth reading. When contact details are captured the lawful basis is recorded at that moment rather than decided afterwards, and one click to stop email writes a withdrawal into the same ledger.",
+  "vs.paperclip.axis.hosting.heading": "Who runs the software",
+  "vs.paperclip.axis.hosting.them": "You do, and if owning the machine matters to you then that is a real advantage and it is theirs. It also means keeping a service and a database alive, upgrading them, and noticing when they stop.",
+  "vs.paperclip.axis.hosting.us": "Nobody at your company runs anything. The database, the record and the routing between models arrive wired together, and there is no service of ours for you to keep alive. That is a trade rather than a win: you are choosing to let somebody else hold it, and the questions above are what you should weigh before deciding that suits you.",
+  "vs.sources.heading": "Sources",
+  "vs.sources.lead": "Each page below was read on the date beside it. Pages move: while this one was being written, one address from our own notes had already gone.",
+  "vs.sources.retrieved": "Read on {date}",
+  "vs.sources.caveat": "These links lead to material Paperclip publishes about itself. We read it rather than tested it, and nobody here has run their product.",
+  "vs.source.paperclip.repo": "Paperclip source repository and README",
+  "vs.source.paperclip.site": "Paperclip product page",
+  "vs.source.paperclip.approvals": "Paperclip documentation on approvals",
+  "vs.source.paperclip.trust": "Paperclip documentation on low trust review",
+  "vs.source.paperclip.export": "Paperclip documentation on export and import",
+  "vs.polsia.name": "Polsia",
+  "vs.polsia.title": "Orvay and Polsia",
+  "vs.polsia.lead": "Both run work for a company without a person driving every step. They disagree about what a person is for. Everything said here about Polsia was read from its help centre and its legal pages, and each page is linked at the foot with the date it was read.",
+  "vs.polsia.meta.description": "A sourced comparison of Orvay and Polsia on approvals, verification, portability, data location and hosting. Every claim links the page it was read from.",
+  "vs.polsia.credit.heading": "What Polsia does well",
+  "vs.polsia.credit.lead": "This comes first because it is the honest part of any comparison, and because two of these are things we would rather not have to admit are better.",
+  "vs.polsia.credit.candour": "Its help centre states a limit plainly instead of leaving you to find it: there is no repository access for your code, no clone address and no interface to request one. A product that writes down what it will not do for you is easier to plan around than one that only lists what it will.",
+  "vs.polsia.credit.database": "A company gets its own PostgreSQL database, and the export is two SQL files that load into any PostgreSQL server. That is a real exit rather than a gesture, because the format is one somebody else already reads.",
+  "vs.polsia.credit.bounded": "Its unattended mode is bounded when you start it. You choose how long it runs, from an hour up to five days, you can see what it has finished while it works, and you can stop it. Autonomy with a stated end is a better shape than autonomy that simply continues.",
+  "vs.polsia.axis.approvals.heading": "Approvals by design",
+  "vs.polsia.axis.approvals.them": "Polsia bounds a run rather than a decision. Its unattended mode takes a length of time and a budget: it works through open tasks and plans new ones until the time runs out or the credits do, it shows a running count while it goes, and a stop control ends it. The documented limits are time, money and stopping.",
+  "vs.polsia.axis.approvals.us": "Orvay bounds the decision as well. An approval is a scoped object rather than a yes: granted once, or standing, or bounded by a limit, and stored in that shape, because an approval that cannot say what it covered is no use to the person reading it back a year later. Every action passes one function with eight checks in a fixed order, and a company that has been halted stops even for its owner.",
+  "vs.polsia.axis.verification.heading": "Who is allowed to check the work",
+  "vs.polsia.axis.verification.them": "The thing that did the work reports how it went. A task card says whether it completed, changed nothing, or failed, and a failed task refunds its own credit. When something still looks wrong, the guidance is for you to open your live site and read your recent tasks.",
+  "vs.polsia.axis.verification.us": "Orvay holds that evidence made by whatever ran the work does not establish that the work happened, so the thing that checks has to be something else. Orvay also keeps count of how often a run reported success with no independent evidence behind it and shows that share for each capability, because a system that counted only its successes would be marking its own paper.",
+  "vs.polsia.axis.portability.heading": "Taking your work somewhere else",
+  "vs.polsia.axis.portability.us": "This is the question where Polsia ships more than Orvay, so we will put it in the same sentence. Your own personal data can be taken out on every plan including the free one, because that is a right rather than a feature and charging for it would not be a pricing decision. The larger exports are not built. The status beside each one below is read from the same table the price list reads, so this page cannot claim more than that one does.",
+  "vs.polsia.axis.portability.them": "Two exports, documented separately. Code is a download you ask for from the dashboard and wait a minute or two for. The database comes out as two SQL files you can load into any PostgreSQL server. What is documented as absent is repository access: no clone address, no interface to ask for one.",
+  "vs.polsia.axis.consent.heading": "Where the data sits, and what contact rests on",
+  "vs.polsia.axis.consent.them": "Polsia publishes a subprocessor list with an effective date, naming each vendor, what it is used for and the categories of data it sees, including the payment processor and the platform its hosting runs on. It also says the list is what may be used, and that what actually applies depends on the features an account has switched on.",
+  "vs.polsia.axis.consent.us": "Orvay is hosted, so we have to answer this rather than hand it to you. The database is in Zurich. Model inference does not happen in Switzerland, and a sentence about where data lives that leaves that out is not worth reading. When contact details are captured the lawful basis is recorded at that moment rather than decided afterwards, and one click to stop email writes a withdrawal into the same ledger.",
+  "vs.polsia.axis.hosting.heading": "Who runs the software",
+  "vs.polsia.axis.hosting.them": "Polsia does, and it reaches further into running the business than we do: a company can buy a domain through it, take payments on the site it builds, and have that site deployed and rolled back from the same place. If you want one supplier for the whole thing, that is theirs and it is a real advantage.",
+  "vs.polsia.axis.hosting.us": "Nobody at your company runs anything either way. The difference is what arrives wired together: for Orvay that is the database, the record and the routing between models, and not a shop. That is a trade rather than a win, and the questions above are what you should weigh before deciding which one suits you.",
+  "vs.polsia.sources.caveat": "These links lead to material Polsia publishes about itself. We read it rather than tested it, and nobody here has run their product. Nothing on this page comes from its landing page, because a tagline and a headline figure describe a company rather than how it treats your work.",
+  "vs.source.polsia.help": "Polsia help centre, guide index",
+  "vs.source.polsia.autoMode": "Polsia documentation on its unattended mode",
+  "vs.source.polsia.codeExport": "Polsia documentation on downloading your code",
+  "vs.source.polsia.dbExport": "Polsia documentation on exporting your database",
+  "vs.source.polsia.taskOutcome": "Polsia documentation on checking a task outcome",
+  "vs.source.polsia.subprocessors": "Polsia subprocessor list",
+  "vs.cofounder.name": "Cofounder",
+  "vs.cofounder.title": "Orvay and Cofounder",
+  "vs.cofounder.lead": "Both put agents to work around a company a person already runs. Cofounder is explicit that your core product stays in your own codebase and that it builds the company around it. Everything said here was read from its documentation and legal pages, linked at the foot with the date it was read.",
+  "vs.cofounder.meta.description": "A sourced comparison of Orvay and Cofounder on approvals, verification, portability, data location and hosting. Every claim links the page it was read from.",
+  "vs.cofounder.credit.lead": "This comes first because it is the honest part of any comparison, and because the first of these is a boundary most products would rather not draw.",
+  "vs.cofounder.credit.boundary": "Its documentation states the limit plainly: it is not meant to build or rebuild your main product, your database, your authentication or your hosting stack. You keep your own coding tools for that, and it builds the company around what you own. A product that names what it will not take over is easier to trust with what it will.",
+  "vs.cofounder.credit.staging": "A deploy an agent requests goes to staging, behind an approval card with Approve and Reject, and never straight to production. Production stays behind a separate button in the workspace. Two doors for two consequences is a better design than one door for both.",
+  "vs.cofounder.credit.secrets": "Secrets are handled the way they should be. Values are passed to the hosting provider and are not stored on its side, and inside an agent's sandbox the variable holds a placeholder rather than the raw key, so a credential is never written into a conversation.",
+  "vs.cofounder.axis.approvals.heading": "Approvals by design",
+  "vs.cofounder.axis.approvals.them": "When an agent finishes work and requests a deploy, Cofounder queues an approval card. Approve ships the change to staging; Reject leaves staging untouched and hands the agent guidance to fix and request again. Publishing to production is a separate action a person takes in the workspace. The gate sits on the deploy, and an imported target may wait for automated checks before the card appears at all.",
+  "vs.cofounder.axis.approvals.us": "Orvay bounds the decision as well. An approval is a scoped object rather than a yes: granted once, or standing, or bounded by a limit, and stored in that shape, because an approval that cannot say what it covered is no use to the person reading it back a year later. Every action passes one function with eight checks in a fixed order, and a company that has been halted stops even for its owner.",
+  "vs.cofounder.axis.verification.heading": "Who is allowed to check the work",
+  "vs.cofounder.axis.verification.them": "The engineer agent implements and verifies its own work in a sandbox before requesting a deploy, and the reviewer on the approval card is you. One check is independent by construction: when you connect a repository, Cofounder inspects the live hosting project before it treats the import as complete, and refuses while the two disagree.",
+  "vs.cofounder.axis.verification.us": "Orvay holds that evidence made by whatever ran the work does not establish that the work happened, so the thing that checks has to be something else. Orvay also keeps count of how often a run reported success with no independent evidence behind it and shows that share for each capability, because a system that counted only its successes would be marking its own paper.",
+  "vs.cofounder.axis.portability.heading": "Taking your work somewhere else",
+  "vs.cofounder.axis.portability.them": "This is the question Cofounder answers by design rather than by export. Your product lives in your own repository and your own engineering workflow, and its documentation says so on the first page. What it manages for you, the marketing site, the staging environments and the connected services, sits on providers you can also open directly, with the repository connected under your own account.",
+  "vs.cofounder.axis.portability.us": "Where Cofounder sidesteps this question by leaving your product where it already lives, Orvay has to answer it, and the honest answer today is partial. Your own personal data can be taken out on every plan including the free one, because that is a right rather than a feature and charging for it would not be a pricing decision. The larger exports are not built, and this page says so rather than implying otherwise.",
+  "vs.cofounder.axis.consent.heading": "Where the data sits, and what contact rests on",
+  "vs.cofounder.axis.consent.them": "Its privacy notice names the operating company and what it collects. Its documentation is precise about one thing many products leave vague: secret values are sent to the hosting provider and are not stored on Cofounder's side. Where the rest of a company's data is held is not stated on the pages read for this comparison, so this page does not claim to know.",
+  "vs.cofounder.axis.consent.us": "Orvay is hosted, so we have to answer this rather than hand it to you. The database is in Zurich. Model inference does not happen in Switzerland, and a sentence about where data lives that leaves that out is not worth reading. When contact details are captured the lawful basis is recorded at that moment rather than decided afterwards, and one click to stop email writes a withdrawal into the same ledger.",
+  "vs.cofounder.axis.hosting.heading": "Who runs the software",
+  "vs.cofounder.axis.hosting.them": "Cofounder is hosted, and it manages the pieces around your product for you: a repository connection, a hosting project for staging and marketing surfaces, a database, domains, an inbox and environment files. Each is a service you could also run yourself, connected rather than replaced, which is the trade it chose.",
+  "vs.cofounder.axis.hosting.us": "Nobody at your company runs anything either way. The difference is what arrives wired together: for Orvay that is the database, the record and the routing between models. Cofounder connects providers you may already use; Orvay holds its own. That is a trade rather than a win, and the questions above are what to weigh before deciding which suits you.",
+  "vs.cofounder.index.blurb": "Builds the company around a product you keep in your own codebase, with a staging approval on every deploy.",
+  "vs.cofounder.credit.heading": "What Cofounder does well",
+  "vs.cofounder.sources.caveat": "These links lead to material Cofounder publishes about itself. We read it rather than tested it, and nobody here has run their product. Nothing on this page comes from its landing page, because a tagline describes a company rather than how it treats your work.",
+  "vs.source.cofounder.what": "Cofounder documentation on what it does and does not do",
+  "vs.source.cofounder.deploy": "Cofounder documentation on requesting a deploy",
+  "vs.source.cofounder.github": "Cofounder documentation on the managed repository connection",
+  "vs.source.cofounder.secrets": "Cofounder documentation on environment files and secrets",
+  "vs.source.cofounder.privacy": "Cofounder privacy notice",
+  "vs.source.cofounder.pricing": "Cofounder pricing page",
+  "vs.nanocorp.name": "NanoCorp",
+  "vs.nanocorp.title": "Orvay and NanoCorp",
+  "vs.nanocorp.lead": "Both run a company without a person driving every step, and both meter that work in credits. NanoCorp optimises for the money a business actually takes in, and pays it out to you. Everything said here was read from its documentation and legal pages, linked at the foot with the date it was read.",
+  "vs.nanocorp.meta.description": "A sourced comparison of Orvay and NanoCorp on approvals, verification, portability, data location and hosting. Every claim links the page it was read from.",
+  "vs.nanocorp.credit.lead": "This comes first because it is the honest part of any comparison, and because two of these are things we would rather not have to admit are better.",
+  "vs.nanocorp.credit.dormant": "When a trial or a plan ends, nothing is deleted. The site keeps serving on its own address, checkout and email pause, agents stop, and reopening the plan restores all of it within minutes. A product that documents what stops and what stays, in that order, is one you can leave and come back to.",
+  "vs.nanocorp.credit.caps": "Autonomy has two dials you can read and set: how many tasks a business may run per day, and a daily credit cap across everything you own. Pausing a business stops its unattended work outright. Bounding by count and by money together is more than most products offer.",
+  "vs.nanocorp.credit.payout": "Money a business earns lands in a real balance and is withdrawn to your bank through a payment provider's own onboarding, with the fee and the exchange arithmetic worked through on the page step by step, for an account that is not in dollars. Showing the sum is better than promising the result.",
+  "vs.nanocorp.axis.approvals.heading": "Approvals by design",
+  "vs.nanocorp.axis.approvals.them": "NanoCorp bounds a run by count and by money rather than by decision. On task-based businesses an autonomy level sets how many tasks run per day, a daily credit cap can bound every business at once, and pausing a business stops its unattended work and its manual runs alike. No approval step on an individual action is documented on the pages read for this comparison.",
+  "vs.nanocorp.axis.approvals.us": "Orvay bounds the decision as well. An approval is a scoped object rather than a yes: granted once, or standing, or bounded by a limit, and stored in that shape, because an approval that cannot say what it covered is no use to the person reading it back a year later. Every action passes one function with eight checks in a fixed order, and a company that has been halted stops even for its owner.",
+  "vs.nanocorp.axis.verification.heading": "Who is allowed to check the work",
+  "vs.nanocorp.axis.verification.them": "The pages read for this comparison document how to test a checkout without a real charge, and list a question about credits burned on failed tasks, which is the shape of the concern rather than the mechanism that answers it. How a task's outcome is checked before it counts is not described there, so this page does not describe it either.",
+  "vs.nanocorp.axis.verification.us": "Orvay holds that evidence made by whatever ran the work does not establish that the work happened, so the thing that checks has to be something else. Orvay also keeps count of how often a run reported success with no independent evidence behind it and shows that share for each capability, because a system that counted only its successes would be marking its own paper.",
+  "vs.nanocorp.axis.portability.heading": "Taking your work somewhere else",
+  "vs.nanocorp.axis.portability.them": "A business's code lives in a repository NanoCorp builds and maintains, and on its higher plans you can invite yourself or a developer as a collaborator and edit it locally. The hosting dashboard is reachable too, and a custom domain can be connected. Whether the database can be exported is a listed question in its documentation, and the answer was not on the pages read here.",
+  "vs.nanocorp.axis.portability.us": "NanoCorp puts a collaborator on the repository behind a plan tier; Orvay does not ship the equivalent at all yet. Your own personal data can be taken out on every plan including the free one, because that is a right rather than a feature and charging for it would not be a pricing decision. The larger exports are not built, and this page says so rather than implying otherwise.",
+  "vs.nanocorp.axis.consent.heading": "Where the data sits, and what contact rests on",
+  "vs.nanocorp.axis.consent.them": "Its privacy notice names the operating company, states that personal data is kept while an account is active or as needed to provide the service, and that deletion can be requested. Its withdrawals page works the arithmetic for a European bank account, including the cross-border transfer fee into the EEA. Where the data itself is held is not stated on the pages read here.",
+  "vs.nanocorp.axis.consent.us": "Orvay is hosted, so we have to answer this rather than hand it to you. The database is in Zurich. Model inference does not happen in Switzerland, and a sentence about where data lives that leaves that out is not worth reading. When contact details are captured the lawful basis is recorded at that moment rather than decided afterwards, and one click to stop email writes a withdrawal into the same ledger.",
+  "vs.nanocorp.axis.hosting.heading": "Who runs the software",
+  "vs.nanocorp.axis.hosting.them": "NanoCorp hosts everything: a site on its own subdomain, checkout through a connected payment provider, email, and agents that run on a schedule. A free trial needs no card, and after it the shop goes dormant rather than away. A retention plan keeps the shop open without the agents, and it is shown only when a plan ends.",
+  "vs.nanocorp.axis.hosting.us": "Nobody at your company runs anything either way. The difference is what the money is for: NanoCorp meters the work and also takes a share of what a business withdraws; Orvay meters the work and nothing else. That is a trade rather than a win, and the questions above are what to weigh before deciding which suits you.",
+  "vs.nanocorp.index.blurb": "Hosted end to end, bounded by a daily task count and a credit cap, and it pays what a business earns out to your bank.",
+  "vs.nanocorp.credit.heading": "What NanoCorp does well",
+  "vs.nanocorp.sources.caveat": "These links lead to material NanoCorp publishes about itself. We read it rather than tested it, and nobody here has run their product. Nothing on this page comes from its landing page, because a tagline describes a company rather than how it treats your work.",
+  "vs.source.nanocorp.plans": "NanoCorp documentation on plans and credits",
+  "vs.source.nanocorp.github": "NanoCorp documentation on accessing the code on GitHub",
+  "vs.source.nanocorp.withdrawals": "NanoCorp documentation on withdrawals",
+  "vs.source.nanocorp.billing": "NanoCorp documentation on billing, refunds and cancellations",
+  "vs.source.nanocorp.privacy": "NanoCorp privacy notice",
+  "vs.source.nanocorp.pricing": "NanoCorp pricing page",
+  "vs.willo.name": "Willo",
+  "vs.willo.title": "Orvay and Willo",
+  "vs.willo.lead": "Both run a company through a team of agents and leave direction to a person. Willo says which seven roles it runs and in what cycle. Everything said here was read from its own writing and its legal pages, linked at the foot with the date it was read.",
+  "vs.willo.meta.description": "A sourced comparison of Orvay and Willo on approvals, verification, portability, data location and hosting. Every claim links the page it was read from.",
+  "vs.willo.credit.lead": "This comes first because it is the honest part of any comparison, and because all three of these are sentences most products avoid writing down.",
+  "vs.willo.credit.ownership": "Its terms say it in one sentence: you retain ownership of everything you create through the platform, and the list includes code, repositories and deployed website content. A legal page that names the repository, rather than only the content, is rarer than it should be.",
+  "vs.willo.credit.lifecycle": "Cancelling is documented as a lifecycle rather than a cliff. For thirty days the site is replaced by a placeholder, the database is paused, and all data, source code and content are preserved; resubscribing restores the business. Saying what happens on the way out is the part most products skip.",
+  "vs.willo.credit.candour": "Its terms also say what it is not: it offers no service for meeting legal requirements, and it makes no representation that using it satisfies any of them. That is the opposite of a badge, and it is the more useful sentence.",
+  "vs.willo.axis.approvals.heading": "Approvals by design",
+  "vs.willo.axis.approvals.them": "Willo's own writing is explicit that the agents execute autonomously and that strategy and direction remain yours. It describes a plan, execute, reflect cycle in which the agents plan, ship and then review results to sharpen the next round. No approval step on an individual action is documented on the pages read for this comparison; the bound is the direction you set and the credits you hold.",
+  "vs.willo.axis.approvals.us": "Orvay bounds the decision as well. An approval is a scoped object rather than a yes: granted once, or standing, or bounded by a limit, and stored in that shape, because an approval that cannot say what it covered is no use to the person reading it back a year later. Every action passes one function with eight checks in a fixed order, and a company that has been halted stops even for its owner.",
+  "vs.willo.axis.verification.heading": "Who is allowed to check the work",
+  "vs.willo.axis.verification.them": "The reflection stage is where checking happens, and it is the agents checking themselves: they review traffic, conversions and revenue signals and feed that into the next plan. On the pages read here, nothing outside the team that did the work confirms that the work landed.",
+  "vs.willo.axis.verification.us": "Orvay holds that evidence made by whatever ran the work does not establish that the work happened, so the thing that checks has to be something else. Orvay also keeps count of how often a run reported success with no independent evidence behind it and shows that share for each capability, because a system that counted only its successes would be marking its own paper.",
+  "vs.willo.axis.portability.heading": "Taking your work somewhere else",
+  "vs.willo.axis.portability.them": "The site is built and deployed with version control on GitHub and a cloud host, payments run through a connected payment provider, and the terms state that code and repositories are yours. What the pages read here do not describe is the export itself: how you take the repository or the database out, and whether that needs a plan tier.",
+  "vs.willo.axis.portability.us": "Willo puts ownership into its terms; Orvay ships the personal export and not yet the larger ones. Your own personal data can be taken out on every plan including the free one, because that is a right rather than a feature and charging for it would not be a pricing decision. The larger exports are not built, and this page says so rather than implying otherwise.",
+  "vs.willo.axis.consent.heading": "Where the data sits, and what contact rests on",
+  "vs.willo.axis.consent.them": "Willo publishes a privacy notice, an acceptable use policy and, unusually, an AI use and disclosure policy alongside them. Its terms tell you that following data protection law is your responsibility rather than a service it provides. Where the data is held is not stated on the pages read for this comparison.",
+  "vs.willo.axis.consent.us": "Orvay is hosted, so we have to answer this rather than hand it to you. The database is in Zurich. Model inference does not happen in Switzerland, and a sentence about where data lives that leaves that out is not worth reading. When contact details are captured the lawful basis is recorded at that moment rather than decided afterwards, and one click to stop email writes a withdrawal into the same ledger.",
+  "vs.willo.axis.hosting.heading": "Who runs the software",
+  "vs.willo.axis.hosting.them": "Willo hosts the lot: a site on a subdomain with custom domains on higher plans, a provisioned backend with database, authentication and interfaces, payment processing and transactional email. The free plan carries credits to try paid actions but no provisioned backend and no unattended running, and backend compute is metered by active use while idle time costs nothing.",
+  "vs.willo.axis.hosting.us": "Nobody at your company runs anything either way. The difference is what arrives wired together: for Orvay that is the database, the record and the routing between models, and not a storefront. That is a trade rather than a win, and the questions above are what to weigh before deciding which suits you.",
+  "vs.willo.index.blurb": "Seven named agents on a plan, execute, reflect cycle, with ownership of code and repositories written into its terms.",
+  "vs.willo.credit.heading": "What Willo does well",
+  "vs.willo.sources.caveat": "These links lead to material Willo publishes about itself. We read it rather than tested it, and nobody here has run their product. Nothing on this page comes from its landing page, because a tagline describes a company rather than how it treats your work.",
+  "vs.source.willo.how": "Willo on what it is and how it works",
+  "vs.source.willo.team": "Willo on the seven agents and the cycle they run",
+  "vs.source.willo.pricing": "Willo pricing page",
+  "vs.source.willo.billing": "Willo billing and refund policy",
+  "vs.source.willo.terms": "Willo terms of service",
+  "vs.source.willo.privacy": "Willo privacy notice",
   "waitlist.buildLog": "Also send me the monthly build log: what was built, what broke, and what was verified. A separate choice, and you can stop it without leaving the waitlist.",
   "waitlist.next.heading": "While you wait",
   "waitlist.next.docs": "Read how the eight gates decide",
@@ -3686,7 +4457,120 @@ var PRODUCT_SOURCE = {
   "site.faq.q.switzerland": "Why Switzerland?",
   "site.faq.a.switzerland": "The database is Postgres in Zurich. Switzerland holds an EU adequacy decision, so data moves between the EU and here without further arrangements. Model inference is not in Switzerland and it would be dishonest to leave that out: prompts go to vendors that process in the United States, under the standard contractual clauses in each agreement.",
   "site.faq.q.cold": "Why will it never cold-call anyone?",
-  "site.faq.a.cold": "Answering a call and placing one are two different permissions, and only the first can exist. Placing one is classified permanently forbidden, a build that names it fails, and the consent gate refuses it a step earlier for want of a recorded basis. The same holds for cold email from any domain we own."
+  "site.faq.a.cold": "Answering a call and placing one are two different permissions, and only the first can exist. Placing one is classified permanently forbidden, a build that names it fails, and the consent gate refuses it a step earlier for want of a recorded basis. The same holds for cold email from any domain we own.",
+  /*
+      REMOVING SOMEBODY FROM A COMPANY.
+  
+      The team screen has described this state since it was written: the roster
+      renders a "deactivated" badge, and nothing could produce one. GOV-2.
+  
+      THE COPY SAYS WHAT IS TRUE TODAY AND NOT WHAT THE DESIGN INTENDS. A removed
+      member is deactivated rather than deleted, so the data survives and every
+      decision still resolves to them. That is NOT the same as reversible, and the
+      sentences below never imply an undo: no reactivation control exists yet,
+      because switching the flag back has to answer gate 4's seat count first.
+      §12b's test is whether a paying customer would find anything here untrue.
+    */
+  "team.remove.heading": "Remove somebody",
+  "team.remove.lead": "A removed person cannot open this company again. Their seat is freed for somebody else, any API keys they hold are revoked permanently, and every decision they made stays in the record under their name.",
+  "team.remove.no-grant": "You do not hold the authority to remove anybody from this company. An owner can do it.",
+  "team.remove.nobody": "There is nobody here to remove. You cannot remove your own seat, and somebody already removed cannot be removed twice.",
+  "team.remove.who.label": "Who to remove",
+  // Says why a name a reader expects to be missing is present. Refusing with a
+  // sentence beats shortening the list: an absence and a refusal look identical.
+  "team.remove.who.hint": "Everyone is offered here. Somebody holding more authority than you, or the last person who can do everything, is refused with a reason rather than hidden.",
+  "team.remove.confirm.label": "Yes, remove {name} from this company. Any API keys they hold are revoked permanently.",
+  "team.remove.submit": "Remove from this company",
+  "team.remove.submitting": "Removing",
+  "team.remove.busy": "This removal is being recorded.",
+  "team.remove.error.title": "Nobody was removed",
+  "team.remove.ok.title": "Done",
+  "team.remove.audit": "Every removal is recorded in the trail, naming the seat, who decided it, and how many API keys went with them.",
+  "team.remove.error.unconfirmed": "Tick the box to confirm who you are removing. Nobody was removed.",
+  "team.remove.error.halted": "This company is stopped, and a stop covers every change including this one. Release the stop from the header, then remove them.",
+  "team.remove.error.gate": "Refused at the {gate} gate: {reason}",
+  "team.remove.error.signedOut": "You are not signed in.",
+  "team.remove.error.self": "Nobody can remove their own seat, including an owner. Ask another member who holds this authority.",
+  "team.remove.error.notMember": "That is not a member of this company.",
+  "team.remove.error.beyondYourRole": "They hold authority you do not hold yourself, so they are not yours to remove. An owner can do it.",
+  "team.remove.error.lastOwner": "They are the last person who can do everything here. Give somebody else that authority first, then remove them.",
+  "team.remove.ok.done": "{name} has been removed. They cannot open this company again, and their seat is free.",
+  "team.remove.ok.already": "{name} had already been removed, so nothing changed.",
+  "team.roles.error.last-owner": "They are the last person who can do everything here, and this change would take that away. Give somebody else that authority first.",
+  /*
+      THE COUNT IS ITS OWN SENTENCE, APPENDED, AND IT IS PLURAL.
+  
+      Two reasons it is not folded into `ok.done`. A sentence built from fragments
+      across two keys assumes English word order, and this one is only shown when
+      the count is above zero: a person who held no keys should be told nothing
+      rather than told "0 API keys", which reads as a system reporting on itself.
+  
+      `render()` takes `.other` at every count, so this must be read with
+      `plural()`. French, Italian, Spanish and Portuguese each carry a CLDR `many`
+      category English does not.
+    */
+  "team.remove.ok.keys": {
+    one: "One API key was revoked and cannot be restored.",
+    other: "{count} API keys were revoked and cannot be restored."
+  },
+  "team.remove.noscript.title": "Removing somebody needs JavaScript",
+  "team.remove.noscript.body": "The list of people here is drawn by your browser, so with scripting off it would be a control that does nothing. Turn scripting on for this page to remove somebody.",
+  /*
+      THE MCP TOOL DESCRIPTIONS.
+  
+      A tool NAME is a machine-readable code and is out of §5b. A DESCRIPTION is
+      rendered to a person by whatever MCP client they are using, which puts it
+      squarely in scope, so it is a key here like every other readable string.
+  
+      They are also the only thing a model has to choose a tool BY, so they say
+      what the tool answers rather than what it is called. `orvay_list_decisions`
+      saying "what is waiting on a person" is the difference between a model
+      finding the approvals queue and never looking.
+  
+      The four state words stay in English on purpose: `open`, `approved`,
+      `refused` and `run` are the literal values the argument takes, so a
+      translator rendering them would produce a description that cannot be
+      followed.
+    */
+  "mcp.tool.orvay_company_status": "What this company is, and whether it is halted.",
+  "mcp.tool.orvay_list_capabilities": "The capabilities this company grants, and the ones this key holds.",
+  "mcp.tool.orvay_list_contracts": "Proposed work, newest first. Filter by state: open, approved, refused or run.",
+  "mcp.tool.orvay_get_contract": "One contract, by its 64 character hash.",
+  "mcp.tool.orvay_list_decisions": "What is waiting on a person. Open decisions unless you ask for another state.",
+  "mcp.tool.orvay_list_runs": "The runs recorded against one contract.",
+  "mcp.tool.orvay_get_evidence": "The evidence one run produced, each item with where it came from.",
+  "mcp.tool.orvay_propose_contract": "Propose work against a goal. It passes the gates before anything happens.",
+  "mcp.tool.orvay_approve_decision": "Approve one contract. A reason is required and is recorded.",
+  "mcp.tool.orvay_reject_decision": "Refuse one contract. A reason is required and is recorded.",
+  /*
+      API KEYS, THE SCREEN THAT MAKES THE VERSIONED API USABLE.
+  
+      `orvay.api_keys` and the whole checking half shipped with D1, and nothing
+      could MINT one: every key in existence was made by hand against the
+      database. These are the strings for the screen that closes that.
+  
+      The token is shown exactly once and the copy says so, because only its
+      SHA-256 is stored and no later screen can recover it. That is a property of
+      the design rather than an inconvenience, so the sentence states the reason
+      instead of apologising.
+    */
+  "settings.keys.title": "API keys",
+  "settings.keys.lead": "A key lets a program act as you, and never more than you can do yourself.",
+  "settings.keys.create.heading": "Create a key",
+  "settings.keys.create.name.label": "What is it for",
+  "settings.keys.create.scope.label": "What it may do",
+  "settings.keys.create.scope.read": "Read only",
+  "settings.keys.create.scope.full": "Everything you can do",
+  "settings.keys.create.submit": "Create key",
+  "settings.keys.shown-once": "Copy this now. It is the only time it is shown, because only its fingerprint is stored.",
+  "settings.keys.list.heading": "Your keys",
+  "settings.keys.list.empty": "No keys yet. A program needs one to reach your company.",
+  "settings.keys.list.never-used": "never used",
+  "settings.keys.list.revoked": "revoked",
+  "settings.keys.revoke.submit": "Revoke",
+  "settings.keys.create.pending": "Creating the key",
+  "settings.keys.error.empty": "A key with no permissions would authenticate and do nothing.",
+  "settings.keys.error.exceeds": "A key cannot do more than you can. Ask for the permission yourself first."
 };
 
 // ../../packages/content/src/legal.ts
@@ -5361,6 +6245,61 @@ var LEGAL_SOURCE = {
   "legal.subprocessors.github.statusDetail": "Only reached if you press the button. Nothing is sent to GitHub by opening the sign-in page, and this entry was missing from the list until 20 August 2026 while the button was already on screen."
 };
 
+// ../../packages/content/src/messages/blog-source.ts
+var BLOG_SOURCE = {
+  // ---- chrome ----------------------------------------------------------
+  "blog.title": "Blog",
+  "blog.kicker": "Writing",
+  "blog.lead": "How we think about companies run by people and agents together, and what we are building for them.",
+  "blog.meta.description": "Essays and notes from Orvay on running a company with people and agents together: what counts as proof, how work is admitted, and what a record is for.",
+  "blog.category.thinking": "Thinking",
+  "blog.category.product": "Product",
+  "blog.category.company": "Company",
+  "blog.read-time": "{minutes} min read",
+  "blog.contents": "Contents",
+  "blog.introduction": "Introduction",
+  "blog.published": "Published",
+  "blog.back": "All posts",
+  "blog.next.heading": "Give your company a goal",
+  "blog.next.lead": "Orvay is opening slowly, to companies that want to give agents real work and still be able to answer for it.",
+  "blog.next.cta": "Join the waitlist",
+  "blog.reading-time": "Reading time",
+  "blog.tab.all": "All",
+  "blog.tabs.label": "Categories",
+  "blog.empty": "No posts in this category yet.",
+  "blog.similar": "Similar articles",
+  "blog.pagination.label": "Pages",
+  "blog.pagination.page": "Page {n}",
+  "blog.pagination.next": "Next page",
+  "blog.pagination.previous": "Previous page",
+  // ---- done-is-not-proof ------------------------------------------------
+  "blog.done-is-not-proof.title": "An agent saying done is not proof",
+  "blog.done-is-not-proof.lead": "Why Orvay treats every finished task as a claim, and what it takes to turn a claim into a record a company can trust.",
+  "blog.done-is-not-proof.description": "Every agent ends its work with a message that says done. A company cannot run on that message. This is how Orvay separates the claim from the proof.",
+  "blog.done-is-not-proof.cover-alt": "A warm field of colour fading into blue, crossed by thin lines that bend around its centre.",
+  "blog.done-is-not-proof.introduction.p1": "Every tool that runs an agent ends the same way. A message arrives that says the work is done. A summary follows, usually confident, sometimes with a list of what was changed. Then a person decides whether to believe it.",
+  "blog.done-is-not-proof.introduction.p2": "That decision is the whole problem. A company does not run on messages that say done. It runs on things that are done, and on being able to show that they are. Orvay is built on the difference between the two.",
+  "blog.done-is-not-proof.a-claim.heading": "Done is a claim",
+  "blog.done-is-not-proof.a-claim.p1": "When a model reports that it finished a task, it is describing its own work from the inside. It has no way to know whether the deployment it started is serving traffic, whether the email it drafted was delivered, or whether the record it wrote is the record a colleague will read tomorrow. It knows what it intended and what it saw. Those are not the same as what happened.",
+  "blog.done-is-not-proof.a-claim.p2": "This is not a flaw in any particular model. It is the position every actor is in when asked to grade its own work. A person who ships a change and confirms it landed by reading their own commit message has done the same thing. We wrote the rule into the product because we kept breaking it ourselves.",
+  "blog.done-is-not-proof.evidence.heading": "What counts as evidence",
+  "blog.done-is-not-proof.evidence.p1": "Orvay is built so that the actor who does the work is never the actor who checks it. The one that proposes does not verify. The check belongs to something that had no part in the work, and the kind of evidence matters more than who collected it.",
+  "blog.done-is-not-proof.evidence.item1": "An exit code from the command that ran, not a sentence that says it succeeded.",
+  "blog.done-is-not-proof.evidence.item2": "An HTTP response from the service that was called, read after the call and not before.",
+  "blog.done-is-not-proof.evidence.item3": "A row in the database, read back on a connection of its own.",
+  "blog.done-is-not-proof.evidence.item4": "A hash of the artifact, so a later reader can tell whether it changed.",
+  "blog.done-is-not-proof.evidence.p2": "A second model can review the work of a first, and sometimes that is the only check available. But two models can be wrong in the same way, so the record says that the check came from a model and never treats that alone as proof. Proof is the kind of evidence a person could run again.",
+  "blog.done-is-not-proof.one-gate.heading": "One gate, and nothing around it",
+  "blog.done-is-not-proof.one-gate.p1": "Every action an agent takes inside Orvay passes through the same gate. It checks who is asking, which company they act for, whether that company is halted, what its plan allows, what the actor is authorised to do, whether the person on the other end has consented, what the company policy says, and whether there is money left to spend. In that order, every time.",
+  "blog.done-is-not-proof.one-gate.quote": "An approval is never a checkbox. It is an object with a scope, a holder and a limit: this action, this many times, until this date.",
+  "blog.done-is-not-proof.one-gate.p2": "When the answer is no, the record says which check said no and why. When the answer is yes, the record says who allowed it, and for how long that permission stands.",
+  "blog.done-is-not-proof.the-record.heading": "The record is the product",
+  "blog.done-is-not-proof.the-record.p1": "Each contract an agent proposes is written once and never edited. A change is a new contract that points at the one it replaces. Each attempt to carry one out is a run of its own, and a retry is a new run rather than a rewritten one. Every piece of evidence carries a hash and says whether it came from a live system or from a simulation.",
+  "blog.done-is-not-proof.the-record.p2": "The result is a chain a company can read a year later and still trust. Not because the agents were reliable, but because the record does not depend on them being reliable.",
+  "blog.done-is-not-proof.where-this-goes.heading": "Where this goes",
+  "blog.done-is-not-proof.where-this-goes.p1": "Orvay is opening slowly, to companies that want to give agents real work and still be able to answer for it. If that is your company, the waitlist is the door. We would rather have fewer companies that can check what we say than many that take our word for it."
+};
+
 // ../../packages/content/src/messages/de.ts
 var de_default = {
   "brand.name": "Orvay",
@@ -5594,6 +6533,9 @@ var de_default = {
   "onboarding.authority.open.label": "Handeln und mich informieren",
   "onboarding.authority.open.sublabel": "Die meisten Aktionen laufen eigenst\xE4ndig. Sie pr\xFCfen die Aufzeichnung, nicht die Anfrage.",
   "onboarding.authority.open.risk": "Das meiste geschieht, bevor Sie es sehen. Alles mit rechtlicher Wirkung auf eine Person wartet weiterhin auf Sie.",
+  "onboarding.timezone.label": "Zeitzone",
+  "onboarding.timezone.hint": "Orvay arbeitet nachts an Zielen und berichtet am Morgen. Das ist die Uhr, nach der es sich richtet.",
+  "onboarding.timezone.now": "Aktuelle Uhrzeit dort:",
   "onboarding.authority.note": "Damit wird eine Ausgangshaltung festgehalten. Die Regeln, die daraus entstehen, stehen auf der Seite Richtlinien, wo Sie jede einzelne sehen und \xE4ndern k\xF6nnen.",
   "onboarding.done.heading": "Ihr Unternehmen ist eingerichtet",
   "onboarding.done.body": "Hier nimmt {brand} die Arbeit auf. Drei Dinge sollten Sie vorher wissen.",
@@ -6110,6 +7052,22 @@ var de_default = {
     one: "{count} aufgezeichnetes Ereignis, seit dieses Unternehmen angelegt wurde.",
     other: "{count} aufgezeichnete Ereignisse, seit dieses Unternehmen angelegt wurde."
   },
+  "notification.headline.approval.waiting": "Ein Vertrag wartet auf eine Entscheidung",
+  "notification.headline.message.received": "Jemand hat eine E-Mail an die Adresse Ihres Unternehmens gesendet",
+  "notification.headline.run.auto_allowed": "Arbeit lief, ohne dass jemand gefragt wurde",
+  "notification.headline.company.halted": "Dieses Unternehmen wurde gestoppt",
+  "notification.headline.approval.escalated": "Eine Entscheidung wartet seit gestern",
+  "notification.headline.briefing.ready": "Ihr Morgenbriefing ist fertig",
+  "notification.headline.comment.mentioned": "Jemand hat namentlich nach Ihnen gefragt",
+  "notification.headline.goal.thrashing": "Ein Ziel ist wiederholt fehlgeschlagen und wurde gestoppt",
+  "notification.push.none.title": "In {company} wartet nichts",
+  "notification.push.none.body": "Sie sind auf dem neuesten Stand.",
+  "notification.push.only": "In {company}.",
+  "notification.push.more": {
+    one: "In {company}, dazu {count} weitere in Wartestellung.",
+    other: "In {company}, dazu {count} weitere in Wartestellung."
+  },
+  "home.loading": "Ihr Unternehmen wird geladen",
   "home.metrics.label": "Was {brand} wei\xDF",
   "home.metric.running": "L\xE4uft gerade",
   "home.metric.waiting": "Wartet auf Sie",
@@ -6119,6 +7077,12 @@ var de_default = {
   "home.metric.spent": "In diesem Zeitraum ausgegeben",
   "home.running.heading": "Was gerade l\xE4uft",
   "home.running.none": "Gerade l\xE4uft nichts. Arbeit beginnt, wenn Sie sie freigeben, oder von selbst, wo Ihre Richtlinie das bereits erlaubt.",
+  "home.running.since": "Gestartet {when}",
+  "home.running.unnamed": "Arbeit ohne Vertrag in den Unterlagen",
+  "home.running.more": {
+    one: "und {count} l\xE4uft noch.",
+    other: "und {count} weitere laufen noch."
+  },
   "home.needs.heading": "Was Sie braucht",
   "home.needs.none": "Nichts wartet auf einen Menschen.",
   "home.needs.noneProposed": "Es wurde auch noch nichts vorgeschlagen.",
@@ -6132,6 +7096,7 @@ var de_default = {
   "home.empty.title": "Ihr Unternehmen hat noch keine Aufzeichnung",
   "home.empty.because": "F\xFCr jeden Vorschlag, jede Entscheidung, jeden Lauf und jede Pr\xFCfung wird ein Eintrag geschrieben. Ihre ist leer, weil noch nichts vorgeschlagen wurde. Geben Sie ein Ziel vor, und es schl\xE4gt die ersten Aktionen dazu vor.",
   "home.empty.action": "Das erste Ziel setzen",
+  "nav.skip": "Zum Seiteninhalt springen",
   "nav.sections": "Bereiche",
   "nav.overview": "\xDCbersicht",
   "nav.approvals": "Freigaben",
@@ -6547,8 +7512,10 @@ var de_default = {
   // Rollennamen sind Substantive und werden in Sätzen ohne Artikel eingesetzt,
   // damit kein Genus geraten werden muss.
   // ---------------------------------------------------------------------------
+  "role.guest.label": "Gast",
+  "role.guest.summary": "Liest dieses Unternehmen, \xE4ndert nichts und kann die Dateien nicht \xF6ffnen.",
   "role.viewer.label": "Betrachter",
-  "role.viewer.summary": "Liest dieses Unternehmen und \xE4ndert nichts.",
+  "role.viewer.summary": "Liest dieses Unternehmen einschlie\xDFlich der Dateien und \xE4ndert nichts.",
   "role.member.label": "Mitglied",
   "role.member.summary": "Schl\xE4gt Arbeit vor, f\xFChrt sie aus und genehmigt oder lehnt ab, was ein Agent vorschl\xE4gt. All das bleibt innerhalb dieses Unternehmens.",
   "role.admin.label": "Admin",
@@ -6634,6 +7601,7 @@ var de_default = {
   "usage.phase.build": "Bauen",
   "usage.phase.search": "Suchen",
   "usage.phase.speech": "Sprechen",
+  "usage.phase.console": "Antworten",
   "usage.phase.other": "Nicht erfasst",
   "usage.byGoal": "Nach Ziel",
   "usage.noGoal": "Keinem Ziel zugeordnet",
@@ -6687,8 +7655,26 @@ var de_default = {
   "shell.halt.idle": "Halt",
   "shell.credits.low": "Fast aufgebraucht",
   "evidence.raw": "Rohdaten",
+  "evidence.check.ok": "In Ihrem Browser neu berechnet: der Hash stimmt mit dem Datensatz \xFCberein.",
+  "evidence.check.bad": "In Ihrem Browser neu berechnet: der Hash stimmt NICHT \xFCberein, dieser Datensatz wurde also nach dem Schreiben ver\xE4ndert.",
+  "evidence.check.unknown": "Dieser Datensatz kann im Browser nicht neu berechnet werden.",
   "product.notes": "Was der Lauf nicht feststellen konnte",
   "product.inconclusive": "Dieser Lauf kam mit dem Vorliegenden zu keinem Ergebnis.",
+  "inbox.none": "In diesem Unternehmen wurde nichts vorgeschlagen.",
+  "inbox.counts": "{waiting} warten auf einen Menschen, {decided} bereits entschieden.",
+  "inbox.capped": "Es werden die neuesten {shown} von {total} angezeigt. \xC4ltere Vorschl\xE4ge sind noch nicht auf dieser Seite.",
+  "inbox.showingAll": "{total} insgesamt.",
+  "inbox.empty.title": "Nichts wurde vorgeschlagen",
+  "inbox.empty.body": "{brand} schl\xE4gt Handlungen zu einem Ziel vor. Dieses Unternehmen hat keine Vorschl\xE4ge, weil es noch kein Ziel gibt oder weil zu den vorhandenen nichts vorgeschlagen wurde.",
+  "inbox.empty.action": "Ziel setzen",
+  "inbox.waiting": "Wartet auf Sie",
+  "inbox.refusedAt": "abgelehnt am Gate {gate}",
+  "inbox.needsYou": "braucht Sie",
+  "inbox.unattended": "w\xFCrde unbeaufsichtigt laufen",
+  "inbox.decided": "Bereits entschieden",
+  "inbox.refused": "abgelehnt",
+  "inbox.checked": "von einem anderen Akteur gepr\xFCft",
+  "inbox.notEstablished": "ausgef\xFChrt, nicht belegt",
   "contract.tabs": "Ansichten dieses Auftrags",
   "contract.tab.contract": "Auftrag",
   "contract.tab.output": "Ergebnis",
@@ -6728,8 +7714,55 @@ var de_default = {
   "contract.check.notEstablishes": "Was es nicht belegt",
   "contract.check.defaultEstablishes": "der gespeicherte Datensatz ist konsistent",
   "contract.check.defaultNot": "dass irgendetwas dieses System verlassen hat",
+  "contract.check.next": "Was als N\xE4chstes zu tun ist",
+  "contract.check.next.body": "Eine Pr\xFCfung, die nicht hielt, bedeutet nicht, dass die Aktion fehlgeschlagen ist. Sie bedeutet, dass ein anderer Akteur sie anhand des Datensatzes nicht best\xE4tigen konnte. Lesen Sie zuerst die Belege unten. Falls die Wirkung noch etwas au\xDFerhalb des Unternehmens erreichen k\xF6nnte, stoppen Sie jede Autonomie \xFCber die Leiste; das greift beim n\xE4chsten Gate. Dieser Vertrag l\xE4uft kein zweites Mal: ein neuer Versuch ist ein neuer Vertrag, setzen Sie also das Ziel erneut, damit einer vorgeschlagen wird.",
+  "contract.check.next.goal": "Ziel erneut setzen",
   "contract.evidence": "Belege",
   "contract.proposedBy": "Vorgeschlagen von {actor}, hash-adressiert: das Siegel unten wird aus dem Inhalt des Auftrags selbst berechnet, sodass eine Genehmigung nicht auf eine andere Aktion \xFCbertragen werden kann.",
+  "contract.replaces.title": "Ersetzt einen fr\xFCheren Vorschlag",
+  "contract.replaces.link": "Fr\xFCherer Vorschlag {hash}",
+  "contract.replaces.same": "Die Bedingungen sind dieselben. Nur Zeitpunkt und Herkunft unterscheiden sich.",
+  "contract.replacedBy.title": "Durch einen sp\xE4teren Vorschlag ersetzt",
+  "contract.replacedBy.body": "\xDCber diesen kann nicht mehr entschieden werden. Entscheiden Sie stattdessen \xFCber den sp\xE4teren Vorschlag.",
+  "contract.replacedBy.link": "Sp\xE4terer Vorschlag {hash}",
+  "contract.change.was": "Vorher",
+  "contract.change.now": "Jetzt",
+  "contract.change.objective": "Ziel",
+  "contract.change.capabilities": "Befugnis",
+  "contract.change.steps": "Schritte",
+  "contract.change.reach": "Erreicht",
+  "contract.change.bearer": "Folgen tr\xE4gt",
+  "contract.change.reversible": "Umkehrbar",
+  "contract.change.expires": "L\xE4uft ab",
+  "contract.change.claims": "Aussagen",
+  "contract.change.cites": "Zitiert",
+  "decision.error.notContract": "das ist kein Vertrag",
+  "decision.error.gate": "am Gate {gate} abgelehnt: {reason}",
+  "decision.error.signedOut": "Sie sind nicht angemeldet",
+  "decision.error.notHere": "dieser Vertrag geh\xF6rt nicht zu diesem Unternehmen",
+  "decision.error.decided": "jemand hat dar\xFCber bereits entschieden; die Seite wurde aktualisiert",
+  "decision.error.superseded": "ein sp\xE4terer Vorschlag hat diesen ersetzt, daher kann nicht mehr dar\xFCber entschieden werden",
+  "decision.error.notApproved": "dieser Vertrag wurde nicht genehmigt, also gibt es nichts auszuf\xFChren",
+  "decision.ok.endorsed": "Erfasst. Zugestimmt haben {have} von {need}. Es kann erst laufen, wenn die anderen es angesehen haben.",
+  "comment.error.empty": "Schreiben Sie zuerst etwas.",
+  "comment.error.tooLong": "Das ist l\xE4nger als {limit} Zeichen. K\xFCrzen Sie es oder h\xE4ngen Sie eine Datei an.",
+  "comment.ok.posted": "Ver\xF6ffentlicht.",
+  "comment.ok.mentioned": "Ver\xF6ffentlicht. {count} Ihrer Kolleginnen und Kollegen wurden benachrichtigt.",
+  "comment.label": "Notiz hinzuf\xFCgen",
+  "comment.hint": "Tippen Sie @ und eine Adresse, um jemanden direkt anzusprechen. Eine Notiz kann danach nicht bearbeitet oder gel\xF6scht werden.",
+  "comment.submit": "Ver\xF6ffentlichen",
+  "comment.none": "Dazu wurde noch nichts gesagt.",
+  "comment.title": "Notizen",
+  "decision.ok.approved": "Genehmigt.",
+  "decision.ok.refused": "Abgelehnt.",
+  "decision.ok.ran": "Ausgef\xFChrt, und ein anderer Akteur hat best\xE4tigt, dass der Datensatz dem Vertrag entspricht.",
+  "decision.error.unverified": "Ausgef\xFChrt, aber die Pr\xFCfung hat es NICHT belegt: {why}",
+  "decision.revise": "\xDCberarbeitung anfordern",
+  "decision.revise.hint": "Um ihn zur\xFCckzugeben, sagen Sie, was sich \xE4ndern soll. Der Vorschlagende antwortet mit einem \xFCberarbeiteten Vorschlag, der diesen ersetzt.",
+  "decision.error.needsWords": "Sagen Sie, was sich \xE4ndern soll, damit der Vorschlagende wei\xDF, was zu \xFCberarbeiten ist.",
+  "decision.ok.revised": "\xDCberarbeitung angefordert.",
+  "contract.revisionBy": "\xDCberarbeitung angefordert von {name} am {when}",
+  "contract.revision.open": "Dieser Vorschlag bleibt offen, bis ein \xFCberarbeiteter ihn ersetzt oder jemand dar\xFCber entscheidet.",
   "decision.error.title": "Das ist nicht durchgegangen",
   "decision.done": "Erledigt",
   "decision.ran.title": "Das ist bereits gelaufen",
@@ -6745,6 +7778,9 @@ var de_default = {
   "decision.halted": "Die Autonomie ist angehalten. Heben Sie den Halt auf, bevor etwas l\xE4uft, auch bereits Genehmigtes.",
   "decision.run.note": "Ausf\xFChren f\xFChrt den Plan aus und \xFCbergibt das Ergebnis dann einem anderen Akteur zur Pr\xFCfung. In dieser Bereitstellung ist kein Adapter verbunden, daher ist die Wirkung simuliert, und jedes erzeugte Artefakt sagt das.",
   "decision.refused.title": "Das wurde abgelehnt",
+  "decision.recheck": "Erneut pr\xFCfen",
+  "decision.rechecking": "Wird gepr\xFCft",
+  "decision.recheck.note": "Fragt die Au\xDFenwelt, ob dies noch vorhanden ist, ohne Ihre Zugangsdaten zu verwenden.",
   "decision.refused.body": "Eine Ablehnung wird gespeichert und ist endg\xFCltig. Schlagen Sie einen neuen Auftrag vor, statt diesen umzukehren: eine \xC4nderung erzeugt einen neuen Auftrag, der den alten ersetzt, sodass die Aufzeichnung des Abgelehnten erhalten bleibt.",
   "product.email.from": "Von",
   "product.email.to": "An",
@@ -6853,6 +7889,11 @@ var de_default = {
   "billing.subscription.plan": "Plan, den Sie bezahlen",
   "billing.subscription.periodEnds": "Abrechnungsperiode endet",
   "billing.subscription.reference": "Abonnement-Referenz",
+  "billing.limited.title": "Ihr Abonnement wird nicht bezahlt, daher ist Ihr Tarif eingeschr\xE4nkt",
+  "billing.limited.body": "Nichts wurde gel\xF6scht, und Sie k\xF6nnen weiterhin alles lesen. Was aufh\xF6rt, ist neue Arbeit, die Geld kostet. Aktualisieren Sie Ihre Karte beim Anbieter, um den Tarif wiederherzustellen.",
+  "billing.limited.subscribed": "Tarif, f\xFCr den Sie zahlen",
+  "billing.limited.status": "Status beim Anbieter",
+  "billing.limited.runningOn": "L\xE4uft auf",
   "billing.choice.current": "Auf diesem Plan ist diese Organisation bereits.",
   "billing.choice.halted": "Dieses Unternehmen ist gestoppt, und der Stopp umfasst jede \xC4nderung, auch diese. Heben Sie ihn in der Kopfzeile auf, und wechseln Sie dann den Plan.",
   "billing.choice.noProvider": "Mit dieser Installation ist kein Zahlungsanbieter verbunden, es kann von hier aus also keine Karte belastet werden.",
@@ -6895,8 +7936,21 @@ var de_default = {
   "goals.cadence.finished": "Einmal gelaufen. Weiter ist nichts geplant.",
   "goals.cadence.due": "Beim n\xE4chsten Durchlauf f\xE4llig",
   "goals.cadence.next": "N\xE4chster Durchgang {when}",
+  "goals.templates.heading": "Oder fangen Sie mit einem dieser an",
+  "goals.templates.competitors": "Lesen Sie jede Woche die \xF6ffentlichen Websites der Unternehmen, mit denen wir konkurrieren, und schreiben Sie auf, was sich seither ge\xE4ndert hat.",
+  "goals.templates.claims": "Lesen Sie unsere eigene Website und listen Sie jede Aussage darauf auf, die wir heute nicht belegen k\xF6nnten.",
+  "goals.templates.week": "Schreiben Sie jeden Freitag auf, was dieses Unternehmen diese Woche tats\xE4chlich getan hat, und sagen Sie deutlich, was nicht gehalten hat.",
+  "goals.templates.inbox": "Lesen Sie jeden Morgen den Unternehmens-Posteingang und entwerfen Sie eine Antwort auf alles, das einer Antwort bedarf. Nichts wird versendet, bis eine Person Senden dr\xFCckt.",
+  "goals.templates.repo": "Finden Sie kleine, in sich geschlossene Probleme in unserem Repository und \xF6ffnen Sie f\xFCr jedes einen Pull Request. Niemals mergen.",
+  "goals.cadence.stopped": "Nach mehreren Fehlschl\xE4gen gestoppt. \xC4ndern Sie es oder f\xFChren Sie es selbst aus.",
+  "goals.assignee.label": "Wer daran arbeitet",
+  "goals.assignee.nobody": "Niemand",
+  "goals.assignee.saved": "Gespeichert.",
+  "goals.assignee.error": "Das ist niemand in diesem Unternehmen.",
+  "goals.assignee.on": "Daran arbeitet: {who}",
   "goals.cadence.change": "\xC4ndern",
   "goals.cadence.saved": "Gespeichert.",
+  "goals.schedule.zone": "Geplante Durchg\xE4nge laufen am Morgen, {zone}.",
   "log.title": "\xC4nderungsprotokoll",
   "log.lead": "Was sich ge\xE4ndert hat, wann, und welche H\xE4lfte davon stimmte. Es wird erg\xE4nzt, nie umgeschrieben.",
   "log.english-note.title": "Diese Eintr\xE4ge sind auf Englisch",
@@ -6925,6 +7979,187 @@ var de_default = {
   "portability.honest.body": "Eine Seite \xFCber Portabilit\xE4t ist als Versprechen leicht geschrieben und als Tatsache schwer. Zwei der drei Dinge, die eine solche Seite \xFCblicherweise behauptet, Ihre Domain und Ihr Zahlungskonto, treffen hier nicht zu, deshalb stehen sie oben als nicht angeboten und werden nicht weggelassen. Das eine, das zutrifft, Ihre eigenen Daten, gilt in jedem Plan und ist das, worauf es ankommt, falls Sie je gehen wollen.",
   "portability.status.included": "Verf\xFCgbar",
   "portability.status.planned": "Noch nicht gebaut",
+  /* Die Vergleichsseiten. Register: Sie. Kein Anspruchswortschatz in irgendeiner
+     Form ("konform", "zertifi", "auditier", "attestier"), weshalb der Absatz zum
+     Speicherort sagt, wo die Datenbank steht und was die Modellauswertung tut,
+     statt zu einem Wort über einen Status zu greifen. Nichts ist woertlich
+     zitiert: die Vorlage traegt Geviertstriche, die §5a in jeder Sprache
+     verbietet. */
+  "vs.eyebrow": "Vergleich",
+  "vs.index.title": "Vergleiche",
+  "vs.index.lead": "Je eine Seite zu den Produkten, nach denen am h\xE4ufigsten gefragt wird, alle nach demselben Muster: zuerst, was sie gut machen, dann f\xFCnf Fragen an beide, dann die Seiten, aus denen jede Aussage stammt.",
+  "vs.index.meta.description": "Belegte Vergleiche von Orvay mit anderen Produkten, die Arbeit f\xFCr ein Unternehmen erledigen. Jede Aussage verweist mit Datum auf die Seite, auf der sie gelesen wurde.",
+  "vs.index.more": "Weitere folgen. Ein Vergleich kommt erst dazu, wenn es \xF6ffentliche Dokumentation zu lesen gibt, denn eine Seite, die \xFCber andere r\xE4t, ist weniger wert als keine Seite.",
+  "vs.paperclip.index.blurb": "Quelloffen, selbst betrieben, mit einer Freigabeliste, in der eine Pr\xFCferin Arbeit zur\xFCckgeben kann, statt sie nur abzulehnen.",
+  "vs.polsia.index.blurb": "Gehostet, und es greift weiter in den Gesch\xE4ftsbetrieb ein: Domains, Zahlungen und Ver\xF6ffentlichungen an einer Stelle.",
+  "vs.paperclip.name": "Paperclip",
+  "vs.paperclip.title": "Orvay und Paperclip",
+  "vs.paperclip.lead": "Beide stellen einen Menschen vor den Agenten, bevor dieser handelt. Sie sind f\xFCr unterschiedliche K\xE4ufer gebaut und legen unterschiedliche Dinge offen. Alles, was hier \xFCber Paperclip steht, stammt von einer \xF6ffentlichen Seite, und diese Seite ist unten verlinkt, mit dem Datum, an dem sie gelesen wurde.",
+  "vs.paperclip.meta.description": "Ein belegter Vergleich von Orvay und Paperclip zu Freigaben, zur Pr\xFCfung der Arbeit, zur Mitnahme Ihrer Daten, zum Speicherort und dazu, wer die Software betreibt. Jede Aussage verweist auf die Seite, von der sie stammt.",
+  "vs.method.heading": "Woher die Angaben auf dieser Seite stammen",
+  "vs.method.lead": "Eine Vergleichsseite ist die einfachste Stelle im Web, um sich \xFCber andere zu irren. Dies sind die Regeln, denen diese Seite folgt, damit Sie pr\xFCfen k\xF6nnen, ob sie eingehalten wurden.",
+  "vs.method.rule.sourced": "Jede Aussage \xFCber {name} stammt von einer \xF6ffentlichen Seite, die unten auf dieser Seite mit dem Lesedatum verlinkt ist. Was wir nicht selbst lesen konnten, haben wir weggelassen.",
+  "vs.method.rule.claims": "Wir geben wieder, was ihre Dokumentation beschreibt, statt es als eigenen Befund auszugeben. Ein Unternehmen, das \xFCber sein eigenes Produkt schreibt, belegt damit nur, dass es das gesagt hat, und nicht, dass es funktioniert.",
+  "vs.method.rule.numbers": "Keine Zahl zur Gr\xF6\xDFe des Unternehmens steht hier. Keine Sterne, keine Finanzierung, kein Umsatz, keine Nutzerzahl. Nichts davon sagt Ihnen, wie eines der beiden Produkte mit Ihrer Arbeit umgeht.",
+  "vs.method.rule.today": "Orvay wird so beschrieben, wie es heute ist, und nicht wie es geplant ist. Wo {name} etwas liefert, das wir nicht gebaut haben, sagt die Antwort oben das im selben Satz.",
+  "vs.paperclip.credit.heading": "Was Paperclip gut macht",
+  "vs.paperclip.credit.lead": "Das steht zuerst, weil es der ehrliche Teil jedes Vergleichs ist und weil wir diesen Entscheidungen nicht widersprechen w\xFCrden.",
+  "vs.paperclip.credit.open": "Paperclip ist quelloffen unter der MIT-Lizenz, und Sie k\xF6nnen alles davon selbst betreiben. Die README verlangt lokal Node.js und einen Paketmanager und im Produktivbetrieb ein eigenes Postgres, sodass nichts daran Sie zwingt, einem fremden Betreiber zu vertrauen.",
+  "vs.paperclip.credit.approvals": "Die Freigabeliste gibt einer pr\xFCfenden Person drei Ausg\xE4nge, wo die meisten Produkte zwei bieten: annehmen, ablehnen oder den Vorschlag zur \xDCberarbeitung zur\xFCckgeben, ohne Obergrenze, wie oft das geschehen darf. Ablehnung ist endg\xFCltig, \xDCberarbeitung ist eine Schleife, und beides auseinanderzuhalten ist besser als ein einziger Knopf, der Nein bedeutet.",
+  "vs.paperclip.credit.trust": "Die Pr\xFCfung bei geringem Vertrauen h\xE4lt Arbeit eines Agenten, dem nicht voll vertraut wird, von allem anderen getrennt, und die Dokumentation sagt klar, dass rohe, ungesicherte Ausgaben nie stillschweigend hochgestuft werden. Ein Mensch muss sie ansehen und die saubere Fassung schreiben, und der Vermerk dazu h\xE4lt fest, wer das getan hat und wann.",
+  "vs.axes.heading": "F\xFCnf Fragen, beide Antworten",
+  "vs.axes.lead": "Dieselben f\xFCnf Fragen an beide Produkte. Ihre Seite beschreibt, was ihre Dokumentation darlegt. Unsere Seite beschreibt, was Orvay heute tut, und bei einer der f\xFCnf ist das weniger.",
+  "vs.paperclip.axis.approvals.heading": "Freigaben von Grund auf",
+  "vs.paperclip.axis.approvals.them": "Paperclip behandelt eine Freigabe als Eintrag in einer Liste mit drei Ausg\xE4ngen, unter einer Ausf\xFChrungsregel, die zur Laufzeit greift, sodass ein Agent nicht daran denken muss zu fragen. Eine Stufe h\xE4lt fest, wer beteiligt ist und wie viele Zustimmungen n\xF6tig sind.",
+  "vs.paperclip.axis.approvals.us": "Orvay behandelt eine Freigabe als begrenztes Objekt und nicht als ein Ja. Sie wird einmalig erteilt, als dauerhafte Erlaubnis oder durch eine Obergrenze beschr\xE4nkt, und sie wird in dieser Form gespeichert, denn eine Zustimmung, die nicht sagen kann, was sie abgedeckt hat, n\xFCtzt der Person nichts, die sie ein Jahr sp\xE4ter nachliest. Jede Handlung durchl\xE4uft eine einzige Funktion mit acht Pr\xFCfungen in fester Reihenfolge, und ein angehaltenes Unternehmen steht still, auch f\xFCr die eigene Leitung.",
+  "vs.paperclip.axis.verification.heading": "Wer die Arbeit pr\xFCfen darf",
+  "vs.paperclip.axis.verification.them": "Paperclip beantwortet das mit Absonderung und einem Menschen. Ausgaben ohne volles Vertrauen werden getrennt gehalten, nichts r\xFCckt von allein auf, und eine vertrauensw\xFCrdige Person schreibt die saubere Fassung. Der Vermerk dazu nennt die handelnde Stelle und den Zeitpunkt.",
+  "vs.paperclip.axis.verification.us": "Orvay beantwortet es mit einer Regel \xFCber die pr\xFCfende Instanz statt \xFCber den Pr\xFCfpunkt. Nachweise, die von derselben Stelle stammen, welche die Arbeit ausgef\xFChrt hat, belegen nicht, dass die Arbeit geschehen ist; pr\xFCfen muss also etwas anderes. Orvay z\xE4hlt au\xDFerdem, wie oft ein Lauf Erfolg gemeldet hat, ohne dass ein unabh\xE4ngiger Nachweis dahinterstand, und zeigt diesen Anteil je F\xE4higkeit, denn ein System, das nur seine Erfolge z\xE4hlt, benotet seine eigene Klausur.",
+  "vs.paperclip.axis.portability.heading": "Ihre Arbeit anderswohin mitnehmen",
+  "vs.paperclip.axis.portability.them": "Paperclip f\xFChrt eine ganze Organisation als lesbare Dateien aus, die sich wieder einlesen lassen: Agenten, Projekte, Fertigkeiten, Aufgaben, Abl\xE4ufe und Anh\xE4nge. Die Dokumentation ist ebenso deutlich darin, was nicht mitgeht, und dieser Teil lohnt das Lesen, bevor Sie sich darauf verlassen. Freigaben, Kostenverlauf und Eintr\xE4ge des Aktivit\xE4tsprotokolls bleiben auf der Instanz zur\xFCck, die Sie verlassen haben.",
+  "vs.paperclip.axis.portability.us": "Das ist die Frage, bei der Paperclip liefert und Orvay nicht, und das schreiben wir in denselben Satz. Ihre eigenen personenbezogenen Daten k\xF6nnen Sie in jedem Tarif mitnehmen, auch im kostenlosen, denn das ist ein Recht und keine Funktion, und daf\xFCr Geld zu verlangen w\xE4re keine Preisentscheidung. Die gr\xF6\xDFeren Ausleitungen sind nicht gebaut. Der Status neben jeder einzelnen unten stammt aus derselben Tabelle, aus der die Preisliste liest, sodass diese Seite nicht mehr behaupten kann als jene.",
+  "vs.paperclip.axis.consent.heading": "Wo die Daten liegen, und worauf Kontakt beruht",
+  "vs.paperclip.axis.consent.them": "Weil Sie Paperclip selbst betreiben, ist das Ihre Entscheidung und nicht deren. Die Dokumentation sagt Ihnen, es auf ein Postgres Ihrer Wahl zu richten und beliebig auszurollen, sodass ein Unternehmen mit einer Pflicht zum Speicherort sie durch die Wahl der Maschine erf\xFCllen kann.",
+  "vs.paperclip.axis.consent.us": "Orvay wird von uns betrieben, also m\xFCssen wir das beantworten, statt es Ihnen zu \xFCberlassen. Die Datenbank steht in Z\xFCrich. Die Modellauswertung findet nicht in der Schweiz statt, und ein Satz zum Speicherort, der das wegl\xE4sst, ist das Lesen nicht wert. Wenn Kontaktdaten erfasst werden, wird die Rechtsgrundlage in diesem Moment festgehalten und nicht nachtr\xE4glich entschieden, und ein Klick zum Abbestellen schreibt einen Widerruf in dasselbe Verzeichnis.",
+  "vs.paperclip.axis.hosting.heading": "Wer die Software betreibt",
+  "vs.paperclip.axis.hosting.them": "Sie selbst. Und wenn Ihnen wichtig ist, die Maschine zu besitzen, ist das ein echter Vorteil, und er liegt bei ihnen. Es hei\xDFt allerdings auch, einen Dienst und eine Datenbank am Leben zu halten, sie zu aktualisieren und zu bemerken, wenn sie stehen bleiben.",
+  "vs.paperclip.axis.hosting.us": "Bei Ihnen im Haus betreibt niemand etwas. Datenbank, Aufzeichnung und die Wahl zwischen Modellen kommen fertig verbunden, und es gibt keinen Dienst von uns, den Sie am Leben halten m\xFCssten. Das ist ein Tausch und kein Gewinn: Sie entscheiden sich daf\xFCr, dass jemand anderes es h\xE4lt, und die Fragen oben sollten Sie abw\xE4gen, bevor Sie das f\xFCr sich in Ordnung finden.",
+  "vs.sources.heading": "Quellen",
+  "vs.sources.lead": "Jede Seite unten wurde an dem Datum daneben gelesen. Seiten \xE4ndern sich: W\xE4hrend diese hier entstand, war eine Adresse aus unseren eigenen Notizen bereits verschwunden.",
+  "vs.sources.retrieved": "Gelesen am {date}",
+  "vs.sources.caveat": "Diese Verweise f\xFChren zu Material, das Paperclip \xFCber sich selbst ver\xF6ffentlicht. Wir haben es gelesen und nicht erprobt, und niemand hier hat ihr Produkt betrieben.",
+  "vs.source.paperclip.repo": "Paperclip Quellcodeverzeichnis und README",
+  "vs.source.paperclip.site": "Paperclip Produktseite",
+  "vs.source.paperclip.approvals": "Paperclip Dokumentation zu Freigaben",
+  "vs.source.paperclip.trust": "Paperclip Dokumentation zur Pr\xFCfung bei geringem Vertrauen",
+  "vs.source.paperclip.export": "Paperclip Dokumentation zu Export und Import",
+  "vs.polsia.name": "Polsia",
+  "vs.polsia.title": "Orvay und Polsia",
+  "vs.polsia.lead": "Beide erledigen Arbeit f\xFCr ein Unternehmen, ohne dass ein Mensch jeden Schritt lenkt. Sie sind sich uneinig dar\xFCber, wozu ein Mensch da ist. Alles, was hier \xFCber Polsia steht, wurde im Hilfebereich und auf den Rechtsseiten gelesen, und jede Seite ist unten mit dem Datum verlinkt, an dem sie gelesen wurde.",
+  "vs.polsia.meta.description": "Ein belegter Vergleich von Orvay und Polsia zu Freigaben, \xDCberpr\xFCfung, Portabilit\xE4t, Datenstandort und Betrieb. Jede Aussage verlinkt die Seite, auf der sie gelesen wurde.",
+  "vs.polsia.credit.heading": "Was Polsia gut macht",
+  "vs.polsia.credit.lead": "Das steht zuerst, weil es der ehrliche Teil jedes Vergleichs ist, und weil wir bei zweien davon lieber nicht zugeben w\xFCrden, dass sie besser sind.",
+  "vs.polsia.credit.candour": "Der Hilfebereich benennt eine Grenze deutlich, statt sie Sie selbst finden zu lassen: Es gibt keinen Zugriff auf ein Repository f\xFCr Ihren Code, keine Adresse zum Klonen und keine Schnittstelle, um eine anzufordern. Ein Produkt, das aufschreibt, was es nicht f\xFCr Sie tut, l\xE4sst sich leichter einplanen als eines, das nur auflistet, was es tut.",
+  "vs.polsia.credit.database": "Ein Unternehmen erh\xE4lt eine eigene PostgreSQL-Datenbank, und der Export besteht aus zwei SQL-Dateien, die sich in jeden PostgreSQL-Server laden lassen. Das ist ein echter Ausgang und keine Geste, denn das Format liest bereits jemand anderes.",
+  "vs.polsia.credit.bounded": "Der unbeaufsichtigte Modus ist begrenzt, sobald Sie ihn starten. Sie w\xE4hlen die Laufzeit, von einer Stunde bis zu f\xFCnf Tagen, Sie sehen w\xE4hrend der Arbeit, was fertig geworden ist, und Sie k\xF6nnen ihn stoppen. Autonomie mit einem festgelegten Ende ist eine bessere Form als Autonomie, die einfach weiterl\xE4uft.",
+  "vs.polsia.axis.approvals.heading": "Freigaben von Grund auf",
+  "vs.polsia.axis.approvals.them": "Polsia begrenzt einen Lauf, nicht eine Entscheidung. Der unbeaufsichtigte Modus nimmt eine Laufzeit und ein Budget: Er arbeitet offene Aufgaben ab und plant neue, bis die Zeit oder das Guthaben endet, er zeigt dabei einen laufenden Z\xE4hler, und eine Stopp-Schaltfl\xE4che beendet ihn. Die dokumentierten Grenzen sind Zeit, Geld und Anhalten.",
+  "vs.polsia.axis.approvals.us": "Orvay begrenzt auch die Entscheidung. Eine Freigabe ist ein abgegrenztes Objekt und kein Ja: einmalig erteilt, dauerhaft oder durch ein Limit begrenzt, und genau so gespeichert, denn eine Freigabe, die nicht sagen kann, was sie umfasste, n\xFCtzt niemandem, der sie ein Jahr sp\xE4ter nachliest. Jede Aktion durchl\xE4uft eine Funktion mit acht Pr\xFCfungen in fester Reihenfolge, und ein angehaltenes Unternehmen bleibt selbst f\xFCr seine Inhaberin oder ihren Inhaber angehalten.",
+  "vs.polsia.axis.verification.heading": "Wer die Arbeit pr\xFCfen darf",
+  "vs.polsia.axis.verification.them": "Was die Arbeit gemacht hat, meldet auch, wie sie gelaufen ist. Eine Aufgabenkarte sagt, ob die Aufgabe abgeschlossen wurde, nichts ge\xE4ndert hat oder fehlgeschlagen ist, und eine fehlgeschlagene Aufgabe erstattet ihr eigenes Guthaben zur\xFCck. Wenn danach noch etwas falsch aussieht, lautet die Anleitung, dass Sie Ihre Live-Seite \xF6ffnen und Ihre letzten Aufgaben durchsehen.",
+  "vs.polsia.axis.verification.us": "Orvay h\xE4lt fest, dass ein Nachweis, den das Ausf\xFChrende selbst erzeugt, nicht belegt, dass die Arbeit geschehen ist. Was pr\xFCft, muss also etwas anderes sein. Orvay z\xE4hlt au\xDFerdem, wie oft ein Lauf Erfolg gemeldet hat, ohne dass ein unabh\xE4ngiger Nachweis dahinterstand, und zeigt diesen Anteil je F\xE4higkeit, denn ein System, das nur seine Erfolge z\xE4hlt, w\xFCrde seine eigenen Arbeiten benoten.",
+  "vs.polsia.axis.portability.heading": "Ihre Arbeit woanders hin mitnehmen",
+  "vs.polsia.axis.portability.them": "Zwei Exporte, getrennt dokumentiert. Den Code fordern Sie im Dashboard an und warten ein bis zwei Minuten darauf. Die Datenbank kommt als zwei SQL-Dateien heraus, die Sie in jeden PostgreSQL-Server laden k\xF6nnen. Als fehlend dokumentiert ist der Zugriff auf ein Repository: keine Adresse zum Klonen, keine Schnittstelle, um eine anzufordern.",
+  "vs.polsia.axis.portability.us": "Das ist die Frage, bei der Polsia mehr liefert als Orvay, also sagen wir es im selben Satz. Ihre eigenen personenbezogenen Daten lassen sich in jedem Tarif herausnehmen, auch im kostenlosen, denn das ist ein Recht und keine Funktion, und daf\xFCr Geld zu verlangen w\xE4re keine Preisentscheidung. Die gr\xF6\xDFeren Exporte sind nicht gebaut. Der Status neben jedem einzelnen unten wird aus derselben Tabelle gelesen, die auch die Preisseite liest, damit diese Seite nicht mehr behaupten kann als jene.",
+  "vs.polsia.axis.consent.heading": "Wo die Daten liegen und worauf Kontakt beruht",
+  "vs.polsia.axis.consent.them": "Polsia ver\xF6ffentlicht eine Liste der Unterauftragsverarbeiter mit einem Stichtag, benennt jeden Anbieter, wof\xFCr er eingesetzt wird und welche Datenkategorien er sieht, darunter den Zahlungsdienstleister und die Plattform, auf der der Betrieb l\xE4uft. Es steht auch dabei, dass die Liste angibt, was eingesetzt werden kann, und dass sich das tats\xE4chlich Zutreffende danach richtet, welche Funktionen ein Konto eingeschaltet hat.",
+  "vs.polsia.axis.consent.us": "Orvay wird gehostet, also m\xFCssen wir das beantworten und k\xF6nnen es nicht Ihnen \xFCberlassen. Die Datenbank steht in Z\xFCrich. Die Modellinferenz findet nicht in der Schweiz statt, und ein Satz \xFCber den Datenstandort, der das wegl\xE4sst, ist nichts wert. Wenn Kontaktdaten erhoben werden, wird die Rechtsgrundlage in diesem Moment festgehalten und nicht nachtr\xE4glich bestimmt, und ein Klick, um E-Mails zu beenden, schreibt einen Widerruf in dasselbe Verzeichnis.",
+  "vs.polsia.axis.hosting.heading": "Wer die Software betreibt",
+  "vs.polsia.axis.hosting.them": "Polsia tut es, und es greift dabei weiter in den Betrieb des Gesch\xE4fts ein als wir: Ein Unternehmen kann dar\xFCber eine Domain kaufen, auf der gebauten Seite Zahlungen entgegennehmen und diese Seite von derselben Stelle aus ver\xF6ffentlichen und zur\xFCckrollen. Wenn Sie einen einzigen Anbieter f\xFCr das Ganze wollen, geh\xF6rt dieser Vorteil ihnen und er ist echt.",
+  "vs.polsia.axis.hosting.us": "Bei uns betreibt ebenfalls niemand in Ihrem Unternehmen etwas. Der Unterschied liegt darin, was verdrahtet ankommt: bei Orvay die Datenbank, das Protokoll und die Auswahl zwischen den Modellen, und kein Laden. Das ist ein Tausch und kein Sieg, und die Fragen oben sind das, was Sie abw\xE4gen sollten, bevor Sie entscheiden, was zu Ihnen passt.",
+  "vs.polsia.sources.caveat": "Diese Links f\xFChren zu Material, das Polsia \xFCber sich selbst ver\xF6ffentlicht. Wir haben es gelesen, nicht gepr\xFCft, und niemand hier hat ihr Produkt betrieben. Nichts auf dieser Seite stammt von ihrer Startseite, denn ein Slogan und eine herausgestellte Zahl beschreiben ein Unternehmen und nicht, wie es mit Ihrer Arbeit umgeht.",
+  "vs.source.polsia.help": "Polsia Hilfebereich, \xDCbersicht der Anleitungen",
+  "vs.source.polsia.autoMode": "Polsia Dokumentation zum unbeaufsichtigten Modus",
+  "vs.source.polsia.codeExport": "Polsia Dokumentation zum Herunterladen Ihres Codes",
+  "vs.source.polsia.dbExport": "Polsia Dokumentation zum Export Ihrer Datenbank",
+  "vs.source.polsia.taskOutcome": "Polsia Dokumentation zur Pr\xFCfung eines Aufgabenergebnisses",
+  "vs.source.polsia.subprocessors": "Polsia Liste der Unterauftragsverarbeiter",
+  "vs.cofounder.name": "Cofounder",
+  "vs.cofounder.title": "Orvay und Cofounder",
+  "vs.cofounder.lead": "Beide setzen Agenten f\xFCr ein Unternehmen ein, das bereits von einem Menschen gef\xFChrt wird. Cofounder macht deutlich, dass Ihr Kernprodukt in Ihrer eigenen Codebasis bleibt und dass es das Unternehmen darum herum aufbaut. Alles, was hier steht, stammt aus seiner Dokumentation und seinen Rechtsseiten, unten verlinkt mit dem Datum, an dem es gelesen wurde.",
+  "vs.cofounder.meta.description": "Ein belegter Vergleich von Orvay und Cofounder zu Freigaben, \xDCberpr\xFCfung, Portabilit\xE4t, Datenstandort und Betrieb. Jede Aussage verlinkt die Seite, auf der sie gelesen wurde.",
+  "vs.cofounder.credit.lead": "Das steht zuerst, weil es der ehrliche Teil jedes Vergleichs ist, und weil die erste dieser Grenzen eine ist, die die meisten Produkte lieber nicht ziehen w\xFCrden.",
+  "vs.cofounder.credit.boundary": "Die Dokumentation nennt die Grenze offen: Es ist nicht dazu gedacht, Ihr Hauptprodukt, Ihre Datenbank, Ihre Authentifizierung oder Ihren Hosting-Stack zu bauen oder neu zu bauen. Daf\xFCr behalten Sie Ihre eigenen Entwicklungswerkzeuge, und es baut das Unternehmen um das herum, was Ihnen geh\xF6rt. Einem Produkt, das benennt, was es nicht \xFCbernimmt, vertraut man leichter bei dem, was es \xFCbernimmt.",
+  "vs.cofounder.credit.staging": "Eine Ver\xF6ffentlichung, die ein Agent anfordert, geht auf eine Staging-Umgebung, hinter eine Freigabekarte mit Approve und Reject, und nie direkt in die Produktion. Die Produktion bleibt hinter einer eigenen Schaltfl\xE4che im Arbeitsbereich. Zwei T\xFCren f\xFCr zwei Folgen sind ein besseres Design als eine T\xFCr f\xFCr beide.",
+  "vs.cofounder.credit.secrets": "Geheimwerte werden so behandelt, wie es sein sollte. Werte werden an den Hosting-Anbieter \xFCbergeben und nicht bei Cofounder gespeichert, und in der Sandbox eines Agenten enth\xE4lt die Variable einen Platzhalter statt des rohen Schl\xFCssels, sodass ein Berechtigungsnachweis nie in eine Unterhaltung geschrieben wird.",
+  "vs.cofounder.axis.approvals.heading": "Freigaben von Grund auf",
+  "vs.cofounder.axis.approvals.them": "Wenn ein Agent die Arbeit beendet und eine Ver\xF6ffentlichung anfordert, stellt Cofounder eine Freigabekarte in die Warteschlange. Approve bringt die \xC4nderung auf die Staging-Umgebung; Reject l\xE4sst Staging unver\xE4ndert und gibt dem Agenten Hinweise, um es zu beheben und erneut anzufragen. Die Ver\xF6ffentlichung in die Produktion ist eine eigene Handlung, die eine Person im Arbeitsbereich vornimmt. Die Schranke liegt auf der Ver\xF6ffentlichung, und ein importiertes Ziel kann auf automatisierte Pr\xFCfungen warten, bevor die Karte \xFCberhaupt erscheint.",
+  "vs.cofounder.axis.approvals.us": "Orvay begrenzt auch die Entscheidung. Eine Freigabe ist ein abgegrenztes Objekt und kein Ja: einmalig erteilt, dauerhaft oder durch ein Limit begrenzt, und genau so gespeichert, denn eine Freigabe, die nicht sagen kann, was sie umfasste, n\xFCtzt niemandem, der sie ein Jahr sp\xE4ter nachliest. Jede Aktion durchl\xE4uft eine Funktion mit acht Pr\xFCfungen in fester Reihenfolge, und ein angehaltenes Unternehmen bleibt selbst f\xFCr seine Inhaberin oder ihren Inhaber angehalten.",
+  "vs.cofounder.axis.verification.heading": "Wer die Arbeit pr\xFCfen darf",
+  "vs.cofounder.axis.verification.them": "Der Engineer-Agent setzt seine eigene Arbeit um und pr\xFCft sie in einer Sandbox, bevor er eine Ver\xF6ffentlichung anfordert, und die pr\xFCfende Person auf der Freigabekarte sind Sie. Eine Pr\xFCfung ist von Natur aus unabh\xE4ngig: Wenn Sie ein Repository verbinden, untersucht Cofounder das laufende Hosting-Projekt, bevor es den Import als abgeschlossen behandelt, und verweigert das, solange beide nicht \xFCbereinstimmen.",
+  "vs.cofounder.axis.verification.us": "Orvay h\xE4lt fest, dass ein Nachweis, den das Ausf\xFChrende selbst erzeugt, nicht belegt, dass die Arbeit geschehen ist. Was pr\xFCft, muss also etwas anderes sein. Orvay z\xE4hlt au\xDFerdem, wie oft ein Lauf Erfolg gemeldet hat, ohne dass ein unabh\xE4ngiger Nachweis dahinterstand, und zeigt diesen Anteil je F\xE4higkeit, denn ein System, das nur seine Erfolge z\xE4hlt, w\xFCrde seine eigenen Arbeiten benoten.",
+  "vs.cofounder.axis.portability.heading": "Ihre Arbeit woanders hin mitnehmen",
+  "vs.cofounder.axis.portability.them": "Das ist die Frage, die Cofounder durch Bauart beantwortet und nicht durch Export. Ihr Produkt lebt in Ihrem eigenen Repository und Ihrem eigenen Entwicklungsablauf, und die Dokumentation sagt das schon auf der ersten Seite. Was es f\xFCr Sie verwaltet, die Marketingseite, die Staging-Umgebungen und die verbundenen Dienste, liegt bei Anbietern, die Sie auch direkt \xF6ffnen k\xF6nnen, mit dem Repository unter Ihrem eigenen Konto verbunden.",
+  "vs.cofounder.axis.portability.us": "Wo Cofounder dieser Frage ausweicht, indem es Ihr Produkt dort l\xE4sst, wo es bereits lebt, muss Orvay sie beantworten, und die ehrliche Antwort ist heute unvollst\xE4ndig. Ihre eigenen personenbezogenen Daten k\xF6nnen Sie in jedem Tarif mitnehmen, auch im kostenlosen, denn das ist ein Recht und keine Funktion, und daf\xFCr Geld zu verlangen w\xE4re keine Preisentscheidung. Die gr\xF6\xDFeren Ausleitungen sind nicht gebaut, und diese Seite sagt das, statt etwas anderes anzudeuten.",
+  "vs.cofounder.axis.consent.heading": "Wo die Daten liegen und worauf Kontakt beruht",
+  "vs.cofounder.axis.consent.them": "Der Datenschutzhinweis nennt das betreibende Unternehmen und was es erhebt. Die Dokumentation ist bei einer Sache genau, die viele Produkte offenlassen: Geheimwerte werden an den Hosting-Anbieter gesendet und nicht bei Cofounder gespeichert. Wo der Rest der Unternehmensdaten liegt, steht auf den f\xFCr diesen Vergleich gelesenen Seiten nicht, daher behauptet diese Seite nicht, es zu wissen.",
+  "vs.cofounder.axis.consent.us": "Orvay wird gehostet, also m\xFCssen wir das beantworten und k\xF6nnen es nicht Ihnen \xFCberlassen. Die Datenbank steht in Z\xFCrich. Die Modellinferenz findet nicht in der Schweiz statt, und ein Satz \xFCber den Datenstandort, der das wegl\xE4sst, ist nichts wert. Wenn Kontaktdaten erhoben werden, wird die Rechtsgrundlage in diesem Moment festgehalten und nicht nachtr\xE4glich bestimmt, und ein Klick, um E-Mails zu beenden, schreibt einen Widerruf in dasselbe Verzeichnis.",
+  "vs.cofounder.axis.hosting.heading": "Wer die Software betreibt",
+  "vs.cofounder.axis.hosting.them": "Cofounder wird gehostet und verwaltet die Teile rund um Ihr Produkt f\xFCr Sie: eine Repository-Verbindung, ein Hosting-Projekt f\xFCr Staging und Marketingfl\xE4chen, eine Datenbank, Domains, ein Postfach und Umgebungsdateien. Jedes davon ist ein Dienst, den Sie auch selbst betreiben k\xF6nnten, verbunden statt ersetzt, das ist der Tausch, f\xFCr den es sich entschieden hat.",
+  "vs.cofounder.axis.hosting.us": "So oder so betreibt bei Ihnen im Unternehmen niemand etwas. Der Unterschied liegt darin, was fertig verbunden ankommt: bei Orvay sind das die Datenbank, die Aufzeichnung und die Auswahl zwischen den Modellen. Cofounder verbindet Anbieter, die Sie vielleicht schon nutzen; Orvay h\xE4lt seine eigenen. Das ist ein Tausch und kein Gewinn, und die Fragen oben sind das, was Sie abw\xE4gen sollten, bevor Sie entscheiden, was zu Ihnen passt.",
+  "vs.cofounder.index.blurb": "Baut das Unternehmen um ein Produkt, das Sie in Ihrer eigenen Codebasis behalten, mit einer Staging-Freigabe bei jeder Ver\xF6ffentlichung.",
+  "vs.cofounder.credit.heading": "Was Cofounder gut macht",
+  "vs.cofounder.sources.caveat": "Diese Verweise f\xFChren zu Material, das Cofounder \xFCber sich selbst ver\xF6ffentlicht. Wir haben es gelesen und nicht erprobt, und niemand hier hat ihr Produkt betrieben. Nichts auf dieser Seite stammt von ihrer Startseite, denn ein Slogan beschreibt ein Unternehmen und nicht, wie es mit Ihrer Arbeit umgeht.",
+  "vs.source.cofounder.what": "Cofounder Dokumentation dazu, was es tut und was nicht",
+  "vs.source.cofounder.deploy": "Cofounder Dokumentation zum Anfordern einer Ver\xF6ffentlichung",
+  "vs.source.cofounder.github": "Cofounder Dokumentation zur verwalteten Repository-Verbindung",
+  "vs.source.cofounder.secrets": "Cofounder Dokumentation zu Umgebungsdateien und Geheimwerten",
+  "vs.source.cofounder.privacy": "Cofounder Datenschutzhinweis",
+  "vs.source.cofounder.pricing": "Cofounder Preisseite",
+  "vs.nanocorp.name": "NanoCorp",
+  "vs.nanocorp.title": "Orvay und NanoCorp",
+  "vs.nanocorp.lead": "Beide f\xFChren ein Unternehmen, ohne dass ein Mensch jeden Schritt lenkt, und beide messen diese Arbeit in Guthaben. NanoCorp optimiert auf das Geld, das ein Gesch\xE4ft tats\xE4chlich einnimmt, und zahlt es an Sie aus. Alles, was hier steht, stammt aus seiner Dokumentation und seinen Rechtsseiten, unten verlinkt mit dem Datum, an dem es gelesen wurde.",
+  "vs.nanocorp.meta.description": "Ein belegter Vergleich von Orvay und NanoCorp zu Freigaben, \xDCberpr\xFCfung, Portabilit\xE4t, Datenstandort und Betrieb. Jede Aussage verlinkt die Seite, auf der sie gelesen wurde.",
+  "vs.nanocorp.credit.lead": "Das steht zuerst, weil es der ehrliche Teil jedes Vergleichs ist, und weil wir bei zweien davon lieber nicht zugeben w\xFCrden, dass sie besser sind.",
+  "vs.nanocorp.credit.dormant": "Wenn eine Testphase oder ein Tarif endet, wird nichts gel\xF6scht. Die Seite bleibt unter ihrer eigenen Adresse erreichbar, Kasse und E-Mail pausieren, Agenten stoppen, und ein erneuter Tarifabschluss stellt alles innerhalb von Minuten wieder her. Ein Produkt, das dokumentiert, was aufh\xF6rt und was bleibt, in dieser Reihenfolge, ist eines, das Sie verlassen und zu dem Sie zur\xFCckkehren k\xF6nnen.",
+  "vs.nanocorp.credit.caps": "Autonomie hat zwei Regler, die Sie ablesen und einstellen k\xF6nnen: wie viele Aufgaben ein Gesch\xE4ft pro Tag ausf\xFChren darf, und eine t\xE4gliche Guthabenobergrenze \xFCber alles, was Ihnen geh\xF6rt. Ein Gesch\xE4ft zu pausieren stoppt seine unbeaufsichtigte Arbeit sofort. Eine Begrenzung nach Anzahl und nach Geld zugleich ist mehr, als die meisten Produkte bieten.",
+  "vs.nanocorp.credit.payout": "Geld, das ein Gesch\xE4ft einnimmt, landet in einem echten Guthaben und wird \xFCber das eigene Onboarding eines Zahlungsanbieters auf Ihr Bankkonto ausgezahlt, wobei Geb\xFChr und Wechselkursrechnung auf der Seite Schritt f\xFCr Schritt durchgerechnet werden, f\xFCr ein Konto, das nicht in Dollar gef\xFChrt wird. Die Summe zu zeigen ist besser, als das Ergebnis zu versprechen.",
+  "vs.nanocorp.axis.approvals.heading": "Freigaben von Grund auf",
+  "vs.nanocorp.axis.approvals.them": "NanoCorp begrenzt einen Lauf nach Anzahl und nach Geld, nicht nach Entscheidung. Bei aufgabenbasierten Gesch\xE4ften legt eine Autonomiestufe fest, wie viele Aufgaben pro Tag laufen, eine t\xE4gliche Guthabenobergrenze kann alle Gesch\xE4fte zugleich begrenzen, und ein pausiertes Gesch\xE4ft stoppt sowohl seine unbeaufsichtigte Arbeit als auch seine manuellen L\xE4ufe. Ein Freigabeschritt f\xFCr eine einzelne Aktion ist auf den f\xFCr diesen Vergleich gelesenen Seiten nicht dokumentiert.",
+  "vs.nanocorp.axis.approvals.us": "Orvay begrenzt auch die Entscheidung. Eine Freigabe ist ein abgegrenztes Objekt und kein Ja: einmalig erteilt, dauerhaft oder durch ein Limit begrenzt, und genau so gespeichert, denn eine Freigabe, die nicht sagen kann, was sie umfasste, n\xFCtzt niemandem, der sie ein Jahr sp\xE4ter nachliest. Jede Aktion durchl\xE4uft eine Funktion mit acht Pr\xFCfungen in fester Reihenfolge, und ein angehaltenes Unternehmen bleibt selbst f\xFCr seine Inhaberin oder ihren Inhaber angehalten.",
+  "vs.nanocorp.axis.verification.heading": "Wer die Arbeit pr\xFCfen darf",
+  "vs.nanocorp.axis.verification.them": "Die f\xFCr diesen Vergleich gelesenen Seiten dokumentieren, wie sich eine Kasse ohne echte Abbuchung testen l\xE4sst, und listen eine Frage zu Guthaben auf, das bei fehlgeschlagenen Aufgaben verbraucht wird, was die Form des Bedenkens ist und nicht der Mechanismus, der es beantwortet. Wie das Ergebnis einer Aufgabe gepr\xFCft wird, bevor es z\xE4hlt, wird dort nicht beschrieben, also beschreibt diese Seite es ebenfalls nicht.",
+  "vs.nanocorp.axis.verification.us": "Orvay h\xE4lt fest, dass ein Nachweis, den das Ausf\xFChrende selbst erzeugt, nicht belegt, dass die Arbeit geschehen ist. Was pr\xFCft, muss also etwas anderes sein. Orvay z\xE4hlt au\xDFerdem, wie oft ein Lauf Erfolg gemeldet hat, ohne dass ein unabh\xE4ngiger Nachweis dahinterstand, und zeigt diesen Anteil je F\xE4higkeit, denn ein System, das nur seine Erfolge z\xE4hlt, w\xFCrde seine eigenen Arbeiten benoten.",
+  "vs.nanocorp.axis.portability.heading": "Ihre Arbeit woanders hin mitnehmen",
+  "vs.nanocorp.axis.portability.them": "Der Code eines Gesch\xE4fts liegt in einem Repository, das NanoCorp baut und pflegt, und in seinen h\xF6heren Tarifen k\xF6nnen Sie sich selbst oder eine Entwicklerin als Mitwirkende einladen und lokal bearbeiten. Auch das Hosting-Dashboard ist erreichbar, und eine eigene Domain kann verbunden werden. Ob sich die Datenbank exportieren l\xE4sst, ist eine gelistete Frage in der Dokumentation, und die Antwort stand nicht auf den hier gelesenen Seiten.",
+  "vs.nanocorp.axis.portability.us": "NanoCorp stellt eine Mitwirkung am Repository hinter eine Tarifstufe; Orvay liefert das Gegenst\xFCck bisher \xFCberhaupt nicht. Ihre eigenen personenbezogenen Daten k\xF6nnen Sie in jedem Tarif mitnehmen, auch im kostenlosen, denn das ist ein Recht und keine Funktion, und daf\xFCr Geld zu verlangen w\xE4re keine Preisentscheidung. Die gr\xF6\xDFeren Ausleitungen sind nicht gebaut, und diese Seite sagt das, statt etwas anderes anzudeuten.",
+  "vs.nanocorp.axis.consent.heading": "Wo die Daten liegen und worauf Kontakt beruht",
+  "vs.nanocorp.axis.consent.them": "Der Datenschutzhinweis nennt das betreibende Unternehmen, besagt, dass personenbezogene Daten aufbewahrt werden, solange ein Konto aktiv ist oder soweit es f\xFCr die Erbringung des Dienstes n\xF6tig ist, und dass eine L\xF6schung beantragt werden kann. Die Seite zu Auszahlungen rechnet die Betr\xE4ge f\xFCr ein europ\xE4isches Bankkonto durch, einschlie\xDFlich der Geb\xFChr f\xFCr die grenz\xFCberschreitende \xDCberweisung in den EWR. Wo die Daten selbst liegen, steht auf den hier gelesenen Seiten nicht.",
+  "vs.nanocorp.axis.consent.us": "Orvay wird gehostet, also m\xFCssen wir das beantworten und k\xF6nnen es nicht Ihnen \xFCberlassen. Die Datenbank steht in Z\xFCrich. Die Modellinferenz findet nicht in der Schweiz statt, und ein Satz \xFCber den Datenstandort, der das wegl\xE4sst, ist nichts wert. Wenn Kontaktdaten erhoben werden, wird die Rechtsgrundlage in diesem Moment festgehalten und nicht nachtr\xE4glich bestimmt, und ein Klick, um E-Mails zu beenden, schreibt einen Widerruf in dasselbe Verzeichnis.",
+  "vs.nanocorp.axis.hosting.heading": "Wer die Software betreibt",
+  "vs.nanocorp.axis.hosting.them": "NanoCorp hostet alles: eine Seite auf einer eigenen Subdomain, Kasse \xFCber einen verbundenen Zahlungsanbieter, E-Mail und Agenten, die nach Zeitplan laufen. Eine kostenlose Testphase braucht keine Karte, und danach schl\xE4ft der Shop, statt zu verschwinden. Ein Bindungstarif h\xE4lt den Shop ohne die Agenten offen und wird nur angezeigt, wenn ein Tarif endet.",
+  "vs.nanocorp.axis.hosting.us": "So oder so betreibt bei Ihnen im Unternehmen niemand etwas. Der Unterschied liegt darin, wof\xFCr das Geld steht: NanoCorp misst die Arbeit und beh\xE4lt au\xDFerdem einen Anteil dessen, was ein Gesch\xE4ft auszahlt; Orvay misst die Arbeit und sonst nichts. Das ist ein Tausch und kein Gewinn, und die Fragen oben sind das, was Sie abw\xE4gen sollten, bevor Sie entscheiden, was zu Ihnen passt.",
+  "vs.nanocorp.index.blurb": "Durchgehend gehostet, begrenzt durch eine t\xE4gliche Aufgabenzahl und eine Guthabenobergrenze, und es zahlt aus, was ein Gesch\xE4ft einnimmt, direkt auf Ihr Bankkonto.",
+  "vs.nanocorp.credit.heading": "Was NanoCorp gut macht",
+  "vs.nanocorp.sources.caveat": "Diese Verweise f\xFChren zu Material, das NanoCorp \xFCber sich selbst ver\xF6ffentlicht. Wir haben es gelesen und nicht erprobt, und niemand hier hat ihr Produkt betrieben. Nichts auf dieser Seite stammt von ihrer Startseite, denn ein Slogan beschreibt ein Unternehmen und nicht, wie es mit Ihrer Arbeit umgeht.",
+  "vs.source.nanocorp.plans": "NanoCorp Dokumentation zu Tarifen und Guthaben",
+  "vs.source.nanocorp.github": "NanoCorp Dokumentation zum Zugriff auf den Code auf GitHub",
+  "vs.source.nanocorp.withdrawals": "NanoCorp Dokumentation zu Auszahlungen",
+  "vs.source.nanocorp.billing": "NanoCorp Dokumentation zu Abrechnung, Erstattungen und K\xFCndigungen",
+  "vs.source.nanocorp.privacy": "NanoCorp Datenschutzhinweis",
+  "vs.source.nanocorp.pricing": "NanoCorp Preisseite",
+  "vs.willo.name": "Willo",
+  "vs.willo.title": "Orvay und Willo",
+  "vs.willo.lead": "Beide f\xFChren ein Unternehmen \xFCber ein Team von Agenten und \xFCberlassen die Ausrichtung einem Menschen. Willo nennt, welche sieben Rollen es ausf\xFChrt und in welchem Zyklus. Alles, was hier steht, stammt aus seinen eigenen Texten und seinen Rechtsseiten, unten verlinkt mit dem Datum, an dem es gelesen wurde.",
+  "vs.willo.meta.description": "Ein belegter Vergleich von Orvay und Willo zu Freigaben, \xDCberpr\xFCfung, Portabilit\xE4t, Datenstandort und Betrieb. Jede Aussage verlinkt die Seite, auf der sie gelesen wurde.",
+  "vs.willo.credit.lead": "Das steht zuerst, weil es der ehrliche Teil jedes Vergleichs ist, und weil alle drei S\xE4tze solche sind, die die meisten Produkte lieber nicht aufschreiben.",
+  "vs.willo.credit.ownership": "Die Nutzungsbedingungen sagen es in einem Satz: Sie behalten das Eigentum an allem, was Sie \xFCber die Plattform erstellen, und die Liste umfasst Code, Repositories und ver\xF6ffentlichte Website-Inhalte. Eine Rechtsseite, die das Repository nennt und nicht nur den Inhalt, ist seltener, als sie sein sollte.",
+  "vs.willo.credit.lifecycle": "K\xFCndigen ist als ein Ablauf dokumentiert, nicht als ein pl\xF6tzliches Ende. Drei\xDFig Tage lang wird die Seite durch einen Platzhalter ersetzt, die Datenbank pausiert, und alle Daten, der Quellcode und der Inhalt bleiben erhalten; ein erneutes Abonnement stellt das Gesch\xE4ft wieder her. Zu sagen, was beim Ausstieg passiert, ist der Teil, den die meisten Produkte auslassen.",
+  "vs.willo.credit.candour": "Die Nutzungsbedingungen sagen auch, was es nicht ist: Es bietet keinen Dienst zur Erf\xFCllung gesetzlicher Vorgaben an und erkl\xE4rt an keiner Stelle, dass die Nutzung eine davon erf\xFCllt. Das ist das Gegenteil eines G\xFCtesiegels, und es ist der n\xFCtzlichere Satz.",
+  "vs.willo.axis.approvals.heading": "Freigaben von Grund auf",
+  "vs.willo.axis.approvals.them": "Willos eigene Texte sagen ausdr\xFCcklich, dass die Agenten eigenst\xE4ndig handeln und dass Strategie und Ausrichtung bei Ihnen bleiben. Sie beschreiben einen Zyklus aus Planen, Ausf\xFChren, Reflektieren, in dem die Agenten planen, ver\xF6ffentlichen und dann Ergebnisse pr\xFCfen, um die n\xE4chste Runde zu sch\xE4rfen. Ein Freigabeschritt f\xFCr eine einzelne Aktion ist auf den f\xFCr diesen Vergleich gelesenen Seiten nicht dokumentiert; die Grenze ist die Richtung, die Sie vorgeben, und das Guthaben, das Sie halten.",
+  "vs.willo.axis.approvals.us": "Orvay begrenzt auch die Entscheidung. Eine Freigabe ist ein abgegrenztes Objekt und kein Ja: einmalig erteilt, dauerhaft oder durch ein Limit begrenzt, und genau so gespeichert, denn eine Freigabe, die nicht sagen kann, was sie umfasste, n\xFCtzt niemandem, der sie ein Jahr sp\xE4ter nachliest. Jede Aktion durchl\xE4uft eine Funktion mit acht Pr\xFCfungen in fester Reihenfolge, und ein angehaltenes Unternehmen bleibt selbst f\xFCr seine Inhaberin oder ihren Inhaber angehalten.",
+  "vs.willo.axis.verification.heading": "Wer die Arbeit pr\xFCfen darf",
+  "vs.willo.axis.verification.them": "Die Reflexionsstufe ist der Ort, an dem gepr\xFCft wird, und dort pr\xFCfen sich die Agenten selbst: Sie sehen sich Besucherzahlen, Umwandlungen und Umsatzsignale an und lassen das in den n\xE4chsten Plan einflie\xDFen. Auf den hier gelesenen Seiten best\xE4tigt nichts au\xDFerhalb des Teams, das die Arbeit erledigt hat, dass die Arbeit angekommen ist.",
+  "vs.willo.axis.verification.us": "Orvay h\xE4lt fest, dass ein Nachweis, den das Ausf\xFChrende selbst erzeugt, nicht belegt, dass die Arbeit geschehen ist. Was pr\xFCft, muss also etwas anderes sein. Orvay z\xE4hlt au\xDFerdem, wie oft ein Lauf Erfolg gemeldet hat, ohne dass ein unabh\xE4ngiger Nachweis dahinterstand, und zeigt diesen Anteil je F\xE4higkeit, denn ein System, das nur seine Erfolge z\xE4hlt, w\xFCrde seine eigenen Arbeiten benoten.",
+  "vs.willo.axis.portability.heading": "Ihre Arbeit woanders hin mitnehmen",
+  "vs.willo.axis.portability.them": "Die Seite wird mit Versionsverwaltung auf GitHub gebaut und bei einem Cloud-Anbieter ver\xF6ffentlicht, Zahlungen laufen \xFCber einen verbundenen Zahlungsanbieter, und die Nutzungsbedingungen erkl\xE4ren, dass Code und Repositories Ihnen geh\xF6ren. Was die hier gelesenen Seiten nicht beschreiben, ist der Export selbst: wie Sie das Repository oder die Datenbank herausnehmen, und ob das eine bestimmte Tarifstufe braucht.",
+  "vs.willo.axis.portability.us": "Willo schreibt das Eigentum in seine Nutzungsbedingungen; Orvay liefert den pers\xF6nlichen Export und die gr\xF6\xDFeren noch nicht. Ihre eigenen personenbezogenen Daten k\xF6nnen Sie in jedem Tarif mitnehmen, auch im kostenlosen, denn das ist ein Recht und keine Funktion, und daf\xFCr Geld zu verlangen w\xE4re keine Preisentscheidung. Die gr\xF6\xDFeren Ausleitungen sind nicht gebaut, und diese Seite sagt das, statt etwas anderes anzudeuten.",
+  "vs.willo.axis.consent.heading": "Wo die Daten liegen und worauf Kontakt beruht",
+  "vs.willo.axis.consent.them": "Willo ver\xF6ffentlicht einen Datenschutzhinweis, eine Richtlinie zur zul\xE4ssigen Nutzung und, ungew\xF6hnlich, daneben eine Richtlinie zu KI-Einsatz und Offenlegung. Die Nutzungsbedingungen sagen Ihnen, dass die Einhaltung des Datenschutzrechts Ihre eigene Verantwortung ist und kein Dienst, den es erbringt. Wo die Daten liegen, steht auf den f\xFCr diesen Vergleich gelesenen Seiten nicht.",
+  "vs.willo.axis.consent.us": "Orvay wird gehostet, also m\xFCssen wir das beantworten und k\xF6nnen es nicht Ihnen \xFCberlassen. Die Datenbank steht in Z\xFCrich. Die Modellinferenz findet nicht in der Schweiz statt, und ein Satz \xFCber den Datenstandort, der das wegl\xE4sst, ist nichts wert. Wenn Kontaktdaten erhoben werden, wird die Rechtsgrundlage in diesem Moment festgehalten und nicht nachtr\xE4glich bestimmt, und ein Klick, um E-Mails zu beenden, schreibt einen Widerruf in dasselbe Verzeichnis.",
+  "vs.willo.axis.hosting.heading": "Wer die Software betreibt",
+  "vs.willo.axis.hosting.them": "Willo hostet alles: eine Seite auf einer Subdomain mit eigenen Domains in h\xF6heren Tarifen, ein bereitgestelltes Backend mit Datenbank, Authentifizierung und Schnittstellen, Zahlungsabwicklung und transaktionale E-Mail. Der kostenlose Tarif bringt Guthaben, um kostenpflichtige Aktionen auszuprobieren, aber kein bereitgestelltes Backend und keinen unbeaufsichtigten Betrieb, und die Backend-Rechenleistung wird nach aktiver Nutzung gemessen, w\xE4hrend Leerlaufzeit nichts kostet.",
+  "vs.willo.axis.hosting.us": "So oder so betreibt bei Ihnen im Unternehmen niemand etwas. Der Unterschied liegt darin, was fertig verbunden ankommt: bei Orvay sind das die Datenbank, die Aufzeichnung und die Auswahl zwischen den Modellen, und kein Schaufenster. Das ist ein Tausch und kein Gewinn, und die Fragen oben sind das, was Sie abw\xE4gen sollten, bevor Sie entscheiden, was zu Ihnen passt.",
+  "vs.willo.index.blurb": "Sieben benannte Agenten in einem Zyklus aus Planen, Ausf\xFChren, Reflektieren, mit dem Eigentum an Code und Repositories in seinen Nutzungsbedingungen festgeschrieben.",
+  "vs.willo.credit.heading": "Was Willo gut macht",
+  "vs.willo.sources.caveat": "Diese Verweise f\xFChren zu Material, das Willo \xFCber sich selbst ver\xF6ffentlicht. Wir haben es gelesen und nicht erprobt, und niemand hier hat ihr Produkt betrieben. Nichts auf dieser Seite stammt von ihrer Startseite, denn ein Slogan beschreibt ein Unternehmen und nicht, wie es mit Ihrer Arbeit umgeht.",
+  "vs.source.willo.how": "Willo dazu, was es ist und wie es funktioniert",
+  "vs.source.willo.team": "Willo zu den sieben Agenten und dem Zyklus, den sie durchlaufen",
+  "vs.source.willo.pricing": "Willo Preisseite",
+  "vs.source.willo.billing": "Willo Richtlinie zu Abrechnung und Erstattung",
+  "vs.source.willo.terms": "Willo Nutzungsbedingungen",
+  "vs.source.willo.privacy": "Willo Datenschutzhinweis",
   "waitlist.buildLog": "Schicken Sie mir auch das monatliche Bauprotokoll: was gebaut wurde, was kaputtging und was \xFCberpr\xFCft wurde. Eine gesonderte Entscheidung, und Sie k\xF6nnen es beenden, ohne die Warteliste zu verlassen.",
   "waitlist.next.heading": "In der Zwischenzeit",
   "waitlist.next.docs": "Lesen Sie, wie die acht Gatter entscheiden",
@@ -6988,7 +8223,67 @@ var de_default = {
   "onboarding.company.domain.fail-invalid": "Das sieht nicht nach einem Hostnamen aus. Zum Beispiel acme.com.",
   "onboarding.company.domain.fail-unreachable": "Die Website hat nicht geantwortet. Geben Sie den Namen unten ein und fahren Sie fort: Eine nicht erreichbare Homepage ist kein Grund abzubrechen.",
   "onboarding.company.domain.fail-no-session": "Ihre Sitzung ist abgelaufen, w\xE4hrend der Abruf lief. Melden Sie sich erneut an, und der Ablauf wird hier fortgesetzt.",
-  "onboarding.company.domain.fetched": "Soeben von {host} gelesen. Das war eine echte Anfrage an einen echten Server, weshalb der Abruf als live gekennzeichnet ist."
+  "onboarding.company.domain.fetched": "Soeben von {host} gelesen. Das war eine echte Anfrage an einen echten Server, weshalb der Abruf als live gekennzeichnet ist.",
+  "team.remove.heading": "Jemanden entfernen",
+  "team.remove.lead": "Eine entfernte Person kann dieses Unternehmen nicht mehr \xF6ffnen. Ihr Platz wird f\xFCr jemand anderen frei, alle API-Schl\xFCssel, die sie besitzt, werden dauerhaft widerrufen, und jede Entscheidung, die sie getroffen hat, bleibt unter ihrem Namen im Protokoll.",
+  "team.remove.no-grant": "Sie haben nicht die Befugnis, jemanden aus diesem Unternehmen zu entfernen. Eine Inhaberin oder ein Inhaber kann das tun.",
+  "team.remove.nobody": "Hier ist niemand zu entfernen. Sie k\xF6nnen Ihren eigenen Platz nicht entfernen, und wer bereits entfernt wurde, kann nicht zweimal entfernt werden.",
+  "team.remove.who.label": "Wen entfernen",
+  "team.remove.who.hint": "Alle werden hier angeboten. Wer mehr Befugnis hat als Sie, oder die letzte Person, die alles darf, wird mit einer Begr\xFCndung abgelehnt statt ausgeblendet.",
+  "team.remove.confirm.label": "Ja, {name} aus diesem Unternehmen entfernen. Alle API-Schl\xFCssel dieser Person werden dauerhaft widerrufen.",
+  "team.remove.submit": "Aus dem Unternehmen entfernen",
+  "team.remove.submitting": "Wird entfernt",
+  "team.remove.busy": "Diese Entfernung wird aufgezeichnet.",
+  "team.remove.error.title": "Niemand wurde entfernt",
+  "team.remove.ok.title": "Erledigt",
+  "team.remove.audit": "Jede Entfernung wird im Protokoll festgehalten, mit dem Platz, der Person, die es entschieden hat, und der Anzahl der API-Schl\xFCssel, die mit ihr gegangen sind.",
+  "team.remove.error.unconfirmed": "Kreuzen Sie das K\xE4stchen an, um zu best\xE4tigen, wen Sie entfernen. Es wurde niemand entfernt.",
+  "team.remove.error.halted": "Dieses Unternehmen ist gestoppt, und ein Stopp umfasst jede \xC4nderung, auch diese. Heben Sie den Stopp in der Kopfzeile auf und entfernen Sie die Person dann.",
+  "team.remove.error.gate": "Am Tor {gate} abgelehnt: {reason}",
+  "team.remove.error.signedOut": "Sie sind nicht angemeldet.",
+  "team.remove.error.self": "Niemand kann den eigenen Platz entfernen, auch keine Inhaberin und kein Inhaber. Bitten Sie ein anderes Mitglied mit dieser Befugnis.",
+  "team.remove.error.notMember": "Das ist kein Mitglied dieses Unternehmens.",
+  "team.remove.error.beyondYourRole": "Diese Person hat Befugnisse, die Sie selbst nicht haben, also steht Ihnen die Entfernung nicht zu. Eine Inhaberin oder ein Inhaber kann das tun.",
+  "team.remove.error.lastOwner": "Das ist die letzte Person, die hier alles darf. Geben Sie diese Befugnis zuerst jemand anderem und entfernen Sie die Person dann.",
+  "team.remove.ok.done": "{name} wurde entfernt. Diese Person kann das Unternehmen nicht mehr \xF6ffnen, und ihr Platz ist frei.",
+  "team.remove.ok.already": "{name} war bereits entfernt, es hat sich also nichts ge\xE4ndert.",
+  "team.roles.error.last-owner": "Das ist die letzte Person, die hier alles darf, und diese \xC4nderung w\xFCrde ihr das nehmen. Geben Sie diese Befugnis zuerst jemand anderem.",
+  "team.remove.ok.keys": {
+    one: "Ein API-Schl\xFCssel wurde widerrufen und kann nicht wiederhergestellt werden.",
+    other: "{count} API-Schl\xFCssel wurden widerrufen und k\xF6nnen nicht wiederhergestellt werden."
+  },
+  "team.remove.noscript.title": "Zum Entfernen wird JavaScript ben\xF6tigt",
+  "team.remove.noscript.body": "Die Personenliste hier wird von Ihrem Browser gezeichnet. Ohne Skripte w\xE4re sie ein Bedienelement ohne Wirkung. Aktivieren Sie Skripte f\xFCr diese Seite, um jemanden zu entfernen.",
+  // MCP tool descriptions. The four state words are literal argument values.
+  "mcp.tool.orvay_company_status": "Was dieses Unternehmen ist und ob es angehalten wurde.",
+  "mcp.tool.orvay_list_capabilities": "Die Berechtigungen, die dieses Unternehmen erteilt, und die, die dieser Schl\xFCssel h\xE4lt.",
+  "mcp.tool.orvay_list_contracts": "Vorgeschlagene Arbeit, neueste zuerst. Nach Status filtern: open, approved, refused oder run.",
+  "mcp.tool.orvay_get_contract": "Ein Vertrag, \xFCber seinen 64 Zeichen langen Hash.",
+  "mcp.tool.orvay_list_decisions": "Was auf eine Person wartet. Offene Entscheidungen, sofern Sie keinen anderen Status verlangen.",
+  "mcp.tool.orvay_list_runs": "Die Ausf\xFChrungen, die zu einem Vertrag erfasst wurden.",
+  "mcp.tool.orvay_get_evidence": "Die Nachweise einer Ausf\xFChrung, jeder mit seiner Herkunft.",
+  "mcp.tool.orvay_propose_contract": "Arbeit zu einem Ziel vorschlagen. Sie durchl\xE4uft die Pr\xFCfungen, bevor etwas geschieht.",
+  "mcp.tool.orvay_approve_decision": "Einen Vertrag genehmigen. Eine Begr\xFCndung ist erforderlich und wird erfasst.",
+  "mcp.tool.orvay_reject_decision": "Einen Vertrag ablehnen. Eine Begr\xFCndung ist erforderlich und wird erfasst.",
+  // API keys. A key is a credential a person creates for a program; the token
+  // is shown exactly once because only its hash is stored.
+  "settings.keys.title": "API-Schl\xFCssel",
+  "settings.keys.lead": "Mit einem Schl\xFCssel handelt ein Programm in Ihrem Namen, und nie mehr, als Sie selbst d\xFCrfen.",
+  "settings.keys.create.heading": "Schl\xFCssel erstellen",
+  "settings.keys.create.name.label": "Wof\xFCr ist er",
+  "settings.keys.create.scope.label": "Was er darf",
+  "settings.keys.create.scope.read": "Nur lesen",
+  "settings.keys.create.scope.full": "Alles, was Sie d\xFCrfen",
+  "settings.keys.create.submit": "Schl\xFCssel erstellen",
+  "settings.keys.shown-once": "Kopieren Sie ihn jetzt. Er wird nur dieses eine Mal angezeigt, denn gespeichert wird nur sein Fingerabdruck.",
+  "settings.keys.list.heading": "Ihre Schl\xFCssel",
+  "settings.keys.list.empty": "Noch keine Schl\xFCssel. Ein Programm braucht einen, um Ihr Unternehmen zu erreichen.",
+  "settings.keys.list.never-used": "nie verwendet",
+  "settings.keys.list.revoked": "widerrufen",
+  "settings.keys.revoke.submit": "Widerrufen",
+  "settings.keys.create.pending": "Der Schl\xFCssel wird erstellt",
+  "settings.keys.error.empty": "Ein Schl\xFCssel ohne Berechtigungen w\xFCrde sich anmelden und nichts k\xF6nnen.",
+  "settings.keys.error.exceeds": "Ein Schl\xFCssel kann nicht mehr als Sie. Fordern Sie die Berechtigung zuerst selbst an."
 };
 
 // ../../packages/content/src/messages/de.legal.ts
@@ -7387,6 +8682,60 @@ var de_legal_default = {
   "legal.terms.acceptable-use.p2": "Zwei Pr\xFCfungen setzen die obige Regel durch, und es lohnt sich, genau zu wissen, welche das sind, damit Sie sie nicht f\xFCr mehr halten, als sie sind. Der Name und die Webadresse, die Sie uns nennen, werden bei der Einrichtung mit einer kurzen Liste von Begriffen abgeglichen, bevor wir etwas abrufen. Davon unabh\xE4ngig weigert sich ein Agent, an einem Ziel zu arbeiten, das eines dieser Dinge verlangt. Keine der beiden ist eine \xDCberpr\xFCfung von allem, was Sie tun, keine liest Ihre Daten, und keine nimmt Ihnen ab, zu wissen, was Sie betreiben."
 };
 
+// ../../packages/content/src/messages/de.blog.ts
+var catalogue = {
+  "blog.title": "Blog",
+  "blog.kicker": "Texte",
+  "blog.lead": "Wie wir \xFCber Unternehmen denken, die von Menschen und Agenten gemeinsam gef\xFChrt werden, und was wir f\xFCr sie bauen.",
+  "blog.meta.description": "Essays und Notizen von Orvay \xFCber Unternehmen, die von Menschen und Agenten gemeinsam gef\xFChrt werden: was als Beweis gilt, wie Arbeit zugelassen wird und wozu ein Protokoll da ist.",
+  "blog.category.thinking": "Denken",
+  "blog.category.product": "Produkt",
+  "blog.category.company": "Unternehmen",
+  "blog.read-time": "{minutes} Min. Lesezeit",
+  "blog.contents": "Inhalt",
+  "blog.introduction": "Einleitung",
+  "blog.published": "Ver\xF6ffentlicht",
+  "blog.back": "Alle Beitr\xE4ge",
+  "blog.next.heading": "Geben Sie Ihrem Unternehmen ein Ziel",
+  "blog.next.lead": "Orvay \xF6ffnet langsam, f\xFCr Unternehmen, die Agenten echte Arbeit geben wollen und daf\xFCr weiterhin geradestehen k\xF6nnen.",
+  "blog.next.cta": "Der Warteliste beitreten",
+  "blog.reading-time": "Lesezeit",
+  "blog.tab.all": "Alle",
+  "blog.tabs.label": "Kategorien",
+  "blog.empty": "In dieser Kategorie gibt es noch keine Beitr\xE4ge.",
+  "blog.similar": "\xC4hnliche Artikel",
+  "blog.pagination.label": "Seiten",
+  "blog.pagination.page": "Seite {n}",
+  "blog.pagination.next": "N\xE4chste Seite",
+  "blog.pagination.previous": "Vorherige Seite",
+  "blog.done-is-not-proof.title": "Wenn ein Agent \u201Efertig\u201C sagt, ist das kein Beweis",
+  "blog.done-is-not-proof.lead": "Warum Orvay jede abgeschlossene Aufgabe als Behauptung behandelt, und was n\xF6tig ist, um aus einer Behauptung ein Protokoll zu machen, dem ein Unternehmen vertrauen kann.",
+  "blog.done-is-not-proof.description": "Jeder Agent beendet seine Arbeit mit einer Nachricht, die \u201Efertig\u201C sagt. Ein Unternehmen kann mit dieser Nachricht nicht arbeiten. So trennt Orvay die Behauptung vom Beweis.",
+  "blog.done-is-not-proof.cover-alt": "Ein warmes Farbfeld, das in Blau \xFCbergeht, durchzogen von d\xFCnnen Linien, die sich um seine Mitte biegen.",
+  "blog.done-is-not-proof.introduction.p1": "Jedes Werkzeug, das einen Agenten ausf\xFChrt, endet gleich. Eine Nachricht trifft ein, die sagt, die Arbeit sei erledigt. Eine Zusammenfassung folgt, meist selbstbewusst, manchmal mit einer Liste dessen, was ge\xE4ndert wurde. Dann entscheidet ein Mensch, ob er das glaubt.",
+  "blog.done-is-not-proof.introduction.p2": "Diese Entscheidung ist das ganze Problem. Ein Unternehmen wird nicht von Nachrichten getragen, die \u201Efertig\u201C sagen. Es wird von Dingen getragen, die erledigt sind, und davon, zeigen zu k\xF6nnen, dass sie es sind. Orvay ist auf dem Unterschied zwischen beidem gebaut.",
+  "blog.done-is-not-proof.a-claim.heading": "Fertig ist eine Behauptung",
+  "blog.done-is-not-proof.a-claim.p1": "Wenn ein Modell meldet, es habe eine Aufgabe abgeschlossen, beschreibt es seine eigene Arbeit von innen. Es kann nicht wissen, ob das Deployment, das es gestartet hat, Anfragen bedient, ob die E-Mail, die es entworfen hat, zugestellt wurde, oder ob der Datensatz, den es geschrieben hat, derjenige ist, den eine Kollegin morgen liest. Es wei\xDF, was es wollte und was es gesehen hat. Das ist nicht dasselbe wie das, was geschehen ist.",
+  "blog.done-is-not-proof.a-claim.p2": "Das ist kein Fehler eines bestimmten Modells. Es ist die Lage jedes Akteurs, der seine eigene Arbeit benoten soll. Wer eine \xC4nderung ausliefert und dann durch das Lesen der eigenen Commit-Nachricht best\xE4tigt, dass sie angekommen ist, hat dasselbe getan. Wir haben die Regel ins Produkt geschrieben, weil wir sie selbst immer wieder gebrochen haben.",
+  "blog.done-is-not-proof.evidence.heading": "Was als Nachweis gilt",
+  "blog.done-is-not-proof.evidence.p1": "Orvay ist so gebaut, dass der Akteur, der die Arbeit macht, nie der Akteur ist, der sie pr\xFCft. Wer vorschl\xE4gt, verifiziert nicht. Die Pr\xFCfung obliegt etwas, das an der Arbeit keinen Anteil hatte, und die Art des Nachweises z\xE4hlt mehr als die Frage, wer ihn gesammelt hat.",
+  "blog.done-is-not-proof.evidence.item1": "Ein Exit-Code des Befehls, der gelaufen ist, kein Satz, der sagt, er sei gelungen.",
+  "blog.done-is-not-proof.evidence.item2": "Eine HTTP-Antwort des Dienstes, der aufgerufen wurde, gelesen nach dem Aufruf und nicht davor.",
+  "blog.done-is-not-proof.evidence.item3": "Eine Zeile in der Datenbank, zur\xFCckgelesen \xFCber eine eigene Verbindung.",
+  "blog.done-is-not-proof.evidence.item4": "Ein Hash des Artefakts, damit ein sp\xE4terer Leser erkennen kann, ob es sich ver\xE4ndert hat.",
+  "blog.done-is-not-proof.evidence.p2": "Ein zweites Modell kann die Arbeit eines ersten begutachten, und manchmal ist das die einzige verf\xFCgbare Pr\xFCfung. Aber zwei Modelle k\xF6nnen auf dieselbe Weise irren, deshalb h\xE4lt das Protokoll fest, dass die Pr\xFCfung von einem Modell kam, und behandelt das allein nie als Beweis. Beweis ist die Art von Nachweis, die ein Mensch erneut ausf\xFChren k\xF6nnte.",
+  "blog.done-is-not-proof.one-gate.heading": "Ein Tor, und nichts daran vorbei",
+  "blog.done-is-not-proof.one-gate.p1": "Jede Handlung, die ein Agent in Orvay vornimmt, geht durch dasselbe Tor. Es pr\xFCft, wer fragt, f\xFCr welches Unternehmen er handelt, ob dieses Unternehmen angehalten ist, was sein Tarif erlaubt, wozu der Akteur berechtigt ist, ob die Person am anderen Ende eingewilligt hat, was die Unternehmensrichtlinie sagt, und ob noch Geld zum Ausgeben da ist. In dieser Reihenfolge, jedes Mal.",
+  "blog.done-is-not-proof.one-gate.quote": "Eine Freigabe ist nie ein H\xE4kchen. Sie ist ein Objekt mit einem Geltungsbereich, einem Inhaber und einer Grenze: diese Handlung, diese Anzahl von Malen, bis zu diesem Datum.",
+  "blog.done-is-not-proof.one-gate.p2": "Lautet die Antwort Nein, sagt das Protokoll, welche Pr\xFCfung Nein gesagt hat und warum. Lautet die Antwort Ja, sagt das Protokoll, wer es erlaubt hat und wie lange diese Erlaubnis gilt.",
+  "blog.done-is-not-proof.the-record.heading": "Das Protokoll ist das Produkt",
+  "blog.done-is-not-proof.the-record.p1": "Jeder Vertrag, den ein Agent vorschl\xE4gt, wird einmal geschrieben und nie bearbeitet. Eine \xC4nderung ist ein neuer Vertrag, der auf den ersetzten Vertrag verweist. Jeder Versuch, ihn auszuf\xFChren, ist ein eigener Lauf, und ein erneuter Versuch ist ein neuer Lauf und kein umgeschriebener. Jeder Nachweis tr\xE4gt einen Hash und sagt, ob er aus einem echten System stammt oder aus einer Simulation.",
+  "blog.done-is-not-proof.the-record.p2": "Das Ergebnis ist eine Kette, die ein Unternehmen ein Jahr sp\xE4ter lesen und der es noch vertrauen kann. Nicht, weil die Agenten zuverl\xE4ssig waren, sondern weil das Protokoll nicht davon abh\xE4ngt, dass sie es sind.",
+  "blog.done-is-not-proof.where-this-goes.heading": "Wohin das f\xFChrt",
+  "blog.done-is-not-proof.where-this-goes.p1": "Orvay \xF6ffnet langsam, f\xFCr Unternehmen, die Agenten echte Arbeit geben wollen und daf\xFCr weiterhin geradestehen k\xF6nnen. Wenn das Ihr Unternehmen ist, ist die Warteliste die T\xFCr. Uns sind wenige Unternehmen, die pr\xFCfen k\xF6nnen, was wir sagen, lieber als viele, die uns beim Wort nehmen."
+};
+var de_blog_default = catalogue;
+
 // ../../packages/content/src/messages/fr.ts
 var fr_default = {
   // =========================================================================
@@ -7639,6 +8988,9 @@ var fr_default = {
   "onboarding.authority.open.label": "Agissez, puis dites-le-moi",
   "onboarding.authority.open.sublabel": "La plupart des actions s'ex\xE9cutent seules. Vous examinez l'enregistrement plut\xF4t que la demande.",
   "onboarding.authority.open.risk": "La plupart des actions auront lieu avant que vous ne les voyiez. Tout ce qui a un effet juridique sur une personne vous attend toujours.",
+  "onboarding.timezone.label": "Fuseau horaire",
+  "onboarding.timezone.hint": "Orvay travaille sur les objectifs pendant la nuit et rend compte le matin. C'est l'horloge qu'il utilise.",
+  "onboarding.timezone.now": "Heure actuelle sur place\xA0:",
   "onboarding.authority.note": "Cela enregistre une posture de d\xE9part. Les r\xE8gles qui en d\xE9coulent sont d\xE9finies sur la page des politiques, o\xF9 vous pouvez les consulter et les modifier une par une.",
   "onboarding.done.heading": "Votre entreprise est configur\xE9e",
   "onboarding.done.body": "C'est l\xE0 que {brand} commence \xE0 travailler. Trois choses m\xE9ritent d'\xEAtre connues avant d'y entrer.",
@@ -8148,6 +9500,23 @@ var fr_default = {
     many: "{count} \xE9v\xE9nements enregistr\xE9s depuis la cr\xE9ation de cette entreprise.",
     other: "{count} \xE9v\xE9nements enregistr\xE9s depuis la cr\xE9ation de cette entreprise."
   },
+  "notification.headline.approval.waiting": "Un contrat attend une d\xE9cision",
+  "notification.headline.message.received": "Quelqu'un a envoy\xE9 un e-mail \xE0 l'adresse de votre entreprise",
+  "notification.headline.run.auto_allowed": "Le travail s'est ex\xE9cut\xE9 sans qu'on sollicite personne",
+  "notification.headline.company.halted": "Cette entreprise a \xE9t\xE9 arr\xEAt\xE9e",
+  "notification.headline.approval.escalated": "Une d\xE9cision attend depuis hier",
+  "notification.headline.briefing.ready": "Votre briefing du matin est pr\xEAt",
+  "notification.headline.comment.mentioned": "Quelqu'un vous a demand\xE9 nomm\xE9ment",
+  "notification.headline.goal.thrashing": "Un objectif a \xE9chou\xE9 plusieurs fois de suite et a \xE9t\xE9 arr\xEAt\xE9",
+  "notification.push.none.title": "Rien n'attend dans {company}",
+  "notification.push.none.body": "Vous \xEAtes \xE0 jour.",
+  "notification.push.only": "Dans {company}.",
+  "notification.push.more": {
+    one: "Dans {company}, avec {count} de plus en attente.",
+    many: "Dans {company}, avec {count} de plus en attente.",
+    other: "Dans {company}, avec {count} de plus en attente."
+  },
+  "home.loading": "Chargement de votre entreprise",
   "home.metrics.label": "Ce que {brand} sait",
   "home.metric.running": "En cours",
   "home.metric.waiting": "En attente de vous",
@@ -8157,6 +9526,13 @@ var fr_default = {
   "home.metric.spent": "D\xE9pens\xE9 sur cette p\xE9riode",
   "home.running.heading": "Ce qui tourne",
   "home.running.none": "Rien ne tourne pour le moment. Le travail d\xE9marre quand vous l'approuvez, ou tout seul l\xE0 o\xF9 votre politique l'autorise d\xE9j\xE0.",
+  "home.running.since": "Lanc\xE9 {when}",
+  "home.running.unnamed": "Travail sans contrat enregistr\xE9",
+  "home.running.more": {
+    one: "et {count} de plus en cours.",
+    many: "et {count} de plus en cours.",
+    other: "et {count} de plus en cours."
+  },
   "home.needs.heading": "Ce qui vous attend",
   "home.needs.none": "Rien n'attend une intervention humaine.",
   "home.needs.noneProposed": "Rien n'a \xE9t\xE9 propos\xE9 non plus pour l'instant.",
@@ -8170,6 +9546,7 @@ var fr_default = {
   "home.empty.title": "Votre entreprise n'a encore aucun registre",
   "home.empty.because": "Une entr\xE9e est \xE9crite pour chaque proposition, d\xE9cision, ex\xE9cution et v\xE9rification. Le v\xF4tre est vide parce que rien n'a \xE9t\xE9 propos\xE9. Donnez-lui un objectif et il proposera les premi\xE8res actions.",
   "home.empty.action": "D\xE9finir le premier objectif",
+  "nav.skip": "Aller au contenu de la page",
   "nav.sections": "Sections",
   "nav.overview": "Aper\xE7u",
   "nav.approvals": "Approbations",
@@ -8589,8 +9966,10 @@ var fr_default = {
   // point-virgule, écrite comme une échappée \u00A0, la forme déjà utilisée
   // ailleurs dans ce fichier.
   // ---------------------------------------------------------------------------
+  "role.guest.label": "Invit\xE9",
+  "role.guest.summary": "Consulte cette entreprise, ne change rien et ne peut pas ouvrir les fichiers.",
   "role.viewer.label": "Lecteur",
-  "role.viewer.summary": "Consulte cette entreprise et ne change rien.",
+  "role.viewer.summary": "Consulte cette entreprise, y compris les fichiers, et ne change rien.",
   "role.member.label": "Membre",
   "role.member.summary": "Propose du travail, l'ex\xE9cute, et approuve ou refuse ce qu'un agent propose. Tout cela reste \xE0 l'int\xE9rieur de cette entreprise.",
   "role.admin.label": "Admin",
@@ -8676,6 +10055,7 @@ var fr_default = {
   "usage.phase.build": "Construire",
   "usage.phase.search": "Rechercher",
   "usage.phase.speech": "Parler",
+  "usage.phase.console": "R\xE9pondre",
   "usage.phase.other": "Non enregistr\xE9",
   "usage.byGoal": "Par objectif",
   "usage.noGoal": "Rattach\xE9 \xE0 aucun objectif",
@@ -8731,6 +10111,24 @@ var fr_default = {
   "evidence.raw": "Brut",
   "product.notes": "Ce que l'ex\xE9cution n'a pas pu \xE9tablir",
   "product.inconclusive": "Cette ex\xE9cution n'a pas abouti \xE0 une conclusion \xE0 partir de ce qui lui a \xE9t\xE9 fourni.",
+  "evidence.check.ok": "Recalcul\xE9 dans votre navigateur\xA0: l\u2019empreinte correspond \xE0 l\u2019enregistrement.",
+  "evidence.check.bad": "Recalcul\xE9 dans votre navigateur\xA0: l\u2019empreinte ne correspond PAS, cet enregistrement a donc chang\xE9 apr\xE8s avoir \xE9t\xE9 \xE9crit.",
+  "evidence.check.unknown": "Cet enregistrement ne peut pas \xEAtre recalcul\xE9 dans le navigateur.",
+  "inbox.none": "Rien n\u2019a \xE9t\xE9 propos\xE9 dans cette entreprise.",
+  "inbox.counts": "{waiting} en attente d\u2019une personne, {decided} d\xE9j\xE0 d\xE9cid\xE9s.",
+  "inbox.capped": "Affichage des {shown} plus r\xE9cents sur {total}. Les propositions plus anciennes ne sont pas encore sur cette page.",
+  "inbox.showingAll": "{total} au total.",
+  "inbox.empty.title": "Rien n\u2019a \xE9t\xE9 propos\xE9",
+  "inbox.empty.body": "{brand} propose des actions au service d\u2019un objectif. Cette entreprise n\u2019a aucune proposition parce qu\u2019elle n\u2019a pas encore d\u2019objectif, ou parce que rien n\u2019a \xE9t\xE9 propos\xE9 pour ceux qu\u2019elle a.",
+  "inbox.empty.action": "D\xE9finir un objectif",
+  "inbox.waiting": "En attente de vous",
+  "inbox.refusedAt": "refus\xE9 \xE0 la porte {gate}",
+  "inbox.needsYou": "a besoin de vous",
+  "inbox.unattended": "fonctionnerait sans surveillance",
+  "inbox.decided": "D\xE9j\xE0 d\xE9cid\xE9s",
+  "inbox.refused": "refus\xE9",
+  "inbox.checked": "v\xE9rifi\xE9 par un acteur diff\xE9rent",
+  "inbox.notEstablished": "ex\xE9cut\xE9, non \xE9tabli",
   "contract.tabs": "Vues de ce contrat",
   "contract.tab.contract": "Contrat",
   "contract.tab.output": "R\xE9sultat",
@@ -8770,9 +10168,56 @@ var fr_default = {
   "contract.check.notEstablishes": "Ce que cela n'\xE9tablit pas",
   "contract.check.defaultEstablishes": "l'enregistrement stock\xE9 est coh\xE9rent",
   "contract.check.defaultNot": "que quoi que ce soit ait quitt\xE9 ce syst\xE8me",
+  "contract.check.next": "Que faire ensuite",
+  "contract.check.next.body": "Une v\xE9rification qui n\u2019a pas tenu ne signifie pas que l\u2019action a \xE9chou\xE9. Elle signifie qu\u2019un acteur diff\xE9rent n\u2019a pas pu la confirmer \xE0 partir de l\u2019enregistrement. Lisez d\u2019abord les preuves ci-dessous. Si l\u2019effet peut encore atteindre quelque chose hors de l\u2019entreprise, arr\xEAtez toute autonomie depuis la barre lat\xE9rale\xA0; cela prend effet \xE0 la prochaine porte. Ce contrat ne s\u2019ex\xE9cutera pas une deuxi\xE8me fois\xA0: une nouvelle tentative est un nouveau contrat, d\xE9finissez donc \xE0 nouveau l\u2019objectif pour qu\u2019il en soit propos\xE9 un.",
+  "contract.check.next.goal": "D\xE9finir \xE0 nouveau l\u2019objectif",
   "contract.evidence": "Preuves",
   "contract.proposedBy": "Propos\xE9 par {actor}, adress\xE9 par empreinte\xA0: le sceau ci-dessous est calcul\xE9 \xE0 partir du contenu du contrat lui-m\xEAme, si bien qu'une approbation ne peut pas \xEAtre d\xE9plac\xE9e vers une autre action.",
   "decision.error.title": "Cela n'est pas pass\xE9",
+  "contract.replaces.title": "Remplace une proposition ant\xE9rieure",
+  "contract.replaces.link": "Proposition ant\xE9rieure {hash}",
+  "contract.replaces.same": "Les termes sont identiques. Seuls la date et l\u2019historique diff\xE8rent.",
+  "contract.replacedBy.title": "Remplac\xE9e par une proposition ult\xE9rieure",
+  "contract.replacedBy.body": "Celle-ci ne peut plus \xEAtre d\xE9cid\xE9e. D\xE9cidez plut\xF4t de la proposition ult\xE9rieure.",
+  "contract.replacedBy.link": "Proposition ult\xE9rieure {hash}",
+  "contract.change.was": "Avant",
+  "contract.change.now": "Maintenant",
+  "contract.change.objective": "Objectif",
+  "contract.change.capabilities": "Capacit\xE9",
+  "contract.change.steps": "\xC9tapes",
+  "contract.change.reach": "Atteint",
+  "contract.change.bearer": "Cons\xE9quences support\xE9es par",
+  "contract.change.reversible": "R\xE9versible",
+  "contract.change.expires": "Expire",
+  "contract.change.claims": "Affirmations",
+  "contract.change.cites": "Cite",
+  "decision.error.notContract": "ceci n\u2019est pas un contrat",
+  "decision.error.gate": "refus\xE9 \xE0 la porte {gate}\xA0: {reason}",
+  "decision.error.signedOut": "vous n\u2019\xEAtes pas connect\xE9",
+  "decision.error.notHere": "ce contrat n\u2019appartient pas \xE0 cette entreprise",
+  "decision.error.decided": "quelqu\u2019un a d\xE9j\xE0 d\xE9cid\xE9 de celui-ci\xA0; la page a \xE9t\xE9 actualis\xE9e",
+  "decision.error.superseded": "une proposition ult\xE9rieure a remplac\xE9 celle-ci, elle ne peut donc plus \xEAtre d\xE9cid\xE9e",
+  "decision.error.notApproved": "ce contrat n\u2019a pas \xE9t\xE9 approuv\xE9, il n\u2019y a donc rien \xE0 ex\xE9cuter",
+  "decision.ok.endorsed": "Enregistr\xE9. Accord de {have} sur {need}. Cela ne peut pas s'ex\xE9cuter tant que les autres ne l'ont pas examin\xE9.",
+  "comment.error.empty": "\xC9crivez d'abord quelque chose.",
+  "comment.error.tooLong": "Cela d\xE9passe {limit} caract\xE8res. Raccourcissez le texte ou joignez un fichier.",
+  "comment.ok.posted": "Publi\xE9.",
+  "comment.ok.mentioned": "Publi\xE9. {count} de vos coll\xE8gues ont \xE9t\xE9 pr\xE9venus.",
+  "comment.label": "Ajouter une note",
+  "comment.hint": "Tapez @ suivi d'une adresse pour interpeller quelqu'un. Une note ne peut \xEAtre ni modifi\xE9e ni supprim\xE9e ensuite.",
+  "comment.submit": "Publier",
+  "comment.none": "Rien n'a encore \xE9t\xE9 dit \xE0 ce sujet.",
+  "comment.title": "Notes",
+  "decision.ok.approved": "Approuv\xE9.",
+  "decision.ok.refused": "Refus\xE9.",
+  "decision.ok.ran": "Ex\xE9cut\xE9, et un acteur diff\xE9rent a confirm\xE9 que l\u2019enregistrement correspond au contrat.",
+  "decision.error.unverified": "Ex\xE9cut\xE9, mais la v\xE9rification ne l\u2019a PAS \xE9tabli\xA0: {why}",
+  "decision.revise": "Demander une r\xE9vision",
+  "decision.revise.hint": "Pour la renvoyer, dites ce qui doit changer. L\u2019auteur r\xE9pond par une proposition r\xE9vis\xE9e qui remplace celle-ci.",
+  "decision.error.needsWords": "Dites ce qui doit changer, pour que l\u2019auteur sache quoi r\xE9viser.",
+  "decision.ok.revised": "R\xE9vision demand\xE9e.",
+  "contract.revisionBy": "R\xE9vision demand\xE9e par {name} le {when}",
+  "contract.revision.open": "Cette proposition reste ouverte jusqu\u2019\xE0 ce qu\u2019une version r\xE9vis\xE9e la remplace ou que quelqu\u2019un en d\xE9cide.",
   "decision.done": "Termin\xE9",
   "decision.ran.title": "Cela a d\xE9j\xE0 \xE9t\xE9 ex\xE9cut\xE9",
   "decision.ran.body": "Un contrat s'ex\xE9cute une fois. Le relancer serait une seconde tentative de la m\xEAme action approuv\xE9e, c'est-\xE0-dire une nouvelle ex\xE9cution et non une r\xE9p\xE9tition de celle-ci. Ce qui s'est pass\xE9 figure dans l'historique.",
@@ -8787,6 +10232,9 @@ var fr_default = {
   "decision.halted": "L'autonomie est arr\xEAt\xE9e. Levez l'arr\xEAt avant que quoi que ce soit ne s'ex\xE9cute, y compris ce que vous avez d\xE9j\xE0 approuv\xE9.",
   "decision.run.note": "Ex\xE9cuter applique le plan puis confie le r\xE9sultat \xE0 un autre acteur pour v\xE9rification. Aucun adaptateur n'est connect\xE9 sur ce d\xE9ploiement, l'effet est donc simul\xE9 et chaque artefact produit le dit.",
   "decision.refused.title": "Ceci a \xE9t\xE9 refus\xE9",
+  "decision.recheck": "V\xE9rifier \xE0 nouveau",
+  "decision.rechecking": "V\xE9rification",
+  "decision.recheck.note": "Demande au monde ext\xE9rieur si cela existe toujours, sans utiliser vos identifiants.",
   "decision.refused.body": "Un refus est enregistr\xE9 et d\xE9finitif. Proposez un nouveau contrat plut\xF4t que d'annuler celui-ci\xA0: un amendement cr\xE9e un nouveau contrat qui remplace l'ancien, de sorte que la trace de ce qui a \xE9t\xE9 refus\xE9 subsiste.",
   "product.email.from": "De",
   "product.email.to": "\xC0",
@@ -8895,6 +10343,11 @@ var fr_default = {
   "billing.subscription.plan": "Forfait que vous payez",
   "billing.subscription.periodEnds": "Fin de la p\xE9riode de facturation",
   "billing.subscription.reference": "R\xE9f\xE9rence d'abonnement",
+  "billing.limited.title": "Votre abonnement n\u2019est pas pay\xE9, votre offre est donc limit\xE9e",
+  "billing.limited.body": "Rien n\u2019a \xE9t\xE9 supprim\xE9 et vous pouvez toujours tout lire. Ce qui s\u2019arr\xEAte, c\u2019est le nouveau travail qui co\xFBte de l\u2019argent. Mettez votre carte \xE0 jour chez le prestataire pour r\xE9tablir l\u2019offre.",
+  "billing.limited.subscribed": "Offre que vous payez",
+  "billing.limited.status": "Statut chez le prestataire",
+  "billing.limited.runningOn": "Fonctionne sur",
   "billing.choice.current": "C'est le forfait sur lequel cette organisation se trouve d\xE9j\xE0.",
   "billing.choice.halted": "Cette entreprise est arr\xEAt\xE9e, et l'arr\xEAt couvre tout changement, y compris celui-ci. Levez-le depuis l'en-t\xEAte, puis changez de forfait.",
   "billing.choice.noProvider": "Aucun prestataire de paiement n'est connect\xE9 \xE0 ce d\xE9ploiement, une carte ne peut donc pas \xEAtre d\xE9bit\xE9e d'ici.",
@@ -8937,8 +10390,24 @@ var fr_default = {
   "goals.cadence.finished": "Ex\xE9cut\xE9 une fois. Rien d'autre n'est planifi\xE9.",
   "goals.cadence.due": "\xC0 ex\xE9cuter au prochain balayage",
   "goals.cadence.next": "Prochain passage {when}",
+  "goals.templates.heading": "Ou commencez par l'un de ceux-ci",
+  "goals.templates.competitors": "Lisez chaque semaine les sites publics des entreprises avec lesquelles nous concurren\xE7ons, et \xE9crivez ce qui a chang\xE9 depuis.",
+  "goals.templates.claims": "Lisez notre site et listez chaque affirmation que nous ne pourrions pas soutenir aujourd'hui.",
+  "goals.templates.week": "Chaque vendredi, \xE9crivez ce que cette entreprise a r\xE9ellement fait cette semaine, \xE0 partir de ses propres passages, et dites clairement ce qui n'a pas tenu.",
+  "goals.templates.inbox": "Chaque matin, lisez la bo\xEEte de r\xE9ception de l'entreprise et r\xE9digez une r\xE9ponse \xE0 tout ce qui en a besoin. Rien n'est envoy\xE9 tant qu'une personne n'appuie pas sur Envoyer.",
+  "goals.templates.repo": "Trouvez les petits probl\xE8mes autonomes dans notre d\xE9p\xF4t et ouvrez une demande de fusion pour chacun. Ne fusionnez jamais.",
+  "goals.cadence.stopped": "Arr\xEAt\xE9 apr\xE8s des \xE9checs r\xE9p\xE9t\xE9s. Modifiez-le ou ex\xE9cutez-le vous-m\xEAme.",
+  "goals.assignee.label": "Qui s'en occupe",
+  "goals.assignee.nobody": "Personne",
+  "goals.assignee.saved": "Enregistr\xE9.",
+  "goals.assignee.error": "Cette personne ne fait pas partie de cette entreprise.",
+  // A NO-BREAK SPACE BEFORE THE COLON, which French typography requires and
+  // `catalogues.test.ts` enforces. Written as an escape so it survives an editor
+  // that trims trailing whitespace and so a reader can see it is deliberate.
+  "goals.assignee.on": "S'en occupe\xA0: {who}",
   "goals.cadence.change": "Modifier",
   "goals.cadence.saved": "Enregistr\xE9.",
+  "goals.schedule.zone": "Les passages programm\xE9s ont lieu le matin, {zone}.",
   "log.title": "Journal des changements",
   "log.lead": "Ce qui a chang\xE9, quand, et quelle moiti\xE9 \xE9tait vraie. On y ajoute, on ne le r\xE9\xE9crit jamais.",
   "log.english-note.title": "Ces entr\xE9es sont en anglais",
@@ -8967,6 +10436,186 @@ var fr_default = {
   "portability.honest.body": "Une page sur la portabilit\xE9 est facile \xE0 \xE9crire comme une promesse et difficile \xE0 \xE9crire comme un fait. Deux des trois choses qu'une telle page revendique habituellement, votre domaine et votre compte de paiement, ne sont pas vraies ici\xA0: elles sont donc nomm\xE9es ci-dessus comme non propos\xE9es plut\xF4t qu'omises. Celle qui est vraie, vos propres donn\xE9es, l'est sur tous les plans et c'est celle qui compte si vous voulez partir un jour.",
   "portability.status.included": "Disponible",
   "portability.status.planned": "Pas encore construit",
+  /* Les pages de comparaison. Aucun vocabulaire de revendication ("conform",
+     "certifi", "audité", "attest"), d'où le paragraphe sur le lieu de stockage
+     qui dit où se trouve la base et ce que fait l'inférence plutôt que de
+     tendre vers un mot de statut. Rien n'est cité mot pour mot : la source
+     porte des tirets cadratins, que §5a interdit dans toutes les langues. */
+  "vs.eyebrow": "Comparaison",
+  "vs.index.title": "Comparaisons",
+  "vs.index.lead": "Une page par produit sur lequel on nous interroge le plus, toutes \xE9crites pareil\xA0: d\u2019abord ce qu\u2019ils font bien, puis cinq questions pos\xE9es aux deux, puis les pages d\u2019o\xF9 vient chaque affirmation.",
+  "vs.index.meta.description": "Comparaisons sourc\xE9es d\u2019Orvay avec d\u2019autres produits qui font avancer le travail d\u2019une entreprise. Chaque affirmation renvoie, avec sa date, \xE0 la page o\xF9 elle a \xE9t\xE9 lue.",
+  "vs.index.more": "D\u2019autres suivront. Une comparaison n\u2019est ajout\xE9e que lorsqu\u2019il existe une documentation publique \xE0 lire, car une page qui devine ce que fait un autre vaut moins que pas de page du tout.",
+  "vs.paperclip.index.blurb": "Open source, h\xE9berg\xE9 par vous, avec une file de validation o\xF9 un relecteur peut renvoyer le travail au lieu de seulement le refuser.",
+  "vs.polsia.index.blurb": "H\xE9berg\xE9, et il va plus loin dans la conduite de l\u2019activit\xE9\xA0: domaines, paiements et mises en ligne au m\xEAme endroit.",
+  "vs.paperclip.name": "Paperclip",
+  "vs.paperclip.title": "Orvay et Paperclip",
+  "vs.paperclip.lead": "Tous deux placent une personne devant l'agent avant qu'il agisse. Ils sont con\xE7us pour des acheteurs diff\xE9rents et disent ouvertement des choses diff\xE9rentes. Tout ce qui est \xE9crit ici sur Paperclip provient d'une page publique, et cette page est li\xE9e en bas avec la date \xE0 laquelle elle a \xE9t\xE9 lue.",
+  "vs.paperclip.meta.description": "Une comparaison sourc\xE9e d'Orvay et de Paperclip sur les validations, la v\xE9rification du travail, la r\xE9cup\xE9ration de vos donn\xE9es, le lieu de stockage et la question de savoir qui exploite le logiciel. Chaque affirmation renvoie \xE0 la page dont elle provient.",
+  "vs.method.heading": "D'o\xF9 viennent les informations de cette page",
+  "vs.method.lead": "Une page de comparaison est l'endroit le plus facile du web pour se tromper sur autrui. Voici les r\xE8gles que celle-ci suit, afin que vous puissiez v\xE9rifier si elles ont \xE9t\xE9 tenues.",
+  "vs.method.rule.sourced": "Chaque affirmation sur {name} a \xE9t\xE9 lue sur une page publique, li\xE9e au bas de cette page avec la date de lecture. Ce que nous n\u2019avons pas pu lire nous-m\xEAmes, nous l\u2019avons laiss\xE9 de c\xF4t\xE9.",
+  "vs.method.rule.claims": "Nous rapportons ce que leur documentation d\xE9crit au lieu de le pr\xE9senter comme un constat. Une entreprise qui \xE9crit sur son propre produit prouve seulement qu'elle l'a dit, ce qui diff\xE8re d'une preuve que cela fonctionne.",
+  "vs.method.rule.numbers": "Aucun chiffre sur leur taille ne figure ici. Ni \xE9toiles, ni lev\xE9es de fonds, ni chiffre d'affaires, ni nombre d'utilisateurs. Rien de tout cela ne vous dit comment l'un ou l'autre produit traite votre travail.",
+  "vs.method.rule.today": "Orvay est d\xE9crit tel qu\u2019il est aujourd\u2019hui et non tel qu\u2019il est pr\xE9vu. L\xE0 o\xF9 {name} livre quelque chose que nous n\u2019avons pas construit, la r\xE9ponse ci-dessus le dit dans la m\xEAme phrase.",
+  "vs.paperclip.credit.heading": "Ce que Paperclip r\xE9ussit",
+  "vs.paperclip.credit.lead": "Cela vient en premier parce que c'est la partie honn\xEAte de toute comparaison et parce que nous ne contesterions aucune de ces d\xE9cisions.",
+  "vs.paperclip.credit.open": "Paperclip est en source ouverte sous licence MIT et vous pouvez tout exploiter vous-m\xEAme. Son fichier README demande Node.js et un gestionnaire de paquets en local, et votre propre Postgres en production, si bien que rien ne vous oblige \xE0 faire confiance \xE0 l'h\xE9bergeur d'un tiers.",
+  "vs.paperclip.credit.approvals": "Sa file de validation offre trois issues \xE0 la personne qui relit, l\xE0 o\xF9 la plupart des produits en offrent deux\xA0: accepter, refuser, ou renvoyer la proposition pour r\xE9vision, sans limite au nombre de tours. Le refus est d\xE9finitif et la r\xE9vision est une boucle, et distinguer les deux vaut mieux qu'un seul bouton signifiant non.",
+  "vs.paperclip.credit.trust": "Son examen \xE0 faible confiance tient \xE0 l'\xE9cart le travail d'un agent auquel il ne se fie pas enti\xE8rement, et la documentation dit clairement qu'une sortie brute non v\xE9rifi\xE9e n'est jamais promue en silence. Une personne doit la regarder et \xE9crire la version propre, et la trace de cette \xE9tape retient qui l'a fait et quand.",
+  "vs.axes.heading": "Cinq questions, deux r\xE9ponses",
+  "vs.axes.lead": "Les m\xEAmes cinq questions pos\xE9es aux deux produits. Leur c\xF4t\xE9 d\xE9crit ce que leur documentation expose. Le n\xF4tre d\xE9crit ce qu'Orvay fait aujourd'hui, et sur l'une des cinq c'est moins.",
+  "vs.paperclip.axis.approvals.heading": "La validation d\xE8s la conception",
+  "vs.paperclip.axis.approvals.them": "Paperclip traite une validation comme une entr\xE9e de file \xE0 trois issues, sous une r\xE8gle appliqu\xE9e au moment de l'ex\xE9cution, de sorte qu'un agent n'a pas \xE0 penser \xE0 demander. Une \xE9tape retient qui participe et combien d'accords sont n\xE9cessaires.",
+  "vs.paperclip.axis.approvals.us": "Orvay traite une validation comme un objet d\xE9limit\xE9 et non comme un oui. Elle est accord\xE9e une fois, en permission permanente, ou born\xE9e par une limite, et elle est enregistr\xE9e sous cette forme, car un accord incapable de dire ce qu'il couvrait ne sert \xE0 rien \xE0 la personne qui le relit un an plus tard. Chaque action passe par une seule fonction \xE0 huit contr\xF4les dans un ordre fixe, et une entreprise mise \xE0 l'arr\xEAt s'arr\xEAte, m\xEAme pour sa propre direction.",
+  "vs.paperclip.axis.verification.heading": "Qui a le droit de v\xE9rifier le travail",
+  "vs.paperclip.axis.verification.them": "Paperclip y r\xE9pond par la mise \xE0 l'\xE9cart et par une personne. Les sorties sans pleine confiance sont tenues \xE0 part, rien ne monte tout seul, et une personne de confiance \xE9crit la version propre. La trace de cette \xE9tape nomme l'acteur et le moment.",
+  "vs.paperclip.axis.verification.us": "Orvay y r\xE9pond par une r\xE8gle sur qui v\xE9rifie plut\xF4t que sur le point de contr\xF4le. Une preuve produite par ce qui a ex\xE9cut\xE9 le travail n'\xE9tablit pas que le travail a eu lieu\xA0; la v\xE9rification doit donc venir d'ailleurs. Orvay compte aussi combien de fois une ex\xE9cution a annonc\xE9 une r\xE9ussite sans preuve ind\xE9pendante derri\xE8re elle, et affiche cette part par capacit\xE9, car un syst\xE8me qui ne compterait que ses r\xE9ussites corrigerait sa propre copie.",
+  "vs.paperclip.axis.portability.heading": "Emporter votre travail ailleurs",
+  "vs.paperclip.axis.portability.them": "Paperclip exporte une organisation enti\xE8re sous forme de fichiers lisibles que l'on peut r\xE9importer\xA0: agents, projets, comp\xE9tences, t\xE2ches, routines et pi\xE8ces jointes. Sa documentation est tout aussi claire sur ce qui ne suit pas, et cette partie m\xE9rite d'\xEAtre lue avant de vous y fier. Les validations, l'historique des co\xFBts et les entr\xE9es du journal d'activit\xE9 restent sur l'instance que vous quittez.",
+  "vs.paperclip.axis.portability.us": "C'est la question sur laquelle Paperclip livre et Orvay non, alors nous l'\xE9crivons dans la m\xEAme phrase. Vos propres donn\xE9es personnelles peuvent \xEAtre emport\xE9es sur tous les forfaits, y compris le gratuit, car c'est un droit et non une fonctionnalit\xE9, et le facturer ne serait pas une d\xE9cision tarifaire. Les exports plus larges ne sont pas construits. Le statut affich\xE9 \xE0 c\xF4t\xE9 de chacun ci-dessous est lu dans la table m\xEAme que lit la liste des prix, de sorte que cette page ne peut pas affirmer plus que celle-l\xE0.",
+  "vs.paperclip.axis.consent.heading": "O\xF9 r\xE9sident les donn\xE9es, et sur quoi repose le contact",
+  "vs.paperclip.axis.consent.them": "Comme vous exploitez Paperclip vous-m\xEAme, la d\xE9cision est la v\xF4tre et non la leur. Leur documentation vous dit de le pointer vers un Postgres que vous ma\xEEtrisez et de le d\xE9ployer \xE0 votre guise, si bien qu'une entreprise soumise \xE0 une obligation sur le lieu de stockage peut la satisfaire en choisissant la machine.",
+  "vs.paperclip.axis.consent.us": "Orvay est h\xE9berg\xE9 par nous, nous devons donc r\xE9pondre \xE0 cette question au lieu de vous la laisser. La base de donn\xE9es se trouve \xE0 Zurich. L'inf\xE9rence des mod\xE8les n'a pas lieu en Suisse, et une phrase sur le lieu de stockage qui omet ce point ne m\xE9rite pas d'\xEAtre lue. Lorsque des coordonn\xE9es sont recueillies, la base l\xE9gale est consign\xE9e \xE0 cet instant plut\xF4t que d\xE9cid\xE9e apr\xE8s coup, et un clic pour arr\xEAter les courriels inscrit un retrait dans le m\xEAme registre.",
+  "vs.paperclip.axis.hosting.heading": "Qui exploite le logiciel",
+  "vs.paperclip.axis.hosting.them": "Vous. Et si poss\xE9der la machine compte pour vous, c'est un avantage r\xE9el et il est de leur c\xF4t\xE9. Cela veut dire aussi maintenir un service et une base de donn\xE9es en vie, les mettre \xE0 jour, et remarquer quand ils s'arr\xEAtent.",
+  "vs.paperclip.axis.hosting.us": "Personne chez vous n'exploite quoi que ce soit. La base de donn\xE9es, la trace et l'aiguillage entre les mod\xE8les arrivent reli\xE9s entre eux, et il n'y a aucun service de notre part \xE0 maintenir en vie. C'est un \xE9change et non une victoire\xA0: vous choisissez de laisser quelqu'un d'autre le tenir, et les questions ci-dessus sont \xE0 peser avant de d\xE9cider que cela vous convient.",
+  "vs.sources.heading": "Sources",
+  "vs.sources.lead": "Chaque page ci-dessous a \xE9t\xE9 lue \xE0 la date indiqu\xE9e \xE0 c\xF4t\xE9. Les pages bougent\xA0: pendant que celle-ci s\u2019\xE9crivait, une adresse de nos propres notes avait d\xE9j\xE0 disparu.",
+  "vs.sources.retrieved": "Lu le {date}",
+  "vs.sources.caveat": "Ces liens m\xE8nent \xE0 des documents que Paperclip publie sur lui-m\xEAme. Nous les avons lus et non \xE9prouv\xE9s, et personne ici n'a exploit\xE9 leur produit.",
+  "vs.source.paperclip.repo": "D\xE9p\xF4t du code source de Paperclip et README",
+  "vs.source.paperclip.site": "Page produit de Paperclip",
+  "vs.source.paperclip.approvals": "Documentation de Paperclip sur les validations",
+  "vs.source.paperclip.trust": "Documentation de Paperclip sur l'examen \xE0 faible confiance",
+  "vs.source.paperclip.export": "Documentation de Paperclip sur l'export et l'import",
+  "vs.polsia.name": "Polsia",
+  "vs.polsia.title": "Orvay et Polsia",
+  "vs.polsia.lead": "Les deux font avancer le travail d\u2019une entreprise sans qu\u2019une personne pilote chaque \xE9tape. Ils ne sont pas d\u2019accord sur ce \xE0 quoi sert une personne. Tout ce qui est dit ici sur Polsia a \xE9t\xE9 lu dans son centre d\u2019aide et sur ses pages juridiques, et chaque page est li\xE9e en bas avec la date \xE0 laquelle elle a \xE9t\xE9 lue.",
+  "vs.polsia.meta.description": "Une comparaison sourc\xE9e d\u2019Orvay et de Polsia sur les validations, la v\xE9rification, la portabilit\xE9, le lieu des donn\xE9es et l\u2019h\xE9bergement. Chaque affirmation renvoie \xE0 la page o\xF9 elle a \xE9t\xE9 lue.",
+  "vs.polsia.credit.heading": "Ce que Polsia fait bien",
+  "vs.polsia.credit.lead": "Cela vient en premier parce que c\u2019est la partie honn\xEAte de toute comparaison, et parce que pour deux de ces points nous pr\xE9f\xE9rerions ne pas avoir \xE0 reconna\xEEtre qu\u2019ils sont meilleurs.",
+  "vs.polsia.credit.candour": "Son centre d\u2019aide \xE9nonce clairement une limite au lieu de vous laisser la d\xE9couvrir\xA0: il n\u2019y a pas d\u2019acc\xE8s au d\xE9p\xF4t de votre code, pas d\u2019adresse pour le cloner et pas d\u2019interface pour en demander une. Un produit qui \xE9crit ce qu\u2019il ne fera pas pour vous est plus facile \xE0 anticiper que celui qui liste seulement ce qu\u2019il fera.",
+  "vs.polsia.credit.database": "Une entreprise dispose de sa propre base de donn\xE9es PostgreSQL, et l\u2019export tient en deux fichiers SQL qui se chargent dans n\u2019importe quel serveur PostgreSQL. C\u2019est une vraie sortie et non un geste, car le format est d\xE9j\xE0 lu par quelqu\u2019un d\u2019autre.",
+  "vs.polsia.credit.bounded": "Son mode sans surveillance est born\xE9 d\xE8s que vous le lancez. Vous choisissez sa dur\xE9e, d\u2019une heure jusqu\u2019\xE0 cinq jours, vous voyez ce qu\u2019il a termin\xE9 pendant qu\u2019il travaille, et vous pouvez l\u2019arr\xEAter. Une autonomie dont la fin est annonc\xE9e est une meilleure forme qu\u2019une autonomie qui continue simplement.",
+  "vs.polsia.axis.approvals.heading": "Des validations d\xE8s la conception",
+  "vs.polsia.axis.approvals.them": "Polsia borne une ex\xE9cution, pas une d\xE9cision. Son mode sans surveillance prend une dur\xE9e et un budget\xA0: il traite les t\xE2ches ouvertes et en planifie de nouvelles jusqu\u2019\xE0 \xE9puisement du temps ou du cr\xE9dit, il affiche un compteur pendant ce temps, et un bouton d\u2019arr\xEAt y met fin. Les limites document\xE9es sont le temps, l\u2019argent et l\u2019arr\xEAt.",
+  "vs.polsia.axis.approvals.us": "Orvay borne aussi la d\xE9cision. Une validation est un objet d\xE9limit\xE9 et non un oui\xA0: accord\xE9e une fois, permanente, ou born\xE9e par une limite, et enregistr\xE9e sous cette forme, car une validation incapable de dire ce qu\u2019elle couvrait ne sert \xE0 rien \xE0 qui la relit un an plus tard. Chaque action passe par une fonction unique avec huit contr\xF4les dans un ordre fixe, et une entreprise mise \xE0 l\u2019arr\xEAt le reste m\xEAme pour son propri\xE9taire.",
+  "vs.polsia.axis.verification.heading": "Qui a le droit de contr\xF4ler le travail",
+  "vs.polsia.axis.verification.them": "Ce qui a fait le travail rapporte aussi comment cela s\u2019est pass\xE9. Une fiche de t\xE2che indique si elle s\u2019est termin\xE9e, n\u2019a rien chang\xE9, ou a \xE9chou\xE9, et une t\xE2che \xE9chou\xE9e rembourse son propre cr\xE9dit. Si quelque chose semble encore faux ensuite, la consigne est que vous ouvriez votre site en ligne et relisiez vos t\xE2ches r\xE9centes.",
+  "vs.polsia.axis.verification.us": "Orvay tient qu\u2019une preuve produite par ce qui a ex\xE9cut\xE9 le travail n\u2019\xE9tablit pas que le travail a eu lieu\xA0: ce qui contr\xF4le doit donc \xEAtre autre chose. Orvay compte aussi combien de fois une ex\xE9cution a annonc\xE9 une r\xE9ussite sans preuve ind\xE9pendante derri\xE8re elle, et affiche cette part pour chaque capacit\xE9, car un syst\xE8me qui ne compterait que ses r\xE9ussites corrigerait sa propre copie.",
+  "vs.polsia.axis.portability.heading": "Emporter votre travail ailleurs",
+  "vs.polsia.axis.portability.them": "Deux exports, document\xE9s s\xE9par\xE9ment. Le code est un t\xE9l\xE9chargement que vous demandez depuis le tableau de bord et qui prend une \xE0 deux minutes. La base de donn\xE9es sort en deux fichiers SQL que vous pouvez charger dans n\u2019importe quel serveur PostgreSQL. Ce qui est document\xE9 comme absent, c\u2019est l\u2019acc\xE8s au d\xE9p\xF4t\xA0: pas d\u2019adresse pour cloner, pas d\u2019interface pour en demander une.",
+  "vs.polsia.axis.portability.us": "C\u2019est la question o\xF9 Polsia livre plus qu\u2019Orvay, alors disons-le dans la m\xEAme phrase. Vos propres donn\xE9es personnelles peuvent \xEAtre sorties sur toutes les formules, y compris la gratuite, car c\u2019est un droit et non une fonctionnalit\xE9, et le facturer ne serait pas une d\xE9cision tarifaire. Les exports plus larges ne sont pas construits. Le statut \xE0 c\xF4t\xE9 de chacun ci-dessous est lu dans la table que lit aussi la page des prix, de sorte que cette page ne peut pas affirmer plus que celle-l\xE0.",
+  "vs.polsia.axis.consent.heading": "O\xF9 sont les donn\xE9es, et sur quoi repose le contact",
+  "vs.polsia.axis.consent.them": "Polsia publie une liste de sous-traitants avec une date d\u2019effet, nommant chaque fournisseur, ce \xE0 quoi il sert et les cat\xE9gories de donn\xE9es qu\u2019il voit, dont le prestataire de paiement et la plateforme sur laquelle tourne l\u2019h\xE9bergement. Il est aussi pr\xE9cis\xE9 que la liste indique ce qui peut \xEAtre utilis\xE9, et que ce qui s\u2019applique r\xE9ellement d\xE9pend des fonctionnalit\xE9s activ\xE9es sur un compte.",
+  "vs.polsia.axis.consent.us": "Orvay est h\xE9berg\xE9, donc nous devons r\xE9pondre \xE0 cette question au lieu de vous la laisser. La base de donn\xE9es est \xE0 Zurich. L\u2019inf\xE9rence des mod\xE8les n\u2019a pas lieu en Suisse, et une phrase sur le lieu des donn\xE9es qui omet cela ne vaut pas la peine d\u2019\xEAtre lue. Lorsque des coordonn\xE9es sont collect\xE9es, la base l\xE9gale est consign\xE9e \xE0 ce moment-l\xE0 plut\xF4t que d\xE9cid\xE9e apr\xE8s coup, et un clic pour arr\xEAter les courriels inscrit un retrait dans le m\xEAme registre.",
+  "vs.polsia.axis.hosting.heading": "Qui fait tourner le logiciel",
+  "vs.polsia.axis.hosting.them": "Polsia le fait, et va plus loin que nous dans la conduite de l\u2019activit\xE9\xA0: une entreprise peut y acheter un domaine, encaisser des paiements sur le site construit, et publier puis revenir en arri\xE8re depuis le m\xEAme endroit. Si vous voulez un seul fournisseur pour l\u2019ensemble, cet avantage est le leur et il est r\xE9el.",
+  "vs.polsia.axis.hosting.us": "Chez nous non plus personne dans votre entreprise ne fait tourner quoi que ce soit. La diff\xE9rence tient \xE0 ce qui arrive d\xE9j\xE0 raccord\xE9\xA0: pour Orvay la base de donn\xE9es, le registre et le choix entre les mod\xE8les, et pas une boutique. C\u2019est un \xE9change et non une victoire, et les questions ci-dessus sont ce qu\u2019il faut peser avant de d\xE9cider laquelle vous convient.",
+  "vs.polsia.sources.caveat": "Ces liens m\xE8nent \xE0 des documents que Polsia publie sur elle-m\xEAme. Nous les avons lus et non test\xE9s, et personne ici n\u2019a fait tourner leur produit. Rien sur cette page ne vient de leur page d\u2019accueil, car une accroche et un chiffre mis en avant d\xE9crivent une entreprise et non la fa\xE7on dont elle traite votre travail.",
+  "vs.source.polsia.help": "Centre d\u2019aide de Polsia, index des guides",
+  "vs.source.polsia.autoMode": "Documentation de Polsia sur son mode sans surveillance",
+  "vs.source.polsia.codeExport": "Documentation de Polsia sur le t\xE9l\xE9chargement de votre code",
+  "vs.source.polsia.dbExport": "Documentation de Polsia sur l\u2019export de votre base de donn\xE9es",
+  "vs.source.polsia.taskOutcome": "Documentation de Polsia sur le contr\xF4le du r\xE9sultat d\u2019une t\xE2che",
+  "vs.source.polsia.subprocessors": "Liste des sous-traitants de Polsia",
+  "vs.cofounder.name": "Cofounder",
+  "vs.cofounder.title": "Orvay et Cofounder",
+  "vs.cofounder.lead": "Les deux mettent des agents au travail autour d'une entreprise qu'une personne dirige d\xE9j\xE0. Cofounder est explicite\xA0: votre produit principal reste dans votre propre base de code, et il construit l'entreprise autour de lui. Tout ce qui est dit ici a \xE9t\xE9 lu dans sa documentation et ses pages juridiques, li\xE9es en bas avec la date \xE0 laquelle elles ont \xE9t\xE9 lues.",
+  "vs.cofounder.meta.description": "Une comparaison sourc\xE9e d'Orvay et de Cofounder sur les validations, la v\xE9rification, la portabilit\xE9, le lieu des donn\xE9es et l'h\xE9bergement. Chaque affirmation renvoie \xE0 la page o\xF9 elle a \xE9t\xE9 lue.",
+  "vs.cofounder.credit.lead": "Cela vient en premier parce que c'est la partie honn\xEAte de toute comparaison, et parce que la premi\xE8re d'entre elles est une limite que la plupart des produits pr\xE9f\xE9reraient ne pas tracer.",
+  "vs.cofounder.credit.boundary": "Sa documentation \xE9nonce la limite sans d\xE9tour\xA0: il n'est pas fait pour construire ou reconstruire votre produit principal, votre base de donn\xE9es, votre authentification ou votre pile d'h\xE9bergement. Vous gardez vos propres outils de d\xE9veloppement pour cela, et il construit l'entreprise autour de ce que vous poss\xE9dez d\xE9j\xE0. Un produit qui nomme ce qu'il ne prendra pas en charge est plus facile \xE0 croire sur ce qu'il fera.",
+  "vs.cofounder.credit.staging": "Une mise en ligne qu'un agent demande passe par la pr\xE9production, derri\xE8re une carte de validation avec Approve et Reject, et jamais directement en production. La production reste derri\xE8re un bouton s\xE9par\xE9 dans l'espace de travail. Deux portes pour deux cons\xE9quences vaut mieux qu'une seule porte pour les deux.",
+  "vs.cofounder.credit.secrets": "Les secrets sont trait\xE9s comme il se doit. Les valeurs sont transmises \xE0 l'h\xE9bergeur et ne sont pas conserv\xE9es de son c\xF4t\xE9, et dans le bac \xE0 sable d'un agent la variable contient un espace r\xE9serv\xE9 plut\xF4t que la cl\xE9 brute, si bien qu'un identifiant n'est jamais \xE9crit dans une conversation.",
+  "vs.cofounder.axis.approvals.heading": "Des validations d\xE8s la conception",
+  "vs.cofounder.axis.approvals.them": "Quand un agent termine un travail et demande une mise en ligne, Cofounder met en file d'attente une carte de validation. Approve envoie le changement en pr\xE9production\xA0; Reject laisse la pr\xE9production intacte et renvoie \xE0 l'agent des indications pour corriger et redemander. Publier en production est une action s\xE9par\xE9e qu'une personne effectue dans l'espace de travail. Le verrou porte sur la mise en ligne, et une cible import\xE9e peut attendre des contr\xF4les automatis\xE9s avant m\xEAme que la carte apparaisse.",
+  "vs.cofounder.axis.approvals.us": "Orvay borne aussi la d\xE9cision. Une validation est un objet d\xE9limit\xE9 et non un oui\xA0: accord\xE9e une fois, permanente, ou born\xE9e par une limite, et enregistr\xE9e sous cette forme, car une validation incapable de dire ce qu\u2019elle couvrait ne sert \xE0 rien \xE0 qui la relit un an plus tard. Chaque action passe par une fonction unique avec huit contr\xF4les dans un ordre fixe, et une entreprise mise \xE0 l\u2019arr\xEAt le reste m\xEAme pour son propri\xE9taire.",
+  "vs.cofounder.axis.verification.heading": "Qui a le droit de contr\xF4ler le travail",
+  "vs.cofounder.axis.verification.them": "L'agent ing\xE9nieur ex\xE9cute et v\xE9rifie son propre travail dans un bac \xE0 sable avant de demander une mise en ligne, et la personne qui relit la carte de validation, c'est vous. Un contr\xF4le est ind\xE9pendant par construction\xA0: quand vous connectez un d\xE9p\xF4t, Cofounder inspecte le projet d'h\xE9bergement r\xE9el avant de consid\xE9rer l'import comme termin\xE9, et refuse tant que les deux ne concordent pas.",
+  "vs.cofounder.axis.verification.us": "Orvay tient qu\u2019une preuve produite par ce qui a ex\xE9cut\xE9 le travail n\u2019\xE9tablit pas que le travail a eu lieu\xA0: ce qui contr\xF4le doit donc \xEAtre autre chose. Orvay compte aussi combien de fois une ex\xE9cution a annonc\xE9 une r\xE9ussite sans preuve ind\xE9pendante derri\xE8re elle, et affiche cette part pour chaque capacit\xE9, car un syst\xE8me qui ne compterait que ses r\xE9ussites corrigerait sa propre copie.",
+  "vs.cofounder.axis.portability.heading": "Emporter votre travail ailleurs",
+  "vs.cofounder.axis.portability.them": "C'est la question que Cofounder r\xE9sout par sa conception plut\xF4t que par un export. Votre produit vit dans votre propre d\xE9p\xF4t et votre propre flux d'ing\xE9nierie, et sa documentation le dit d\xE8s la premi\xE8re page. Ce qu'il g\xE8re pour vous, le site marketing, les environnements de pr\xE9production et les services connect\xE9s, repose sur des fournisseurs que vous pouvez aussi ouvrir directement, le d\xE9p\xF4t \xE9tant connect\xE9 sous votre propre compte.",
+  "vs.cofounder.axis.portability.us": "L\xE0 o\xF9 Cofounder contourne cette question en laissant votre produit l\xE0 o\xF9 il vit d\xE9j\xE0, Orvay doit y r\xE9pondre, et la r\xE9ponse honn\xEAte aujourd'hui est partielle. Vos propres donn\xE9es personnelles peuvent \xEAtre emport\xE9es sur tous les forfaits, y compris le gratuit, car c'est un droit et non une fonctionnalit\xE9, et le facturer ne serait pas une d\xE9cision tarifaire. Les exports plus larges ne sont pas construits, et cette page le dit au lieu de laisser croire le contraire.",
+  "vs.cofounder.axis.consent.heading": "O\xF9 sont les donn\xE9es, et sur quoi repose le contact",
+  "vs.cofounder.axis.consent.them": "Son avis de confidentialit\xE9 nomme la soci\xE9t\xE9 exploitante et ce qu'elle collecte. Sa documentation est pr\xE9cise sur un point que beaucoup de produits laissent vague\xA0: les valeurs secr\xE8tes sont envoy\xE9es \xE0 l'h\xE9bergeur et ne sont pas conserv\xE9es du c\xF4t\xE9 de Cofounder. O\xF9 est conserv\xE9 le reste des donn\xE9es d'une entreprise n'est pas indiqu\xE9 sur les pages lues pour cette comparaison, aussi cette page ne pr\xE9tend pas le savoir.",
+  "vs.cofounder.axis.consent.us": "Orvay est h\xE9berg\xE9, donc nous devons r\xE9pondre \xE0 cette question au lieu de vous la laisser. La base de donn\xE9es est \xE0 Zurich. L\u2019inf\xE9rence des mod\xE8les n\u2019a pas lieu en Suisse, et une phrase sur le lieu des donn\xE9es qui omet cela ne vaut pas la peine d\u2019\xEAtre lue. Lorsque des coordonn\xE9es sont collect\xE9es, la base l\xE9gale est consign\xE9e \xE0 ce moment-l\xE0 plut\xF4t que d\xE9cid\xE9e apr\xE8s coup, et un clic pour arr\xEAter les courriels inscrit un retrait dans le m\xEAme registre.",
+  "vs.cofounder.axis.hosting.heading": "Qui fait tourner le logiciel",
+  "vs.cofounder.axis.hosting.them": "Cofounder est h\xE9berg\xE9, et il g\xE8re pour vous les \xE9l\xE9ments autour de votre produit\xA0: une connexion \xE0 un d\xE9p\xF4t, un projet d'h\xE9bergement pour la pr\xE9production et les surfaces marketing, une base de donn\xE9es, des domaines, une bo\xEEte de r\xE9ception et des fichiers d'environnement. Chacun est un service que vous pourriez aussi exploiter vous-m\xEAme, connect\xE9 plut\xF4t que remplac\xE9, ce qui est le choix qu'il a fait.",
+  "vs.cofounder.axis.hosting.us": "Personne chez vous n'exploite quoi que ce soit dans un cas comme dans l'autre. La diff\xE9rence tient \xE0 ce qui arrive d\xE9j\xE0 raccord\xE9\xA0: pour Orvay, c'est la base de donn\xE9es, le registre et l'aiguillage entre les mod\xE8les. Cofounder connecte des fournisseurs que vous utilisez peut-\xEAtre d\xE9j\xE0\xA0; Orvay tient les siens. C'est un \xE9change et non une victoire, et les questions ci-dessus sont ce qu'il faut peser avant de d\xE9cider laquelle vous convient.",
+  "vs.cofounder.index.blurb": "Construit l'entreprise autour d'un produit que vous gardez dans votre propre base de code, avec une validation en pr\xE9production \xE0 chaque mise en ligne.",
+  "vs.cofounder.credit.heading": "Ce que Cofounder fait bien",
+  "vs.cofounder.sources.caveat": "Ces liens m\xE8nent \xE0 des documents que Cofounder publie sur lui-m\xEAme. Nous les avons lus et non test\xE9s, et personne ici n'a fait tourner leur produit. Rien sur cette page ne vient de leur page d'accueil, car une accroche d\xE9crit une entreprise et non la fa\xE7on dont elle traite votre travail.",
+  "vs.source.cofounder.what": "Documentation de Cofounder sur ce qu'il fait et ne fait pas",
+  "vs.source.cofounder.deploy": "Documentation de Cofounder sur la demande d'une mise en ligne",
+  "vs.source.cofounder.github": "Documentation de Cofounder sur la connexion g\xE9r\xE9e au d\xE9p\xF4t",
+  "vs.source.cofounder.secrets": "Documentation de Cofounder sur les fichiers d'environnement et les secrets",
+  "vs.source.cofounder.privacy": "Avis de confidentialit\xE9 de Cofounder",
+  "vs.source.cofounder.pricing": "Page de tarifs de Cofounder",
+  "vs.nanocorp.name": "NanoCorp",
+  "vs.nanocorp.title": "Orvay et NanoCorp",
+  "vs.nanocorp.lead": "Les deux font tourner une entreprise sans qu'une personne pilote chaque \xE9tape, et les deux mesurent ce travail en cr\xE9dits. NanoCorp optimise pour l'argent qu'une entreprise encaisse r\xE9ellement, et vous le reverse. Tout ce qui est dit ici a \xE9t\xE9 lu dans sa documentation et ses pages juridiques, li\xE9es en bas avec la date \xE0 laquelle elles ont \xE9t\xE9 lues.",
+  "vs.nanocorp.meta.description": "Une comparaison sourc\xE9e d'Orvay et de NanoCorp sur les validations, la v\xE9rification, la portabilit\xE9, le lieu des donn\xE9es et l'h\xE9bergement. Chaque affirmation renvoie \xE0 la page o\xF9 elle a \xE9t\xE9 lue.",
+  "vs.nanocorp.credit.lead": "Cela vient en premier parce que c\u2019est la partie honn\xEAte de toute comparaison, et parce que pour deux de ces points nous pr\xE9f\xE9rerions ne pas avoir \xE0 reconna\xEEtre qu\u2019ils sont meilleurs.",
+  "vs.nanocorp.credit.dormant": "Quand un essai ou un forfait prend fin, rien n'est supprim\xE9. Le site continue de servir sur sa propre adresse, le paiement et les courriels se mettent en pause, les agents s'arr\xEAtent, et rouvrir le forfait restaure tout en quelques minutes. Un produit qui documente ce qui s'arr\xEAte et ce qui reste, dans cet ordre, est un produit que l'on peut quitter et retrouver.",
+  "vs.nanocorp.credit.caps": "L'autonomie a deux r\xE9glages que vous pouvez lire et fixer\xA0: combien de t\xE2ches une entreprise peut lancer par jour, et un plafond de cr\xE9dits quotidien sur tout ce que vous poss\xE9dez. Mettre une entreprise en pause arr\xEAte net son travail sans surveillance. Borner \xE0 la fois par le nombre et par l'argent, c'est plus que ce que la plupart des produits offrent.",
+  "vs.nanocorp.credit.payout": "L'argent qu'une entreprise gagne atterrit dans un solde r\xE9el et est retir\xE9 vers votre banque via l'inscription propre \xE0 un prestataire de paiement, avec les frais et l'arithm\xE9tique de change d\xE9taill\xE9s sur la page pas \xE0 pas, pour un compte qui n'est pas en dollars. Montrer la somme vaut mieux que promettre le r\xE9sultat.",
+  "vs.nanocorp.axis.approvals.heading": "Des validations d\xE8s la conception",
+  "vs.nanocorp.axis.approvals.them": "NanoCorp borne une ex\xE9cution par le nombre et par l'argent plut\xF4t que par une d\xE9cision. Sur les entreprises \xE0 base de t\xE2ches, un niveau d'autonomie fixe combien de t\xE2ches tournent par jour, un plafond de cr\xE9dits quotidien peut borner toutes les entreprises \xE0 la fois, et mettre une entreprise en pause arr\xEAte aussi bien son travail sans surveillance que ses ex\xE9cutions manuelles. Aucune \xE9tape de validation sur une action individuelle n'est document\xE9e sur les pages lues pour cette comparaison.",
+  "vs.nanocorp.axis.approvals.us": "Orvay borne aussi la d\xE9cision. Une validation est un objet d\xE9limit\xE9 et non un oui\xA0: accord\xE9e une fois, permanente, ou born\xE9e par une limite, et enregistr\xE9e sous cette forme, car une validation incapable de dire ce qu\u2019elle couvrait ne sert \xE0 rien \xE0 qui la relit un an plus tard. Chaque action passe par une fonction unique avec huit contr\xF4les dans un ordre fixe, et une entreprise mise \xE0 l\u2019arr\xEAt le reste m\xEAme pour son propri\xE9taire.",
+  "vs.nanocorp.axis.verification.heading": "Qui a le droit de contr\xF4ler le travail",
+  "vs.nanocorp.axis.verification.them": "Les pages lues pour cette comparaison expliquent comment tester un paiement sans facturation r\xE9elle, et listent une question sur les cr\xE9dits consomm\xE9s par des t\xE2ches \xE9chou\xE9es, ce qui est la forme de l'inqui\xE9tude plut\xF4t que le m\xE9canisme qui y r\xE9pond. Comment le r\xE9sultat d'une t\xE2che est contr\xF4l\xE9 avant de compter n'y est pas d\xE9crit, donc cette page ne le d\xE9crit pas non plus.",
+  "vs.nanocorp.axis.verification.us": "Orvay tient qu\u2019une preuve produite par ce qui a ex\xE9cut\xE9 le travail n\u2019\xE9tablit pas que le travail a eu lieu\xA0: ce qui contr\xF4le doit donc \xEAtre autre chose. Orvay compte aussi combien de fois une ex\xE9cution a annonc\xE9 une r\xE9ussite sans preuve ind\xE9pendante derri\xE8re elle, et affiche cette part pour chaque capacit\xE9, car un syst\xE8me qui ne compterait que ses r\xE9ussites corrigerait sa propre copie.",
+  "vs.nanocorp.axis.portability.heading": "Emporter votre travail ailleurs",
+  "vs.nanocorp.axis.portability.them": "Le code d'une entreprise vit dans un d\xE9p\xF4t que NanoCorp construit et maintient, et sur ses forfaits sup\xE9rieurs vous pouvez vous inviter vous-m\xEAme ou inviter un d\xE9veloppeur comme collaborateur et le modifier en local. Le tableau de bord de l'h\xE9bergement est aussi accessible, et un domaine personnalis\xE9 peut \xEAtre connect\xE9. Savoir si la base de donn\xE9es peut \xEAtre export\xE9e est une question list\xE9e dans sa documentation, et la r\xE9ponse ne figurait pas sur les pages lues ici.",
+  "vs.nanocorp.axis.portability.us": "NanoCorp place un collaborateur sur le d\xE9p\xF4t derri\xE8re un palier de forfait\xA0; Orvay n'exp\xE9die pas encore l'\xE9quivalent du tout. Vos propres donn\xE9es personnelles peuvent \xEAtre emport\xE9es sur tous les forfaits, y compris le gratuit, car c'est un droit et non une fonctionnalit\xE9, et le facturer ne serait pas une d\xE9cision tarifaire. Les exports plus larges ne sont pas construits, et cette page le dit au lieu de laisser croire le contraire.",
+  "vs.nanocorp.axis.consent.heading": "O\xF9 sont les donn\xE9es, et sur quoi repose le contact",
+  "vs.nanocorp.axis.consent.them": "Son avis de confidentialit\xE9 nomme la soci\xE9t\xE9 exploitante, pr\xE9cise que les donn\xE9es personnelles sont conserv\xE9es tant qu'un compte est actif ou selon les besoins du service, et que la suppression peut \xEAtre demand\xE9e. Sa page sur les retraits d\xE9taille l'arithm\xE9tique pour un compte bancaire europ\xE9en, y compris les frais de transfert transfrontalier vers l'EEE. O\xF9 sont conserv\xE9es les donn\xE9es elles-m\xEAmes n'est pas indiqu\xE9 sur les pages lues ici.",
+  "vs.nanocorp.axis.consent.us": "Orvay est h\xE9berg\xE9, donc nous devons r\xE9pondre \xE0 cette question au lieu de vous la laisser. La base de donn\xE9es est \xE0 Zurich. L\u2019inf\xE9rence des mod\xE8les n\u2019a pas lieu en Suisse, et une phrase sur le lieu des donn\xE9es qui omet cela ne vaut pas la peine d\u2019\xEAtre lue. Lorsque des coordonn\xE9es sont collect\xE9es, la base l\xE9gale est consign\xE9e \xE0 ce moment-l\xE0 plut\xF4t que d\xE9cid\xE9e apr\xE8s coup, et un clic pour arr\xEAter les courriels inscrit un retrait dans le m\xEAme registre.",
+  "vs.nanocorp.axis.hosting.heading": "Qui fait tourner le logiciel",
+  "vs.nanocorp.axis.hosting.them": "NanoCorp h\xE9berge tout\xA0: un site sur son propre sous-domaine, le paiement via un prestataire connect\xE9, les courriels, et des agents qui tournent selon un calendrier. Un essai gratuit ne demande aucune carte, et \xE0 sa fin la boutique devient dormante plut\xF4t que de dispara\xEEtre. Un forfait de r\xE9tention garde la boutique ouverte sans les agents, et n'est propos\xE9 qu'\xE0 la fin d'un forfait.",
+  "vs.nanocorp.axis.hosting.us": "Personne chez vous n'exploite quoi que ce soit dans un cas comme dans l'autre. La diff\xE9rence tient \xE0 l'usage de l'argent\xA0: NanoCorp mesure le travail et prend aussi une part de ce qu'une entreprise retire\xA0; Orvay mesure le travail et rien d'autre. C'est un \xE9change et non une victoire, et les questions ci-dessus sont ce qu'il faut peser avant de d\xE9cider laquelle vous convient.",
+  "vs.nanocorp.index.blurb": "H\xE9berg\xE9 de bout en bout, born\xE9 par un nombre de t\xE2ches quotidien et un plafond de cr\xE9dits, et il reverse \xE0 votre banque ce qu'une entreprise gagne.",
+  "vs.nanocorp.credit.heading": "Ce que NanoCorp fait bien",
+  "vs.nanocorp.sources.caveat": "Ces liens m\xE8nent \xE0 des documents que NanoCorp publie sur lui-m\xEAme. Nous les avons lus et non test\xE9s, et personne ici n'a fait tourner leur produit. Rien sur cette page ne vient de leur page d'accueil, car une accroche d\xE9crit une entreprise et non la fa\xE7on dont elle traite votre travail.",
+  "vs.source.nanocorp.plans": "Documentation de NanoCorp sur les forfaits et les cr\xE9dits",
+  "vs.source.nanocorp.github": "Documentation de NanoCorp sur l'acc\xE8s au code sur GitHub",
+  "vs.source.nanocorp.withdrawals": "Documentation de NanoCorp sur les retraits",
+  "vs.source.nanocorp.billing": "Documentation de NanoCorp sur la facturation, les remboursements et les r\xE9siliations",
+  "vs.source.nanocorp.privacy": "Avis de confidentialit\xE9 de NanoCorp",
+  "vs.source.nanocorp.pricing": "Page de tarifs de NanoCorp",
+  "vs.willo.name": "Willo",
+  "vs.willo.title": "Orvay et Willo",
+  "vs.willo.lead": "Les deux font tourner une entreprise \xE0 travers une \xE9quipe d'agents et laissent la direction \xE0 une personne. Willo dit quels sept r\xF4les il fait tourner et selon quel cycle. Tout ce qui est dit ici a \xE9t\xE9 lu dans ses propres \xE9crits et ses pages juridiques, li\xE9es en bas avec la date \xE0 laquelle elles ont \xE9t\xE9 lues.",
+  "vs.willo.meta.description": "Une comparaison sourc\xE9e d'Orvay et de Willo sur les validations, la v\xE9rification, la portabilit\xE9, le lieu des donn\xE9es et l'h\xE9bergement. Chaque affirmation renvoie \xE0 la page o\xF9 elle a \xE9t\xE9 lue.",
+  "vs.willo.credit.lead": "Cela vient en premier parce que c'est la partie honn\xEAte de toute comparaison, et parce que ces trois phrases sont de celles que la plupart des produits \xE9vitent d'\xE9crire.",
+  "vs.willo.credit.ownership": "Ses conditions le disent en une phrase\xA0: vous conservez la propri\xE9t\xE9 de tout ce que vous cr\xE9ez via la plateforme, et la liste comprend le code, les d\xE9p\xF4ts et le contenu du site d\xE9ploy\xE9. Une page juridique qui nomme le d\xE9p\xF4t, et non seulement le contenu, est plus rare qu'elle ne devrait l'\xEAtre.",
+  "vs.willo.credit.lifecycle": "La r\xE9siliation est document\xE9e comme un cycle de vie plut\xF4t que comme une falaise. Pendant trente jours, le site est remplac\xE9 par un espace r\xE9serv\xE9, la base de donn\xE9es est mise en pause, et toutes les donn\xE9es, le code source et le contenu sont pr\xE9serv\xE9s\xA0; se r\xE9abonner restaure l'entreprise. Dire ce qui se passe \xE0 la sortie est la partie que la plupart des produits sautent.",
+  "vs.willo.credit.candour": "Ses conditions disent aussi ce qu'il n'est pas\xA0: il n'offre aucun service pour r\xE9pondre aux exigences l\xE9gales, et ne pr\xE9tend pas que son usage en satisfasse aucune. C'est l'inverse d'un badge, et c'est la phrase la plus utile.",
+  "vs.willo.axis.approvals.heading": "Des validations d\xE8s la conception",
+  "vs.willo.axis.approvals.them": "Les propres \xE9crits de Willo sont explicites\xA0: les agents ex\xE9cutent de fa\xE7on autonome et la strat\xE9gie et la direction restent les v\xF4tres. Ils d\xE9crivent un cycle planifier, ex\xE9cuter, r\xE9fl\xE9chir dans lequel les agents planifient, livrent puis passent les r\xE9sultats en revue pour affiner le tour suivant. Aucune \xE9tape de validation sur une action individuelle n'est document\xE9e sur les pages lues pour cette comparaison\xA0; la limite est la direction que vous fixez et les cr\xE9dits que vous d\xE9tenez.",
+  "vs.willo.axis.approvals.us": "Orvay borne aussi la d\xE9cision. Une validation est un objet d\xE9limit\xE9 et non un oui\xA0: accord\xE9e une fois, permanente, ou born\xE9e par une limite, et enregistr\xE9e sous cette forme, car une validation incapable de dire ce qu\u2019elle couvrait ne sert \xE0 rien \xE0 qui la relit un an plus tard. Chaque action passe par une fonction unique avec huit contr\xF4les dans un ordre fixe, et une entreprise mise \xE0 l\u2019arr\xEAt le reste m\xEAme pour son propri\xE9taire.",
+  "vs.willo.axis.verification.heading": "Qui a le droit de contr\xF4ler le travail",
+  "vs.willo.axis.verification.them": "L'\xE9tape de r\xE9flexion est o\xF9 le contr\xF4le a lieu, et ce sont les agents qui se contr\xF4lent eux-m\xEAmes\xA0: ils passent en revue le trafic, les conversions et les signaux de revenu, et injectent cela dans le plan suivant. Sur les pages lues ici, rien en dehors de l'\xE9quipe qui a fait le travail ne confirme qu'il a abouti.",
+  "vs.willo.axis.verification.us": "Orvay tient qu\u2019une preuve produite par ce qui a ex\xE9cut\xE9 le travail n\u2019\xE9tablit pas que le travail a eu lieu\xA0: ce qui contr\xF4le doit donc \xEAtre autre chose. Orvay compte aussi combien de fois une ex\xE9cution a annonc\xE9 une r\xE9ussite sans preuve ind\xE9pendante derri\xE8re elle, et affiche cette part pour chaque capacit\xE9, car un syst\xE8me qui ne compterait que ses r\xE9ussites corrigerait sa propre copie.",
+  "vs.willo.axis.portability.heading": "Emporter votre travail ailleurs",
+  "vs.willo.axis.portability.them": "Le site est construit et d\xE9ploy\xE9 avec un contr\xF4le de version sur GitHub et un h\xE9bergeur cloud, les paiements passent par un prestataire connect\xE9, et les conditions \xE9noncent que le code et les d\xE9p\xF4ts vous appartiennent. Ce que les pages lues ici ne d\xE9crivent pas, c'est l'export lui-m\xEAme\xA0: comment vous sortez le d\xE9p\xF4t ou la base de donn\xE9es, et si cela requiert un palier de forfait.",
+  "vs.willo.axis.portability.us": "Willo inscrit la propri\xE9t\xE9 dans ses conditions\xA0; Orvay exp\xE9die l'export personnel et pas encore les plus larges. Vos propres donn\xE9es personnelles peuvent \xEAtre emport\xE9es sur tous les forfaits, y compris le gratuit, car c'est un droit et non une fonctionnalit\xE9, et le facturer ne serait pas une d\xE9cision tarifaire. Les exports plus larges ne sont pas construits, et cette page le dit au lieu de laisser croire le contraire.",
+  "vs.willo.axis.consent.heading": "O\xF9 sont les donn\xE9es, et sur quoi repose le contact",
+  "vs.willo.axis.consent.them": "Willo publie un avis de confidentialit\xE9, une politique d'utilisation acceptable et, fait rare, une politique d'usage et de divulgation de l'IA \xE0 leurs c\xF4t\xE9s. Ses conditions vous disent que respecter le droit de la protection des donn\xE9es est votre responsabilit\xE9 et non un service qu'il fournit. O\xF9 sont conserv\xE9es les donn\xE9es n'est pas indiqu\xE9 sur les pages lues pour cette comparaison.",
+  "vs.willo.axis.consent.us": "Orvay est h\xE9berg\xE9, donc nous devons r\xE9pondre \xE0 cette question au lieu de vous la laisser. La base de donn\xE9es est \xE0 Zurich. L\u2019inf\xE9rence des mod\xE8les n\u2019a pas lieu en Suisse, et une phrase sur le lieu des donn\xE9es qui omet cela ne vaut pas la peine d\u2019\xEAtre lue. Lorsque des coordonn\xE9es sont collect\xE9es, la base l\xE9gale est consign\xE9e \xE0 ce moment-l\xE0 plut\xF4t que d\xE9cid\xE9e apr\xE8s coup, et un clic pour arr\xEAter les courriels inscrit un retrait dans le m\xEAme registre.",
+  "vs.willo.axis.hosting.heading": "Qui fait tourner le logiciel",
+  "vs.willo.axis.hosting.them": "Willo h\xE9berge tout\xA0: un site sur un sous-domaine avec des domaines personnalis\xE9s sur les forfaits sup\xE9rieurs, un serveur provisionn\xE9 avec base de donn\xE9es, authentification et interfaces, le traitement des paiements et les courriels transactionnels. Le forfait gratuit porte des cr\xE9dits pour essayer des actions payantes mais aucun serveur provisionn\xE9 et aucune ex\xE9cution sans surveillance, et le calcul du serveur est mesur\xE9 \xE0 l'usage actif tandis que le temps d'inactivit\xE9 ne co\xFBte rien.",
+  "vs.willo.axis.hosting.us": "Personne chez vous n'exploite quoi que ce soit dans un cas comme dans l'autre. La diff\xE9rence tient \xE0 ce qui arrive d\xE9j\xE0 raccord\xE9\xA0: pour Orvay, c'est la base de donn\xE9es, le registre et l'aiguillage entre les mod\xE8les, et non une boutique en ligne. C'est un \xE9change et non une victoire, et les questions ci-dessus sont ce qu'il faut peser avant de d\xE9cider laquelle vous convient.",
+  "vs.willo.index.blurb": "Sept agents nomm\xE9s sur un cycle planifier, ex\xE9cuter, r\xE9fl\xE9chir, avec la propri\xE9t\xE9 du code et des d\xE9p\xF4ts inscrite dans ses conditions.",
+  "vs.willo.credit.heading": "Ce que Willo fait bien",
+  "vs.willo.sources.caveat": "Ces liens m\xE8nent \xE0 des documents que Willo publie sur lui-m\xEAme. Nous les avons lus et non test\xE9s, et personne ici n'a fait tourner leur produit. Rien sur cette page ne vient de leur page d'accueil, car une accroche d\xE9crit une entreprise et non la fa\xE7on dont elle traite votre travail.",
+  "vs.source.willo.how": "Willo sur ce qu'il est et comment il fonctionne",
+  "vs.source.willo.team": "Willo sur les sept agents et le cycle qu'ils font tourner",
+  "vs.source.willo.pricing": "Page de tarifs de Willo",
+  "vs.source.willo.billing": "Politique de facturation et de remboursement de Willo",
+  "vs.source.willo.terms": "Conditions d'utilisation de Willo",
+  "vs.source.willo.privacy": "Avis de confidentialit\xE9 de Willo",
   "waitlist.buildLog": "Envoyez-moi aussi le journal de construction mensuel\xA0: ce qui a \xE9t\xE9 construit, ce qui a cass\xE9 et ce qui a \xE9t\xE9 v\xE9rifi\xE9. Un choix distinct, et vous pouvez y mettre fin sans quitter la liste d\u2019attente.",
   "waitlist.next.heading": "En attendant",
   "waitlist.next.docs": "Lire comment les huit portes d\xE9cident",
@@ -9030,7 +10679,70 @@ var fr_default = {
   "onboarding.company.domain.fail-invalid": "Cela ne ressemble pas \xE0 un nom d'h\xF4te. Plut\xF4t quelque chose comme acme.com.",
   "onboarding.company.domain.fail-unreachable": "Le site n'a pas r\xE9pondu. Saisissez le nom ci-dessous et poursuivez\xA0: une page d'accueil inaccessible n'est pas une raison de s'arr\xEAter.",
   "onboarding.company.domain.fail-no-session": "Votre session a expir\xE9 pendant le chargement. Connectez-vous \xE0 nouveau et la proc\xE9dure reprend ici.",
-  "onboarding.company.domain.fetched": "Lecture effectu\xE9e depuis {host} \xE0 l'instant. C'\xE9tait une vraie requ\xEAte vers un vrai serveur, et c'est pour cela que le r\xE9sultat est marqu\xE9 comme r\xE9el."
+  "onboarding.company.domain.fetched": "Lecture effectu\xE9e depuis {host} \xE0 l'instant. C'\xE9tait une vraie requ\xEAte vers un vrai serveur, et c'est pour cela que le r\xE9sultat est marqu\xE9 comme r\xE9el.",
+  "team.remove.heading": "Retirer quelqu'un",
+  "team.remove.lead": "Une personne retir\xE9e ne peut plus ouvrir cette entreprise. Sa place est lib\xE9r\xE9e pour quelqu'un d'autre, toutes ses cl\xE9s API sont r\xE9voqu\xE9es d\xE9finitivement, et chaque d\xE9cision qu'elle a prise reste au registre sous son nom.",
+  "team.remove.no-grant": "Vous n'avez pas l'autorit\xE9 de retirer quelqu'un de cette entreprise. Un propri\xE9taire peut le faire.",
+  "team.remove.nobody": "Il n'y a personne \xE0 retirer ici. Vous ne pouvez pas retirer votre propre place, et une personne d\xE9j\xE0 retir\xE9e ne peut pas l'\xEAtre deux fois.",
+  "team.remove.who.label": "Qui retirer",
+  "team.remove.who.hint": "Tout le monde est propos\xE9 ici. Une personne qui d\xE9tient plus d'autorit\xE9 que vous, ou la derni\xE8re qui peut tout faire, est refus\xE9e avec un motif plut\xF4t que masqu\xE9e.",
+  "team.remove.confirm.label": "Oui, retirer {name} de cette entreprise. Toutes ses cl\xE9s API sont r\xE9voqu\xE9es d\xE9finitivement.",
+  "team.remove.submit": "Retirer de l'entreprise",
+  "team.remove.submitting": "Retrait en cours",
+  "team.remove.busy": "Ce retrait est en cours d'enregistrement.",
+  "team.remove.error.title": "Personne n'a \xE9t\xE9 retir\xE9",
+  "team.remove.ok.title": "Termin\xE9",
+  "team.remove.audit": "Chaque retrait est consign\xE9 au registre, avec la place, la personne qui l'a d\xE9cid\xE9, et le nombre de cl\xE9s API parties avec elle.",
+  "team.remove.error.unconfirmed": "Cochez la case pour confirmer qui vous retirez. Personne n'a \xE9t\xE9 retir\xE9.",
+  "team.remove.error.halted": "Cette entreprise est arr\xEAt\xE9e, et un arr\xEAt couvre chaque changement, y compris celui-ci. Levez l'arr\xEAt depuis l'en-t\xEAte, puis retirez la personne.",
+  "team.remove.error.gate": "Refus\xE9 \xE0 la porte {gate}\xA0: {reason}",
+  "team.remove.error.signedOut": "Vous n'\xEAtes pas connect\xE9.",
+  "team.remove.error.self": "Personne ne peut retirer sa propre place, pas m\xEAme un propri\xE9taire. Demandez \xE0 un autre membre qui d\xE9tient cette autorit\xE9.",
+  "team.remove.error.notMember": "Ce n'est pas un membre de cette entreprise.",
+  "team.remove.error.beyondYourRole": "Cette personne d\xE9tient une autorit\xE9 que vous n'avez pas vous-m\xEAme, vous n'avez donc pas l'autorit\xE9 de la retirer. Un propri\xE9taire peut le faire.",
+  "team.remove.error.lastOwner": "Cette personne est la derni\xE8re \xE0 pouvoir tout faire ici. Donnez cette autorit\xE9 \xE0 quelqu'un d'autre, puis retirez cette personne.",
+  "team.remove.ok.done": "{name} ne fait plus partie de cette entreprise. Cette personne ne peut plus l'ouvrir, et sa place est libre.",
+  "team.remove.ok.already": "{name} ne faisait d\xE9j\xE0 plus partie de cette entreprise, rien n'a donc chang\xE9.",
+  "team.roles.error.last-owner": "C'est la derni\xE8re personne qui peut tout faire ici, et ce changement le lui retirerait. Donnez d'abord cette autorit\xE9 \xE0 quelqu'un d'autre.",
+  // `many` et `other` partagent la formulation: la phrase ne s'infléchit pas
+  // davantage au-delà de un, ce qui prouve que la catégorie a été considérée.
+  "team.remove.ok.keys": {
+    one: "Une cl\xE9 API a \xE9t\xE9 r\xE9voqu\xE9e et ne peut pas \xEAtre r\xE9tablie.",
+    many: "{count} cl\xE9s API ont \xE9t\xE9 r\xE9voqu\xE9es et ne peuvent pas \xEAtre r\xE9tablies.",
+    other: "{count} cl\xE9s API ont \xE9t\xE9 r\xE9voqu\xE9es et ne peuvent pas \xEAtre r\xE9tablies."
+  },
+  "team.remove.noscript.title": "Retirer quelqu'un n\xE9cessite JavaScript",
+  "team.remove.noscript.body": "La liste des personnes est dessin\xE9e par votre navigateur: sans scripts, ce serait une commande sans effet. Activez les scripts pour cette page afin de retirer quelqu'un.",
+  // MCP tool descriptions. The four state words are literal argument values.
+  "mcp.tool.orvay_company_status": "Ce qu'est cette entreprise, et si elle est suspendue.",
+  "mcp.tool.orvay_list_capabilities": "Les capacit\xE9s que cette entreprise accorde, et celles que d\xE9tient cette cl\xE9.",
+  "mcp.tool.orvay_list_contracts": "Travaux propos\xE9s, du plus r\xE9cent au plus ancien. Filtrer par \xE9tat\xA0: open, approved, refused ou run.",
+  "mcp.tool.orvay_get_contract": "Un contrat, par son empreinte de 64 caract\xE8res.",
+  "mcp.tool.orvay_list_decisions": "Ce qui attend une personne. Les d\xE9cisions ouvertes, sauf si vous demandez un autre \xE9tat.",
+  "mcp.tool.orvay_list_runs": "Les ex\xE9cutions enregistr\xE9es pour un contrat.",
+  "mcp.tool.orvay_get_evidence": "Les preuves produites par une ex\xE9cution, chacune avec son origine.",
+  "mcp.tool.orvay_propose_contract": "Proposer des travaux pour un objectif. Ils passent les contr\xF4les avant toute action.",
+  "mcp.tool.orvay_approve_decision": "Approuver un contrat. Une justification est exig\xE9e et elle est enregistr\xE9e.",
+  "mcp.tool.orvay_reject_decision": "Refuser un contrat. Une justification est exig\xE9e et elle est enregistr\xE9e.",
+  // API keys. A key is a credential a person creates for a program; the token
+  // is shown exactly once because only its hash is stored.
+  "settings.keys.title": "Cl\xE9s API",
+  "settings.keys.lead": "Une cl\xE9 permet \xE0 un programme d'agir en votre nom, et jamais plus que ce que vous pouvez faire vous-m\xEAme.",
+  "settings.keys.create.heading": "Cr\xE9er une cl\xE9",
+  "settings.keys.create.name.label": "\xC0 quoi sert-elle",
+  "settings.keys.create.scope.label": "Ce qu'elle peut faire",
+  "settings.keys.create.scope.read": "Lecture seule",
+  "settings.keys.create.scope.full": "Tout ce que vous pouvez faire",
+  "settings.keys.create.submit": "Cr\xE9er la cl\xE9",
+  "settings.keys.shown-once": "Copiez-la maintenant. C'est la seule fois o\xF9 elle est affich\xE9e, car seule son empreinte est conserv\xE9e.",
+  "settings.keys.list.heading": "Vos cl\xE9s",
+  "settings.keys.list.empty": "Aucune cl\xE9 pour l'instant. Un programme en a besoin pour atteindre votre entreprise.",
+  "settings.keys.list.never-used": "jamais utilis\xE9e",
+  "settings.keys.list.revoked": "r\xE9voqu\xE9e",
+  "settings.keys.revoke.submit": "R\xE9voquer",
+  "settings.keys.create.pending": "Cr\xE9ation de la cl\xE9",
+  "settings.keys.error.empty": "Une cl\xE9 sans autorisation s'authentifierait sans rien pouvoir faire.",
+  "settings.keys.error.exceeds": "Une cl\xE9 ne peut pas faire plus que vous. Demandez d'abord l'autorisation pour vous-m\xEAme."
 };
 
 // ../../packages/content/src/messages/fr.legal.ts
@@ -9410,6 +11122,60 @@ var fr_legal_default = {
   "legal.terms.acceptable-use.p2": "Deux contr\xF4les font respecter ce qui pr\xE9c\xE8de, et il vaut la peine de savoir exactement ce qu'ils sont pour que vous ne les preniez pas pour plus qu'ils ne sont. Le nom et l'adresse web que vous nous donnez sont compar\xE9s \xE0 une courte liste de termes au moment de la cr\xE9ation, avant que nous r\xE9cup\xE9rions quoi que ce soit. Par ailleurs, un agent refuse de travailler sur un objectif qui demande l'une de ces choses. Aucun des deux n'est un examen de tout ce que vous faites, aucun ne lit vos donn\xE9es, et aucun ne vous dispense de savoir ce que vous exploitez."
 };
 
+// ../../packages/content/src/messages/fr.blog.ts
+var catalogue2 = {
+  "blog.title": "Blog",
+  "blog.kicker": "\xC9crits",
+  "blog.lead": "Comment nous pensons les entreprises dirig\xE9es par des personnes et des agents ensemble, et ce que nous construisons pour elles.",
+  "blog.meta.description": "Essais et notes d\u2019Orvay sur les entreprises dirig\xE9es par des personnes et des agents ensemble\xA0: ce qui compte comme preuve, comment le travail est admis, et \xE0 quoi sert un registre.",
+  "blog.category.thinking": "R\xE9flexion",
+  "blog.category.product": "Produit",
+  "blog.category.company": "Entreprise",
+  "blog.read-time": "{minutes} min de lecture",
+  "blog.contents": "Sommaire",
+  "blog.introduction": "Introduction",
+  "blog.published": "Publi\xE9",
+  "blog.back": "Tous les articles",
+  "blog.next.heading": "Donnez un objectif \xE0 votre entreprise",
+  "blog.next.lead": "Orvay ouvre lentement, aux entreprises qui veulent confier un vrai travail \xE0 des agents tout en pouvant encore en r\xE9pondre.",
+  "blog.next.cta": "Rejoindre la liste d\u2019attente",
+  "blog.reading-time": "Temps de lecture",
+  "blog.tab.all": "Tous",
+  "blog.tabs.label": "Cat\xE9gories",
+  "blog.empty": "Aucun article dans cette cat\xE9gorie pour l\u2019instant.",
+  "blog.similar": "Articles similaires",
+  "blog.pagination.label": "Pages",
+  "blog.pagination.page": "Page {n}",
+  "blog.pagination.next": "Page suivante",
+  "blog.pagination.previous": "Page pr\xE9c\xE9dente",
+  "blog.done-is-not-proof.title": "Qu\u2019un agent dise \xAB\xA0termin\xE9\xA0\xBB n\u2019est pas une preuve",
+  "blog.done-is-not-proof.lead": "Pourquoi Orvay traite chaque t\xE2che achev\xE9e comme une affirmation, et ce qu\u2019il faut pour transformer une affirmation en un registre auquel une entreprise peut se fier.",
+  "blog.done-is-not-proof.description": "Chaque agent termine son travail par un message qui dit \xAB\xA0termin\xE9\xA0\xBB. Une entreprise ne peut pas fonctionner sur ce message. Voici comment Orvay s\xE9pare l\u2019affirmation de la preuve.",
+  "blog.done-is-not-proof.cover-alt": "Un champ de couleur chaude qui se fond dans le bleu, travers\xE9 de lignes fines qui se courbent autour de son centre.",
+  "blog.done-is-not-proof.introduction.p1": "Chaque outil qui fait tourner un agent finit de la m\xEAme fa\xE7on. Un message arrive et dit que le travail est fait. Un r\xE9sum\xE9 suit, souvent assur\xE9, parfois avec la liste de ce qui a chang\xE9. Puis une personne d\xE9cide si elle y croit.",
+  "blog.done-is-not-proof.introduction.p2": "Cette d\xE9cision est tout le probl\xE8me. Une entreprise ne fonctionne pas avec des messages qui disent \xAB\xA0termin\xE9\xA0\xBB. Elle fonctionne avec des choses qui sont faites, et avec la capacit\xE9 de montrer qu\u2019elles le sont. Orvay est construit sur la diff\xE9rence entre les deux.",
+  "blog.done-is-not-proof.a-claim.heading": "Termin\xE9 est une affirmation",
+  "blog.done-is-not-proof.a-claim.p1": "Quand un mod\xE8le rapporte qu\u2019il a fini une t\xE2che, il d\xE9crit son propre travail de l\u2019int\xE9rieur. Il n\u2019a aucun moyen de savoir si le d\xE9ploiement qu\u2019il a lanc\xE9 sert du trafic, si le courriel qu\u2019il a r\xE9dig\xE9 a \xE9t\xE9 remis, ou si l\u2019enregistrement qu\u2019il a \xE9crit est celui qu\u2019une coll\xE8gue lira demain. Il sait ce qu\u2019il voulait et ce qu\u2019il a vu. Ce n\u2019est pas la m\xEAme chose que ce qui s\u2019est pass\xE9.",
+  "blog.done-is-not-proof.a-claim.p2": "Ce n\u2019est pas le d\xE9faut d\u2019un mod\xE8le en particulier. C\u2019est la position de tout acteur \xE0 qui l\u2019on demande de noter son propre travail. Une personne qui livre un changement et confirme qu\u2019il est arriv\xE9 en relisant son propre message de commit a fait la m\xEAme chose. Nous avons \xE9crit la r\xE8gle dans le produit parce que nous n\u2019arr\xEAtions pas de l\u2019enfreindre nous-m\xEAmes.",
+  "blog.done-is-not-proof.evidence.heading": "Ce qui compte comme preuve",
+  "blog.done-is-not-proof.evidence.p1": "Orvay est construit pour que l\u2019acteur qui fait le travail ne soit jamais celui qui le v\xE9rifie. Celui qui propose ne v\xE9rifie pas. La v\xE9rification revient \xE0 quelque chose qui n\u2019a pris aucune part au travail, et la nature de la preuve compte plus que la question de savoir qui l\u2019a recueillie.",
+  "blog.done-is-not-proof.evidence.item1": "Un code de sortie de la commande qui a tourn\xE9, pas une phrase qui dit qu\u2019elle a r\xE9ussi.",
+  "blog.done-is-not-proof.evidence.item2": "Une r\xE9ponse HTTP du service appel\xE9, lue apr\xE8s l\u2019appel et non avant.",
+  "blog.done-is-not-proof.evidence.item3": "Une ligne dans la base de donn\xE9es, relue sur une connexion qui lui est propre.",
+  "blog.done-is-not-proof.evidence.item4": "Un hachage de l\u2019artefact, pour qu\u2019un lecteur ult\xE9rieur puisse dire s\u2019il a chang\xE9.",
+  "blog.done-is-not-proof.evidence.p2": "Un second mod\xE8le peut relire le travail d\u2019un premier, et c\u2019est parfois la seule v\xE9rification disponible. Mais deux mod\xE8les peuvent se tromper de la m\xEAme mani\xE8re, alors le registre note que la v\xE9rification vient d\u2019un mod\xE8le et ne traite jamais cela seul comme une preuve. La preuve, c\u2019est le genre d\u2019\xE9l\xE9ment probant qu\u2019une personne pourrait r\xE9ex\xE9cuter.",
+  "blog.done-is-not-proof.one-gate.heading": "Une seule porte, et rien qui la contourne",
+  "blog.done-is-not-proof.one-gate.p1": "Chaque action qu\u2019un agent entreprend dans Orvay passe par la m\xEAme porte. Elle v\xE9rifie qui demande, pour quelle entreprise il agit, si cette entreprise est \xE0 l\u2019arr\xEAt, ce que son forfait autorise, ce que l\u2019acteur a le droit de faire, si la personne \xE0 l\u2019autre bout a consenti, ce que dit la politique de l\u2019entreprise, et s\u2019il reste de l\u2019argent \xE0 d\xE9penser. Dans cet ordre, \xE0 chaque fois.",
+  "blog.done-is-not-proof.one-gate.quote": "Une approbation n\u2019est jamais une case \xE0 cocher. C\u2019est un objet avec une port\xE9e, un titulaire et une limite\xA0: cette action, ce nombre de fois, jusqu\u2019\xE0 cette date.",
+  "blog.done-is-not-proof.one-gate.p2": "Quand la r\xE9ponse est non, le registre dit quelle v\xE9rification a dit non et pourquoi. Quand la r\xE9ponse est oui, le registre dit qui l\u2019a autoris\xE9 et pour combien de temps cette permission vaut.",
+  "blog.done-is-not-proof.the-record.heading": "Le registre est le produit",
+  "blog.done-is-not-proof.the-record.p1": "Chaque contrat qu\u2019un agent propose est \xE9crit une fois et jamais modifi\xE9. Un changement est un nouveau contrat qui renvoie \xE0 celui qu\u2019il remplace. Chaque tentative de l\u2019ex\xE9cuter est une ex\xE9cution \xE0 part enti\xE8re, et une nouvelle tentative est une nouvelle ex\xE9cution plut\xF4t qu\u2019une r\xE9\xE9criture. Chaque preuve porte un hachage et dit si elle vient d\u2019un syst\xE8me r\xE9el ou d\u2019une simulation.",
+  "blog.done-is-not-proof.the-record.p2": "Le r\xE9sultat est une cha\xEEne qu\u2019une entreprise peut lire un an plus tard et \xE0 laquelle elle peut encore se fier. Non parce que les agents \xE9taient fiables, mais parce que le registre ne d\xE9pend pas de leur fiabilit\xE9.",
+  "blog.done-is-not-proof.where-this-goes.heading": "O\xF9 cela m\xE8ne",
+  "blog.done-is-not-proof.where-this-goes.p1": "Orvay ouvre lentement, aux entreprises qui veulent confier un vrai travail \xE0 des agents tout en pouvant encore en r\xE9pondre. Si c\u2019est votre entreprise, la liste d\u2019attente est la porte. Nous pr\xE9f\xE9rons un petit nombre d\u2019entreprises capables de v\xE9rifier ce que nous disons \xE0 un grand nombre qui nous croient sur parole."
+};
+var fr_blog_default = catalogue2;
+
 // ../../packages/content/src/messages/it.ts
 var it_default = {
   // ---------------------------------------------------------------------------
@@ -9661,6 +11427,9 @@ var it_default = {
   "onboarding.authority.open.label": "Agisca e mi avvisi",
   "onboarding.authority.open.sublabel": "La maggior parte delle azioni viene eseguita in autonomia. Esamina il record anzich\xE9 la richiesta.",
   "onboarding.authority.open.risk": "La maggior parte del lavoro avverr\xE0 prima che Lei lo veda. Tutto ci\xF2 che ha un effetto giuridico su una persona attende comunque Lei.",
+  "onboarding.timezone.label": "Fuso orario",
+  "onboarding.timezone.hint": "Orvay lavora sugli obiettivi durante la notte e riferisce al mattino. Questo \xE8 l'orologio che usa.",
+  "onboarding.timezone.now": "Ora attuale l\xEC:",
   "onboarding.authority.note": "Questo registra una posizione di partenza. Le regole che ne derivano si impostano nella pagina delle regole, dove pu\xF2 vederle e modificarle una per una.",
   "onboarding.done.heading": "La Sua azienda \xE8 configurata",
   "onboarding.done.body": "\xC8 da qui che {brand} comincia a lavorare. Vale la pena sapere tre cose prima di entrare.",
@@ -10170,6 +11939,23 @@ var it_default = {
     many: "{count} eventi registrati da quando questa azienda \xE8 stata creata.",
     other: "{count} eventi registrati da quando questa azienda \xE8 stata creata."
   },
+  "notification.headline.approval.waiting": "Un contratto aspetta una decisione",
+  "notification.headline.message.received": "Qualcuno ha scritto all'indirizzo email della Sua azienda",
+  "notification.headline.run.auto_allowed": "Il lavoro \xE8 andato avanti senza chiedere a nessuno",
+  "notification.headline.company.halted": "Questa azienda \xE8 stata fermata",
+  "notification.headline.approval.escalated": "Una decisione aspetta da ieri",
+  "notification.headline.briefing.ready": "Il Suo briefing del mattino \xE8 pronto",
+  "notification.headline.comment.mentioned": "Qualcuno ha chiesto di Lei per nome",
+  "notification.headline.goal.thrashing": "Un obiettivo ha continuato a fallire ed \xE8 stato fermato",
+  "notification.push.none.title": "Nulla aspetta in {company}",
+  "notification.push.none.body": "Tutto \xE8 aggiornato.",
+  "notification.push.only": "In {company}.",
+  "notification.push.more": {
+    one: "In {company}, con {count} in pi\xF9 in attesa.",
+    many: "In {company}, con {count} in pi\xF9 in attesa.",
+    other: "In {company}, con {count} in pi\xF9 in attesa."
+  },
+  "home.loading": "Caricamento della sua azienda",
   "home.metrics.label": "Che cosa sa {brand}",
   "home.metric.running": "In esecuzione ora",
   "home.metric.waiting": "In attesa di te",
@@ -10179,6 +11965,13 @@ var it_default = {
   "home.metric.spent": "Speso in questo periodo",
   "home.running.heading": "Che cosa sta girando",
   "home.running.none": "Al momento non sta girando nulla. Il lavoro parte quando lo approvi, o da solo dove la tua policy lo consente gi\xE0.",
+  "home.running.since": "Iniziato {when}",
+  "home.running.unnamed": "Lavoro senza contratto registrato",
+  "home.running.more": {
+    one: "e {count} in pi\xF9 in corso.",
+    many: "e {count} in pi\xF9 in corso.",
+    other: "e {count} in pi\xF9 in corso."
+  },
   "home.needs.heading": "Che cosa richiede te",
   "home.needs.none": "Nulla \xE8 in attesa di una persona.",
   "home.needs.noneProposed": "Non \xE8 ancora stato proposto nulla.",
@@ -10192,6 +11985,7 @@ var it_default = {
   "home.empty.title": "La tua azienda non ha ancora un registro",
   "home.empty.because": "Viene scritta una voce per ogni proposta, decisione, esecuzione e verifica. Il tuo \xE8 vuoto perch\xE9 non \xE8 stato proposto nulla. Dagli un obiettivo e proporr\xE0 le prime azioni.",
   "home.empty.action": "Imposta il primo obiettivo",
+  "nav.skip": "Vai al contenuto della pagina",
   "nav.sections": "Sezioni",
   "nav.overview": "Panoramica",
   "nav.approvals": "Approvazioni",
@@ -10609,8 +12403,10 @@ var it_default = {
   // "authority" è "autorità". Registro formale di cortesia, come nel resto del
   // catalogo.
   // ---------------------------------------------------------------------------
+  "role.guest.label": "Ospite",
+  "role.guest.summary": "Legge questa azienda, non cambia nulla e non pu\xF2 aprire i file.",
   "role.viewer.label": "Lettore",
-  "role.viewer.summary": "Legge questa azienda e non cambia nulla.",
+  "role.viewer.summary": "Legge questa azienda, compresi i file, e non cambia nulla.",
   "role.member.label": "Membro",
   "role.member.summary": "Propone il lavoro, lo esegue e approva o rifiuta ci\xF2 che un agente propone. Tutto questo resta all'interno di questa azienda.",
   "role.admin.label": "Admin",
@@ -10696,6 +12492,7 @@ var it_default = {
   "usage.phase.build": "Costruire",
   "usage.phase.search": "Cercare",
   "usage.phase.speech": "Parlare",
+  "usage.phase.console": "Rispondere",
   "usage.phase.other": "Non registrato",
   "usage.byGoal": "Per obiettivo",
   "usage.noGoal": "Non legato a un obiettivo",
@@ -10751,6 +12548,24 @@ var it_default = {
   "evidence.raw": "Grezzo",
   "product.notes": "Ci\xF2 che l'esecuzione non ha potuto stabilire",
   "product.inconclusive": "Questa esecuzione non \xE8 giunta a una conclusione da quanto le \xE8 stato fornito.",
+  "evidence.check.ok": "Ricalcolato nel suo browser: l\u2019hash corrisponde al record.",
+  "evidence.check.bad": "Ricalcolato nel suo browser: l\u2019hash NON corrisponde, quindi questo record \xE8 cambiato dopo essere stato scritto.",
+  "evidence.check.unknown": "Questo record non pu\xF2 essere ricalcolato nel browser.",
+  "inbox.none": "In questa azienda non \xE8 stato proposto nulla.",
+  "inbox.counts": "{waiting} in attesa di una persona, {decided} gi\xE0 decisi.",
+  "inbox.capped": "Vengono mostrate le {shown} pi\xF9 recenti su {total}. Le proposte pi\xF9 vecchie non sono ancora in questa pagina.",
+  "inbox.showingAll": "{total} in tutto.",
+  "inbox.empty.title": "Non \xE8 stato proposto nulla",
+  "inbox.empty.body": "{brand} propone azioni al servizio di un obiettivo. Questa azienda non ha proposte perch\xE9 non ha ancora un obiettivo, oppure perch\xE9 non \xE8 stato proposto nulla per quelli che ha.",
+  "inbox.empty.action": "Imposta un obiettivo",
+  "inbox.waiting": "In attesa di lei",
+  "inbox.refusedAt": "rifiutato al cancello {gate}",
+  "inbox.needsYou": "ha bisogno di lei",
+  "inbox.unattended": "verrebbe eseguito senza supervisione",
+  "inbox.decided": "Gi\xE0 decisi",
+  "inbox.refused": "rifiutato",
+  "inbox.checked": "verificato da un attore diverso",
+  "inbox.notEstablished": "eseguito, non stabilito",
   "contract.tabs": "Viste di questo contratto",
   "contract.tab.contract": "Contratto",
   "contract.tab.output": "Risultato",
@@ -10790,8 +12605,55 @@ var it_default = {
   "contract.check.notEstablishes": "Cosa non stabilisce",
   "contract.check.defaultEstablishes": "il record archiviato \xE8 coerente",
   "contract.check.defaultNot": "che qualcosa abbia lasciato questo sistema",
+  "contract.check.next": "Che cosa fare ora",
+  "contract.check.next.body": "Una verifica che non ha tenuto non significa che l\u2019azione sia fallita. Significa che un attore diverso non ha potuto confermarla dal record. Legga prima le prove qui sotto. Se l\u2019effetto potrebbe ancora raggiungere qualcosa fuori dall\u2019azienda, fermi ogni autonomia dalla barra laterale; ha effetto al cancello successivo. Questo contratto non verr\xE0 eseguito una seconda volta: un nuovo tentativo \xE8 un nuovo contratto, quindi imposti di nuovo l\u2019obiettivo perch\xE9 ne venga proposto uno.",
+  "contract.check.next.goal": "Imposti di nuovo l\u2019obiettivo",
   "contract.evidence": "Prove",
   "contract.proposedBy": "Proposto da {actor}, indirizzato per hash: il sigillo qui sotto \xE8 calcolato dal contenuto stesso del contratto, cos\xEC un'approvazione non pu\xF2 essere spostata su un'altra azione.",
+  "contract.replaces.title": "Sostituisce una proposta precedente",
+  "contract.replaces.link": "Proposta precedente {hash}",
+  "contract.replaces.same": "I termini sono gli stessi. Cambiano solo la data e la provenienza.",
+  "contract.replacedBy.title": "Sostituita da una proposta successiva",
+  "contract.replacedBy.body": "Questa non pu\xF2 pi\xF9 essere decisa. Decida invece sulla proposta successiva.",
+  "contract.replacedBy.link": "Proposta successiva {hash}",
+  "contract.change.was": "Prima",
+  "contract.change.now": "Ora",
+  "contract.change.objective": "Obiettivo",
+  "contract.change.capabilities": "Capacit\xE0",
+  "contract.change.steps": "Passaggi",
+  "contract.change.reach": "Raggiunge",
+  "contract.change.bearer": "Conseguenze a carico di",
+  "contract.change.reversible": "Reversibile",
+  "contract.change.expires": "Scade",
+  "contract.change.claims": "Affermazioni",
+  "contract.change.cites": "Cita",
+  "decision.error.notContract": "questo non \xE8 un contratto",
+  "decision.error.gate": "rifiutato al cancello {gate}: {reason}",
+  "decision.error.signedOut": "non ha effettuato l\u2019accesso",
+  "decision.error.notHere": "questo contratto non appartiene a questa azienda",
+  "decision.error.decided": "qualcuno ha gi\xE0 deciso su questo; la pagina \xE8 stata aggiornata",
+  "decision.error.superseded": "una proposta successiva ha sostituito questa, quindi non pu\xF2 pi\xF9 essere decisa",
+  "decision.error.notApproved": "questo contratto non \xE8 stato approvato, quindi non c\u2019\xE8 nulla da eseguire",
+  "decision.ok.endorsed": "Registrato. Hanno acconsentito {have} su {need}. Non pu\xF2 essere eseguito finch\xE9 gli altri non lo hanno esaminato.",
+  "comment.error.empty": "Scrivi prima qualcosa.",
+  "comment.error.tooLong": "Supera i {limit} caratteri. Accorcialo oppure allega un file.",
+  "comment.ok.posted": "Pubblicato.",
+  "comment.ok.mentioned": "Pubblicato. {count} dei tuoi colleghi sono stati avvisati.",
+  "comment.label": "Aggiungi una nota",
+  "comment.hint": "Digita @ e un indirizzo per chiamare qualcuno per nome. Una nota non pu\xF2 essere modificata n\xE9 eliminata in seguito.",
+  "comment.submit": "Pubblica",
+  "comment.none": "Non \xE8 ancora stato detto nulla al riguardo.",
+  "comment.title": "Note",
+  "decision.ok.approved": "Approvato.",
+  "decision.ok.refused": "Rifiutato.",
+  "decision.ok.ran": "Eseguito, e un attore diverso ha confermato che il record corrisponde al contratto.",
+  "decision.error.unverified": "Eseguito, ma la verifica NON lo ha stabilito: {why}",
+  "decision.revise": "Chieda una revisione",
+  "decision.revise.hint": "Per rimandarla indietro, dica che cosa dovrebbe cambiare. Chi l\u2019ha proposta risponde con una proposta rivista che sostituisce questa.",
+  "decision.error.needsWords": "Dica che cosa dovrebbe cambiare, cos\xEC chi l\u2019ha proposta sa che cosa rivedere.",
+  "decision.ok.revised": "Revisione richiesta.",
+  "contract.revisionBy": "Revisione richiesta da {name} il {when}",
+  "contract.revision.open": "Questa proposta resta aperta finch\xE9 una versione rivista non la sostituisce o qualcuno non decide.",
   "decision.error.title": "Non \xE8 andato a buon fine",
   "decision.done": "Fatto",
   "decision.ran.title": "\xC8 gi\xE0 stato eseguito",
@@ -10807,6 +12669,9 @@ var it_default = {
   "decision.halted": "L'autonomia \xE8 sospesa. Rilascia l'arresto prima che qualcosa venga eseguito, incluso ci\xF2 che hai gi\xE0 approvato.",
   "decision.run.note": "Eseguire applica il piano e poi affida il risultato a un altro attore per la verifica. Nessun adattatore \xE8 collegato in questa distribuzione, quindi l'effetto \xE8 simulato e ogni artefatto prodotto lo dichiara.",
   "decision.refused.title": "\xC8 stato rifiutato",
+  "decision.recheck": "Controlla di nuovo",
+  "decision.rechecking": "Controllo in corso",
+  "decision.recheck.note": "Chiede al mondo esterno se questo \xE8 ancora presente, senza usare le tue credenziali.",
   "decision.refused.body": "Un rifiuto \xE8 registrato e definitivo. Proponi un nuovo contratto invece di annullare questo: una modifica crea un nuovo contratto che sostituisce il vecchio, cos\xEC la registrazione di ci\xF2 che \xE8 stato rifiutato sopravvive.",
   "product.email.from": "Da",
   "product.email.to": "A",
@@ -10915,6 +12780,11 @@ var it_default = {
   "billing.subscription.plan": "Piano che paghi",
   "billing.subscription.periodEnds": "Il periodo di fatturazione finisce",
   "billing.subscription.reference": "Riferimento abbonamento",
+  "billing.limited.title": "Il suo abbonamento non viene pagato, quindi il piano \xE8 limitato",
+  "billing.limited.body": "Non \xE8 stato eliminato nulla e pu\xF2 ancora leggere tutto. Ci\xF2 che si ferma \xE8 il nuovo lavoro che costa denaro. Aggiorni la carta presso il fornitore per ripristinare il piano.",
+  "billing.limited.subscribed": "Piano che paga",
+  "billing.limited.status": "Stato presso il fornitore",
+  "billing.limited.runningOn": "In esecuzione su",
   "billing.choice.current": "\xC8 il piano su cui questa organizzazione si trova gi\xE0.",
   "billing.choice.halted": "Questa azienda \xE8 ferma, e il blocco copre ogni modifica, compresa questa. Rimuovilo dall'intestazione, poi cambia piano.",
   "billing.choice.noProvider": "A questa installazione non \xE8 collegato alcun fornitore di pagamenti, quindi da qui non si pu\xF2 addebitare una carta.",
@@ -10957,8 +12827,21 @@ var it_default = {
   "goals.cadence.finished": "Eseguito una volta. Non \xE8 pianificato altro.",
   "goals.cadence.due": "In scadenza alla prossima scansione",
   "goals.cadence.next": "Prossimo passaggio {when}",
+  "goals.templates.heading": "Oppure inizi con uno di questi",
+  "goals.templates.competitors": "Legga ogni settimana i siti pubblici delle aziende con cui competiamo, e scriva che cosa \xE8 cambiato dall'ultima volta.",
+  "goals.templates.claims": "Legga il nostro sito ed elenchi ogni affermazione che oggi non potremmo dimostrare.",
+  "goals.templates.week": "Ogni venerd\xEC scriva che cosa questa azienda ha effettivamente fatto durante la settimana, a partire dalle sue stesse esecuzioni, e dica chiaramente che cosa non ha retto.",
+  "goals.templates.inbox": "Legga ogni mattina la casella di posta aziendale e prepari una bozza di risposta per tutto ci\xF2 che ne ha bisogno. Niente viene inviato finch\xE9 una persona non preme Invia.",
+  "goals.templates.repo": "Trovi i problemi piccoli e circoscritti nel nostro repository e apra una richiesta pull per ciascuno. Non faccia mai il merge.",
+  "goals.cadence.stopped": "Fermato dopo ripetuti fallimenti. Lo modifichi o lo esegua personalmente.",
+  "goals.assignee.label": "Chi se ne occupa",
+  "goals.assignee.nobody": "Nessuno",
+  "goals.assignee.saved": "Salvato.",
+  "goals.assignee.error": "Questa persona non fa parte di questa azienda.",
+  "goals.assignee.on": "Se ne occupa: {who}",
   "goals.cadence.change": "Modifica",
   "goals.cadence.saved": "Salvato.",
+  "goals.schedule.zone": "I passaggi programmati avvengono al mattino, {zone}.",
   "log.title": "Registro delle modifiche",
   "log.lead": "Che cosa \xE8 cambiato, quando, e quale met\xE0 era vera. Si aggiunge, non si riscrive mai.",
   "log.english-note.title": "Queste voci sono in inglese",
@@ -10987,6 +12870,186 @@ var it_default = {
   "portability.honest.body": "Una pagina sulla portabilit\xE0 \xE8 facile da scrivere come promessa e difficile da scrivere come fatto. Due delle tre cose che una pagina simile di solito rivendica, il Suo dominio e il Suo conto di pagamento, qui non sono vere, quindi sono nominate sopra come non offerte anzich\xE9 omesse. Quella che \xE8 vera, i Suoi dati, vale in ogni piano ed \xE8 quella che conta se un giorno vorr\xE0 andarsene.",
   "portability.status.included": "Disponibile",
   "portability.status.planned": "Non ancora costruito",
+  /* Le pagine di confronto. Nessun lessico di rivendicazione ("conform",
+     "certific", "accreditat", "attestat"): per questo il paragrafo sul luogo di
+     archiviazione dice dove sta la banca dati e che cosa fa l'inferenza, invece
+     di cercare una parola di stato. Nulla è citato alla lettera: la fonte porta
+     lineette lunghe, vietate da §5a in ogni lingua. */
+  "vs.eyebrow": "Confronto",
+  "vs.index.title": "Confronti",
+  "vs.index.lead": "Una pagina per ciascun prodotto su cui ci chiedono di pi\xF9, tutte scritte allo stesso modo: prima che cosa fanno bene, poi cinque domande poste a entrambi, poi le pagine da cui viene ogni affermazione.",
+  "vs.index.meta.description": "Confronti documentati tra Orvay e altri prodotti che portano avanti il lavoro di un\u2019azienda. Ogni affermazione rimanda, con la data, alla pagina da cui \xE8 stata letta.",
+  "vs.index.more": "Ne seguiranno altri. Un confronto si aggiunge solo quando c\u2019\xE8 documentazione pubblica da leggere, perch\xE9 una pagina che tira a indovinare sugli altri vale meno di nessuna pagina.",
+  "vs.paperclip.index.blurb": "Open source, ospitato da voi, con una coda di approvazione in cui chi revisiona pu\xF2 rimandare indietro il lavoro invece di limitarsi a rifiutarlo.",
+  "vs.polsia.index.blurb": "Ospitato, e arriva pi\xF9 a fondo nella conduzione dell\u2019attivit\xE0: domini, pagamenti e pubblicazioni da un unico posto.",
+  "vs.paperclip.name": "Paperclip",
+  "vs.paperclip.title": "Orvay e Paperclip",
+  "vs.paperclip.lead": "Entrambi mettono una persona davanti all'agente prima che agisca. Sono costruiti per acquirenti diversi e dicono apertamente cose diverse. Tutto ci\xF2 che qui viene detto su Paperclip proviene da una pagina pubblica, e quella pagina \xE8 collegata in fondo con la data in cui \xE8 stata letta.",
+  "vs.paperclip.meta.description": "Un confronto documentato fra Orvay e Paperclip su approvazioni, verifica del lavoro, recupero dei propri dati, luogo di archiviazione e su chi gestisce il software. Ogni affermazione rimanda alla pagina da cui proviene.",
+  "vs.method.heading": "Da dove vengono le informazioni di questa pagina",
+  "vs.method.lead": "Una pagina di confronto \xE8 il posto pi\xF9 facile del web in cui sbagliarsi sugli altri. Queste sono le regole che questa pagina segue, cos\xEC potete verificare se sono state rispettate.",
+  "vs.method.rule.sourced": "Ogni affermazione su {name} \xE8 stata letta da una pagina pubblica, collegata in fondo a questa pagina con la data di lettura. Ci\xF2 che non abbiamo potuto leggere di persona lo abbiamo lasciato fuori.",
+  "vs.method.rule.claims": "Riportiamo ci\xF2 che la loro documentazione descrive invece di presentarlo come una nostra constatazione. Un'azienda che scrive del proprio prodotto dimostra solo di averlo detto, che \xE8 cosa diversa dalla prova che funzioni.",
+  "vs.method.rule.numbers": "Qui non compare alcuna cifra sulla loro dimensione. N\xE9 stelle, n\xE9 finanziamenti, n\xE9 fatturato, n\xE9 numero di utenti. Nulla di tutto ci\xF2 vi dice come l'uno o l'altro prodotto tratti il vostro lavoro.",
+  "vs.method.rule.today": "Orvay \xE8 descritto com\u2019\xE8 oggi e non come \xE8 previsto. Dove {name} offre qualcosa che noi non abbiamo costruito, la risposta qui sopra lo dice nella stessa frase.",
+  "vs.paperclip.credit.heading": "Che cosa fa bene Paperclip",
+  "vs.paperclip.credit.lead": "Viene per primo perch\xE9 \xE8 la parte onesta di ogni confronto e perch\xE9 non contesteremmo nessuna di queste scelte.",
+  "vs.paperclip.credit.open": "Paperclip \xE8 a sorgente aperta con licenza MIT e potete gestirlo interamente da soli. Il suo README chiede Node.js e un gestore di pacchetti in locale, e un Postgres vostro in produzione, cos\xEC nulla vi obbliga a fidarvi dell'infrastruttura di un terzo.",
+  "vs.paperclip.credit.approvals": "La sua coda di approvazione offre tre esiti a chi revisiona, dove la maggior parte dei prodotti ne offre due: accettare, rifiutare, oppure rimandare indietro la proposta perch\xE9 venga rivista, senza limite al numero di giri. Il rifiuto \xE8 definitivo e la revisione \xE8 un ciclo, e tenerli distinti \xE8 meglio di un solo pulsante che significa no.",
+  "vs.paperclip.credit.trust": "Il suo esame a bassa fiducia tiene separato il lavoro di un agente di cui non si fida del tutto, e la documentazione dice chiaramente che un risultato grezzo non controllato non viene mai promosso in silenzio. Una persona deve guardarlo e scrivere la versione pulita, e la traccia di quel passaggio conserva chi lo ha fatto e quando.",
+  "vs.axes.heading": "Cinque domande, due risposte",
+  "vs.axes.lead": "Le stesse cinque domande poste a entrambi i prodotti. Il loro lato descrive quanto espone la loro documentazione. Il nostro descrive ci\xF2 che Orvay fa oggi, e su una delle cinque \xE8 meno.",
+  "vs.paperclip.axis.approvals.heading": "Approvazioni fin dal progetto",
+  "vs.paperclip.axis.approvals.them": "Paperclip tratta un'approvazione come una voce in coda con tre esiti, sotto una regola applicata al momento dell'esecuzione, cos\xEC un agente non deve ricordarsi di chiedere. Una fase conserva chi partecipa e quanti consensi servono.",
+  "vs.paperclip.axis.approvals.us": "Orvay tratta un'approvazione come un oggetto delimitato e non come un s\xEC. Viene concessa una volta sola, come permesso permanente, oppure limitata da un tetto, ed \xE8 registrata in questa forma, perch\xE9 un consenso che non sa dire che cosa copriva non serve a chi lo rilegge un anno dopo. Ogni azione passa per una sola funzione con otto controlli in ordine fisso, e un'azienda fermata resta ferma anche per la propria direzione.",
+  "vs.paperclip.axis.verification.heading": "Chi pu\xF2 controllare il lavoro",
+  "vs.paperclip.axis.verification.them": "Paperclip risponde con la separazione e con una persona. I risultati privi di piena fiducia sono tenuti da parte, nulla avanza da solo, e una persona fidata scrive la versione pulita. La traccia di quel passaggio indica chi ha agito e quando.",
+  "vs.paperclip.axis.verification.us": "Orvay risponde con una regola su chi controlla invece che sul punto di controllo. Una prova prodotta da ci\xF2 che ha eseguito il lavoro non stabilisce che il lavoro sia avvenuto, quindi a controllare deve essere qualcosa d'altro. Orvay conta anche quante volte un'esecuzione ha dichiarato successo senza una prova indipendente alle spalle, e mostra quella quota per ogni capacit\xE0, perch\xE9 un sistema che contasse solo i propri successi correggerebbe il proprio compito.",
+  "vs.paperclip.axis.portability.heading": "Portare altrove il vostro lavoro",
+  "vs.paperclip.axis.portability.them": "Paperclip esporta un'intera organizzazione come file leggibili che si possono reimportare: agenti, progetti, competenze, attivit\xE0, routine e allegati. La sua documentazione \xE8 altrettanto chiara su ci\xF2 che non viaggia, e quella parte merita di essere letta prima di farci affidamento. Approvazioni, storico dei costi e voci del registro di attivit\xE0 restano sull'istanza che avete lasciato.",
+  "vs.paperclip.axis.portability.us": "Questa \xE8 la domanda su cui Paperclip consegna e Orvay no, e lo scriviamo nella stessa frase. I vostri dati personali si possono portare via con qualunque piano, compreso quello gratuito, perch\xE9 \xE8 un diritto e non una funzione, e farlo pagare non sarebbe una scelta di prezzo. Le esportazioni pi\xF9 ampie non sono costruite. Lo stato accanto a ciascuna qui sotto \xE8 letto dalla stessa tabella che legge il listino, cos\xEC questa pagina non pu\xF2 affermare pi\xF9 di quella.",
+  "vs.paperclip.axis.consent.heading": "Dove stanno i dati, e su che cosa si fonda il contatto",
+  "vs.paperclip.axis.consent.them": "Poich\xE9 siete voi a gestire Paperclip, la decisione \xE8 vostra e non loro. La documentazione vi dice di puntarlo a un Postgres che controllate e di distribuirlo come preferite, cos\xEC un'azienda con un obbligo sul luogo di archiviazione pu\xF2 soddisfarlo scegliendo la macchina.",
+  "vs.paperclip.axis.consent.us": "Orvay \xE8 gestito da noi, quindi a questa domanda dobbiamo rispondere noi invece di lasciarla a voi. La banca dati si trova a Zurigo. L'inferenza dei modelli non avviene in Svizzera, e una frase sul luogo di archiviazione che lo omette non merita di essere letta. Quando vengono raccolti dei recapiti, la base giuridica \xE8 annotata in quel momento invece che decisa in seguito, e un clic per fermare le email scrive una revoca nello stesso registro.",
+  "vs.paperclip.axis.hosting.heading": "Chi gestisce il software",
+  "vs.paperclip.axis.hosting.them": "Voi. E se possedere la macchina conta per voi, quello \xE8 un vantaggio reale ed \xE8 loro. Vuol dire per\xF2 anche tenere in vita un servizio e una banca dati, aggiornarli, e accorgersi quando si fermano.",
+  "vs.paperclip.axis.hosting.us": "Da voi non gestisce nulla nessuno. La banca dati, la registrazione e lo smistamento fra i modelli arrivano gi\xE0 collegati, e non c'\xE8 alcun servizio nostro da tenere in vita. \xC8 uno scambio e non una vittoria: scegliete di lasciare che sia qualcun altro a tenerlo, e le domande qui sopra vanno pesate prima di decidere che vi sta bene.",
+  "vs.sources.heading": "Fonti",
+  "vs.sources.lead": "Ogni pagina qui sotto \xE8 stata letta nella data accanto. Le pagine si spostano: mentre questa veniva scritta, un indirizzo dei nostri appunti era gi\xE0 sparito.",
+  "vs.sources.retrieved": "Letto il {date}",
+  "vs.sources.caveat": "Questi collegamenti portano a materiale che Paperclip pubblica su se stesso. Lo abbiamo letto e non provato, e nessuno qui ha gestito il loro prodotto.",
+  "vs.source.paperclip.repo": "Archivio del codice sorgente di Paperclip e README",
+  "vs.source.paperclip.site": "Pagina di prodotto di Paperclip",
+  "vs.source.paperclip.approvals": "Documentazione di Paperclip sulle approvazioni",
+  "vs.source.paperclip.trust": "Documentazione di Paperclip sull'esame a bassa fiducia",
+  "vs.source.paperclip.export": "Documentazione di Paperclip su esportazione e importazione",
+  "vs.polsia.name": "Polsia",
+  "vs.polsia.title": "Orvay e Polsia",
+  "vs.polsia.lead": "Entrambi portano avanti il lavoro di un\u2019azienda senza che una persona guidi ogni passo. Non sono d\u2019accordo su a cosa serva una persona. Tutto quello che qui si dice di Polsia \xE8 stato letto nel suo centro assistenza e nelle sue pagine legali, e ogni pagina \xE8 collegata in fondo con la data in cui \xE8 stata letta.",
+  "vs.polsia.meta.description": "Un confronto documentato tra Orvay e Polsia su approvazioni, verifica, portabilit\xE0, luogo dei dati e hosting. Ogni affermazione rimanda alla pagina da cui \xE8 stata letta.",
+  "vs.polsia.credit.heading": "Cosa fa bene Polsia",
+  "vs.polsia.credit.lead": "Viene per primo perch\xE9 \xE8 la parte onesta di ogni confronto, e perch\xE9 su due di questi punti preferiremmo non dover ammettere che sono migliori.",
+  "vs.polsia.credit.candour": "Il suo centro assistenza dichiara un limite con chiarezza invece di lasciarvelo scoprire: non c\u2019\xE8 accesso al repository del vostro codice, non c\u2019\xE8 un indirizzo per clonarlo e non c\u2019\xE8 un\u2019interfaccia per chiederne uno. Un prodotto che mette per iscritto ci\xF2 che non far\xE0 per voi \xE8 pi\xF9 facile da pianificare di uno che elenca soltanto ci\xF2 che far\xE0.",
+  "vs.polsia.credit.database": "Un\u2019azienda ottiene un proprio database PostgreSQL, e l\u2019esportazione sono due file SQL che si caricano in qualsiasi server PostgreSQL. \xC8 un\u2019uscita vera e non un gesto, perch\xE9 il formato \xE8 gi\xE0 letto da qualcun altro.",
+  "vs.polsia.credit.bounded": "La sua modalit\xE0 non presidiata \xE8 limitata nel momento in cui la avviate. Scegliete quanto deve durare, da un\u2019ora fino a cinque giorni, vedete cosa ha completato mentre lavora, e potete fermarla. Un\u2019autonomia con una fine dichiarata \xE8 una forma migliore di un\u2019autonomia che semplicemente prosegue.",
+  "vs.polsia.axis.approvals.heading": "Approvazioni per costruzione",
+  "vs.polsia.axis.approvals.them": "Polsia limita un\u2019esecuzione, non una decisione. La sua modalit\xE0 non presidiata prende una durata e un budget: lavora sulle attivit\xE0 aperte e ne pianifica di nuove finch\xE9 non finisce il tempo o il credito, mostra un conteggio mentre procede, e un comando di arresto la conclude. I limiti documentati sono tempo, denaro e arresto.",
+  "vs.polsia.axis.approvals.us": "Orvay limita anche la decisione. Un\u2019approvazione \xE8 un oggetto delimitato e non un s\xEC: concessa una volta, permanente, oppure limitata da un tetto, e registrata in quella forma, perch\xE9 un\u2019approvazione che non sa dire cosa copriva non serve a chi la rilegge un anno dopo. Ogni azione passa per una sola funzione con otto controlli in ordine fisso, e un\u2019azienda fermata resta ferma anche per chi la possiede.",
+  "vs.polsia.axis.verification.heading": "Chi pu\xF2 controllare il lavoro",
+  "vs.polsia.axis.verification.them": "Ci\xF2 che ha svolto il lavoro riferisce anche com\u2019\xE8 andata. Una scheda attivit\xE0 dice se si \xE8 conclusa, non ha cambiato nulla, o \xE8 fallita, e un\u2019attivit\xE0 fallita rimborsa il proprio credito. Se dopo qualcosa sembra ancora sbagliato, l\u2019indicazione \xE8 che apriate il vostro sito online e rileggiate le attivit\xE0 recenti.",
+  "vs.polsia.axis.verification.us": "Orvay sostiene che una prova prodotta da ci\xF2 che ha eseguito il lavoro non stabilisce che il lavoro sia avvenuto, quindi ci\xF2 che controlla deve essere altro. Orvay conta inoltre quante volte un\u2019esecuzione ha dichiarato successo senza alcuna prova indipendente dietro, e mostra quella quota per ogni capacit\xE0, perch\xE9 un sistema che contasse solo i propri successi correggerebbe il proprio compito.",
+  "vs.polsia.axis.portability.heading": "Portare altrove il vostro lavoro",
+  "vs.polsia.axis.portability.them": "Due esportazioni, documentate separatamente. Il codice \xE8 un download che chiedete dalla dashboard e che richiede uno o due minuti. Il database esce come due file SQL che potete caricare in qualsiasi server PostgreSQL. Ci\xF2 che \xE8 documentato come assente \xE8 l\u2019accesso al repository: nessun indirizzo per clonare, nessuna interfaccia per chiederne uno.",
+  "vs.polsia.axis.portability.us": "\xC8 la domanda in cui Polsia offre pi\xF9 di Orvay, quindi diciamolo nella stessa frase. I vostri dati personali si possono estrarre in ogni piano, compreso quello gratuito, perch\xE9 \xE8 un diritto e non una funzione, e farlo pagare non sarebbe una decisione di prezzo. Le esportazioni pi\xF9 ampie non sono costruite. Lo stato accanto a ciascuna qui sotto \xE8 letto dalla stessa tabella che legge il listino, cos\xEC questa pagina non pu\xF2 sostenere pi\xF9 di quella.",
+  "vs.polsia.axis.consent.heading": "Dove stanno i dati, e su cosa si fonda il contatto",
+  "vs.polsia.axis.consent.them": "Polsia pubblica un elenco di responsabili del trattamento con una data di decorrenza, indicando ogni fornitore, a cosa serve e le categorie di dati che vede, compresi il gestore dei pagamenti e la piattaforma su cui gira l\u2019hosting. Precisa anche che l\u2019elenco dice cosa pu\xF2 essere usato, e che ci\xF2 che vale davvero dipende dalle funzioni attivate su un account.",
+  "vs.polsia.axis.consent.us": "Orvay \xE8 ospitato, quindi dobbiamo rispondere noi invece di lasciarlo a voi. Il database \xE8 a Zurigo. L\u2019inferenza dei modelli non avviene in Svizzera, e una frase sul luogo dei dati che ometta questo non vale la pena di essere letta. Quando si raccolgono contatti, la base giuridica viene registrata in quel momento anzich\xE9 decisa dopo, e un clic per interrompere le email scrive una revoca nello stesso registro.",
+  "vs.polsia.axis.hosting.heading": "Chi fa funzionare il software",
+  "vs.polsia.axis.hosting.them": "Lo fa Polsia, e arriva pi\xF9 a fondo di noi nella conduzione dell\u2019attivit\xE0: un\u2019azienda pu\xF2 comprare un dominio tramite loro, incassare pagamenti sul sito costruito, e pubblicarlo o riportarlo indietro dallo stesso posto. Se volete un unico fornitore per tutto, quel vantaggio \xE8 loro ed \xE8 reale.",
+  "vs.polsia.axis.hosting.us": "Nemmeno da noi qualcuno nella vostra azienda fa funzionare qualcosa. La differenza \xE8 cosa arriva gi\xE0 collegato: per Orvay il database, il registro e la scelta tra i modelli, e non un negozio. \xC8 uno scambio e non una vittoria, e le domande qui sopra sono ci\xF2 che conviene soppesare prima di decidere quale faccia al caso vostro.",
+  "vs.polsia.sources.caveat": "Questi link portano a materiale che Polsia pubblica su se stessa. Lo abbiamo letto, non provato, e nessuno qui ha usato il loro prodotto. Nulla in questa pagina viene dalla loro home, perch\xE9 uno slogan e una cifra messa in evidenza descrivono un\u2019azienda e non come tratta il vostro lavoro.",
+  "vs.source.polsia.help": "Centro assistenza di Polsia, indice delle guide",
+  "vs.source.polsia.autoMode": "Documentazione di Polsia sulla modalit\xE0 non presidiata",
+  "vs.source.polsia.codeExport": "Documentazione di Polsia sul download del vostro codice",
+  "vs.source.polsia.dbExport": "Documentazione di Polsia sull\u2019esportazione del database",
+  "vs.source.polsia.taskOutcome": "Documentazione di Polsia sul controllo dell\u2019esito di un\u2019attivit\xE0",
+  "vs.source.polsia.subprocessors": "Elenco dei responsabili del trattamento di Polsia",
+  "vs.cofounder.name": "Cofounder",
+  "vs.cofounder.title": "Orvay e Cofounder",
+  "vs.cofounder.lead": "Entrambi mettono agenti al lavoro intorno a un\u2019azienda che una persona gi\xE0 gestisce. Cofounder \xE8 esplicito nel dire che il vostro prodotto principale resta nel vostro codice e che costruisce l\u2019azienda intorno ad esso. Tutto ci\xF2 che qui viene detto \xE8 stato letto dalla sua documentazione e dalle sue pagine legali, collegate in fondo con la data in cui sono state lette.",
+  "vs.cofounder.meta.description": "Un confronto documentato tra Orvay e Cofounder su approvazioni, verifica, portabilit\xE0, luogo dei dati e hosting. Ogni affermazione rimanda alla pagina da cui \xE8 stata letta.",
+  "vs.cofounder.credit.lead": "Viene per primo perch\xE9 \xE8 la parte onesta di ogni confronto, e perch\xE9 il primo di questi punti \xE8 un confine che la maggior parte dei prodotti preferirebbe non tracciare.",
+  "vs.cofounder.credit.boundary": "La sua documentazione dichiara il limite con chiarezza: non \xE8 pensato per costruire o ricostruire il vostro prodotto principale, il vostro database, la vostra autenticazione o il vostro stack di hosting. Per quello mantenete i vostri strumenti di sviluppo, e Cofounder costruisce l\u2019azienda intorno a ci\xF2 che possedete. Un prodotto che dichiara che cosa non gestir\xE0 \xE8 pi\xF9 facile fidarsene per ci\xF2 che gestisce davvero.",
+  "vs.cofounder.credit.staging": "Una pubblicazione richiesta da un agente va in staging, dietro una scheda di approvazione con Approve e Reject, e mai direttamente in produzione. La produzione resta dietro un pulsante separato nello spazio di lavoro. Due porte per due conseguenze \xE8 una scelta di progettazione migliore di una porta sola per entrambe.",
+  "vs.cofounder.credit.secrets": "I segreti sono gestiti come si deve. I valori vengono passati al fornitore di hosting e non vengono conservati dalla sua parte, e all\u2019interno del sandbox di un agente la variabile contiene un segnaposto invece della chiave vera, cos\xEC una credenziale non viene mai scritta in una conversazione.",
+  "vs.cofounder.axis.approvals.heading": "Approvazioni per costruzione",
+  "vs.cofounder.axis.approvals.them": "Quando un agente finisce il lavoro e richiede una pubblicazione, Cofounder mette in coda una scheda di approvazione. Approve invia la modifica in staging; Reject lascia lo staging invariato e restituisce all\u2019agente indicazioni per correggere e richiedere di nuovo. Pubblicare in produzione \xE8 un\u2019azione separata che una persona compie nello spazio di lavoro. Il controllo si trova sulla pubblicazione, e una destinazione importata pu\xF2 attendere controlli automatici prima ancora che la scheda compaia.",
+  "vs.cofounder.axis.approvals.us": "Orvay limita anche la decisione. Un\u2019approvazione \xE8 un oggetto delimitato e non un s\xEC: concessa una volta, permanente, oppure limitata da un tetto, e registrata in quella forma, perch\xE9 un\u2019approvazione che non sa dire cosa copriva non serve a chi la rilegge un anno dopo. Ogni azione passa per una sola funzione con otto controlli in ordine fisso, e un\u2019azienda fermata resta ferma anche per chi la possiede.",
+  "vs.cofounder.axis.verification.heading": "Chi pu\xF2 controllare il lavoro",
+  "vs.cofounder.axis.verification.them": "L\u2019agente ingegnere implementa e verifica il proprio lavoro in un sandbox prima di richiedere una pubblicazione, e chi revisiona la scheda di approvazione siete voi. Un controllo \xE8 indipendente per costruzione: quando collegate un repository, Cofounder ispeziona il progetto di hosting live prima di considerare completa l\u2019importazione, e rifiuta finch\xE9 i due non concordano.",
+  "vs.cofounder.axis.verification.us": "Orvay sostiene che una prova prodotta da ci\xF2 che ha eseguito il lavoro non stabilisce che il lavoro sia avvenuto, quindi ci\xF2 che controlla deve essere altro. Orvay conta inoltre quante volte un\u2019esecuzione ha dichiarato successo senza alcuna prova indipendente dietro, e mostra quella quota per ogni capacit\xE0, perch\xE9 un sistema che contasse solo i propri successi correggerebbe il proprio compito.",
+  "vs.cofounder.axis.portability.heading": "Portare altrove il vostro lavoro",
+  "vs.cofounder.axis.portability.them": "Questa \xE8 la domanda a cui Cofounder risponde per costruzione anzich\xE9 per esportazione. Il vostro prodotto vive nel vostro repository e nel vostro flusso di lavoro di ingegneria, e la sua documentazione lo dice nella prima pagina. Ci\xF2 che gestisce per voi, il sito marketing, gli ambienti di staging e i servizi collegati, si trova su fornitori che potete anche aprire direttamente, con il repository collegato sotto il vostro account.",
+  "vs.cofounder.axis.portability.us": "Dove Cofounder aggira questa domanda lasciando il vostro prodotto dove gi\xE0 vive, Orvay deve rispondervi, e la risposta onesta oggi \xE8 parziale. I vostri dati personali si possono portare via con qualunque piano, compreso quello gratuito, perch\xE9 \xE8 un diritto e non una funzione, e farlo pagare non sarebbe una scelta di prezzo. Le esportazioni pi\xF9 ampie non sono costruite, e questa pagina lo dice invece di lasciarlo intendere diversamente.",
+  "vs.cofounder.axis.consent.heading": "Dove stanno i dati, e su cosa si fonda il contatto",
+  "vs.cofounder.axis.consent.them": "La sua informativa sulla privacy indica la societ\xE0 che la gestisce e che cosa raccoglie. La sua documentazione \xE8 precisa su un punto che molti prodotti lasciano vago: i valori segreti vengono inviati al fornitore di hosting e non vengono conservati dalla parte di Cofounder. Dove sia conservato il resto dei dati di un\u2019azienda non \xE8 indicato nelle pagine lette per questo confronto, quindi questa pagina non pretende di saperlo.",
+  "vs.cofounder.axis.consent.us": "Orvay \xE8 ospitato, quindi dobbiamo rispondere noi invece di lasciarlo a voi. Il database \xE8 a Zurigo. L\u2019inferenza dei modelli non avviene in Svizzera, e una frase sul luogo dei dati che ometta questo non vale la pena di essere letta. Quando si raccolgono contatti, la base giuridica viene registrata in quel momento anzich\xE9 decisa dopo, e un clic per interrompere le email scrive una revoca nello stesso registro.",
+  "vs.cofounder.axis.hosting.heading": "Chi fa funzionare il software",
+  "vs.cofounder.axis.hosting.them": "Cofounder \xE8 ospitato, e gestisce per voi i pezzi intorno al vostro prodotto: una connessione al repository, un progetto di hosting per staging e superfici marketing, un database, i domini, una casella di posta e i file d\u2019ambiente. Ognuno \xE8 un servizio che potreste gestire anche voi stessi, collegato invece che sostituito, ed \xE8 il compromesso che ha scelto.",
+  "vs.cofounder.axis.hosting.us": "In nessuno dei due casi qualcuno nella vostra azienda gestisce qualcosa. La differenza \xE8 ci\xF2 che arriva gi\xE0 collegato: per Orvay sono il database, il registro e l\u2019instradamento tra i modelli. Cofounder collega fornitori che forse gi\xE0 usate; Orvay tiene i propri. \xC8 un compromesso e non una vittoria, e le domande sopra sono ci\xF2 da soppesare prima di decidere quale fa per voi.",
+  "vs.cofounder.index.blurb": "Costruisce l\u2019azienda intorno a un prodotto che tenete nel vostro codice, con un\u2019approvazione in staging a ogni pubblicazione.",
+  "vs.cofounder.credit.heading": "Che cosa fa bene Cofounder",
+  "vs.cofounder.sources.caveat": "Questi collegamenti portano a materiale che Cofounder pubblica su di s\xE9. Lo abbiamo letto e non provato, e qui nessuno ha usato il suo prodotto. Niente in questa pagina viene dalla sua pagina di destinazione, perch\xE9 uno slogan descrive un\u2019azienda, non come tratta il vostro lavoro.",
+  "vs.source.cofounder.what": "Documentazione di Cofounder su che cosa fa e che cosa non fa",
+  "vs.source.cofounder.deploy": "Documentazione di Cofounder sulla richiesta di una pubblicazione",
+  "vs.source.cofounder.github": "Documentazione di Cofounder sulla connessione gestita al repository",
+  "vs.source.cofounder.secrets": "Documentazione di Cofounder sui file d\u2019ambiente e sui segreti",
+  "vs.source.cofounder.privacy": "Informativa sulla privacy di Cofounder",
+  "vs.source.cofounder.pricing": "Pagina dei prezzi di Cofounder",
+  "vs.nanocorp.name": "NanoCorp",
+  "vs.nanocorp.title": "Orvay e NanoCorp",
+  "vs.nanocorp.lead": "Entrambi fanno funzionare un\u2019azienda senza che una persona guidi ogni passo, ed entrambi misurano quel lavoro in crediti. NanoCorp ottimizza per il denaro che un\u2019attivit\xE0 incassa davvero, e ve lo versa. Tutto ci\xF2 che qui viene detto \xE8 stato letto dalla sua documentazione e dalle sue pagine legali, collegate in fondo con la data in cui sono state lette.",
+  "vs.nanocorp.meta.description": "Un confronto documentato tra Orvay e NanoCorp su approvazioni, verifica, portabilit\xE0, luogo dei dati e hosting. Ogni affermazione rimanda alla pagina da cui \xE8 stata letta.",
+  "vs.nanocorp.credit.lead": "Viene per primo perch\xE9 \xE8 la parte onesta di ogni confronto, e perch\xE9 su due di questi punti preferiremmo non dover ammettere che sono migliori.",
+  "vs.nanocorp.credit.dormant": "Quando una prova o un piano finisce, niente viene cancellato. Il sito continua a essere servito al suo indirizzo, il checkout e le email si mettono in pausa, gli agenti si fermano, e riattivare il piano ripristina tutto nel giro di minuti. Un prodotto che documenta che cosa si ferma e che cosa resta, in quest\u2019ordine, \xE8 un prodotto che potete lasciare e a cui potete tornare.",
+  "vs.nanocorp.credit.caps": "L\u2019autonomia ha due manopole che potete leggere e impostare: quante attivit\xE0 un\u2019attivit\xE0 pu\xF2 eseguire al giorno, e un tetto giornaliero di crediti su tutto ci\xF2 che possedete. Mettere in pausa un\u2019attivit\xE0 ne ferma subito il lavoro non presidiato. Limitare per conteggio e per denaro insieme \xE8 pi\xF9 di quanto offrano la maggior parte dei prodotti.",
+  "vs.nanocorp.credit.payout": "Il denaro che un\u2019attivit\xE0 guadagna arriva in un saldo reale e viene prelevato verso la vostra banca attraverso l\u2019attivazione del fornitore di pagamenti, con la commissione e l\u2019aritmetica del cambio spiegate passo per passo nella pagina, per un conto che non \xE8 in dollari. Mostrare la somma \xE8 meglio che promettere il risultato.",
+  "vs.nanocorp.axis.approvals.heading": "Approvazioni per costruzione",
+  "vs.nanocorp.axis.approvals.them": "NanoCorp limita un\u2019esecuzione per conteggio e per denaro, non per decisione. Sulle attivit\xE0 basate su compiti, un livello di autonomia stabilisce quante attivit\xE0 girano al giorno, un tetto giornaliero di crediti pu\xF2 limitare ogni attivit\xE0 insieme, e mettere in pausa un\u2019attivit\xE0 ne ferma sia il lavoro non presidiato sia le esecuzioni manuali. Nessun passaggio di approvazione su una singola azione \xE8 documentato nelle pagine lette per questo confronto.",
+  "vs.nanocorp.axis.approvals.us": "Orvay limita anche la decisione. Un\u2019approvazione \xE8 un oggetto delimitato e non un s\xEC: concessa una volta, permanente, oppure limitata da un tetto, e registrata in quella forma, perch\xE9 un\u2019approvazione che non sa dire cosa copriva non serve a chi la rilegge un anno dopo. Ogni azione passa per una sola funzione con otto controlli in ordine fisso, e un\u2019azienda fermata resta ferma anche per chi la possiede.",
+  "vs.nanocorp.axis.verification.heading": "Chi pu\xF2 controllare il lavoro",
+  "vs.nanocorp.axis.verification.them": "Le pagine lette per questo confronto documentano come testare un checkout senza un addebito reale, ed elencano una domanda sui crediti consumati per attivit\xE0 fallite, che \xE8 la forma della preoccupazione, non il meccanismo che vi risponde. Come venga controllato l\u2019esito di un\u2019attivit\xE0 prima che conti non \xE8 descritto l\xEC, quindi questa pagina non lo descrive nemmeno.",
+  "vs.nanocorp.axis.verification.us": "Orvay sostiene che una prova prodotta da ci\xF2 che ha eseguito il lavoro non stabilisce che il lavoro sia avvenuto, quindi ci\xF2 che controlla deve essere altro. Orvay conta inoltre quante volte un\u2019esecuzione ha dichiarato successo senza alcuna prova indipendente dietro, e mostra quella quota per ogni capacit\xE0, perch\xE9 un sistema che contasse solo i propri successi correggerebbe il proprio compito.",
+  "vs.nanocorp.axis.portability.heading": "Portare altrove il vostro lavoro",
+  "vs.nanocorp.axis.portability.them": "Il codice di un\u2019attivit\xE0 vive in un repository che NanoCorp costruisce e mantiene, e sui piani superiori potete invitare voi stessi o uno sviluppatore come collaboratore e modificarlo in locale. \xC8 raggiungibile anche il pannello di hosting, e si pu\xF2 collegare un dominio personalizzato. Se il database si possa esportare \xE8 una domanda elencata nella sua documentazione, e la risposta non era nelle pagine lette qui.",
+  "vs.nanocorp.axis.portability.us": "NanoCorp mette un collaboratore sul repository dietro un livello di piano; Orvay non offre ancora l\u2019equivalente. I vostri dati personali si possono portare via con qualunque piano, compreso quello gratuito, perch\xE9 \xE8 un diritto e non una funzione, e farlo pagare non sarebbe una scelta di prezzo. Le esportazioni pi\xF9 ampie non sono costruite, e questa pagina lo dice invece di lasciarlo intendere diversamente.",
+  "vs.nanocorp.axis.consent.heading": "Dove stanno i dati, e su cosa si fonda il contatto",
+  "vs.nanocorp.axis.consent.them": "La sua informativa sulla privacy indica la societ\xE0 che la gestisce, dichiara che i dati personali vengono conservati finch\xE9 un account \xE8 attivo o secondo quanto serve per fornire il servizio, e che la cancellazione pu\xF2 essere richiesta. La sua pagina sui prelievi spiega l\u2019aritmetica per un conto bancario europeo, compresa la commissione di trasferimento transfrontaliero verso lo SEE. Dove siano conservati i dati stessi non \xE8 indicato nelle pagine lette qui.",
+  "vs.nanocorp.axis.consent.us": "Orvay \xE8 ospitato, quindi dobbiamo rispondere noi invece di lasciarlo a voi. Il database \xE8 a Zurigo. L\u2019inferenza dei modelli non avviene in Svizzera, e una frase sul luogo dei dati che ometta questo non vale la pena di essere letta. Quando si raccolgono contatti, la base giuridica viene registrata in quel momento anzich\xE9 decisa dopo, e un clic per interrompere le email scrive una revoca nello stesso registro.",
+  "vs.nanocorp.axis.hosting.heading": "Chi fa funzionare il software",
+  "vs.nanocorp.axis.hosting.them": "NanoCorp ospita tutto: un sito sul proprio sottodominio, il checkout tramite un fornitore di pagamenti collegato, le email, e agenti che girano secondo una pianificazione. Una prova gratuita non richiede carta, e dopo di essa il negozio diventa dormiente invece di sparire. Un piano di mantenimento tiene aperto il negozio senza gli agenti, e viene mostrato solo quando un piano finisce.",
+  "vs.nanocorp.axis.hosting.us": "In nessuno dei due casi qualcuno nella vostra azienda gestisce qualcosa. La differenza \xE8 a cosa serve il denaro: NanoCorp misura il lavoro e trattiene anche una quota di ci\xF2 che un\u2019attivit\xE0 preleva; Orvay misura il lavoro e nient\u2019altro. \xC8 un compromesso e non una vittoria, e le domande sopra sono ci\xF2 da soppesare prima di decidere quale fa per voi.",
+  "vs.nanocorp.index.blurb": "Ospitato dall\u2019inizio alla fine, limitato da un conteggio giornaliero di attivit\xE0 e da un tetto di crediti, e versa alla vostra banca ci\xF2 che un\u2019attivit\xE0 guadagna.",
+  "vs.nanocorp.credit.heading": "Che cosa fa bene NanoCorp",
+  "vs.nanocorp.sources.caveat": "Questi collegamenti portano a materiale che NanoCorp pubblica su di s\xE9. Lo abbiamo letto e non provato, e qui nessuno ha usato il suo prodotto. Niente in questa pagina viene dalla sua pagina di destinazione, perch\xE9 uno slogan descrive un\u2019azienda, non come tratta il vostro lavoro.",
+  "vs.source.nanocorp.plans": "Documentazione di NanoCorp su piani e crediti",
+  "vs.source.nanocorp.github": "Documentazione di NanoCorp sull\u2019accesso al codice su GitHub",
+  "vs.source.nanocorp.withdrawals": "Documentazione di NanoCorp sui prelievi",
+  "vs.source.nanocorp.billing": "Documentazione di NanoCorp su fatturazione, rimborsi e cancellazioni",
+  "vs.source.nanocorp.privacy": "Informativa sulla privacy di NanoCorp",
+  "vs.source.nanocorp.pricing": "Pagina dei prezzi di NanoCorp",
+  "vs.willo.name": "Willo",
+  "vs.willo.title": "Orvay e Willo",
+  "vs.willo.lead": "Entrambi fanno funzionare un\u2019azienda tramite un gruppo di agenti e lasciano la direzione a una persona. Willo dichiara quali sette ruoli fa girare e in quale ciclo. Tutto ci\xF2 che qui viene detto \xE8 stato letto dai suoi testi e dalle sue pagine legali, collegate in fondo con la data in cui sono state lette.",
+  "vs.willo.meta.description": "Un confronto documentato tra Orvay e Willo su approvazioni, verifica, portabilit\xE0, luogo dei dati e hosting. Ogni affermazione rimanda alla pagina da cui \xE8 stata letta.",
+  "vs.willo.credit.lead": "Viene per primo perch\xE9 \xE8 la parte onesta di ogni confronto, e perch\xE9 tutte e tre queste sono frasi che la maggior parte dei prodotti evita di mettere per iscritto.",
+  "vs.willo.credit.ownership": "I suoi termini lo dicono in una frase: mantenete la propriet\xE0 di tutto ci\xF2 che create tramite la piattaforma, e l\u2019elenco include codice, repository e contenuto del sito pubblicato. Una pagina legale che nomina il repository, e non solo il contenuto, \xE8 pi\xF9 rara di quanto dovrebbe essere.",
+  "vs.willo.credit.lifecycle": "L\u2019annullamento \xE8 documentato come un ciclo di vita e non come un precipizio. Per trenta giorni il sito viene sostituito da un segnaposto, il database viene messo in pausa, e tutti i dati, il codice sorgente e i contenuti vengono conservati; riabbonarsi ripristina l\u2019attivit\xE0. Dire che cosa succede all\u2019uscita \xE8 la parte che la maggior parte dei prodotti salta.",
+  "vs.willo.credit.candour": "I suoi termini dicono anche che cosa non \xE8: non offre alcun servizio per il rispetto dei requisiti di legge, e non dichiara che il suo utilizzo ne soddisfi alcuno. \xC8 l\u2019opposto di un distintivo, ed \xE8 la frase pi\xF9 utile.",
+  "vs.willo.axis.approvals.heading": "Approvazioni per costruzione",
+  "vs.willo.axis.approvals.them": "I testi di Willo sono espliciti nel dire che gli agenti eseguono in autonomia e che la strategia e la direzione restano vostre. Descrivono un ciclo pianifica, esegui, rifletti in cui gli agenti pianificano, pubblicano e poi rivedono i risultati per affinare il round successivo. Nessun passaggio di approvazione su una singola azione \xE8 documentato nelle pagine lette per questo confronto; il limite \xE8 la direzione che stabilite e i crediti che avete.",
+  "vs.willo.axis.approvals.us": "Orvay limita anche la decisione. Un\u2019approvazione \xE8 un oggetto delimitato e non un s\xEC: concessa una volta, permanente, oppure limitata da un tetto, e registrata in quella forma, perch\xE9 un\u2019approvazione che non sa dire cosa copriva non serve a chi la rilegge un anno dopo. Ogni azione passa per una sola funzione con otto controlli in ordine fisso, e un\u2019azienda fermata resta ferma anche per chi la possiede.",
+  "vs.willo.axis.verification.heading": "Chi pu\xF2 controllare il lavoro",
+  "vs.willo.axis.verification.them": "La fase di riflessione \xE8 dove avviene il controllo, ed \xE8 fatta dagli stessi agenti che si controllano da soli: rivedono traffico, conversioni e segnali di ricavo e li usano per il piano successivo. Nelle pagine lette qui, niente al di fuori del gruppo che ha svolto il lavoro conferma che il lavoro sia andato a buon fine.",
+  "vs.willo.axis.verification.us": "Orvay sostiene che una prova prodotta da ci\xF2 che ha eseguito il lavoro non stabilisce che il lavoro sia avvenuto, quindi ci\xF2 che controlla deve essere altro. Orvay conta inoltre quante volte un\u2019esecuzione ha dichiarato successo senza alcuna prova indipendente dietro, e mostra quella quota per ogni capacit\xE0, perch\xE9 un sistema che contasse solo i propri successi correggerebbe il proprio compito.",
+  "vs.willo.axis.portability.heading": "Portare altrove il vostro lavoro",
+  "vs.willo.axis.portability.them": "Il sito viene costruito e pubblicato con controllo di versione su GitHub e un host cloud, i pagamenti passano tramite un fornitore di pagamenti collegato, e i termini dichiarano che codice e repository sono vostri. Ci\xF2 che le pagine lette qui non descrivono \xE8 l\u2019esportazione in s\xE9: come portate fuori il repository o il database, e se serva un certo livello di piano.",
+  "vs.willo.axis.portability.us": "Willo mette la propriet\xE0 nei suoi termini; Orvay offre l\u2019esportazione personale ma non ancora quelle pi\xF9 ampie. I vostri dati personali si possono portare via con qualunque piano, compreso quello gratuito, perch\xE9 \xE8 un diritto e non una funzione, e farlo pagare non sarebbe una scelta di prezzo. Le esportazioni pi\xF9 ampie non sono costruite, e questa pagina lo dice invece di lasciarlo intendere diversamente.",
+  "vs.willo.axis.consent.heading": "Dove stanno i dati, e su cosa si fonda il contatto",
+  "vs.willo.axis.consent.them": "Willo pubblica un\u2019informativa sulla privacy, una politica di uso accettabile e, in modo insolito, anche una politica sull\u2019uso e la comunicazione dell\u2019IA accanto ad esse. I suoi termini vi dicono che rispettare la legge sulla protezione dei dati \xE8 una vostra responsabilit\xE0 e non un servizio che fornisce. Dove siano conservati i dati non \xE8 indicato nelle pagine lette per questo confronto.",
+  "vs.willo.axis.consent.us": "Orvay \xE8 ospitato, quindi dobbiamo rispondere noi invece di lasciarlo a voi. Il database \xE8 a Zurigo. L\u2019inferenza dei modelli non avviene in Svizzera, e una frase sul luogo dei dati che ometta questo non vale la pena di essere letta. Quando si raccolgono contatti, la base giuridica viene registrata in quel momento anzich\xE9 decisa dopo, e un clic per interrompere le email scrive una revoca nello stesso registro.",
+  "vs.willo.axis.hosting.heading": "Chi fa funzionare il software",
+  "vs.willo.axis.hosting.them": "Willo ospita tutto: un sito su un sottodominio con domini personalizzati sui piani superiori, un backend predisposto con database, autenticazione e interfacce, l\u2019elaborazione dei pagamenti e le email transazionali. Il piano gratuito porta crediti per provare azioni a pagamento ma nessun backend predisposto e nessuna esecuzione non presidiata, e il calcolo del backend \xE8 misurato in base all\u2019uso attivo mentre il tempo inattivo non costa nulla.",
+  "vs.willo.axis.hosting.us": "In nessuno dei due casi qualcuno nella vostra azienda gestisce qualcosa. La differenza \xE8 ci\xF2 che arriva gi\xE0 collegato: per Orvay sono il database, il registro e l\u2019instradamento tra i modelli, e non una vetrina di vendita. \xC8 un compromesso e non una vittoria, e le domande sopra sono ci\xF2 da soppesare prima di decidere quale fa per voi.",
+  "vs.willo.index.blurb": "Sette agenti con nome su un ciclo pianifica, esegui, rifletti, con la propriet\xE0 di codice e repository scritta nei suoi termini.",
+  "vs.willo.credit.heading": "Che cosa fa bene Willo",
+  "vs.willo.sources.caveat": "Questi collegamenti portano a materiale che Willo pubblica su di s\xE9. Lo abbiamo letto e non provato, e qui nessuno ha usato il suo prodotto. Niente in questa pagina viene dalla sua pagina di destinazione, perch\xE9 uno slogan descrive un\u2019azienda, non come tratta il vostro lavoro.",
+  "vs.source.willo.how": "Willo su che cos\u2019\xE8 e come funziona",
+  "vs.source.willo.team": "Willo sui sette agenti e sul ciclo che eseguono",
+  "vs.source.willo.pricing": "Pagina dei prezzi di Willo",
+  "vs.source.willo.billing": "Politica di fatturazione e rimborso di Willo",
+  "vs.source.willo.terms": "Termini di servizio di Willo",
+  "vs.source.willo.privacy": "Informativa sulla privacy di Willo",
   "waitlist.buildLog": "Inviatemi anche il registro di costruzione mensile: cosa \xE8 stato costruito, cosa si \xE8 rotto e cosa \xE8 stato verificato. Una scelta separata, e potete interromperla senza lasciare la lista d\u2019attesa.",
   "waitlist.next.heading": "Nel frattempo",
   "waitlist.next.docs": "Legga come decidono gli otto cancelli",
@@ -11050,7 +13113,68 @@ var it_default = {
   "onboarding.company.domain.fail-invalid": "Non sembra un nome host. Ad esempio acme.com.",
   "onboarding.company.domain.fail-unreachable": "Il sito non ha risposto. Digiti il nome qui sotto e continui: una homepage non raggiungibile non \xE8 un motivo per fermarsi.",
   "onboarding.company.domain.fail-no-session": "La Sua sessione \xE8 scaduta durante la lettura del sito. Acceda di nuovo e il flusso riprender\xE0 da qui.",
-  "onboarding.company.domain.fetched": "Lettura da {host} proprio ora. \xC8 stata una richiesta vera a un server vero, ecco perch\xE9 \xE8 contrassegnata come reale."
+  "onboarding.company.domain.fetched": "Lettura da {host} proprio ora. \xC8 stata una richiesta vera a un server vero, ecco perch\xE9 \xE8 contrassegnata come reale.",
+  "team.remove.heading": "Rimuovere qualcuno",
+  "team.remove.lead": "Una persona rimossa non pu\xF2 pi\xF9 aprire questa azienda. Il suo posto si libera per qualcun altro, tutte le sue chiavi API vengono revocate in modo definitivo, e ogni decisione che ha preso resta a registro sotto il suo nome.",
+  "team.remove.no-grant": "Non hai l'autorit\xE0 di rimuovere nessuno da questa azienda. Pu\xF2 farlo un proprietario.",
+  "team.remove.nobody": "Non c'\xE8 nessuno da rimuovere qui. Non puoi rimuovere il tuo posto, e chi \xE8 gi\xE0 stato rimosso non pu\xF2 esserlo due volte.",
+  "team.remove.who.label": "Chi rimuovere",
+  "team.remove.who.hint": "Qui vengono proposti tutti. Chi ha pi\xF9 autorit\xE0 di te, o l'ultima persona che pu\xF2 fare tutto, viene rifiutato con una motivazione invece che nascosto.",
+  "team.remove.confirm.label": "S\xEC, rimuovi {name} da questa azienda. Tutte le sue chiavi API vengono revocate in modo definitivo.",
+  "team.remove.submit": "Rimuovi dall'azienda",
+  "team.remove.submitting": "Rimozione in corso",
+  "team.remove.busy": "Questa rimozione viene registrata.",
+  "team.remove.error.title": "Non \xE8 stato rimosso nessuno",
+  "team.remove.ok.title": "Fatto",
+  "team.remove.audit": "Ogni rimozione viene registrata a registro, con il posto, chi lo ha deciso e quante chiavi API se ne sono andate con la persona.",
+  "team.remove.error.unconfirmed": "Spunta la casella per confermare chi stai rimuovendo. Non \xE8 stato rimosso nessuno.",
+  "team.remove.error.halted": "Questa azienda \xE8 ferma, e un fermo copre ogni modifica, compresa questa. Togli il fermo dall'intestazione, poi rimuovi la persona.",
+  "team.remove.error.gate": "Rifiutato al cancello {gate}: {reason}",
+  "team.remove.error.signedOut": "Non hai effettuato l'accesso.",
+  "team.remove.error.self": "Nessuno pu\xF2 rimuovere il proprio posto, nemmeno un proprietario. Chiedi a un altro membro che ha questa autorit\xE0.",
+  "team.remove.error.notMember": "Non \xE8 un membro di questa azienda.",
+  "team.remove.error.beyondYourRole": "Ha un'autorit\xE0 che tu non possiedi, quindi non sta a te rimuoverlo. Pu\xF2 farlo un proprietario.",
+  "team.remove.error.lastOwner": "\xC8 l'ultima persona che qui pu\xF2 fare tutto. Dai prima questa autorit\xE0 a qualcun altro, poi rimuovila.",
+  "team.remove.ok.done": "{name} non fa pi\xF9 parte di questa azienda. Non pu\xF2 pi\xF9 aprirla, e il suo posto \xE8 libero.",
+  "team.remove.ok.already": "{name} non faceva gi\xE0 pi\xF9 parte di questa azienda, quindi non \xE8 cambiato nulla.",
+  "team.roles.error.last-owner": "\xC8 l'ultima persona che qui pu\xF2 fare tutto, e questa modifica glielo toglierebbe. Dai prima questa autorit\xE0 a qualcun altro.",
+  "team.remove.ok.keys": {
+    one: "Una chiave API \xE8 stata revocata e non pu\xF2 essere ripristinata.",
+    many: "{count} chiavi API sono state revocate e non possono essere ripristinate.",
+    other: "{count} chiavi API sono state revocate e non possono essere ripristinate."
+  },
+  "team.remove.noscript.title": "Per rimuovere qualcuno serve JavaScript",
+  "team.remove.noscript.body": "L'elenco delle persone viene disegnato dal tuo browser: senza script sarebbe un comando che non fa nulla. Attiva gli script per questa pagina per rimuovere qualcuno.",
+  // MCP tool descriptions. The four state words are literal argument values.
+  "mcp.tool.orvay_company_status": "Che cosa \xE8 questa azienda e se \xE8 sospesa.",
+  "mcp.tool.orvay_list_capabilities": "Le capacit\xE0 che questa azienda concede e quelle che questa chiave possiede.",
+  "mcp.tool.orvay_list_contracts": "Lavoro proposto, dal pi\xF9 recente. Filtra per stato: open, approved, refused o run.",
+  "mcp.tool.orvay_get_contract": "Un contratto, tramite il suo hash di 64 caratteri.",
+  "mcp.tool.orvay_list_decisions": "Che cosa attende una persona. Le decisioni aperte, se non chiedi un altro stato.",
+  "mcp.tool.orvay_list_runs": "Le esecuzioni registrate per un contratto.",
+  "mcp.tool.orvay_get_evidence": "Le prove prodotte da una esecuzione, ciascuna con la sua origine.",
+  "mcp.tool.orvay_propose_contract": "Proponi lavoro per un obiettivo. Supera i controlli prima che accada qualcosa.",
+  "mcp.tool.orvay_approve_decision": "Approva un contratto. Una motivazione \xE8 obbligatoria e viene registrata.",
+  "mcp.tool.orvay_reject_decision": "Rifiuta un contratto. Una motivazione \xE8 obbligatoria e viene registrata.",
+  // API keys. A key is a credential a person creates for a program; the token
+  // is shown exactly once because only its hash is stored.
+  "settings.keys.title": "Chiavi API",
+  "settings.keys.lead": "Una chiave permette a un programma di agire per tuo conto, e mai pi\xF9 di quanto tu stesso possa fare.",
+  "settings.keys.create.heading": "Crea una chiave",
+  "settings.keys.create.name.label": "A che cosa serve",
+  "settings.keys.create.scope.label": "Che cosa pu\xF2 fare",
+  "settings.keys.create.scope.read": "Sola lettura",
+  "settings.keys.create.scope.full": "Tutto quello che puoi fare",
+  "settings.keys.create.submit": "Crea la chiave",
+  "settings.keys.shown-once": "Copiala adesso. \xC8 l'unica volta in cui viene mostrata, perch\xE9 viene conservata solo la sua impronta.",
+  "settings.keys.list.heading": "Le tue chiavi",
+  "settings.keys.list.empty": "Ancora nessuna chiave. Un programma ne ha bisogno per raggiungere la tua azienda.",
+  "settings.keys.list.never-used": "mai usata",
+  "settings.keys.list.revoked": "revocata",
+  "settings.keys.revoke.submit": "Revoca",
+  "settings.keys.create.pending": "Creazione della chiave",
+  "settings.keys.error.empty": "Una chiave senza permessi si autenticherebbe senza poter fare nulla.",
+  "settings.keys.error.exceeds": "Una chiave non pu\xF2 fare pi\xF9 di te. Chiedi prima il permesso per te stesso."
 };
 
 // ../../packages/content/src/messages/it.legal.ts
@@ -11439,6 +13563,60 @@ var it_legal_default = {
   "legal.terms.acceptable-use.p2": "Due controlli fanno rispettare la regola qui sopra, e vale la pena sapere esattamente quali siano, cos\xEC da non scambiarli per qualcosa di pi\xF9 ampio. Il nome e l'indirizzo web che ci fornite vengono confrontati con un breve elenco di termini durante la configurazione, prima che recuperiamo qualsiasi cosa. Separatamente, un agente rifiuta di lavorare su un obiettivo che chiede una di queste cose. Nessuno dei due \xE8 una revisione di tutto ci\xF2 che fate, nessuno dei due legge i vostri dati, e nessuno dei due sostituisce la vostra conoscenza di ci\xF2 che state eseguendo."
 };
 
+// ../../packages/content/src/messages/it.blog.ts
+var catalogue3 = {
+  "blog.title": "Blog",
+  "blog.kicker": "Scritti",
+  "blog.lead": "Come pensiamo alle aziende guidate da persone e agenti insieme, e cosa stiamo costruendo per loro.",
+  "blog.meta.description": "Saggi e note di Orvay sulle aziende guidate da persone e agenti insieme: cosa conta come prova, come il lavoro viene ammesso e a cosa serve un registro.",
+  "blog.category.thinking": "Riflessioni",
+  "blog.category.product": "Prodotto",
+  "blog.category.company": "Azienda",
+  "blog.read-time": "{minutes} min di lettura",
+  "blog.contents": "Indice",
+  "blog.introduction": "Introduzione",
+  "blog.published": "Pubblicato",
+  "blog.back": "Tutti gli articoli",
+  "blog.next.heading": "Dia un obiettivo alla Sua azienda",
+  "blog.next.lead": "Orvay apre lentamente, alle aziende che vogliono affidare un lavoro vero agli agenti e poterne ancora rispondere.",
+  "blog.next.cta": "Iscriversi alla lista d\u2019attesa",
+  "blog.reading-time": "Tempo di lettura",
+  "blog.tab.all": "Tutti",
+  "blog.tabs.label": "Categorie",
+  "blog.empty": "Ancora nessun articolo in questa categoria.",
+  "blog.similar": "Articoli simili",
+  "blog.pagination.label": "Pagine",
+  "blog.pagination.page": "Pagina {n}",
+  "blog.pagination.next": "Pagina successiva",
+  "blog.pagination.previous": "Pagina precedente",
+  "blog.done-is-not-proof.title": "Che un agente dica \xABfatto\xBB non \xE8 una prova",
+  "blog.done-is-not-proof.lead": "Perch\xE9 Orvay tratta ogni compito concluso come un\u2019affermazione, e cosa serve per trasformare un\u2019affermazione in un registro di cui un\u2019azienda possa fidarsi.",
+  "blog.done-is-not-proof.description": "Ogni agente conclude il suo lavoro con un messaggio che dice \xABfatto\xBB. Un\u2019azienda non pu\xF2 funzionare su quel messaggio. Ecco come Orvay separa l\u2019affermazione dalla prova.",
+  "blog.done-is-not-proof.cover-alt": "Un campo di colore caldo che sfuma nel blu, attraversato da linee sottili che si piegano attorno al suo centro.",
+  "blog.done-is-not-proof.introduction.p1": "Ogni strumento che esegue un agente finisce allo stesso modo. Arriva un messaggio che dice che il lavoro \xE8 fatto. Segue un riassunto, di solito sicuro di s\xE9, a volte con l\u2019elenco di ci\xF2 che \xE8 cambiato. Poi una persona decide se crederci.",
+  "blog.done-is-not-proof.introduction.p2": "Quella decisione \xE8 tutto il problema. Un\u2019azienda non funziona con messaggi che dicono \xABfatto\xBB. Funziona con cose che sono fatte, e con la capacit\xE0 di mostrare che lo sono. Orvay \xE8 costruito sulla differenza tra le due.",
+  "blog.done-is-not-proof.a-claim.heading": "Fatto \xE8 un\u2019affermazione",
+  "blog.done-is-not-proof.a-claim.p1": "Quando un modello riferisce di aver finito un compito, descrive il proprio lavoro dall\u2019interno. Non ha modo di sapere se il rilascio che ha avviato sta servendo traffico, se l\u2019email che ha scritto \xE8 stata consegnata, o se il record che ha salvato \xE8 quello che una collega legger\xE0 domani. Sa cosa intendeva fare e cosa ha visto. Non \xE8 la stessa cosa di ci\xF2 che \xE8 accaduto.",
+  "blog.done-is-not-proof.a-claim.p2": "Non \xE8 un difetto di un modello in particolare. \xC8 la posizione in cui si trova qualunque attore a cui si chiede di valutare il proprio lavoro. Una persona che rilascia una modifica e conferma che \xE8 arrivata rileggendo il proprio messaggio di commit ha fatto la stessa cosa. Abbiamo scritto la regola nel prodotto perch\xE9 continuavamo a infrangerla noi stessi.",
+  "blog.done-is-not-proof.evidence.heading": "Cosa conta come prova",
+  "blog.done-is-not-proof.evidence.p1": "Orvay \xE8 costruito in modo che l\u2019attore che fa il lavoro non sia mai l\u2019attore che lo verifica. Chi propone non verifica. La verifica spetta a qualcosa che non ha avuto parte nel lavoro, e il tipo di prova conta pi\xF9 di chi l\u2019ha raccolta.",
+  "blog.done-is-not-proof.evidence.item1": "Un codice di uscita del comando eseguito, non una frase che dice che \xE8 riuscito.",
+  "blog.done-is-not-proof.evidence.item2": "Una risposta HTTP del servizio chiamato, letta dopo la chiamata e non prima.",
+  "blog.done-is-not-proof.evidence.item3": "Una riga nel database, riletta su una connessione propria.",
+  "blog.done-is-not-proof.evidence.item4": "Un hash dell\u2019artefatto, cos\xEC che un lettore successivo possa dire se \xE8 cambiato.",
+  "blog.done-is-not-proof.evidence.p2": "Un secondo modello pu\xF2 rivedere il lavoro di un primo, e a volte \xE8 l\u2019unica verifica disponibile. Ma due modelli possono sbagliare nello stesso modo, quindi il registro annota che la verifica \xE8 venuta da un modello e non la tratta mai, da sola, come prova. Conta come prova solo ci\xF2 che una persona potrebbe eseguire di nuovo.",
+  "blog.done-is-not-proof.one-gate.heading": "Un solo varco, e nulla che lo aggiri",
+  "blog.done-is-not-proof.one-gate.p1": "Ogni azione che un agente compie dentro Orvay passa dallo stesso varco. Controlla chi chiede, per quale azienda agisce, se quell\u2019azienda \xE8 ferma, cosa consente il suo piano, cosa l\u2019attore \xE8 autorizzato a fare, se la persona dall\u2019altra parte ha acconsentito, cosa dice la policy aziendale e se resta denaro da spendere. In quest\u2019ordine, ogni volta.",
+  "blog.done-is-not-proof.one-gate.quote": "Un\u2019approvazione non \xE8 mai una casella da spuntare. \xC8 un oggetto con un ambito, un titolare e un limite: questa azione, questo numero di volte, fino a questa data.",
+  "blog.done-is-not-proof.one-gate.p2": "Quando la risposta \xE8 no, il registro dice quale controllo ha detto no e perch\xE9. Quando la risposta \xE8 s\xEC, il registro dice chi lo ha consentito e per quanto tempo vale quel permesso.",
+  "blog.done-is-not-proof.the-record.heading": "Il registro \xE8 il prodotto",
+  "blog.done-is-not-proof.the-record.p1": "Ogni contratto che un agente propone viene scritto una volta e mai modificato. Una modifica \xE8 un nuovo contratto che rimanda a quello che sostituisce. Ogni tentativo di eseguirlo \xE8 un\u2019esecuzione a s\xE9, e un nuovo tentativo \xE8 una nuova esecuzione, non una riscritta. Ogni prova porta un hash e dice se proviene da un sistema reale o da una simulazione.",
+  "blog.done-is-not-proof.the-record.p2": "Il risultato \xE8 una catena che un\u2019azienda pu\xF2 leggere un anno dopo e di cui pu\xF2 ancora fidarsi. Non perch\xE9 gli agenti fossero affidabili, ma perch\xE9 il registro non dipende dal fatto che lo siano.",
+  "blog.done-is-not-proof.where-this-goes.heading": "Dove porta tutto questo",
+  "blog.done-is-not-proof.where-this-goes.p1": "Orvay apre lentamente, alle aziende che vogliono affidare un lavoro vero agli agenti e poterne ancora rispondere. Se quella \xE8 la Sua azienda, la lista d\u2019attesa \xE8 la porta. Preferiamo poche aziende in grado di verificare ci\xF2 che diciamo a molte che ci credono sulla parola."
+};
+var it_blog_default = catalogue3;
+
 // ../../packages/content/src/messages/es.ts
 var es_default = {
   // ---------------------------------------------------------------------------
@@ -11682,6 +13860,9 @@ var es_default = {
   "onboarding.authority.open.label": "Act\xFAe y d\xEDgame",
   "onboarding.authority.open.sublabel": "La mayor\xEDa de las acciones se ejecutan solas. Usted revisa el registro en lugar de la solicitud.",
   "onboarding.authority.open.risk": "La mayor parte del trabajo ocurrir\xE1 antes de que usted lo vea. Todo lo que tenga un efecto jur\xEDdico sobre una persona sigue esper\xE1ndole.",
+  "onboarding.timezone.label": "Zona horaria",
+  "onboarding.timezone.hint": "Orvay trabaja en los objetivos por la noche e informa por la ma\xF1ana. Este es el reloj que usa.",
+  "onboarding.timezone.now": "Hora actual all\xED:",
   "onboarding.authority.note": "Esto registra una postura inicial. Las reglas en que se traduce se definen en la p\xE1gina de pol\xEDticas, donde puede ver y cambiar cada una.",
   "onboarding.done.heading": "Su empresa est\xE1 configurada",
   "onboarding.done.body": "Aqu\xED es donde {brand} empieza a trabajar. Hay tres cosas que vale la pena saber antes de entrar.",
@@ -12191,6 +14372,23 @@ var es_default = {
     many: "{count} eventos registrados desde que se cre\xF3 esta empresa.",
     other: "{count} eventos registrados desde que se cre\xF3 esta empresa."
   },
+  "notification.headline.approval.waiting": "Un contrato espera una decisi\xF3n",
+  "notification.headline.message.received": "Alguien envi\xF3 un correo electr\xF3nico a la direcci\xF3n de su empresa",
+  "notification.headline.run.auto_allowed": "El trabajo se ejecut\xF3 sin consultar a nadie",
+  "notification.headline.company.halted": "Esta empresa fue detenida",
+  "notification.headline.approval.escalated": "Una decisi\xF3n espera desde ayer",
+  "notification.headline.briefing.ready": "Su briefing matutino est\xE1 listo",
+  "notification.headline.comment.mentioned": "Alguien pregunt\xF3 por usted, usando su nombre",
+  "notification.headline.goal.thrashing": "Un objetivo fall\xF3 repetidamente y fue detenido",
+  "notification.push.none.title": "Nada espera en {company}",
+  "notification.push.none.body": "Est\xE1 al d\xEDa.",
+  "notification.push.only": "En {company}.",
+  "notification.push.more": {
+    one: "En {company}, con {count} m\xE1s en espera.",
+    many: "En {company}, con {count} m\xE1s en espera.",
+    other: "En {company}, con {count} m\xE1s en espera."
+  },
+  "home.loading": "Cargando su empresa",
   "home.metrics.label": "Lo que {brand} sabe",
   "home.metric.running": "En ejecuci\xF3n ahora",
   "home.metric.waiting": "Esperando por ti",
@@ -12200,6 +14398,13 @@ var es_default = {
   "home.metric.spent": "Gastado en este periodo",
   "home.running.heading": "Qu\xE9 se est\xE1 ejecutando",
   "home.running.none": "Ahora mismo no se est\xE1 ejecutando nada. El trabajo empieza cuando lo apruebas, o por s\xED solo donde tu pol\xEDtica ya lo permite.",
+  "home.running.since": "Iniciado {when}",
+  "home.running.unnamed": "Trabajo sin contrato registrado",
+  "home.running.more": {
+    one: "y {count} m\xE1s en ejecuci\xF3n.",
+    many: "y {count} m\xE1s en ejecuci\xF3n.",
+    other: "y {count} m\xE1s en ejecuci\xF3n."
+  },
   "home.needs.heading": "Qu\xE9 te necesita",
   "home.needs.none": "Nada est\xE1 esperando a una persona.",
   "home.needs.noneProposed": "Tampoco se ha propuesto nada todavia.",
@@ -12213,6 +14418,7 @@ var es_default = {
   "home.empty.title": "Tu empresa todav\xEDa no tiene registro",
   "home.empty.because": "Se escribe una entrada por cada propuesta, decisi\xF3n, ejecuci\xF3n y verificaci\xF3n. El tuyo est\xE1 vac\xEDo porque no se ha propuesto nada. Dale un objetivo y propondr\xE1 las primeras acciones.",
   "home.empty.action": "Fijar el primer objetivo",
+  "nav.skip": "Ir al contenido de la p\xE1gina",
   "nav.sections": "Secciones",
   "nav.overview": "Resumen",
   "nav.approvals": "Aprobaciones",
@@ -12630,8 +14836,10 @@ var es_default = {
   // `site.v5.exhibit.doc.label-capability` en este archivo), "role" es "rol",
   // "authority" es "autoridad". Registro formal de usted, nunca tú.
   // ---------------------------------------------------------------------------
+  "role.guest.label": "Invitado",
+  "role.guest.summary": "Lee esta empresa, no cambia nada y no puede abrir los archivos.",
   "role.viewer.label": "Lector",
-  "role.viewer.summary": "Lee esta empresa y no cambia nada.",
+  "role.viewer.summary": "Lee esta empresa, incluidos los archivos, y no cambia nada.",
   "role.member.label": "Miembro",
   "role.member.summary": "Propone trabajo, lo ejecuta y aprueba o rechaza lo que propone un agente. Todo ello permanece dentro de esta empresa.",
   "role.admin.label": "Admin",
@@ -12717,6 +14925,7 @@ var es_default = {
   "usage.phase.build": "Construir",
   "usage.phase.search": "Buscar",
   "usage.phase.speech": "Hablar",
+  "usage.phase.console": "Responder",
   "usage.phase.other": "Sin registrar",
   "usage.byGoal": "Por objetivo",
   "usage.noGoal": "Sin objetivo asociado",
@@ -12770,8 +14979,26 @@ var es_default = {
   "shell.halt.idle": "Detener",
   "shell.credits.low": "Casi agotados",
   "evidence.raw": "Sin formato",
+  "evidence.check.ok": "Recalculado en su navegador: el hash coincide con el registro.",
+  "evidence.check.bad": "Recalculado en su navegador: el hash NO coincide, as\xED que este registro cambi\xF3 despu\xE9s de escribirse.",
+  "evidence.check.unknown": "Este registro no se puede recalcular en el navegador.",
   "product.notes": "Lo que la ejecuci\xF3n no pudo determinar",
   "product.inconclusive": "Esta ejecuci\xF3n no lleg\xF3 a una conclusi\xF3n con lo que se le dio.",
+  "inbox.none": "En esta empresa no se ha propuesto nada.",
+  "inbox.counts": "{waiting} a la espera de una persona, {decided} ya decididos.",
+  "inbox.capped": "Se muestran las {shown} m\xE1s recientes de {total}. Las propuestas m\xE1s antiguas todav\xEDa no est\xE1n en esta p\xE1gina.",
+  "inbox.showingAll": "{total} en total.",
+  "inbox.empty.title": "No se ha propuesto nada",
+  "inbox.empty.body": "{brand} propone acciones al servicio de un objetivo. Esta empresa no tiene propuestas porque todav\xEDa no tiene un objetivo, o porque no se ha propuesto nada para los que tiene.",
+  "inbox.empty.action": "Fijar un objetivo",
+  "inbox.waiting": "A la espera de usted",
+  "inbox.refusedAt": "rechazado en la puerta {gate}",
+  "inbox.needsYou": "le necesita",
+  "inbox.unattended": "se ejecutar\xEDa sin supervisi\xF3n",
+  "inbox.decided": "Ya decididos",
+  "inbox.refused": "rechazado",
+  "inbox.checked": "verificado por un actor distinto",
+  "inbox.notEstablished": "ejecutado, no establecido",
   "contract.tabs": "Vistas de este contrato",
   "contract.tab.contract": "Contrato",
   "contract.tab.output": "Resultado",
@@ -12811,8 +15038,55 @@ var es_default = {
   "contract.check.notEstablishes": "Qu\xE9 no establece",
   "contract.check.defaultEstablishes": "el registro almacenado es coherente",
   "contract.check.defaultNot": "que algo haya salido de este sistema",
+  "contract.check.next": "Qu\xE9 hacer ahora",
+  "contract.check.next.body": "Una comprobaci\xF3n que no se sostuvo no significa que la acci\xF3n fallara. Significa que un actor distinto no pudo confirmarla a partir del registro. Lea primero las pruebas de abajo. Si el efecto todav\xEDa pudiera alcanzar algo fuera de la empresa, detenga toda la autonom\xEDa desde la barra lateral; surte efecto en la siguiente puerta. Este contrato no se ejecutar\xE1 una segunda vez: un reintento es un contrato nuevo, as\xED que vuelva a fijar el objetivo para que se proponga uno.",
+  "contract.check.next.goal": "Volver a fijar el objetivo",
   "contract.evidence": "Pruebas",
   "contract.proposedBy": "Propuesto por {actor}, direccionado por hash: el sello de abajo se calcula a partir del contenido del propio contrato, de modo que una aprobaci\xF3n no puede trasladarse a otra acci\xF3n.",
+  "contract.replaces.title": "Sustituye a una propuesta anterior",
+  "contract.replaces.link": "Propuesta anterior {hash}",
+  "contract.replaces.same": "Los t\xE9rminos son los mismos. Solo cambian la fecha y el origen.",
+  "contract.replacedBy.title": "Sustituida por una propuesta posterior",
+  "contract.replacedBy.body": "Esta ya no se puede decidir. Decida en su lugar sobre la propuesta posterior.",
+  "contract.replacedBy.link": "Propuesta posterior {hash}",
+  "contract.change.was": "Antes",
+  "contract.change.now": "Ahora",
+  "contract.change.objective": "Objetivo",
+  "contract.change.capabilities": "Capacidad",
+  "contract.change.steps": "Pasos",
+  "contract.change.reach": "Alcanza",
+  "contract.change.bearer": "Consecuencias a cargo de",
+  "contract.change.reversible": "Reversible",
+  "contract.change.expires": "Caduca",
+  "contract.change.claims": "Afirmaciones",
+  "contract.change.cites": "Cita",
+  "decision.error.notContract": "eso no es un contrato",
+  "decision.error.gate": "rechazado en la puerta {gate}: {reason}",
+  "decision.error.signedOut": "no ha iniciado sesi\xF3n",
+  "decision.error.notHere": "ese contrato no pertenece a esta empresa",
+  "decision.error.decided": "alguien ya decidi\xF3 sobre este; la p\xE1gina se ha actualizado",
+  "decision.error.superseded": "una propuesta posterior sustituy\xF3 a esta, as\xED que ya no se puede decidir",
+  "decision.error.notApproved": "este contrato no ha sido aprobado, as\xED que no hay nada que ejecutar",
+  "decision.ok.endorsed": "Registrado. Han aceptado {have} de {need}. No puede ejecutarse hasta que los dem\xE1s lo hayan revisado.",
+  "comment.error.empty": "Escribe algo primero.",
+  "comment.error.tooLong": "Supera los {limit} caracteres. Ac\xF3rtalo o adjunta un archivo.",
+  "comment.ok.posted": "Publicado.",
+  "comment.ok.mentioned": "Publicado. {count} de tus compa\xF1eros han sido avisados.",
+  "comment.label": "A\xF1adir una nota",
+  "comment.hint": "Escribe @ y una direcci\xF3n para dirigirte a alguien por su nombre. Una nota no se puede editar ni borrar despu\xE9s.",
+  "comment.submit": "Publicar",
+  "comment.none": "Todav\xEDa no se ha dicho nada sobre esto.",
+  "comment.title": "Notas",
+  "decision.ok.approved": "Aprobado.",
+  "decision.ok.refused": "Rechazado.",
+  "decision.ok.ran": "Ejecutado, y un actor distinto confirm\xF3 que el registro coincide con el contrato.",
+  "decision.error.unverified": "Ejecutado, pero la verificaci\xF3n NO lo estableci\xF3: {why}",
+  "decision.revise": "Pedir una revisi\xF3n",
+  "decision.revise.hint": "Para devolverla, diga qu\xE9 deber\xEDa cambiar. Quien la propuso responde con una propuesta revisada que sustituye a esta.",
+  "decision.error.needsWords": "Diga qu\xE9 deber\xEDa cambiar, para que quien la propuso sepa qu\xE9 revisar.",
+  "decision.ok.revised": "Revisi\xF3n solicitada.",
+  "contract.revisionBy": "Revisi\xF3n solicitada por {name} el {when}",
+  "contract.revision.open": "Esta propuesta sigue abierta hasta que una revisada la sustituya o alguien decida sobre ella.",
   "decision.error.title": "Eso no se complet\xF3",
   "decision.done": "Hecho",
   "decision.ran.title": "Esto ya se ejecut\xF3",
@@ -12828,6 +15102,9 @@ var es_default = {
   "decision.halted": "La autonom\xEDa est\xE1 detenida. Libere la parada antes de que se ejecute algo, incluido lo que ya haya aprobado.",
   "decision.run.note": "Ejecutar aplica el plan y luego entrega el resultado a otro actor para comprobarlo. No hay ning\xFAn adaptador conectado en este despliegue, as\xED que el efecto es simulado y cada artefacto producido lo dice.",
   "decision.refused.title": "Esto fue rechazado",
+  "decision.recheck": "Comprobar de nuevo",
+  "decision.rechecking": "Comprobando",
+  "decision.recheck.note": "Pregunta al mundo exterior si esto sigue ah\xED, sin usar tus credenciales.",
   "decision.refused.body": "Un rechazo queda registrado y es definitivo. Proponga un contrato nuevo en lugar de revertir este: una enmienda crea un contrato nuevo que sustituye al antiguo, de modo que el registro de lo rechazado sobrevive.",
   "product.email.from": "De",
   "product.email.to": "Para",
@@ -12936,6 +15213,11 @@ var es_default = {
   "billing.subscription.plan": "Plan que pagas",
   "billing.subscription.periodEnds": "El periodo de facturaci\xF3n termina",
   "billing.subscription.reference": "Referencia de la suscripci\xF3n",
+  "billing.limited.title": "Su suscripci\xF3n no se est\xE1 pagando, as\xED que su plan est\xE1 limitado",
+  "billing.limited.body": "No se ha eliminado nada y puede seguir ley\xE9ndolo todo. Lo que se detiene es el trabajo nuevo que cuesta dinero. Actualice su tarjeta con el proveedor para restablecer el plan.",
+  "billing.limited.subscribed": "Plan que pagas",
+  "billing.limited.status": "Estado con el proveedor",
+  "billing.limited.runningOn": "Funcionando en",
   "billing.choice.current": "Es el plan en el que esta organizaci\xF3n ya est\xE1.",
   "billing.choice.halted": "Esta empresa est\xE1 detenida, y la detenci\xF3n cubre cualquier cambio, incluido este. Lev\xE1ntala desde la cabecera y luego cambia de plan.",
   "billing.choice.noProvider": "No hay ning\xFAn proveedor de pagos conectado a este despliegue, as\xED que desde aqu\xED no se puede cobrar a una tarjeta.",
@@ -12978,8 +15260,21 @@ var es_default = {
   "goals.cadence.finished": "Se ejecut\xF3 una vez. No hay nada m\xE1s programado.",
   "goals.cadence.due": "Pendiente en el pr\xF3ximo barrido",
   "goals.cadence.next": "Pr\xF3xima pasada {when}",
+  "goals.templates.heading": "O empiece con uno de estos",
+  "goals.templates.competitors": "Lea cada semana los sitios p\xFAblicos de las empresas con las que competimos, y escriba qu\xE9 ha cambiado desde la \xFAltima vez.",
+  "goals.templates.claims": "Lea nuestro propio sitio y enumere cada afirmaci\xF3n que hoy no podr\xEDamos respaldar.",
+  "goals.templates.week": "Cada viernes, escriba qu\xE9 hizo realmente esta empresa esta semana, a partir de sus propias ejecuciones, y diga claramente qu\xE9 no se sostuvo.",
+  "goals.templates.inbox": "Lea cada ma\xF1ana la bandeja de entrada de la empresa y redacte una respuesta a todo lo que la necesite. Nada se env\xEDa hasta que una persona pulsa Enviar.",
+  "goals.templates.repo": "Encuentre problemas peque\xF1os y bien delimitados en nuestro repositorio y abra una solicitud de extracci\xF3n por cada uno. No fusione nunca.",
+  "goals.cadence.stopped": "Detenido tras fallos repetidos. C\xE1mbielo o ejec\xFAtelo personalmente.",
+  "goals.assignee.label": "Qui\xE9n se ocupa",
+  "goals.assignee.nobody": "Nadie",
+  "goals.assignee.saved": "Guardado.",
+  "goals.assignee.error": "Esa persona no est\xE1 en esta empresa.",
+  "goals.assignee.on": "Se ocupa: {who}",
   "goals.cadence.change": "Cambiar",
   "goals.cadence.saved": "Guardado.",
+  "goals.schedule.zone": "Las pasadas programadas se ejecutan por la ma\xF1ana, {zone}.",
   "log.title": "Registro de cambios",
   "log.lead": "Qu\xE9 cambi\xF3, cu\xE1ndo, y qu\xE9 mitad era cierta. Se a\xF1ade, nunca se reescribe.",
   "log.english-note.title": "Estas entradas est\xE1n en ingl\xE9s",
@@ -13008,6 +15303,186 @@ var es_default = {
   "portability.honest.body": "Una p\xE1gina sobre portabilidad es f\xE1cil de escribir como promesa y dif\xEDcil de escribir como hecho. Dos de las tres cosas que una p\xE1gina as\xED suele afirmar, su dominio y su cuenta de pagos, aqu\xED no son ciertas, as\xED que se nombran arriba como no ofrecidas en vez de omitirse. La que s\xED es cierta, sus propios datos, lo es en todos los planes y es la que importa si alg\xFAn d\xEDa quiere irse.",
   "portability.status.included": "Disponible",
   "portability.status.planned": "A\xFAn no construido",
+  /* Las páginas de comparación. Sin léxico de reclamación de estatus ("conform",
+     "cumplimient", "certific", "acreditad", "auditad"): por eso el párrafo sobre
+     residencia dice dónde está la base de datos y qué hace la inferencia, en vez
+     de buscar una palabra de estatus. Nada se cita literalmente: la fuente lleva
+     rayas largas, que §5a prohíbe en todos los idiomas. */
+  "vs.eyebrow": "Comparaci\xF3n",
+  "vs.index.title": "Comparaciones",
+  "vs.index.lead": "Una p\xE1gina por cada producto sobre el que m\xE1s nos preguntan, todas escritas igual: primero lo que hacen bien, luego cinco preguntas a ambos, luego las p\xE1ginas de donde sali\xF3 cada afirmaci\xF3n.",
+  "vs.index.meta.description": "Comparaciones con fuentes de Orvay frente a otros productos que sacan adelante el trabajo de una empresa. Cada afirmaci\xF3n enlaza, con su fecha, la p\xE1gina donde se ley\xF3.",
+  "vs.index.more": "Vendr\xE1n m\xE1s. Una comparaci\xF3n solo se a\xF1ade cuando hay documentaci\xF3n p\xFAblica que leer, porque una p\xE1gina que adivina sobre otros vale menos que ninguna p\xE1gina.",
+  "vs.paperclip.index.blurb": "C\xF3digo abierto, alojado por usted, con una cola de aprobaci\xF3n en la que quien revisa puede devolver el trabajo en lugar de solo rechazarlo.",
+  "vs.polsia.index.blurb": "Alojado, y llega m\xE1s lejos en la marcha del negocio: dominios, cobros y publicaciones desde un mismo sitio.",
+  "vs.paperclip.name": "Paperclip",
+  "vs.paperclip.title": "Orvay y Paperclip",
+  "vs.paperclip.lead": "Ambos ponen a una persona delante del agente antes de que act\xFAe. Est\xE1n hechos para compradores distintos y son francos sobre cosas distintas. Todo lo que aqu\xED se dice de Paperclip se ley\xF3 en una p\xE1gina p\xFAblica, y esa p\xE1gina est\xE1 enlazada al pie con la fecha en que se ley\xF3.",
+  "vs.paperclip.meta.description": "Una comparaci\xF3n con fuentes entre Orvay y Paperclip sobre aprobaciones, revisi\xF3n del trabajo, extracci\xF3n de sus datos, d\xF3nde residen y qui\xE9n opera el software. Cada afirmaci\xF3n remite a la p\xE1gina de la que procede.",
+  "vs.method.heading": "De d\xF3nde salen los datos de esta p\xE1gina",
+  "vs.method.lead": "Una p\xE1gina de comparaci\xF3n es el sitio m\xE1s f\xE1cil de la web para equivocarse sobre otros. Estas son las reglas que sigue esta, para que usted pueda comprobar si se han respetado.",
+  "vs.method.rule.sourced": "Cada afirmaci\xF3n sobre {name} se ley\xF3 en una p\xE1gina p\xFAblica, enlazada al pie de esta p\xE1gina con la fecha en que se ley\xF3. Lo que no pudimos leer nosotros mismos lo dejamos fuera.",
+  "vs.method.rule.claims": "Recogemos lo que describe su documentaci\xF3n en lugar de presentarlo como un hallazgo propio. Una empresa que escribe sobre su propio producto solo demuestra que lo dijo, cosa distinta de la prueba de que funciona.",
+  "vs.method.rule.numbers": "Aqu\xED no aparece ninguna cifra sobre su tama\xF1o. Ni estrellas, ni financiaci\xF3n, ni ingresos, ni n\xFAmero de usuarios. Nada de eso le dice c\xF3mo trata su trabajo uno u otro producto.",
+  "vs.method.rule.today": "Orvay se describe tal como es hoy y no como est\xE1 planeado. Donde {name} entrega algo que no hemos construido, la respuesta de arriba lo dice en la misma frase.",
+  "vs.paperclip.credit.heading": "Lo que Paperclip hace bien",
+  "vs.paperclip.credit.lead": "Va primero porque es la parte honesta de cualquier comparaci\xF3n y porque no discutir\xEDamos ninguna de estas decisiones.",
+  "vs.paperclip.credit.open": "Paperclip es de c\xF3digo abierto con licencia MIT y usted puede operarlo entero. Su README pide Node.js y un gestor de paquetes en local, y un Postgres propio en producci\xF3n, de modo que nada le obliga a confiar en el alojamiento de un tercero.",
+  "vs.paperclip.credit.approvals": "Su cola de aprobaci\xF3n ofrece tres salidas a quien revisa, donde la mayor\xEDa de los productos ofrece dos: aceptar, rechazar, o devolver la propuesta para que se rehaga, sin l\xEDmite de vueltas. El rechazo es definitivo y la revisi\xF3n es un ciclo, y separarlos es mejor dise\xF1o que un \xFAnico bot\xF3n que significa no.",
+  "vs.paperclip.credit.trust": "Su revisi\xF3n de baja confianza mantiene aparte el trabajo de un agente del que no se f\xEDa del todo, y la documentaci\xF3n dice claramente que una salida en bruto sin revisar nunca asciende en silencio. Una persona tiene que mirarla y escribir la versi\xF3n limpia, y el registro de ese paso guarda qui\xE9n lo hizo y cu\xE1ndo.",
+  "vs.axes.heading": "Cinco preguntas, dos respuestas",
+  "vs.axes.lead": "Las mismas cinco preguntas hechas a ambos productos. Su lado describe lo que expone su documentaci\xF3n. El nuestro describe lo que Orvay hace hoy, y en una de las cinco es menos.",
+  "vs.paperclip.axis.approvals.heading": "Aprobaciones desde el dise\xF1o",
+  "vs.paperclip.axis.approvals.them": "Paperclip trata una aprobaci\xF3n como una entrada en cola con tres salidas, bajo una regla que se aplica en tiempo de ejecuci\xF3n, de modo que un agente no tiene que acordarse de pedirla. Una etapa guarda qui\xE9n participa y cu\xE1ntos consentimientos hacen falta.",
+  "vs.paperclip.axis.approvals.us": "Orvay trata una aprobaci\xF3n como un objeto acotado y no como un s\xED. Se concede una vez, como permiso permanente, o limitada por un tope, y se guarda con esa forma, porque un consentimiento incapaz de decir qu\xE9 cubr\xEDa no le sirve a quien lo relee un a\xF1o despu\xE9s. Cada acci\xF3n pasa por una sola funci\xF3n con ocho comprobaciones en orden fijo, y una empresa detenida sigue detenida incluso para su propia direcci\xF3n.",
+  "vs.paperclip.axis.verification.heading": "Qui\xE9n puede revisar el trabajo",
+  "vs.paperclip.axis.verification.them": "Paperclip responde con el aislamiento y con una persona. Las salidas sin plena confianza se guardan aparte, nada asciende solo, y alguien de confianza escribe la versi\xF3n limpia. El registro de ese paso nombra a quien actu\xF3 y el momento.",
+  "vs.paperclip.axis.verification.us": "Orvay responde con una regla sobre qui\xE9n revisa, no sobre el punto de control. Una prueba producida por aquello que ejecut\xF3 el trabajo no establece que el trabajo ocurriera, as\xED que quien revisa tiene que ser otra cosa. Orvay tambi\xE9n cuenta cu\xE1ntas veces una ejecuci\xF3n declar\xF3 \xE9xito sin una prueba independiente detr\xE1s, y muestra esa proporci\xF3n por capacidad, porque un sistema que solo contara sus aciertos estar\xEDa corrigiendo su propio examen.",
+  "vs.paperclip.axis.portability.heading": "Llevarse su trabajo a otra parte",
+  "vs.paperclip.axis.portability.them": "Paperclip exporta una organizaci\xF3n entera como archivos legibles que se pueden volver a importar: agentes, proyectos, habilidades, tareas, rutinas y adjuntos. Su documentaci\xF3n es igual de clara sobre lo que no viaja, y esa parte merece leerse antes de apoyarse en ella. Las aprobaciones, el historial de costes y las entradas del registro de actividad se quedan en la instancia que usted abandona.",
+  "vs.paperclip.axis.portability.us": "Esta es la pregunta en la que Paperclip entrega y Orvay no, y lo escribimos en la misma frase. Sus propios datos personales se pueden extraer en cualquier plan, incluido el gratuito, porque es un derecho y no una funci\xF3n, y cobrar por ello no ser\xEDa una decisi\xF3n de precio. Las exportaciones mayores no est\xE1n construidas. El estado que aparece junto a cada una m\xE1s abajo se lee de la misma tabla que lee la lista de precios, de modo que esta p\xE1gina no puede afirmar m\xE1s que aquella.",
+  "vs.paperclip.axis.consent.heading": "D\xF3nde residen los datos, y en qu\xE9 se apoya el contacto",
+  "vs.paperclip.axis.consent.them": "Como es usted quien opera Paperclip, la decisi\xF3n es suya y no de ellos. Su documentaci\xF3n le dice que lo apunte a un Postgres que usted controle y que lo despliegue como prefiera, de modo que una empresa con una obligaci\xF3n sobre d\xF3nde residen los datos puede satisfacerla eligiendo la m\xE1quina.",
+  "vs.paperclip.axis.consent.us": "Orvay lo operamos nosotros, as\xED que tenemos que responder a esto en vez de dej\xE1rselo a usted. La base de datos est\xE1 en Z\xFArich. La inferencia de los modelos no ocurre en Suiza, y una frase sobre d\xF3nde residen los datos que omita eso no merece leerse. Cuando se recogen datos de contacto, la base jur\xEDdica se anota en ese momento en lugar de decidirse despu\xE9s, y un clic para detener el correo escribe una retirada en el mismo registro.",
+  "vs.paperclip.axis.hosting.heading": "Qui\xE9n opera el software",
+  "vs.paperclip.axis.hosting.them": "Usted. Y si poseer la m\xE1quina le importa, esa es una ventaja real y es de ellos. Tambi\xE9n significa mantener vivos un servicio y una base de datos, actualizarlos, y darse cuenta cuando se paran.",
+  "vs.paperclip.axis.hosting.us": "En su empresa no opera nada nadie. La base de datos, el registro y el reparto entre modelos llegan ya conectados, y no hay ning\xFAn servicio nuestro que usted tenga que mantener vivo. Es un intercambio y no una victoria: usted elige dejar que otro lo sostenga, y las preguntas de arriba son las que conviene sopesar antes de decidir que le parece bien.",
+  "vs.sources.heading": "Fuentes",
+  "vs.sources.lead": "Cada p\xE1gina de abajo se ley\xF3 en la fecha que aparece al lado. Las p\xE1ginas cambian: mientras se escrib\xEDa esta, una direcci\xF3n de nuestras propias notas ya hab\xEDa desaparecido.",
+  "vs.sources.retrieved": "Le\xEDdo el {date}",
+  "vs.sources.caveat": "Estos enlaces llevan a material que Paperclip publica sobre s\xED mismo. Lo hemos le\xEDdo y no probado, y nadie aqu\xED ha operado su producto.",
+  "vs.source.paperclip.repo": "Repositorio del c\xF3digo fuente de Paperclip y README",
+  "vs.source.paperclip.site": "P\xE1gina de producto de Paperclip",
+  "vs.source.paperclip.approvals": "Documentaci\xF3n de Paperclip sobre aprobaciones",
+  "vs.source.paperclip.trust": "Documentaci\xF3n de Paperclip sobre la revisi\xF3n de baja confianza",
+  "vs.source.paperclip.export": "Documentaci\xF3n de Paperclip sobre exportaci\xF3n e importaci\xF3n",
+  "vs.polsia.name": "Polsia",
+  "vs.polsia.title": "Orvay y Polsia",
+  "vs.polsia.lead": "Ambos sacan adelante el trabajo de una empresa sin que una persona dirija cada paso. No coinciden en para qu\xE9 sirve una persona. Todo lo que aqu\xED se dice de Polsia se ley\xF3 en su centro de ayuda y en sus p\xE1ginas legales, y cada p\xE1gina est\xE1 enlazada al pie con la fecha en que se ley\xF3.",
+  "vs.polsia.meta.description": "Una comparaci\xF3n con fuentes de Orvay y Polsia sobre aprobaciones, verificaci\xF3n, portabilidad, ubicaci\xF3n de los datos y alojamiento. Cada afirmaci\xF3n enlaza la p\xE1gina donde se ley\xF3.",
+  "vs.polsia.credit.heading": "Lo que Polsia hace bien",
+  "vs.polsia.credit.lead": "Va primero porque es la parte honesta de cualquier comparaci\xF3n, y porque en dos de estos puntos preferir\xEDamos no tener que reconocer que son mejores.",
+  "vs.polsia.credit.candour": "Su centro de ayuda enuncia un l\xEDmite con claridad en lugar de dejar que lo descubra usted: no hay acceso al repositorio de su c\xF3digo, no hay direcci\xF3n para clonarlo y no hay una interfaz para pedir una. Un producto que escribe lo que no har\xE1 por usted es m\xE1s f\xE1cil de planificar que uno que solo enumera lo que har\xE1.",
+  "vs.polsia.credit.database": "Cada empresa obtiene su propia base de datos PostgreSQL, y la exportaci\xF3n son dos archivos SQL que se cargan en cualquier servidor PostgreSQL. Es una salida real y no un gesto, porque el formato ya lo lee otra persona.",
+  "vs.polsia.credit.bounded": "Su modo sin supervisi\xF3n queda acotado en el momento de arrancarlo. Usted elige cu\xE1nto dura, desde una hora hasta cinco d\xEDas, ve lo que ha terminado mientras trabaja, y puede detenerlo. Una autonom\xEDa con un final declarado es mejor forma que una autonom\xEDa que simplemente sigue.",
+  "vs.polsia.axis.approvals.heading": "Aprobaciones por dise\xF1o",
+  "vs.polsia.axis.approvals.them": "Polsia acota una ejecuci\xF3n, no una decisi\xF3n. Su modo sin supervisi\xF3n toma una duraci\xF3n y un presupuesto: trabaja las tareas abiertas y planifica nuevas hasta que se acaba el tiempo o el cr\xE9dito, muestra un recuento mientras avanza, y un control de parada lo termina. Los l\xEDmites documentados son tiempo, dinero y detenci\xF3n.",
+  "vs.polsia.axis.approvals.us": "Orvay acota tambi\xE9n la decisi\xF3n. Una aprobaci\xF3n es un objeto delimitado y no un s\xED: concedida una vez, permanente, o acotada por un l\xEDmite, y guardada con esa forma, porque una aprobaci\xF3n que no puede decir qu\xE9 cubr\xEDa no le sirve a quien la relee un a\xF1o despu\xE9s. Cada acci\xF3n pasa por una sola funci\xF3n con ocho comprobaciones en orden fijo, y una empresa detenida sigue detenida incluso para quien la posee.",
+  "vs.polsia.axis.verification.heading": "Qui\xE9n puede comprobar el trabajo",
+  "vs.polsia.axis.verification.them": "Lo que hizo el trabajo informa tambi\xE9n de c\xF3mo fue. Una ficha de tarea dice si se complet\xF3, no cambi\xF3 nada, o fall\xF3, y una tarea fallida devuelve su propio cr\xE9dito. Si despu\xE9s algo sigue pareciendo mal, la indicaci\xF3n es que abra su sitio publicado y repase sus tareas recientes.",
+  "vs.polsia.axis.verification.us": "Orvay sostiene que una prueba producida por aquello que ejecut\xF3 el trabajo no establece que el trabajo ocurriera, as\xED que lo que comprueba tiene que ser otra cosa. Orvay adem\xE1s cuenta cu\xE1ntas veces una ejecuci\xF3n declar\xF3 \xE9xito sin ninguna prueba independiente detr\xE1s, y muestra esa proporci\xF3n por cada capacidad, porque un sistema que contara solo sus aciertos estar\xEDa corrigiendo su propio examen.",
+  "vs.polsia.axis.portability.heading": "Llevarse su trabajo a otro sitio",
+  "vs.polsia.axis.portability.them": "Dos exportaciones, documentadas por separado. El c\xF3digo es una descarga que se pide desde el panel y que tarda uno o dos minutos. La base de datos sale como dos archivos SQL que puede cargar en cualquier servidor PostgreSQL. Lo que est\xE1 documentado como ausente es el acceso al repositorio: ninguna direcci\xF3n para clonar, ninguna interfaz para pedir una.",
+  "vs.polsia.axis.portability.us": "Es la pregunta en la que Polsia entrega m\xE1s que Orvay, as\xED que lo decimos en la misma frase. Sus propios datos personales se pueden sacar en todos los planes, incluido el gratuito, porque es un derecho y no una funci\xF3n, y cobrar por ello no ser\xEDa una decisi\xF3n de precio. Las exportaciones mayores no est\xE1n construidas. El estado junto a cada una de abajo se lee de la misma tabla que lee la p\xE1gina de precios, de modo que esta p\xE1gina no puede afirmar m\xE1s que aquella.",
+  "vs.polsia.axis.consent.heading": "D\xF3nde est\xE1n los datos, y en qu\xE9 se apoya el contacto",
+  "vs.polsia.axis.consent.them": "Polsia publica una lista de subencargados con fecha de entrada en vigor, nombrando cada proveedor, para qu\xE9 se usa y las categor\xEDas de datos que ve, incluidos el procesador de pagos y la plataforma sobre la que corre el alojamiento. Tambi\xE9n indica que la lista dice qu\xE9 puede usarse, y que lo que se aplica realmente depende de las funciones activadas en una cuenta.",
+  "vs.polsia.axis.consent.us": "Orvay est\xE1 alojado, as\xED que tenemos que responder nosotros en lugar de dej\xE1rselo a usted. La base de datos est\xE1 en Z\xFArich. La inferencia de los modelos no ocurre en Suiza, y una frase sobre d\xF3nde est\xE1n los datos que omita eso no merece leerse. Cuando se recogen datos de contacto, la base jur\xEDdica se registra en ese momento en vez de decidirse despu\xE9s, y un clic para detener el correo escribe una retirada en el mismo registro.",
+  "vs.polsia.axis.hosting.heading": "Qui\xE9n hace funcionar el software",
+  "vs.polsia.axis.hosting.them": "Polsia lo hace, y llega m\xE1s lejos que nosotros en la marcha del negocio: una empresa puede comprar un dominio a trav\xE9s de ellos, cobrar pagos en el sitio construido, y publicarlo o revertirlo desde el mismo lugar. Si quiere un \xFAnico proveedor para todo, esa ventaja es suya y es real.",
+  "vs.polsia.axis.hosting.us": "Con nosotros tampoco hay nadie en su empresa haciendo funcionar nada. La diferencia es qu\xE9 llega ya conectado: en Orvay la base de datos, el registro y la elecci\xF3n entre modelos, y no una tienda. Es un intercambio y no una victoria, y las preguntas de arriba son lo que conviene sopesar antes de decidir cu\xE1l le encaja.",
+  "vs.polsia.sources.caveat": "Estos enlaces llevan a material que Polsia publica sobre s\xED misma. Lo hemos le\xEDdo, no probado, y nadie aqu\xED ha usado su producto. Nada de esta p\xE1gina viene de su portada, porque un lema y una cifra destacada describen a una empresa y no c\xF3mo trata su trabajo.",
+  "vs.source.polsia.help": "Centro de ayuda de Polsia, \xEDndice de gu\xEDas",
+  "vs.source.polsia.autoMode": "Documentaci\xF3n de Polsia sobre su modo sin supervisi\xF3n",
+  "vs.source.polsia.codeExport": "Documentaci\xF3n de Polsia sobre la descarga de su c\xF3digo",
+  "vs.source.polsia.dbExport": "Documentaci\xF3n de Polsia sobre la exportaci\xF3n de su base de datos",
+  "vs.source.polsia.taskOutcome": "Documentaci\xF3n de Polsia sobre la comprobaci\xF3n del resultado de una tarea",
+  "vs.source.polsia.subprocessors": "Lista de subencargados de Polsia",
+  "vs.cofounder.name": "Cofounder",
+  "vs.cofounder.title": "Orvay y Cofounder",
+  "vs.cofounder.lead": "Ambos ponen a agentes a trabajar alrededor de una empresa que una persona ya dirige. Cofounder es expl\xEDcito en que su producto principal permanece en su propio c\xF3digo, y en que construye la empresa alrededor de \xE9l. Todo lo que aqu\xED se dice se ley\xF3 en su documentaci\xF3n y sus p\xE1ginas legales, enlazadas al pie con la fecha en que se leyeron.",
+  "vs.cofounder.meta.description": "Una comparaci\xF3n con fuentes de Orvay y Cofounder sobre aprobaciones, verificaci\xF3n, portabilidad, ubicaci\xF3n de los datos y alojamiento. Cada afirmaci\xF3n enlaza la p\xE1gina donde se ley\xF3.",
+  "vs.cofounder.credit.lead": "Esto va primero porque es la parte honesta de cualquier comparaci\xF3n, y porque el primero de estos puntos es un l\xEDmite que la mayor\xEDa de los productos preferir\xEDa no trazar.",
+  "vs.cofounder.credit.boundary": "Su documentaci\xF3n expresa el l\xEDmite con claridad: no est\xE1 pensado para construir ni reconstruir su producto principal, su base de datos, su autenticaci\xF3n o su infraestructura de alojamiento. Para eso usted conserva sus propias herramientas de programaci\xF3n, y \xE9l construye la empresa alrededor de lo que ya tiene. Un producto que nombra lo que no va a asumir es m\xE1s f\xE1cil de confiar con lo que s\xED asumir\xE1.",
+  "vs.cofounder.credit.staging": "Una publicaci\xF3n que un agente solicita va a un entorno de prueba, detr\xE1s de una tarjeta de aprobaci\xF3n con Approve y Reject, y nunca directa a producci\xF3n. Producci\xF3n queda detr\xE1s de un bot\xF3n aparte en el espacio de trabajo. Dos puertas para dos consecuencias es mejor dise\xF1o que una sola puerta para ambas.",
+  "vs.cofounder.credit.secrets": "Los secretos se gestionan como deben. Los valores se pasan al proveedor de alojamiento y no se guardan de su lado, y dentro del entorno aislado de un agente la variable contiene un marcador de posici\xF3n en vez de la clave real, de modo que una credencial nunca queda escrita en una conversaci\xF3n.",
+  "vs.cofounder.axis.approvals.heading": "Aprobaciones por dise\xF1o",
+  "vs.cofounder.axis.approvals.them": "Cuando un agente termina su trabajo y solicita una publicaci\xF3n, Cofounder pone en cola una tarjeta de aprobaci\xF3n. Approve env\xEDa el cambio al entorno de prueba; Reject deja el entorno de prueba sin tocar y le da al agente indicaciones para corregir y volver a solicitarlo. Publicar en producci\xF3n es una acci\xF3n aparte que realiza una persona en el espacio de trabajo. El control se sit\xFAa sobre la publicaci\xF3n, y un destino importado puede esperar comprobaciones autom\xE1ticas antes de que la tarjeta llegue a aparecer.",
+  "vs.cofounder.axis.approvals.us": "Orvay acota tambi\xE9n la decisi\xF3n. Una aprobaci\xF3n es un objeto delimitado y no un s\xED: concedida una vez, permanente, o acotada por un l\xEDmite, y guardada con esa forma, porque una aprobaci\xF3n que no puede decir qu\xE9 cubr\xEDa no le sirve a quien la relee un a\xF1o despu\xE9s. Cada acci\xF3n pasa por una sola funci\xF3n con ocho comprobaciones en orden fijo, y una empresa detenida sigue detenida incluso para quien la posee.",
+  "vs.cofounder.axis.verification.heading": "Qui\xE9n puede comprobar el trabajo",
+  "vs.cofounder.axis.verification.them": "El agente ingeniero implementa y verifica su propio trabajo en un entorno aislado antes de solicitar una publicaci\xF3n, y quien revisa la tarjeta de aprobaci\xF3n es usted. Una comprobaci\xF3n s\xED es independiente por construcci\xF3n: cuando conecta un repositorio, Cofounder inspecciona el proyecto de alojamiento en vivo antes de dar la importaci\xF3n por completa, y se niega mientras los dos no coincidan.",
+  "vs.cofounder.axis.verification.us": "Orvay sostiene que una prueba producida por aquello que ejecut\xF3 el trabajo no establece que el trabajo ocurriera, as\xED que lo que comprueba tiene que ser otra cosa. Orvay adem\xE1s cuenta cu\xE1ntas veces una ejecuci\xF3n declar\xF3 \xE9xito sin ninguna prueba independiente detr\xE1s, y muestra esa proporci\xF3n por cada capacidad, porque un sistema que contara solo sus aciertos estar\xEDa corrigiendo su propio examen.",
+  "vs.cofounder.axis.portability.heading": "Llevarse su trabajo a otro sitio",
+  "vs.cofounder.axis.portability.them": "Esta es la pregunta que Cofounder responde por dise\xF1o y no por exportaci\xF3n. Su producto vive en su propio repositorio y su propio flujo de trabajo de ingenier\xEDa, y su documentaci\xF3n lo dice ya en la primera p\xE1gina. Lo que gestiona por usted, el sitio de marketing, los entornos de prueba y los servicios conectados, se apoya en proveedores que usted tambi\xE9n puede abrir directamente, con el repositorio conectado bajo su propia cuenta.",
+  "vs.cofounder.axis.portability.us": "Donde Cofounder evita esta pregunta dejando su producto donde ya vive, Orvay tiene que responderla, y la respuesta honesta hoy es parcial. Sus propios datos personales se pueden extraer en cualquier plan, incluido el gratuito, porque es un derecho y no una funci\xF3n, y cobrar por ello no ser\xEDa una decisi\xF3n de precio. Las exportaciones mayores no est\xE1n construidas, y esta p\xE1gina lo dice en vez de dar a entender lo contrario.",
+  "vs.cofounder.axis.consent.heading": "D\xF3nde est\xE1n los datos, y en qu\xE9 se apoya el contacto",
+  "vs.cofounder.axis.consent.them": "Su aviso de privacidad nombra a la empresa que lo opera y lo que recoge. Su documentaci\xF3n es precisa en algo que muchos productos dejan vago: los valores secretos se env\xEDan al proveedor de alojamiento y no se guardan del lado de Cofounder. D\xF3nde se guarda el resto de los datos de una empresa no se indica en las p\xE1ginas le\xEDdas para esta comparaci\xF3n, as\xED que esta p\xE1gina no afirma saberlo.",
+  "vs.cofounder.axis.consent.us": "Orvay est\xE1 alojado, as\xED que tenemos que responder nosotros en lugar de dej\xE1rselo a usted. La base de datos est\xE1 en Z\xFArich. La inferencia de los modelos no ocurre en Suiza, y una frase sobre d\xF3nde est\xE1n los datos que omita eso no merece leerse. Cuando se recogen datos de contacto, la base jur\xEDdica se registra en ese momento en vez de decidirse despu\xE9s, y un clic para detener el correo escribe una retirada en el mismo registro.",
+  "vs.cofounder.axis.hosting.heading": "Qui\xE9n hace funcionar el software",
+  "vs.cofounder.axis.hosting.them": "Cofounder est\xE1 alojado, y gestiona por usted las piezas alrededor de su producto: una conexi\xF3n de repositorio, un proyecto de alojamiento para el entorno de prueba y las superficies de marketing, una base de datos, dominios, una bandeja de entrada y archivos de entorno. Cada una es un servicio que usted tambi\xE9n podr\xEDa operar por su cuenta, conectado en vez de sustituido, que es el intercambio que eligi\xF3.",
+  "vs.cofounder.axis.hosting.us": "En su empresa no opera nada nadie de todos modos. La diferencia es qu\xE9 llega ya conectado: en Orvay eso es la base de datos, el registro y el reparto entre modelos. Cofounder conecta proveedores que usted quiz\xE1 ya use; Orvay mantiene los suyos propios. Es un intercambio y no una victoria, y las preguntas de arriba son las que conviene sopesar antes de decidir cu\xE1l le encaja.",
+  "vs.cofounder.index.blurb": "Construye la empresa alrededor de un producto que usted conserva en su propio c\xF3digo, con una aprobaci\xF3n de entorno de prueba en cada publicaci\xF3n.",
+  "vs.cofounder.credit.heading": "Lo que Cofounder hace bien",
+  "vs.cofounder.sources.caveat": "Estos enlaces llevan a material que Cofounder publica sobre s\xED mismo. Lo hemos le\xEDdo y no probado, y nadie aqu\xED ha operado su producto. Nada de esta p\xE1gina viene de su portada, porque un lema describe a una empresa y no c\xF3mo trata su trabajo.",
+  "vs.source.cofounder.what": "Documentaci\xF3n de Cofounder sobre lo que hace y lo que no hace",
+  "vs.source.cofounder.deploy": "Documentaci\xF3n de Cofounder sobre solicitar una publicaci\xF3n",
+  "vs.source.cofounder.github": "Documentaci\xF3n de Cofounder sobre la conexi\xF3n gestionada del repositorio",
+  "vs.source.cofounder.secrets": "Documentaci\xF3n de Cofounder sobre archivos de entorno y secretos",
+  "vs.source.cofounder.privacy": "Aviso de privacidad de Cofounder",
+  "vs.source.cofounder.pricing": "P\xE1gina de precios de Cofounder",
+  "vs.nanocorp.name": "NanoCorp",
+  "vs.nanocorp.title": "Orvay y NanoCorp",
+  "vs.nanocorp.lead": "Ambos sacan adelante una empresa sin que una persona dirija cada paso, y ambos miden ese trabajo en cr\xE9ditos. NanoCorp optimiza para el dinero que un negocio realmente ingresa, y se lo abona a usted. Todo lo que aqu\xED se dice se ley\xF3 en su documentaci\xF3n y sus p\xE1ginas legales, enlazadas al pie con la fecha en que se leyeron.",
+  "vs.nanocorp.meta.description": "Una comparaci\xF3n con fuentes de Orvay y NanoCorp sobre aprobaciones, verificaci\xF3n, portabilidad, ubicaci\xF3n de los datos y alojamiento. Cada afirmaci\xF3n enlaza la p\xE1gina donde se ley\xF3.",
+  "vs.nanocorp.credit.lead": "Va primero porque es la parte honesta de cualquier comparaci\xF3n, y porque en dos de estos puntos preferir\xEDamos no tener que reconocer que son mejores.",
+  "vs.nanocorp.credit.dormant": "Cuando termina una prueba o un plan, no se borra nada. El sitio sigue sirvi\xE9ndose en su propia direcci\xF3n, el cobro y el correo se pausan, los agentes se detienen, y reabrir el plan lo restaura todo en minutos. Un producto que documenta qu\xE9 se detiene y qu\xE9 permanece, en ese orden, es uno del que se puede salir y al que se puede volver.",
+  "vs.nanocorp.credit.caps": "La autonom\xEDa tiene dos mandos que usted puede leer y ajustar: cu\xE1ntas tareas puede ejecutar un negocio al d\xEDa, y un tope diario de cr\xE9ditos para todo lo que posee. Pausar un negocio detiene de ra\xEDz su trabajo sin supervisi\xF3n. Acotar a la vez por cantidad y por dinero es m\xE1s de lo que ofrece la mayor\xEDa de los productos.",
+  "vs.nanocorp.credit.payout": "El dinero que gana un negocio llega a un saldo real y se retira a su banco mediante el proceso de alta de un proveedor de pagos, con la comisi\xF3n y el c\xE1lculo del cambio de divisa desarrollados paso a paso en la p\xE1gina, para una cuenta que no est\xE1 en d\xF3lares. Mostrar la suma es mejor que prometer el resultado.",
+  "vs.nanocorp.axis.approvals.heading": "Aprobaciones por dise\xF1o",
+  "vs.nanocorp.axis.approvals.them": "NanoCorp acota una ejecuci\xF3n por cantidad y por dinero, no por decisi\xF3n. En negocios basados en tareas, un nivel de autonom\xEDa fija cu\xE1ntas tareas se ejecutan al d\xEDa, un tope diario de cr\xE9ditos puede acotar todos los negocios a la vez, y pausar un negocio detiene por igual su trabajo sin supervisi\xF3n y sus ejecuciones manuales. En las p\xE1ginas le\xEDdas para esta comparaci\xF3n no se documenta ning\xFAn paso de aprobaci\xF3n sobre una acci\xF3n individual.",
+  "vs.nanocorp.axis.approvals.us": "Orvay acota tambi\xE9n la decisi\xF3n. Una aprobaci\xF3n es un objeto delimitado y no un s\xED: concedida una vez, permanente, o acotada por un l\xEDmite, y guardada con esa forma, porque una aprobaci\xF3n que no puede decir qu\xE9 cubr\xEDa no le sirve a quien la relee un a\xF1o despu\xE9s. Cada acci\xF3n pasa por una sola funci\xF3n con ocho comprobaciones en orden fijo, y una empresa detenida sigue detenida incluso para quien la posee.",
+  "vs.nanocorp.axis.verification.heading": "Qui\xE9n puede comprobar el trabajo",
+  "vs.nanocorp.axis.verification.them": "Las p\xE1ginas le\xEDdas para esta comparaci\xF3n documentan c\xF3mo probar un cobro sin un cargo real, y recogen una pregunta sobre cr\xE9ditos consumidos en tareas fallidas, que es la forma de la inquietud y no el mecanismo que la resuelve. C\xF3mo se comprueba el resultado de una tarea antes de que cuente no se describe all\xED, as\xED que tampoco lo describe esta p\xE1gina.",
+  "vs.nanocorp.axis.verification.us": "Orvay sostiene que una prueba producida por aquello que ejecut\xF3 el trabajo no establece que el trabajo ocurriera, as\xED que lo que comprueba tiene que ser otra cosa. Orvay adem\xE1s cuenta cu\xE1ntas veces una ejecuci\xF3n declar\xF3 \xE9xito sin ninguna prueba independiente detr\xE1s, y muestra esa proporci\xF3n por cada capacidad, porque un sistema que contara solo sus aciertos estar\xEDa corrigiendo su propio examen.",
+  "vs.nanocorp.axis.portability.heading": "Llevarse su trabajo a otro sitio",
+  "vs.nanocorp.axis.portability.them": "El c\xF3digo de un negocio vive en un repositorio que NanoCorp construye y mantiene, y en sus planes superiores puede invitarse a s\xED mismo o a un desarrollador como colaborador y editarlo en local. El panel de alojamiento tambi\xE9n es accesible, y se puede conectar un dominio propio. Si la base de datos se puede exportar es una pregunta que figura en su documentaci\xF3n, y la respuesta no estaba en las p\xE1ginas le\xEDdas aqu\xED.",
+  "vs.nanocorp.axis.portability.us": "NanoCorp pone un colaborador en el repositorio detr\xE1s de un nivel de plan; Orvay todav\xEDa no ofrece nada equivalente. Sus propios datos personales se pueden extraer en cualquier plan, incluido el gratuito, porque es un derecho y no una funci\xF3n, y cobrar por ello no ser\xEDa una decisi\xF3n de precio. Las exportaciones mayores no est\xE1n construidas, y esta p\xE1gina lo dice en vez de dar a entender lo contrario.",
+  "vs.nanocorp.axis.consent.heading": "D\xF3nde est\xE1n los datos, y en qu\xE9 se apoya el contacto",
+  "vs.nanocorp.axis.consent.them": "Su aviso de privacidad nombra a la empresa que lo opera, indica que los datos personales se conservan mientras la cuenta est\xE1 activa o mientras haga falta para prestar el servicio, y que se puede solicitar su borrado. Su p\xE1gina de retiradas desarrolla el c\xE1lculo para una cuenta bancaria europea, incluida la comisi\xF3n de transferencia transfronteriza al EEE. D\xF3nde se guardan los propios datos no se indica en las p\xE1ginas le\xEDdas aqu\xED.",
+  "vs.nanocorp.axis.consent.us": "Orvay est\xE1 alojado, as\xED que tenemos que responder nosotros en lugar de dej\xE1rselo a usted. La base de datos est\xE1 en Z\xFArich. La inferencia de los modelos no ocurre en Suiza, y una frase sobre d\xF3nde est\xE1n los datos que omita eso no merece leerse. Cuando se recogen datos de contacto, la base jur\xEDdica se registra en ese momento en vez de decidirse despu\xE9s, y un clic para detener el correo escribe una retirada en el mismo registro.",
+  "vs.nanocorp.axis.hosting.heading": "Qui\xE9n hace funcionar el software",
+  "vs.nanocorp.axis.hosting.them": "NanoCorp lo aloja todo: un sitio en su propio subdominio, cobro mediante un proveedor de pagos conectado, correo, y agentes que se ejecutan seg\xFAn un horario. Una prueba gratuita no pide tarjeta, y al terminar la tienda queda dormida en vez de desaparecer. Un plan de retenci\xF3n mantiene la tienda abierta sin los agentes, y solo se muestra cuando termina un plan.",
+  "vs.nanocorp.axis.hosting.us": "Ni en un caso ni en otro opera nada nadie en su empresa. La diferencia est\xE1 en para qu\xE9 es el dinero: NanoCorp mide el trabajo y adem\xE1s se queda con una parte de lo que retira un negocio; Orvay mide el trabajo y nada m\xE1s. Es un intercambio y no una victoria, y las preguntas de arriba son las que conviene sopesar antes de decidir cu\xE1l le encaja.",
+  "vs.nanocorp.index.blurb": "Alojado de principio a fin, acotado por un n\xFAmero diario de tareas y un tope de cr\xE9ditos, y le abona a su banco lo que gana el negocio.",
+  "vs.nanocorp.credit.heading": "Lo que NanoCorp hace bien",
+  "vs.nanocorp.sources.caveat": "Estos enlaces llevan a material que NanoCorp publica sobre s\xED mismo. Lo hemos le\xEDdo y no probado, y nadie aqu\xED ha operado su producto. Nada de esta p\xE1gina viene de su portada, porque un lema describe a una empresa y no c\xF3mo trata su trabajo.",
+  "vs.source.nanocorp.plans": "Documentaci\xF3n de NanoCorp sobre planes y cr\xE9ditos",
+  "vs.source.nanocorp.github": "Documentaci\xF3n de NanoCorp sobre el acceso al c\xF3digo en GitHub",
+  "vs.source.nanocorp.withdrawals": "Documentaci\xF3n de NanoCorp sobre las retiradas",
+  "vs.source.nanocorp.billing": "Documentaci\xF3n de NanoCorp sobre facturaci\xF3n, reembolsos y cancelaciones",
+  "vs.source.nanocorp.privacy": "Aviso de privacidad de NanoCorp",
+  "vs.source.nanocorp.pricing": "P\xE1gina de precios de NanoCorp",
+  "vs.willo.name": "Willo",
+  "vs.willo.title": "Orvay y Willo",
+  "vs.willo.lead": "Ambos sacan adelante una empresa mediante un equipo de agentes y dejan la direcci\xF3n a una persona. Willo dice qu\xE9 siete roles ejecuta y en qu\xE9 ciclo. Todo lo que aqu\xED se dice se ley\xF3 en sus propios textos y sus p\xE1ginas legales, enlazados al pie con la fecha en que se leyeron.",
+  "vs.willo.meta.description": "Una comparaci\xF3n con fuentes de Orvay y Willo sobre aprobaciones, verificaci\xF3n, portabilidad, ubicaci\xF3n de los datos y alojamiento. Cada afirmaci\xF3n enlaza la p\xE1gina donde se ley\xF3.",
+  "vs.willo.credit.lead": "Esto va primero porque es la parte honesta de cualquier comparaci\xF3n, y porque las tres son frases que la mayor\xEDa de los productos evita poner por escrito.",
+  "vs.willo.credit.ownership": "Sus condiciones lo dicen en una frase: usted conserva la propiedad de todo lo que crea a trav\xE9s de la plataforma, y la lista incluye c\xF3digo, repositorios y el contenido del sitio publicado. Una p\xE1gina legal que nombra el repositorio, y no solo el contenido, es m\xE1s rara de lo que deber\xEDa.",
+  "vs.willo.credit.lifecycle": "Cancelar est\xE1 documentado como un ciclo de vida y no como un corte brusco. Durante treinta d\xEDas el sitio se sustituye por un aviso provisional, la base de datos queda en pausa, y se conservan todos los datos, el c\xF3digo fuente y el contenido; volver a suscribirse restaura el negocio. Decir qu\xE9 ocurre al salir es la parte que se salta la mayor\xEDa de los productos.",
+  "vs.willo.credit.candour": "Sus condiciones tambi\xE9n dicen lo que no es: no ofrece ning\xFAn servicio para cumplir requisitos legales, ni declara que usarlo satisfaga ninguno de ellos. Es lo contrario de un distintivo, y es la frase m\xE1s \xFAtil.",
+  "vs.willo.axis.approvals.heading": "Aprobaciones por dise\xF1o",
+  "vs.willo.axis.approvals.them": "Los propios textos de Willo son expl\xEDcitos: los agentes ejecutan de forma aut\xF3noma y la estrategia y la direcci\xF3n siguen siendo suyas. Describen un ciclo de planificar, ejecutar y reflexionar en el que los agentes planifican, publican y luego revisan los resultados para afinar la siguiente vuelta. En las p\xE1ginas le\xEDdas para esta comparaci\xF3n no se documenta ning\xFAn paso de aprobaci\xF3n sobre una acci\xF3n individual; el l\xEDmite es la direcci\xF3n que usted marca y los cr\xE9ditos que tiene.",
+  "vs.willo.axis.approvals.us": "Orvay acota tambi\xE9n la decisi\xF3n. Una aprobaci\xF3n es un objeto delimitado y no un s\xED: concedida una vez, permanente, o acotada por un l\xEDmite, y guardada con esa forma, porque una aprobaci\xF3n que no puede decir qu\xE9 cubr\xEDa no le sirve a quien la relee un a\xF1o despu\xE9s. Cada acci\xF3n pasa por una sola funci\xF3n con ocho comprobaciones en orden fijo, y una empresa detenida sigue detenida incluso para quien la posee.",
+  "vs.willo.axis.verification.heading": "Qui\xE9n puede comprobar el trabajo",
+  "vs.willo.axis.verification.them": "La etapa de reflexi\xF3n es donde ocurre la comprobaci\xF3n, y son los propios agentes quienes se comprueban: revisan el tr\xE1fico, las conversiones y las se\xF1ales de ingresos, y lo incorporan al siguiente plan. En las p\xE1ginas le\xEDdas aqu\xED, nada ajeno al equipo que hizo el trabajo confirma que el trabajo llegara a buen puerto.",
+  "vs.willo.axis.verification.us": "Orvay sostiene que una prueba producida por aquello que ejecut\xF3 el trabajo no establece que el trabajo ocurriera, as\xED que lo que comprueba tiene que ser otra cosa. Orvay adem\xE1s cuenta cu\xE1ntas veces una ejecuci\xF3n declar\xF3 \xE9xito sin ninguna prueba independiente detr\xE1s, y muestra esa proporci\xF3n por cada capacidad, porque un sistema que contara solo sus aciertos estar\xEDa corrigiendo su propio examen.",
+  "vs.willo.axis.portability.heading": "Llevarse su trabajo a otro sitio",
+  "vs.willo.axis.portability.them": "El sitio se construye y se publica con control de versiones en GitHub y un alojamiento en la nube, los pagos pasan por un proveedor de pagos conectado, y las condiciones establecen que el c\xF3digo y los repositorios son suyos. Lo que las p\xE1ginas le\xEDdas aqu\xED no describen es la exportaci\xF3n en s\xED: c\xF3mo se saca el repositorio o la base de datos, y si eso exige un nivel de plan.",
+  "vs.willo.axis.portability.us": "Willo pone la propiedad en sus condiciones; Orvay ofrece la exportaci\xF3n personal y todav\xEDa no las mayores. Sus propios datos personales se pueden extraer en cualquier plan, incluido el gratuito, porque es un derecho y no una funci\xF3n, y cobrar por ello no ser\xEDa una decisi\xF3n de precio. Las exportaciones mayores no est\xE1n construidas, y esta p\xE1gina lo dice en vez de dar a entender lo contrario.",
+  "vs.willo.axis.consent.heading": "D\xF3nde est\xE1n los datos, y en qu\xE9 se apoya el contacto",
+  "vs.willo.axis.consent.them": "Willo publica un aviso de privacidad, una pol\xEDtica de uso aceptable y, algo inusual, una pol\xEDtica de uso y divulgaci\xF3n de IA junto a ellas. Sus condiciones le dicen que cumplir la ley de protecci\xF3n de datos es responsabilidad suya y no un servicio que ellos presten. D\xF3nde se guardan los datos no se indica en las p\xE1ginas le\xEDdas para esta comparaci\xF3n.",
+  "vs.willo.axis.consent.us": "Orvay est\xE1 alojado, as\xED que tenemos que responder nosotros en lugar de dej\xE1rselo a usted. La base de datos est\xE1 en Z\xFArich. La inferencia de los modelos no ocurre en Suiza, y una frase sobre d\xF3nde est\xE1n los datos que omita eso no merece leerse. Cuando se recogen datos de contacto, la base jur\xEDdica se registra en ese momento en vez de decidirse despu\xE9s, y un clic para detener el correo escribe una retirada en el mismo registro.",
+  "vs.willo.axis.hosting.heading": "Qui\xE9n hace funcionar el software",
+  "vs.willo.axis.hosting.them": "Willo lo aloja todo: un sitio en un subdominio con dominios propios en los planes superiores, un backend aprovisionado con base de datos, autenticaci\xF3n e interfaces, procesamiento de pagos y correo transaccional. El plan gratuito trae cr\xE9ditos para probar acciones de pago pero no backend aprovisionado ni ejecuci\xF3n sin supervisi\xF3n, y el c\xF3mputo del backend se mide por el uso activo, mientras que el tiempo inactivo no cuesta nada.",
+  "vs.willo.axis.hosting.us": "En su empresa tampoco opera nada nadie de todos modos. La diferencia es qu\xE9 llega ya conectado: en Orvay eso es la base de datos, el registro y el reparto entre modelos, y no un escaparate de tienda. Es un intercambio y no una victoria, y las preguntas de arriba son las que conviene sopesar antes de decidir cu\xE1l le encaja.",
+  "vs.willo.index.blurb": "Siete agentes con nombre en un ciclo de planificar, ejecutar y reflexionar, con la propiedad del c\xF3digo y los repositorios escrita en sus condiciones.",
+  "vs.willo.credit.heading": "Lo que Willo hace bien",
+  "vs.willo.sources.caveat": "Estos enlaces llevan a material que Willo publica sobre s\xED mismo. Lo hemos le\xEDdo y no probado, y nadie aqu\xED ha operado su producto. Nada de esta p\xE1gina viene de su portada, porque un lema describe a una empresa y no c\xF3mo trata su trabajo.",
+  "vs.source.willo.how": "Willo sobre qu\xE9 es y c\xF3mo funciona",
+  "vs.source.willo.team": "Willo sobre los siete agentes y el ciclo que ejecutan",
+  "vs.source.willo.pricing": "P\xE1gina de precios de Willo",
+  "vs.source.willo.billing": "Pol\xEDtica de facturaci\xF3n y reembolsos de Willo",
+  "vs.source.willo.terms": "Condiciones de servicio de Willo",
+  "vs.source.willo.privacy": "Aviso de privacidad de Willo",
   "waitlist.buildLog": "Env\xEDenme tambi\xE9n el registro de construcci\xF3n mensual: qu\xE9 se construy\xF3, qu\xE9 fall\xF3 y qu\xE9 se verific\xF3. Una decisi\xF3n aparte, y puede detenerla sin salir de la lista de espera.",
   "waitlist.next.heading": "Mientras espera",
   "waitlist.next.docs": "Lea c\xF3mo deciden las ocho puertas",
@@ -13071,7 +15546,68 @@ var es_default = {
   "onboarding.company.domain.fail-invalid": "Eso no parece un nombre de host. Algo como acme.com.",
   "onboarding.company.domain.fail-unreachable": "El sitio no respondi\xF3. Escriba el nombre a continuaci\xF3n y siga adelante: una p\xE1gina de inicio inaccesible no es motivo para detenerse.",
   "onboarding.company.domain.fail-no-session": "Su sesi\xF3n caduc\xF3 mientras eso se cargaba. Inicie sesi\xF3n de nuevo y el proceso se reanuda aqu\xED.",
-  "onboarding.company.domain.fetched": "Se ley\xF3 desde {host} hace un momento. Fue una solicitud real a un servidor real, por eso queda marcada como en vivo."
+  "onboarding.company.domain.fetched": "Se ley\xF3 desde {host} hace un momento. Fue una solicitud real a un servidor real, por eso queda marcada como en vivo.",
+  "team.remove.heading": "Quitar a alguien",
+  "team.remove.lead": "Una persona a la que quitas no puede volver a abrir esta empresa. Su plaza queda libre para otra persona, todas sus claves de API quedan revocadas de forma permanente, y cada decisi\xF3n que tom\xF3 permanece en el registro a su nombre.",
+  "team.remove.no-grant": "No tienes autoridad para quitar a nadie de esta empresa. Un propietario s\xED puede.",
+  "team.remove.nobody": "Aqu\xED no hay a qui\xE9n quitar. No puedes quitar tu propia plaza, y a quien ya se ha quitado no se le puede quitar dos veces.",
+  "team.remove.who.label": "A qui\xE9n quitar",
+  "team.remove.who.hint": "Aqu\xED se ofrece a todo el mundo. A quien tiene m\xE1s autoridad que t\xFA, o a la \xFAltima persona que puede hacerlo todo, se le rechaza con un motivo en vez de ocultarlo.",
+  "team.remove.confirm.label": "S\xED, quitar a {name} de esta empresa. Todas sus claves de API quedan revocadas de forma permanente.",
+  "team.remove.submit": "Quitar de la empresa",
+  "team.remove.submitting": "Quitando",
+  "team.remove.busy": "Se est\xE1 registrando esta baja.",
+  "team.remove.error.title": "No se quit\xF3 a nadie",
+  "team.remove.ok.title": "Hecho",
+  "team.remove.audit": "Cada baja queda registrada en el historial, con la plaza, quien lo decidi\xF3 y cu\xE1ntas claves de API se fueron con la persona.",
+  "team.remove.error.unconfirmed": "Marca la casilla para confirmar a qui\xE9n quitas. No se quit\xF3 a nadie.",
+  "team.remove.error.halted": "Esta empresa est\xE1 detenida, y una parada cubre todos los cambios, incluido este. Levanta la parada desde la cabecera y quita entonces a la persona.",
+  "team.remove.error.gate": "Rechazado en la puerta {gate}: {reason}",
+  "team.remove.error.signedOut": "No has iniciado sesi\xF3n.",
+  "team.remove.error.self": "Nadie puede quitar su propia plaza, tampoco un propietario. P\xEDdeselo a otro miembro que tenga esta autoridad.",
+  "team.remove.error.notMember": "No es miembro de esta empresa.",
+  "team.remove.error.beyondYourRole": "Tiene autoridad que t\xFA no tienes, as\xED que no te corresponde quitarla. Un propietario s\xED puede.",
+  "team.remove.error.lastOwner": "Es la \xFAltima persona que puede hacerlo todo aqu\xED. Da primero esa autoridad a otra persona y qu\xEDtala despu\xE9s.",
+  "team.remove.ok.done": "Se ha quitado a {name}. No puede volver a abrir esta empresa, y su plaza est\xE1 libre.",
+  "team.remove.ok.already": "A {name} ya se le hab\xEDa quitado, as\xED que no cambi\xF3 nada.",
+  "team.roles.error.last-owner": "Es la \xFAltima persona que puede hacerlo todo aqu\xED, y este cambio se lo quitar\xEDa. Da primero esa autoridad a otra persona.",
+  "team.remove.ok.keys": {
+    one: "Se revoc\xF3 una clave de API y no se puede restaurar.",
+    many: "Se revocaron {count} claves de API y no se pueden restaurar.",
+    other: "Se revocaron {count} claves de API y no se pueden restaurar."
+  },
+  "team.remove.noscript.title": "Para quitar a alguien hace falta JavaScript",
+  "team.remove.noscript.body": "La lista de personas la dibuja tu navegador: sin scripts ser\xEDa un control que no hace nada. Activa los scripts en esta p\xE1gina para quitar a alguien.",
+  // MCP tool descriptions. The four state words are literal argument values.
+  "mcp.tool.orvay_company_status": "Qu\xE9 es esta empresa y si est\xE1 detenida.",
+  "mcp.tool.orvay_list_capabilities": "Las capacidades que concede esta empresa y las que tiene esta clave.",
+  "mcp.tool.orvay_list_contracts": "Trabajo propuesto, del m\xE1s reciente al m\xE1s antiguo. Filtra por estado: open, approved, refused o run.",
+  "mcp.tool.orvay_get_contract": "Un contrato, por su hash de 64 caracteres.",
+  "mcp.tool.orvay_list_decisions": "Lo que espera a una persona. Las decisiones abiertas, salvo que pidas otro estado.",
+  "mcp.tool.orvay_list_runs": "Las ejecuciones registradas para un contrato.",
+  "mcp.tool.orvay_get_evidence": "Las pruebas que produjo una ejecuci\xF3n, cada una con su procedencia.",
+  "mcp.tool.orvay_propose_contract": "Prop\xF3n trabajo para un objetivo. Pasa los controles antes de que ocurra nada.",
+  "mcp.tool.orvay_approve_decision": "Aprueba un contrato. Se exige un motivo y queda registrado.",
+  "mcp.tool.orvay_reject_decision": "Rechaza un contrato. Se exige un motivo y queda registrado.",
+  // API keys. A key is a credential a person creates for a program; the token
+  // is shown exactly once because only its hash is stored.
+  "settings.keys.title": "Claves de API",
+  "settings.keys.lead": "Una clave permite que un programa act\xFAe en tu nombre, y nunca m\xE1s de lo que t\xFA mismo puedes hacer.",
+  "settings.keys.create.heading": "Crear una clave",
+  "settings.keys.create.name.label": "Para qu\xE9 es",
+  "settings.keys.create.scope.label": "Qu\xE9 puede hacer",
+  "settings.keys.create.scope.read": "Solo lectura",
+  "settings.keys.create.scope.full": "Todo lo que puedes hacer",
+  "settings.keys.create.submit": "Crear clave",
+  "settings.keys.shown-once": "C\xF3piala ahora. Es la \xFAnica vez que se muestra, porque solo se guarda su huella.",
+  "settings.keys.list.heading": "Tus claves",
+  "settings.keys.list.empty": "Todav\xEDa no hay claves. Un programa necesita una para llegar a tu empresa.",
+  "settings.keys.list.never-used": "nunca usada",
+  "settings.keys.list.revoked": "revocada",
+  "settings.keys.revoke.submit": "Revocar",
+  "settings.keys.create.pending": "Creando la clave",
+  "settings.keys.error.empty": "Una clave sin permisos se autenticar\xEDa y no podr\xEDa hacer nada.",
+  "settings.keys.error.exceeds": "Una clave no puede hacer m\xE1s que t\xFA. Pide primero el permiso para ti."
 };
 
 // ../../packages/content/src/messages/es.legal.ts
@@ -13459,6 +15995,60 @@ var es_legal_default = {
   "legal.terms.acceptable-use.p2": "Dos comprobaciones hacen cumplir la l\xEDnea anterior, y vale la pena saber exactamente cu\xE1les son para que no las tome por m\xE1s de lo que son. El nombre y la direcci\xF3n web que nos proporciona se comparan con una lista corta de t\xE9rminos cuando hace la configuraci\xF3n inicial, antes de que descarguemos nada. Por separado, un agente se niega a trabajar en un objetivo que pida una de estas cosas. Ninguna de las dos es una revisi\xF3n de todo lo que hace, ninguna de las dos lee sus datos, y ninguna de las dos sustituye su propio conocimiento de lo que est\xE1 ejecutando."
 };
 
+// ../../packages/content/src/messages/es.blog.ts
+var catalogue4 = {
+  "blog.title": "Blog",
+  "blog.kicker": "Escritos",
+  "blog.lead": "C\xF3mo pensamos las empresas dirigidas por personas y agentes juntos, y qu\xE9 estamos construyendo para ellas.",
+  "blog.meta.description": "Ensayos y notas de Orvay sobre empresas dirigidas por personas y agentes juntos: qu\xE9 cuenta como prueba, c\xF3mo se admite el trabajo y para qu\xE9 sirve un registro.",
+  "blog.category.thinking": "Reflexi\xF3n",
+  "blog.category.product": "Producto",
+  "blog.category.company": "Empresa",
+  "blog.read-time": "{minutes} min de lectura",
+  "blog.contents": "Contenido",
+  "blog.introduction": "Introducci\xF3n",
+  "blog.published": "Publicado",
+  "blog.back": "Todos los art\xEDculos",
+  "blog.next.heading": "Dele un objetivo a su empresa",
+  "blog.next.lead": "Orvay abre despacio, a empresas que quieren confiar trabajo real a agentes y seguir pudiendo responder por \xE9l.",
+  "blog.next.cta": "Unirse a la lista de espera",
+  "blog.reading-time": "Tiempo de lectura",
+  "blog.tab.all": "Todos",
+  "blog.tabs.label": "Categor\xEDas",
+  "blog.empty": "Todav\xEDa no hay art\xEDculos en esta categor\xEDa.",
+  "blog.similar": "Art\xEDculos similares",
+  "blog.pagination.label": "P\xE1ginas",
+  "blog.pagination.page": "P\xE1gina {n}",
+  "blog.pagination.next": "P\xE1gina siguiente",
+  "blog.pagination.previous": "P\xE1gina anterior",
+  "blog.done-is-not-proof.title": "Que un agente diga \xABhecho\xBB no es una prueba",
+  "blog.done-is-not-proof.lead": "Por qu\xE9 Orvay trata cada tarea terminada como una afirmaci\xF3n, y qu\xE9 hace falta para convertir una afirmaci\xF3n en un registro en el que una empresa pueda confiar.",
+  "blog.done-is-not-proof.description": "Todo agente termina su trabajo con un mensaje que dice \xABhecho\xBB. Una empresa no puede funcionar con ese mensaje. As\xED separa Orvay la afirmaci\xF3n de la prueba.",
+  "blog.done-is-not-proof.cover-alt": "Un campo de color c\xE1lido que se funde en azul, cruzado por l\xEDneas finas que se curvan alrededor de su centro.",
+  "blog.done-is-not-proof.introduction.p1": "Toda herramienta que ejecuta un agente termina igual. Llega un mensaje que dice que el trabajo est\xE1 hecho. Le sigue un resumen, casi siempre seguro de s\xED mismo, a veces con una lista de lo que cambi\xF3. Despu\xE9s, una persona decide si lo cree.",
+  "blog.done-is-not-proof.introduction.p2": "Esa decisi\xF3n es todo el problema. Una empresa no funciona con mensajes que dicen \xABhecho\xBB. Funciona con cosas que est\xE1n hechas, y con poder mostrar que lo est\xE1n. Orvay est\xE1 construido sobre la diferencia entre ambas.",
+  "blog.done-is-not-proof.a-claim.heading": "Hecho es una afirmaci\xF3n",
+  "blog.done-is-not-proof.a-claim.p1": "Cuando un modelo informa de que termin\xF3 una tarea, describe su propio trabajo desde dentro. No tiene forma de saber si el despliegue que inici\xF3 est\xE1 sirviendo tr\xE1fico, si el correo que redact\xF3 fue entregado, o si el registro que escribi\xF3 es el que una compa\xF1era leer\xE1 ma\xF1ana. Sabe lo que pretend\xEDa y lo que vio. Eso no es lo mismo que lo que ocurri\xF3.",
+  "blog.done-is-not-proof.a-claim.p2": "No es un defecto de ning\xFAn modelo en particular. Es la posici\xF3n de cualquier actor al que se le pide calificar su propio trabajo. Una persona que publica un cambio y confirma que lleg\xF3 leyendo su propio mensaje de commit ha hecho lo mismo. Escribimos la regla en el producto porque no dej\xE1bamos de romperla nosotros mismos.",
+  "blog.done-is-not-proof.evidence.heading": "Qu\xE9 cuenta como prueba",
+  "blog.done-is-not-proof.evidence.p1": "Orvay est\xE1 construido para que el actor que hace el trabajo nunca sea el actor que lo comprueba. Quien propone no verifica. La comprobaci\xF3n corresponde a algo que no tuvo parte en el trabajo, y el tipo de prueba importa m\xE1s que qui\xE9n la recogi\xF3.",
+  "blog.done-is-not-proof.evidence.item1": "Un c\xF3digo de salida del comando que se ejecut\xF3, no una frase que dice que tuvo \xE9xito.",
+  "blog.done-is-not-proof.evidence.item2": "Una respuesta HTTP del servicio llamado, le\xEDda despu\xE9s de la llamada y no antes.",
+  "blog.done-is-not-proof.evidence.item3": "Una fila en la base de datos, rele\xEDda en una conexi\xF3n propia.",
+  "blog.done-is-not-proof.evidence.item4": "Un hash del artefacto, para que un lector posterior pueda saber si cambi\xF3.",
+  "blog.done-is-not-proof.evidence.p2": "Un segundo modelo puede revisar el trabajo de un primero, y a veces es la \xFAnica comprobaci\xF3n disponible. Pero dos modelos pueden equivocarse de la misma manera, as\xED que el registro anota que la comprobaci\xF3n vino de un modelo y nunca trata eso por s\xED solo como prueba. La prueba es el tipo de evidencia que una persona podr\xEDa volver a ejecutar.",
+  "blog.done-is-not-proof.one-gate.heading": "Una sola puerta, y nada que la rodee",
+  "blog.done-is-not-proof.one-gate.p1": "Cada acci\xF3n que un agente realiza dentro de Orvay pasa por la misma puerta. Comprueba qui\xE9n pide, para qu\xE9 empresa act\xFAa, si esa empresa est\xE1 detenida, qu\xE9 permite su plan, qu\xE9 est\xE1 autorizado a hacer el actor, si la persona al otro lado ha consentido, qu\xE9 dice la pol\xEDtica de la empresa y si queda dinero por gastar. En ese orden, cada vez.",
+  "blog.done-is-not-proof.one-gate.quote": "Una aprobaci\xF3n nunca es una casilla marcada. Es un objeto con un alcance, un titular y un l\xEDmite: esta acci\xF3n, este n\xFAmero de veces, hasta esta fecha.",
+  "blog.done-is-not-proof.one-gate.p2": "Cuando la respuesta es no, el registro dice qu\xE9 comprobaci\xF3n dijo no y por qu\xE9. Cuando la respuesta es s\xED, el registro dice qui\xE9n lo permiti\xF3 y durante cu\xE1nto tiempo vale ese permiso.",
+  "blog.done-is-not-proof.the-record.heading": "El registro es el producto",
+  "blog.done-is-not-proof.the-record.p1": "Cada contrato que un agente propone se escribe una vez y nunca se edita. Un cambio es un contrato nuevo que apunta al que sustituye. Cada intento de ejecutarlo es una ejecuci\xF3n propia, y un reintento es una ejecuci\xF3n nueva y no una reescrita. Cada prueba lleva un hash y dice si procede de un sistema real o de una simulaci\xF3n.",
+  "blog.done-is-not-proof.the-record.p2": "El resultado es una cadena que una empresa puede leer un a\xF1o despu\xE9s y en la que a\xFAn puede confiar. No porque los agentes fueran fiables, sino porque el registro no depende de que lo sean.",
+  "blog.done-is-not-proof.where-this-goes.heading": "Ad\xF3nde lleva esto",
+  "blog.done-is-not-proof.where-this-goes.p1": "Orvay abre despacio, a empresas que quieren confiar trabajo real a agentes y seguir pudiendo responder por \xE9l. Si esa es su empresa, la lista de espera es la puerta. Preferimos pocas empresas capaces de comprobar lo que decimos a muchas que nos crean bajo palabra."
+};
+var es_blog_default = catalogue4;
+
 // ../../packages/content/src/messages/pt.ts
 var pt_default = {
   "brand.name": "Orvay",
@@ -13733,6 +16323,9 @@ var pt_default = {
   "onboarding.authority.open.label": "Aja e avise-me",
   "onboarding.authority.open.sublabel": "A maioria das a\xE7\xF5es corre sozinha. Rev\xEA o registo em vez do pedido.",
   "onboarding.authority.open.risk": "A maior parte do trabalho acontecer\xE1 antes de o ver. Tudo o que tenha efeito jur\xEDdico sobre uma pessoa continua \xE0 sua espera.",
+  "onboarding.timezone.label": "Fuso hor\xE1rio",
+  "onboarding.timezone.hint": "Orvay trabalha nos objetivos durante a noite e informa pela manh\xE3. Este \xE9 o rel\xF3gio que usa.",
+  "onboarding.timezone.now": "Hora atual l\xE1:",
   "onboarding.authority.note": "Isto regista uma postura inicial. As regras em que se traduz s\xE3o definidas na p\xE1gina de pol\xEDticas, onde pode ver e alterar cada uma.",
   "onboarding.done.heading": "A sua empresa est\xE1 configurada",
   "onboarding.done.body": "\xC9 a partir daqui que o {brand} come\xE7a a trabalhar. Vale a pena saber tr\xEAs coisas antes de entrar.",
@@ -14242,6 +16835,23 @@ var pt_default = {
     many: "{count} eventos registados desde que esta empresa foi criada.",
     other: "{count} eventos registados desde que esta empresa foi criada."
   },
+  "notification.headline.approval.waiting": "Um contrato aguarda uma decis\xE3o",
+  "notification.headline.message.received": "Algu\xE9m enviou um email para o endere\xE7o da sua empresa",
+  "notification.headline.run.auto_allowed": "O trabalho decorreu sem que ningu\xE9m fosse consultado",
+  "notification.headline.company.halted": "Esta empresa foi parada",
+  "notification.headline.approval.escalated": "Uma decis\xE3o aguarda desde ontem",
+  "notification.headline.briefing.ready": "O seu briefing matinal est\xE1 pronto",
+  "notification.headline.comment.mentioned": "Algu\xE9m perguntou por si, pelo nome",
+  "notification.headline.goal.thrashing": "Um objetivo falhou repetidamente e foi parado",
+  "notification.push.none.title": "Nada aguarda em {company}",
+  "notification.push.none.body": "Est\xE1 tudo em dia.",
+  "notification.push.only": "Em {company}.",
+  "notification.push.more": {
+    one: "Em {company}, com mais {count} em espera.",
+    many: "Em {company}, com mais {count} em espera.",
+    other: "Em {company}, com mais {count} em espera."
+  },
+  "home.loading": "A carregar a sua empresa",
   "home.metrics.label": "O que {brand} sabe",
   "home.metric.running": "A decorrer agora",
   "home.metric.waiting": "A aguardar por si",
@@ -14251,6 +16861,13 @@ var pt_default = {
   "home.metric.spent": "Gasto neste per\xEDodo",
   "home.running.heading": "O que est\xE1 a decorrer",
   "home.running.none": "Neste momento n\xE3o est\xE1 a decorrer nada. O trabalho come\xE7a quando o aprova, ou sozinho onde a sua pol\xEDtica j\xE1 o permite.",
+  "home.running.since": "Iniciado {when}",
+  "home.running.unnamed": "Trabalho sem contrato registado",
+  "home.running.more": {
+    one: "e mais {count} a decorrer.",
+    many: "e mais {count} a decorrer.",
+    other: "e mais {count} a decorrer."
+  },
   "home.needs.heading": "O que precisa de si",
   "home.needs.none": "Nada est\xE1 a aguardar uma pessoa.",
   "home.needs.noneProposed": "Tamb\xE9m ainda n\xE3o foi proposto nada.",
@@ -14264,6 +16881,7 @@ var pt_default = {
   "home.empty.title": "A sua empresa ainda n\xE3o tem registo",
   "home.empty.because": "\xC9 escrita uma entrada por cada proposta, decis\xE3o, execu\xE7\xE3o e verifica\xE7\xE3o. O seu est\xE1 vazio porque nada foi proposto. D\xEA-lhe um objetivo e propor\xE1 as primeiras a\xE7\xF5es.",
   "home.empty.action": "Definir o primeiro objetivo",
+  "nav.skip": "Ir para o conte\xFAdo da p\xE1gina",
   "nav.sections": "Sec\xE7\xF5es",
   "nav.overview": "Vis\xE3o geral",
   "nav.approvals": "Aprova\xE7\xF5es",
@@ -14681,8 +17299,10 @@ var pt_default = {
   // `site.v5.exhibit.doc.label-capability` neste ficheiro), "role" é "função",
   // "authority" é "autoridade", "screen" é "ecrã", "records" é "registos".
   // ---------------------------------------------------------------------------
+  "role.guest.label": "Convidado",
+  "role.guest.summary": "L\xEA esta empresa, n\xE3o altera nada e n\xE3o pode abrir os ficheiros.",
   "role.viewer.label": "Leitor",
-  "role.viewer.summary": "L\xEA esta empresa e n\xE3o altera nada.",
+  "role.viewer.summary": "L\xEA esta empresa, incluindo os ficheiros, e n\xE3o altera nada.",
   "role.member.label": "Membro",
   "role.member.summary": "Prop\xF5e trabalho, executa-o e aprova ou recusa o que um agente prop\xF5e. Tudo isso permanece dentro desta empresa.",
   "role.admin.label": "Admin",
@@ -14768,6 +17388,7 @@ var pt_default = {
   "usage.phase.build": "Construir",
   "usage.phase.search": "Pesquisar",
   "usage.phase.speech": "Falar",
+  "usage.phase.console": "Responder",
   "usage.phase.other": "N\xE3o registado",
   "usage.byGoal": "Por objetivo",
   "usage.noGoal": "Sem objetivo associado",
@@ -14821,8 +17442,26 @@ var pt_default = {
   "shell.halt.idle": "Parar",
   "shell.credits.low": "Quase esgotados",
   "evidence.raw": "Bruto",
+  "evidence.check.ok": "Recalculado no seu navegador: o hash corresponde ao registo.",
+  "evidence.check.bad": "Recalculado no seu navegador: o hash N\xC3O corresponde, por isso este registo mudou depois de ter sido escrito.",
+  "evidence.check.unknown": "Este registo n\xE3o pode ser recalculado no navegador.",
   "product.notes": "O que a execu\xE7\xE3o n\xE3o conseguiu determinar",
   "product.inconclusive": "Esta execu\xE7\xE3o n\xE3o chegou a uma conclus\xE3o com o que lhe foi dado.",
+  "inbox.none": "Nada foi proposto nesta empresa.",
+  "inbox.counts": "{waiting} \xE0 espera de uma pessoa, {decided} j\xE1 decididos.",
+  "inbox.capped": "A mostrar as {shown} mais recentes de {total}. As propostas mais antigas ainda n\xE3o est\xE3o nesta p\xE1gina.",
+  "inbox.showingAll": "{total} no total.",
+  "inbox.empty.title": "Nada foi proposto",
+  "inbox.empty.body": "A {brand} prop\xF5e a\xE7\xF5es ao servi\xE7o de um objetivo. Esta empresa n\xE3o tem propostas porque ainda n\xE3o tem um objetivo, ou porque nada foi proposto para os que tem.",
+  "inbox.empty.action": "Definir um objetivo",
+  "inbox.waiting": "\xC0 espera de si",
+  "inbox.refusedAt": "recusado no port\xE3o {gate}",
+  "inbox.needsYou": "precisa de si",
+  "inbox.unattended": "seria executado sem supervis\xE3o",
+  "inbox.decided": "J\xE1 decididos",
+  "inbox.refused": "recusado",
+  "inbox.checked": "verificado por um ator diferente",
+  "inbox.notEstablished": "executado, n\xE3o estabelecido",
   "contract.tabs": "Vistas deste contrato",
   "contract.tab.contract": "Contrato",
   "contract.tab.output": "Resultado",
@@ -14862,8 +17501,55 @@ var pt_default = {
   "contract.check.notEstablishes": "O que n\xE3o estabelece",
   "contract.check.defaultEstablishes": "o registo guardado \xE9 coerente",
   "contract.check.defaultNot": "que algo tenha sa\xEDdo deste sistema",
+  "contract.check.next": "O que fazer a seguir",
+  "contract.check.next.body": "Uma verifica\xE7\xE3o que n\xE3o se sustentou n\xE3o significa que a a\xE7\xE3o falhou. Significa que um ator diferente n\xE3o a conseguiu confirmar a partir do registo. Leia primeiro as provas abaixo. Se o efeito ainda puder alcan\xE7ar algo fora da empresa, pare toda a autonomia a partir da barra lateral; produz efeito no port\xE3o seguinte. Este contrato n\xE3o ser\xE1 executado uma segunda vez: uma nova tentativa \xE9 um contrato novo, por isso defina o objetivo de novo para que seja proposto um.",
+  "contract.check.next.goal": "Definir o objetivo de novo",
   "contract.evidence": "Provas",
   "contract.proposedBy": "Proposto por {actor}, endere\xE7ado por hash: o selo abaixo \xE9 calculado a partir do conte\xFAdo do pr\xF3prio contrato, pelo que uma aprova\xE7\xE3o n\xE3o pode ser transferida para outra a\xE7\xE3o.",
+  "contract.replaces.title": "Substitui uma proposta anterior",
+  "contract.replaces.link": "Proposta anterior {hash}",
+  "contract.replaces.same": "Os termos s\xE3o os mesmos. S\xF3 a data e a origem diferem.",
+  "contract.replacedBy.title": "Substitu\xEDda por uma proposta posterior",
+  "contract.replacedBy.body": "Esta j\xE1 n\xE3o pode ser decidida. Decida antes sobre a proposta posterior.",
+  "contract.replacedBy.link": "Proposta posterior {hash}",
+  "contract.change.was": "Antes",
+  "contract.change.now": "Agora",
+  "contract.change.objective": "Objetivo",
+  "contract.change.capabilities": "Capacidade",
+  "contract.change.steps": "Passos",
+  "contract.change.reach": "Alcan\xE7a",
+  "contract.change.bearer": "Consequ\xEAncias a cargo de",
+  "contract.change.reversible": "Revers\xEDvel",
+  "contract.change.expires": "Expira",
+  "contract.change.claims": "Afirma\xE7\xF5es",
+  "contract.change.cites": "Cita",
+  "decision.error.notContract": "isso n\xE3o \xE9 um contrato",
+  "decision.error.gate": "recusado no port\xE3o {gate}: {reason}",
+  "decision.error.signedOut": "n\xE3o tem sess\xE3o iniciada",
+  "decision.error.notHere": "esse contrato n\xE3o pertence a esta empresa",
+  "decision.error.decided": "algu\xE9m j\xE1 decidiu sobre este; a p\xE1gina foi atualizada",
+  "decision.error.superseded": "uma proposta posterior substituiu esta, por isso j\xE1 n\xE3o pode ser decidida",
+  "decision.error.notApproved": "este contrato n\xE3o foi aprovado, por isso n\xE3o h\xE1 nada a executar",
+  "decision.ok.endorsed": "Registado. Concordaram {have} de {need}. N\xE3o pode ser executado at\xE9 os outros o terem analisado.",
+  "comment.error.empty": "Escreva algo primeiro.",
+  "comment.error.tooLong": "Ultrapassa os {limit} caracteres. Encurte o texto ou anexe um ficheiro.",
+  "comment.ok.posted": "Publicado.",
+  "comment.ok.mentioned": "Publicado. {count} dos seus colegas foram avisados.",
+  "comment.label": "Adicionar uma nota",
+  "comment.hint": "Escreva @ e um endere\xE7o para se dirigir a algu\xE9m pelo nome. Uma nota n\xE3o pode ser editada nem apagada depois.",
+  "comment.submit": "Publicar",
+  "comment.none": "Ainda n\xE3o foi dito nada sobre isto.",
+  "comment.title": "Notas",
+  "decision.ok.approved": "Aprovado.",
+  "decision.ok.refused": "Recusado.",
+  "decision.ok.ran": "Executado, e um ator diferente confirmou que o registo corresponde ao contrato.",
+  "decision.error.unverified": "Executado, mas a verifica\xE7\xE3o N\xC3O o estabeleceu: {why}",
+  "decision.revise": "Pedir uma revis\xE3o",
+  "decision.revise.hint": "Para a devolver, diga o que deve mudar. Quem a prop\xF4s responde com uma proposta revista que substitui esta.",
+  "decision.error.needsWords": "Diga o que deve mudar, para que quem a prop\xF4s saiba o que rever.",
+  "decision.ok.revised": "Revis\xE3o pedida.",
+  "contract.revisionBy": "Revis\xE3o pedida por {name} em {when}",
+  "contract.revision.open": "Esta proposta fica aberta at\xE9 que uma revista a substitua ou algu\xE9m decida sobre ela.",
   "decision.error.title": "Isso n\xE3o passou",
   "decision.done": "Feito",
   "decision.ran.title": "Isto j\xE1 foi executado",
@@ -14879,6 +17565,9 @@ var pt_default = {
   "decision.halted": "A autonomia est\xE1 parada. Liberte a paragem antes de algo ser executado, incluindo o que j\xE1 aprovou.",
   "decision.run.note": "Executar aplica o plano e depois entrega o resultado a outro ator para verifica\xE7\xE3o. Nenhum adaptador est\xE1 ligado nesta implementa\xE7\xE3o, pelo que o efeito \xE9 simulado e cada artefacto produzido o diz.",
   "decision.refused.title": "Isto foi recusado",
+  "decision.recheck": "Verificar novamente",
+  "decision.rechecking": "A verificar",
+  "decision.recheck.note": "Pergunta ao mundo exterior se isto ainda existe, sem usar as suas credenciais.",
   "decision.refused.body": "Uma recusa \xE9 registada e definitiva. Proponha um contrato novo em vez de reverter este: uma emenda cria um contrato novo que substitui o antigo, pelo que o registo do que foi recusado sobrevive.",
   "product.email.from": "De",
   "product.email.to": "Para",
@@ -14987,6 +17676,11 @@ var pt_default = {
   "billing.subscription.plan": "Plano que paga",
   "billing.subscription.periodEnds": "O per\xEDodo de fatura\xE7\xE3o termina",
   "billing.subscription.reference": "Refer\xEAncia da subscri\xE7\xE3o",
+  "billing.limited.title": "A sua subscri\xE7\xE3o n\xE3o est\xE1 a ser paga, por isso o plano est\xE1 limitado",
+  "billing.limited.body": "Nada foi eliminado e continua a poder ler tudo. O que para \xE9 o trabalho novo que custa dinheiro. Atualize o cart\xE3o junto do fornecedor para repor o plano.",
+  "billing.limited.subscribed": "Plano que paga",
+  "billing.limited.status": "Estado junto do fornecedor",
+  "billing.limited.runningOn": "A funcionar em",
   "billing.choice.current": "\xC9 o plano em que esta organiza\xE7\xE3o j\xE1 est\xE1.",
   "billing.choice.halted": "Esta empresa est\xE1 parada, e a paragem cobre qualquer altera\xE7\xE3o, incluindo esta. Levante-a a partir do cabe\xE7alho e depois mude de plano.",
   "billing.choice.noProvider": "N\xE3o h\xE1 nenhum fornecedor de pagamentos ligado a esta instala\xE7\xE3o, por isso daqui n\xE3o se pode cobrar um cart\xE3o.",
@@ -15029,8 +17723,21 @@ var pt_default = {
   "goals.cadence.finished": "Executado uma vez. Nada mais est\xE1 agendado.",
   "goals.cadence.due": "Pendente na pr\xF3xima varredura",
   "goals.cadence.next": "Pr\xF3xima passagem {when}",
+  "goals.templates.heading": "Ou comece com um destes",
+  "goals.templates.competitors": "Leia os s\xEDtios p\xFAblicos das empresas com as quais competimos uma vez por semana, e escreva o que mudou desde ent\xE3o.",
+  "goals.templates.claims": "Leia o nosso pr\xF3prio s\xEDtio e liste cada afirma\xE7\xE3o que n\xE3o conseguir\xEDamos sustentar hoje.",
+  "goals.templates.week": "Toda a sexta-feira, escreva o que esta empresa efetivamente fez esta semana, a partir das suas pr\xF3prias execu\xE7\xF5es, e diga claramente o que n\xE3o se manteve.",
+  "goals.templates.inbox": "Leia a caixa de entrada da empresa todas as manh\xE3s e redija uma resposta a tudo o que necessite uma. Nada \xE9 enviado at\xE9 que uma pessoa carregue Enviar.",
+  "goals.templates.repo": "Localize pequenos problemas independentes no nosso reposit\xF3rio e abra um pedido de extra\xE7\xE3o para cada um. Nunca integre.",
+  "goals.cadence.stopped": "Parado ap\xF3s falhas repetidas. Altere-o ou execute-o pessoalmente.",
+  "goals.assignee.label": "Quem trata disto",
+  "goals.assignee.nobody": "Ningu\xE9m",
+  "goals.assignee.saved": "Guardado.",
+  "goals.assignee.error": "Essa pessoa n\xE3o pertence a esta empresa.",
+  "goals.assignee.on": "Trata disto: {who}",
   "goals.cadence.change": "Alterar",
   "goals.cadence.saved": "Salvo.",
+  "goals.schedule.zone": "As passagens programadas acontecem pela manh\xE3, {zone}.",
   "log.title": "Registo de altera\xE7\xF5es",
   "log.lead": "O que mudou, quando, e que metade era verdadeira. Acrescenta-se, nunca se reescreve.",
   "log.english-note.title": "Estas entradas est\xE3o em ingl\xEAs",
@@ -15059,6 +17766,187 @@ var pt_default = {
   "portability.honest.body": "Uma p\xE1gina sobre portabilidade \xE9 f\xE1cil de escrever como promessa e dif\xEDcil de escrever como facto. Duas das tr\xEAs coisas que uma p\xE1gina destas costuma reivindicar, o seu dom\xEDnio e a sua conta de pagamentos, n\xE3o s\xE3o verdadeiras aqui, por isso s\xE3o nomeadas acima como n\xE3o oferecidas em vez de omitidas. A que \xE9 verdadeira, os seus pr\xF3prios dados, \xE9-o em todos os planos e \xE9 a que conta se algum dia quiser sair.",
   "portability.status.included": "Dispon\xEDvel",
   "portability.status.planned": "Ainda n\xE3o constru\xEDdo",
+  /* As páginas de comparação. Português europeu, registo impessoal, sem "você",
+     como o resto deste catálogo. Sem léxico de reivindicação de estatuto
+     ("conform", "certific", "credenciad", "auditad", "atestad"): por isso o
+     parágrafo sobre o local dos dados diz onde está a base de dados e o que faz
+     a inferência, em vez de procurar uma palavra de estatuto. Nada é citado à
+     letra: a fonte usa travessões, que §5a proíbe em todas as línguas. */
+  "vs.eyebrow": "Compara\xE7\xE3o",
+  "vs.index.title": "Compara\xE7\xF5es",
+  "vs.index.lead": "Uma p\xE1gina por cada produto sobre o qual mais nos perguntam, todas escritas da mesma forma: primeiro o que fazem bem, depois cinco perguntas a ambos, depois as p\xE1ginas de onde saiu cada afirma\xE7\xE3o.",
+  "vs.index.meta.description": "Compara\xE7\xF5es com fontes entre a Orvay e outros produtos que tocam o trabalho de uma empresa. Cada afirma\xE7\xE3o liga, com a data, a p\xE1gina onde foi lida.",
+  "vs.index.more": "Vir\xE3o mais. Uma compara\xE7\xE3o s\xF3 \xE9 acrescentada quando h\xE1 documenta\xE7\xE3o p\xFAblica para ler, porque uma p\xE1gina que adivinha sobre os outros vale menos do que nenhuma p\xE1gina.",
+  "vs.paperclip.index.blurb": "C\xF3digo aberto, alojado por si, com uma fila de aprova\xE7\xE3o onde quem rev\xEA pode devolver o trabalho em vez de apenas o recusar.",
+  "vs.polsia.index.blurb": "Alojada, e vai mais longe na condu\xE7\xE3o do neg\xF3cio: dom\xEDnios, pagamentos e publica\xE7\xF5es a partir do mesmo s\xEDtio.",
+  "vs.paperclip.name": "Paperclip",
+  "vs.paperclip.title": "Orvay e Paperclip",
+  "vs.paperclip.lead": "Ambos colocam uma pessoa \xE0 frente do agente antes de este agir. Foram feitos para compradores diferentes e s\xE3o francos sobre coisas diferentes. Tudo o que aqui se diz sobre a Paperclip foi lido numa p\xE1gina p\xFAblica, e essa p\xE1gina est\xE1 ligada no fundo com a data em que foi lida.",
+  "vs.paperclip.meta.description": "Uma compara\xE7\xE3o com fontes entre a Orvay e a Paperclip sobre aprova\xE7\xF5es, verifica\xE7\xE3o do trabalho, retirada dos seus dados, onde ficam guardados e quem opera o software. Cada afirma\xE7\xE3o remete para a p\xE1gina de onde veio.",
+  "vs.method.heading": "De onde v\xEAm os dados desta p\xE1gina",
+  "vs.method.lead": "Uma p\xE1gina de compara\xE7\xE3o \xE9 o s\xEDtio mais f\xE1cil da web para errar acerca de terceiros. Estas s\xE3o as regras que esta segue, para que possa verificar se foram cumpridas.",
+  "vs.method.rule.sourced": "Cada afirma\xE7\xE3o sobre {name} foi lida numa p\xE1gina p\xFAblica, ligada no rodap\xE9 desta p\xE1gina com a data em que foi lida. O que n\xE3o conseguimos ler n\xF3s pr\xF3prios deix\xE1mos de fora.",
+  "vs.method.rule.claims": "Damos conta do que a documenta\xE7\xE3o deles descreve em vez de o apresentar como conclus\xE3o nossa. Uma empresa que escreve sobre o seu pr\xF3prio produto prova apenas que o disse, o que \xE9 diferente de prova de que funciona.",
+  "vs.method.rule.numbers": "Aqui n\xE3o aparece nenhum n\xFAmero sobre a dimens\xE3o deles. Nem estrelas, nem financiamento, nem receita, nem contagem de utilizadores. Nada disso diz como cada um dos produtos trata o seu trabalho.",
+  "vs.method.rule.today": "A Orvay \xE9 descrita como \xE9 hoje e n\xE3o como est\xE1 planeada. Onde {name} entrega algo que n\xE3o constru\xEDmos, a resposta acima di-lo na mesma frase.",
+  "vs.paperclip.credit.heading": "O que a Paperclip faz bem",
+  "vs.paperclip.credit.lead": "Vem primeiro porque \xE9 a parte honesta de qualquer compara\xE7\xE3o e porque n\xE3o discutir\xEDamos nenhuma destas decis\xF5es.",
+  "vs.paperclip.credit.open": "A Paperclip \xE9 de c\xF3digo aberto com licen\xE7a MIT e pode ser operada por inteiro por quem a usa. O respetivo README pede Node.js e um gestor de pacotes localmente, e um Postgres pr\xF3prio em produ\xE7\xE3o, pelo que nada obriga a confiar no alojamento de terceiros.",
+  "vs.paperclip.credit.approvals": "A fila de aprova\xE7\xE3o d\xE1 tr\xEAs sa\xEDdas a quem rev\xEA, onde a maioria dos produtos d\xE1 duas: aceitar, recusar, ou devolver a proposta para ser refeita, sem limite de voltas. A recusa \xE9 definitiva e a revis\xE3o \xE9 um ciclo, e mant\xEA-las separadas \xE9 melhor desenho do que um \xFAnico bot\xE3o que significa n\xE3o.",
+  "vs.paperclip.credit.trust": "A revis\xE3o de baixa confian\xE7a mant\xE9m \xE0 parte o trabalho de um agente em que n\xE3o confia por completo, e a documenta\xE7\xE3o diz claramente que um resultado em bruto por rever nunca \xE9 promovido em sil\xEAncio. Uma pessoa tem de o ver e escrever a vers\xE3o limpa, e o registo desse passo guarda quem o fez e quando.",
+  "vs.axes.heading": "Cinco perguntas, duas respostas",
+  "vs.axes.lead": "As mesmas cinco perguntas feitas aos dois produtos. O lado deles descreve o que a documenta\xE7\xE3o deles exp\xF5e. O nosso descreve o que a Orvay faz hoje, e numa das cinco \xE9 menos.",
+  "vs.paperclip.axis.approvals.heading": "Aprova\xE7\xF5es desde o desenho",
+  "vs.paperclip.axis.approvals.them": "A Paperclip trata uma aprova\xE7\xE3o como uma entrada em fila com tr\xEAs sa\xEDdas, sob uma regra aplicada em tempo de execu\xE7\xE3o, pelo que um agente n\xE3o tem de se lembrar de pedir. Uma etapa guarda quem participa e quantos consentimentos s\xE3o precisos.",
+  "vs.paperclip.axis.approvals.us": "A Orvay trata uma aprova\xE7\xE3o como um objeto delimitado e n\xE3o como um sim. \xC9 concedida uma vez, como permiss\xE3o permanente, ou limitada por um teto, e fica guardada nessa forma, porque um consentimento incapaz de dizer o que cobria n\xE3o serve a quem o rel\xEA um ano depois. Cada a\xE7\xE3o passa por uma \xFAnica fun\xE7\xE3o com oito verifica\xE7\xF5es em ordem fixa, e uma empresa travada continua travada mesmo para a pr\xF3pria dire\xE7\xE3o.",
+  "vs.paperclip.axis.verification.heading": "Quem pode verificar o trabalho",
+  "vs.paperclip.axis.verification.them": "A Paperclip responde com o isolamento e com uma pessoa. Os resultados sem plena confian\xE7a ficam \xE0 parte, nada sobe sozinho, e algu\xE9m de confian\xE7a escreve a vers\xE3o limpa. O registo desse passo nomeia quem agiu e o momento.",
+  "vs.paperclip.axis.verification.us": "A Orvay responde com uma regra sobre quem verifica, e n\xE3o sobre o ponto de controlo. Uma prova produzida por aquilo que executou o trabalho n\xE3o estabelece que o trabalho aconteceu, por isso quem verifica tem de ser outra coisa. A Orvay conta tamb\xE9m quantas vezes uma execu\xE7\xE3o declarou \xEAxito sem prova independente por tr\xE1s, e mostra essa propor\xE7\xE3o por capacidade, porque um sistema que contasse apenas os seus acertos estaria a corrigir o seu pr\xF3prio exame.",
+  "vs.paperclip.axis.portability.heading": "Levar o seu trabalho para outro lado",
+  "vs.paperclip.axis.portability.them": "A Paperclip exporta uma organiza\xE7\xE3o inteira como ficheiros leg\xEDveis que podem voltar a ser importados: agentes, projetos, compet\xEAncias, tarefas, rotinas e anexos. A documenta\xE7\xE3o \xE9 igualmente clara sobre o que n\xE3o viaja, e essa parte merece ser lida antes de se depender dela. As aprova\xE7\xF5es, o hist\xF3rico de custos e as entradas do registo de atividade ficam na inst\xE2ncia que se abandonou.",
+  "vs.paperclip.axis.portability.us": "Esta \xE9 a pergunta em que a Paperclip entrega e a Orvay n\xE3o, e escrevemo-lo na mesma frase. Os seus pr\xF3prios dados pessoais podem ser retirados em qualquer plano, incluindo o gratuito, porque \xE9 um direito e n\xE3o uma funcionalidade, e cobrar por isso n\xE3o seria uma decis\xE3o de pre\xE7o. As exporta\xE7\xF5es maiores n\xE3o est\xE3o constru\xEDdas. O estado ao lado de cada uma mais abaixo \xE9 lido da mesma tabela que a lista de pre\xE7os l\xEA, pelo que esta p\xE1gina n\xE3o pode afirmar mais do que aquela.",
+  "vs.paperclip.axis.consent.heading": "Onde ficam os dados, e em que assenta o contacto",
+  "vs.paperclip.axis.consent.them": "Porque \xE9 quem usa a Paperclip que a opera, a decis\xE3o \xE9 sua e n\xE3o deles. A documenta\xE7\xE3o diz para a apontar a um Postgres sob o seu controlo e para a instalar como preferir, pelo que uma empresa com um dever quanto ao local dos dados pode satisfaz\xEA-lo escolhendo a m\xE1quina.",
+  "vs.paperclip.axis.consent.us": "A Orvay \xE9 operada por n\xF3s, por isso temos de responder a isto em vez de o deixar a quem a usa. A base de dados est\xE1 em Zurique. A infer\xEAncia dos modelos n\xE3o acontece na Su\xED\xE7a, e uma frase sobre o local dos dados que omita isso n\xE3o merece ser lida. Quando s\xE3o recolhidos contactos, o fundamento jur\xEDdico fica anotado nesse momento em vez de decidido depois, e um clique para parar o correio escreve uma retirada no mesmo registo.",
+  "vs.paperclip.axis.hosting.heading": "Quem opera o software",
+  "vs.paperclip.axis.hosting.them": "Quem o instala. E se possuir a m\xE1quina importa, essa \xE9 uma vantagem real e \xE9 deles. Significa tamb\xE9m manter vivos um servi\xE7o e uma base de dados, atualiz\xE1-los, e dar por isso quando param.",
+  "vs.paperclip.axis.hosting.us": "Na sua empresa ningu\xE9m opera coisa alguma. A base de dados, o registo e o encaminhamento entre modelos chegam j\xE1 ligados, e n\xE3o h\xE1 nenhum servi\xE7o nosso que tenha de manter vivo. \xC9 uma troca e n\xE3o uma vit\xF3ria: escolhe deixar que outro o segure, e as perguntas acima s\xE3o as que conv\xE9m pesar antes de decidir que lhe serve.",
+  "vs.sources.heading": "Fontes",
+  "vs.sources.lead": "Cada p\xE1gina abaixo foi lida na data ao lado. As p\xE1ginas mudam: enquanto esta era escrita, um endere\xE7o das nossas pr\xF3prias notas j\xE1 tinha desaparecido.",
+  "vs.sources.retrieved": "Lido a {date}",
+  "vs.sources.caveat": "Estas liga\xE7\xF5es levam a material que a Paperclip publica sobre si pr\xF3pria. Lemo-lo e n\xE3o o test\xE1mos, e ningu\xE9m aqui operou o produto deles.",
+  "vs.source.paperclip.repo": "Reposit\xF3rio do c\xF3digo-fonte da Paperclip e README",
+  "vs.source.paperclip.site": "P\xE1gina de produto da Paperclip",
+  "vs.source.paperclip.approvals": "Documenta\xE7\xE3o da Paperclip sobre aprova\xE7\xF5es",
+  "vs.source.paperclip.trust": "Documenta\xE7\xE3o da Paperclip sobre a revis\xE3o de baixa confian\xE7a",
+  "vs.source.paperclip.export": "Documenta\xE7\xE3o da Paperclip sobre exporta\xE7\xE3o e importa\xE7\xE3o",
+  "vs.polsia.name": "Polsia",
+  "vs.polsia.title": "Orvay e Polsia",
+  "vs.polsia.lead": "Ambos tocam o trabalho de uma empresa sem que uma pessoa conduza cada passo. Discordam sobre para que serve uma pessoa. Tudo o que aqui se diz sobre a Polsia foi lido no seu centro de ajuda e nas suas p\xE1ginas legais, e cada p\xE1gina est\xE1 ligada no rodap\xE9 com a data em que foi lida.",
+  "vs.polsia.meta.description": "Uma compara\xE7\xE3o com fontes entre a Orvay e a Polsia sobre aprova\xE7\xF5es, verifica\xE7\xE3o, portabilidade, localiza\xE7\xE3o dos dados e alojamento. Cada afirma\xE7\xE3o liga a p\xE1gina onde foi lida.",
+  "vs.polsia.credit.heading": "O que a Polsia faz bem",
+  "vs.polsia.credit.lead": "Vem primeiro porque \xE9 a parte honesta de qualquer compara\xE7\xE3o, e porque em dois destes pontos prefer\xEDamos n\xE3o ter de reconhecer que s\xE3o melhores.",
+  "vs.polsia.credit.candour": "O seu centro de ajuda enuncia um limite com clareza em vez de o deixar descobrir sozinho: n\xE3o h\xE1 acesso ao reposit\xF3rio do seu c\xF3digo, n\xE3o h\xE1 endere\xE7o para o clonar e n\xE3o h\xE1 interface para pedir um. Um produto que escreve o que n\xE3o far\xE1 por si \xE9 mais f\xE1cil de planear do que um que s\xF3 enumera o que far\xE1.",
+  "vs.polsia.credit.database": "Cada empresa recebe a sua pr\xF3pria base de dados PostgreSQL, e a exporta\xE7\xE3o s\xE3o dois ficheiros SQL que se carregam em qualquer servidor PostgreSQL. \xC9 uma sa\xEDda verdadeira e n\xE3o um gesto, porque o formato j\xE1 \xE9 lido por outra pessoa.",
+  "vs.polsia.credit.bounded": "O seu modo sem supervis\xE3o fica limitado no momento em que o inicia. Escolhe quanto tempo dura, de uma hora at\xE9 cinco dias, v\xEA o que terminou enquanto trabalha, e pode par\xE1-lo. Uma autonomia com um fim declarado \xE9 uma forma melhor do que uma autonomia que simplesmente continua.",
+  "vs.polsia.axis.approvals.heading": "Aprova\xE7\xF5es desde a conce\xE7\xE3o",
+  "vs.polsia.axis.approvals.them": "A Polsia limita uma execu\xE7\xE3o, n\xE3o uma decis\xE3o. O seu modo sem supervis\xE3o recebe uma dura\xE7\xE3o e um or\xE7amento: trabalha as tarefas abertas e planeia novas at\xE9 acabar o tempo ou o cr\xE9dito, mostra uma contagem enquanto avan\xE7a, e um comando de paragem termina-o. Os limites documentados s\xE3o tempo, dinheiro e paragem.",
+  "vs.polsia.axis.approvals.us": "A Orvay limita tamb\xE9m a decis\xE3o. Uma aprova\xE7\xE3o \xE9 um objeto delimitado e n\xE3o um sim: concedida uma vez, permanente, ou limitada por um teto, e guardada nessa forma, porque uma aprova\xE7\xE3o que n\xE3o sabe dizer o que abrangia n\xE3o serve a quem a rel\xEA um ano depois. Cada a\xE7\xE3o passa por uma \xFAnica fun\xE7\xE3o com oito verifica\xE7\xF5es em ordem fixa, e uma empresa parada continua parada mesmo para quem a det\xE9m.",
+  "vs.polsia.axis.verification.heading": "Quem pode conferir o trabalho",
+  "vs.polsia.axis.verification.them": "O que fez o trabalho relata tamb\xE9m como correu. Um cart\xE3o de tarefa diz se terminou, n\xE3o mudou nada, ou falhou, e uma tarefa falhada devolve o seu pr\xF3prio cr\xE9dito. Se depois algo continuar a parecer errado, a indica\xE7\xE3o \xE9 que abra o seu site publicado e releia as tarefas recentes.",
+  "vs.polsia.axis.verification.us": "A Orvay sustenta que uma prova produzida por aquilo que executou o trabalho n\xE3o estabelece que o trabalho aconteceu, portanto o que confere tem de ser outra coisa. A Orvay conta ainda quantas vezes uma execu\xE7\xE3o declarou sucesso sem qualquer prova independente por tr\xE1s, e mostra essa propor\xE7\xE3o por cada capacidade, porque um sistema que contasse apenas os seus acertos estaria a corrigir o seu pr\xF3prio exame.",
+  "vs.polsia.axis.portability.heading": "Levar o seu trabalho para outro lado",
+  "vs.polsia.axis.portability.them": "Duas exporta\xE7\xF5es, documentadas em separado. O c\xF3digo \xE9 uma transfer\xEAncia que se pede a partir do painel e que demora um a dois minutos. A base de dados sai como dois ficheiros SQL que pode carregar em qualquer servidor PostgreSQL. O que est\xE1 documentado como ausente \xE9 o acesso ao reposit\xF3rio: nenhum endere\xE7o para clonar, nenhuma interface para pedir um.",
+  "vs.polsia.axis.portability.us": "\xC9 a pergunta em que a Polsia entrega mais do que a Orvay, por isso dizemo-lo na mesma frase. Os seus pr\xF3prios dados pessoais podem ser retirados em todos os planos, incluindo o gratuito, porque \xE9 um direito e n\xE3o uma funcionalidade, e cobrar por isso n\xE3o seria uma decis\xE3o de pre\xE7o. As exporta\xE7\xF5es maiores n\xE3o est\xE3o constru\xEDdas. O estado ao lado de cada uma abaixo \xE9 lido da mesma tabela que a p\xE1gina de pre\xE7os l\xEA, de modo que esta p\xE1gina n\xE3o pode afirmar mais do que aquela.",
+  "vs.polsia.axis.consent.heading": "Onde ficam os dados, e em que assenta o contacto",
+  "vs.polsia.axis.consent.them": "A Polsia publica uma lista de subcontratantes com data de entrada em vigor, nomeando cada fornecedor, para que serve e as categorias de dados que v\xEA, incluindo o processador de pagamentos e a plataforma onde corre o alojamento. Indica tamb\xE9m que a lista diz o que pode ser usado, e que o que se aplica na pr\xE1tica depende das funcionalidades ativadas numa conta.",
+  "vs.polsia.axis.consent.us": "A Orvay \xE9 alojada, por isso temos de responder n\xF3s em vez de o deixar consigo. A base de dados est\xE1 em Zurique. A infer\xEAncia dos modelos n\xE3o acontece na Su\xED\xE7a, e uma frase sobre onde ficam os dados que omita isso n\xE3o vale a pena ler. Quando se recolhem contactos, o fundamento jur\xEDdico \xE9 registado nesse momento em vez de decidido depois, e um clique para parar o email escreve uma retirada no mesmo registo.",
+  "vs.polsia.axis.hosting.heading": "Quem faz correr o software",
+  "vs.polsia.axis.hosting.them": "A Polsia faz, e vai mais longe do que n\xF3s na condu\xE7\xE3o do neg\xF3cio: uma empresa pode comprar um dom\xEDnio atrav\xE9s deles, receber pagamentos no site constru\xEDdo, e public\xE1-lo ou revert\xEA-lo a partir do mesmo s\xEDtio. Se quer um \xFAnico fornecedor para tudo, essa vantagem \xE9 deles e \xE9 real.",
+  "vs.polsia.axis.hosting.us": "Connosco tamb\xE9m n\xE3o h\xE1 ningu\xE9m na sua empresa a fazer correr o que quer que seja. A diferen\xE7a \xE9 o que chega j\xE1 ligado: na Orvay a base de dados, o registo e a escolha entre modelos, e n\xE3o uma loja. \xC9 uma troca e n\xE3o uma vit\xF3ria, e as perguntas acima s\xE3o o que conv\xE9m pesar antes de decidir qual lhe serve.",
+  "vs.polsia.sources.caveat": "Estas liga\xE7\xF5es levam a material que a Polsia publica sobre si pr\xF3pria. Lemo-lo, n\xE3o o test\xE1mos, e ningu\xE9m aqui usou o produto deles. Nada nesta p\xE1gina vem da p\xE1gina inicial deles, porque um lema e um n\xFAmero em destaque descrevem uma empresa e n\xE3o como ela trata o seu trabalho.",
+  "vs.source.polsia.help": "Centro de ajuda da Polsia, \xEDndice de guias",
+  "vs.source.polsia.autoMode": "Documenta\xE7\xE3o da Polsia sobre o modo sem supervis\xE3o",
+  "vs.source.polsia.codeExport": "Documenta\xE7\xE3o da Polsia sobre a transfer\xEAncia do seu c\xF3digo",
+  "vs.source.polsia.dbExport": "Documenta\xE7\xE3o da Polsia sobre a exporta\xE7\xE3o da base de dados",
+  "vs.source.polsia.taskOutcome": "Documenta\xE7\xE3o da Polsia sobre a verifica\xE7\xE3o do resultado de uma tarefa",
+  "vs.source.polsia.subprocessors": "Lista de subcontratantes da Polsia",
+  "vs.cofounder.name": "Cofounder",
+  "vs.cofounder.title": "Orvay e Cofounder",
+  "vs.cofounder.lead": "Ambos p\xF5em agentes a trabalhar \xE0 volta de uma empresa que uma pessoa j\xE1 gere. A Cofounder afirma com clareza que o seu produto principal fica na sua pr\xF3pria base de c\xF3digo, e que \xE9 \xE0 volta dele que constr\xF3i a empresa. Tudo o que aqui se diz foi lido na sua documenta\xE7\xE3o e nas suas p\xE1ginas legais, ligadas no rodap\xE9 com a data em que foram lidas.",
+  "vs.cofounder.meta.description": "Uma compara\xE7\xE3o com fontes entre a Orvay e a Cofounder sobre aprova\xE7\xF5es, verifica\xE7\xE3o, portabilidade, localiza\xE7\xE3o dos dados e alojamento. Cada afirma\xE7\xE3o liga a p\xE1gina onde foi lida.",
+  "vs.cofounder.credit.lead": "Isto vem primeiro porque \xE9 a parte honesta de qualquer compara\xE7\xE3o, e porque o primeiro destes pontos \xE9 um limite que a maioria dos produtos preferiria n\xE3o tra\xE7ar.",
+  "vs.cofounder.credit.boundary": "A sua documenta\xE7\xE3o enuncia o limite com clareza: n\xE3o se destina a construir nem a reconstruir o seu produto principal, a sua base de dados, a sua autentica\xE7\xE3o ou a sua pilha de alojamento. Para isso mant\xE9m as suas pr\xF3prias ferramentas de programa\xE7\xE3o, e a empresa \xE9 constru\xEDda \xE0 volta do que j\xE1 possui. Um produto que nomeia o que n\xE3o vai assumir \xE9 mais f\xE1cil de confiar naquilo que vai.",
+  "vs.cofounder.credit.staging": "Uma publica\xE7\xE3o pedida por um agente vai para o ambiente de teste, atr\xE1s de um cart\xE3o de aprova\xE7\xE3o com Approve e Reject, e nunca direta para produ\xE7\xE3o. A produ\xE7\xE3o fica atr\xE1s de um bot\xE3o separado no espa\xE7o de trabalho. Duas portas para duas consequ\xEAncias \xE9 melhor desenho do que uma porta para ambas.",
+  "vs.cofounder.credit.secrets": "Os segredos s\xE3o tratados como deviam ser. Os valores s\xE3o passados ao fornecedor de alojamento e n\xE3o ficam guardados do seu lado, e dentro do sandbox de um agente a vari\xE1vel cont\xE9m um marcador de posi\xE7\xE3o em vez da chave em bruto, pelo que uma credencial nunca \xE9 escrita numa conversa.",
+  "vs.cofounder.axis.approvals.heading": "Aprova\xE7\xF5es desde a conce\xE7\xE3o",
+  "vs.cofounder.axis.approvals.them": "Quando um agente termina o trabalho e pede uma publica\xE7\xE3o, a Cofounder coloca um cart\xE3o de aprova\xE7\xE3o em fila. Approve envia a altera\xE7\xE3o para o ambiente de teste; Reject deixa o ambiente de teste intacto e devolve ao agente indica\xE7\xF5es para corrigir e pedir de novo. Publicar em produ\xE7\xE3o \xE9 uma a\xE7\xE3o separada que uma pessoa realiza no espa\xE7o de trabalho. O ponto de controlo est\xE1 na publica\xE7\xE3o, e um alvo importado pode aguardar verifica\xE7\xF5es autom\xE1ticas antes de o cart\xE3o sequer aparecer.",
+  "vs.cofounder.axis.approvals.us": "A Orvay limita tamb\xE9m a decis\xE3o. Uma aprova\xE7\xE3o \xE9 um objeto delimitado e n\xE3o um sim: concedida uma vez, permanente, ou limitada por um teto, e guardada nessa forma, porque uma aprova\xE7\xE3o que n\xE3o sabe dizer o que abrangia n\xE3o serve a quem a rel\xEA um ano depois. Cada a\xE7\xE3o passa por uma \xFAnica fun\xE7\xE3o com oito verifica\xE7\xF5es em ordem fixa, e uma empresa parada continua parada mesmo para quem a det\xE9m.",
+  "vs.cofounder.axis.verification.heading": "Quem pode conferir o trabalho",
+  "vs.cofounder.axis.verification.them": "O agente engenheiro implementa e verifica o seu pr\xF3prio trabalho num sandbox antes de pedir uma publica\xE7\xE3o, e quem rev\xEA o cart\xE3o de aprova\xE7\xE3o \xE9 o utilizador. Uma verifica\xE7\xE3o \xE9 independente por constru\xE7\xE3o: ao ligar um reposit\xF3rio, a Cofounder inspeciona o projeto de alojamento em produ\xE7\xE3o antes de considerar a importa\xE7\xE3o conclu\xEDda, e recusa enquanto os dois n\xE3o coincidirem.",
+  "vs.cofounder.axis.verification.us": "A Orvay sustenta que uma prova produzida por aquilo que executou o trabalho n\xE3o estabelece que o trabalho aconteceu, portanto o que confere tem de ser outra coisa. A Orvay conta ainda quantas vezes uma execu\xE7\xE3o declarou sucesso sem qualquer prova independente por tr\xE1s, e mostra essa propor\xE7\xE3o por cada capacidade, porque um sistema que contasse apenas os seus acertos estaria a corrigir o seu pr\xF3prio exame.",
+  "vs.cofounder.axis.portability.heading": "Levar o seu trabalho para outro lado",
+  "vs.cofounder.axis.portability.them": "Esta \xE9 a pergunta a que a Cofounder responde pelo desenho e n\xE3o pela exporta\xE7\xE3o. O seu produto vive no seu pr\xF3prio reposit\xF3rio e no seu pr\xF3prio fluxo de engenharia, e a documenta\xE7\xE3o di-lo logo na primeira p\xE1gina. O que a Cofounder gere por si, o site de marketing, os ambientes de teste e os servi\xE7os ligados, assenta em fornecedores que tamb\xE9m pode abrir diretamente, com o reposit\xF3rio ligado \xE0 sua pr\xF3pria conta.",
+  "vs.cofounder.axis.portability.us": "Onde a Cofounder contorna esta pergunta ao deixar o seu produto onde j\xE1 vive, a Orvay tem de lhe responder, e a resposta honesta hoje \xE9 parcial. Os seus pr\xF3prios dados pessoais podem ser retirados em qualquer plano, incluindo o gratuito, porque \xE9 um direito e n\xE3o uma funcionalidade, e cobrar por isso n\xE3o seria uma decis\xE3o de pre\xE7o. As exporta\xE7\xF5es maiores n\xE3o est\xE3o constru\xEDdas, e esta p\xE1gina di-lo em vez de dar a entender o contr\xE1rio.",
+  "vs.cofounder.axis.consent.heading": "Onde ficam os dados, e em que assenta o contacto",
+  "vs.cofounder.axis.consent.them": "O seu aviso de privacidade nomeia a empresa que a opera e o que recolhe. A documenta\xE7\xE3o \xE9 precisa sobre algo que muitos produtos deixam vago: os valores secretos s\xE3o enviados ao fornecedor de alojamento e n\xE3o ficam guardados do lado da Cofounder. Onde fica o resto dos dados de uma empresa n\xE3o \xE9 indicado nas p\xE1ginas lidas para esta compara\xE7\xE3o, pelo que esta p\xE1gina n\xE3o afirma sab\xEA-lo.",
+  "vs.cofounder.axis.consent.us": "A Orvay \xE9 alojada, por isso temos de responder n\xF3s em vez de o deixar consigo. A base de dados est\xE1 em Zurique. A infer\xEAncia dos modelos n\xE3o acontece na Su\xED\xE7a, e uma frase sobre onde ficam os dados que omita isso n\xE3o vale a pena ler. Quando se recolhem contactos, o fundamento jur\xEDdico \xE9 registado nesse momento em vez de decidido depois, e um clique para parar o email escreve uma retirada no mesmo registo.",
+  "vs.cofounder.axis.hosting.heading": "Quem faz correr o software",
+  "vs.cofounder.axis.hosting.them": "A Cofounder \xE9 alojada, e trata por si das pe\xE7as \xE0 volta do seu produto: uma liga\xE7\xE3o a um reposit\xF3rio, um projeto de alojamento para o ambiente de teste e as superf\xEDcies de marketing, uma base de dados, dom\xEDnios, uma caixa de correio e ficheiros de ambiente. Cada uma \xE9 um servi\xE7o que tamb\xE9m poderia operar sozinho, ligado em vez de substitu\xEDdo, e essa foi a troca que escolheu.",
+  "vs.cofounder.axis.hosting.us": "De um lado ou do outro, ningu\xE9m na sua empresa opera coisa alguma. A diferen\xE7a est\xE1 no que chega j\xE1 ligado: na Orvay isso \xE9 a base de dados, o registo e o encaminhamento entre modelos. A Cofounder liga fornecedores que j\xE1 pode usar; a Orvay det\xE9m os seus pr\xF3prios. \xC9 uma troca e n\xE3o uma vit\xF3ria, e as perguntas acima s\xE3o o que conv\xE9m pesar antes de decidir qual lhe serve.",
+  "vs.cofounder.index.blurb": "Constr\xF3i a empresa \xE0 volta de um produto que fica na sua pr\xF3pria base de c\xF3digo, com uma aprova\xE7\xE3o de teste em cada publica\xE7\xE3o.",
+  "vs.cofounder.credit.heading": "O que a Cofounder faz bem",
+  "vs.cofounder.sources.caveat": "Estas liga\xE7\xF5es levam a material que a Cofounder publica sobre si pr\xF3pria. Lemo-lo e n\xE3o o test\xE1mos, e ningu\xE9m aqui operou o produto deles. Nada nesta p\xE1gina vem da sua p\xE1gina inicial, porque um lema descreve uma empresa e n\xE3o como esta trata o seu trabalho.",
+  "vs.source.cofounder.what": "Documenta\xE7\xE3o da Cofounder sobre o que faz e o que n\xE3o faz",
+  "vs.source.cofounder.deploy": "Documenta\xE7\xE3o da Cofounder sobre como pedir uma publica\xE7\xE3o",
+  "vs.source.cofounder.github": "Documenta\xE7\xE3o da Cofounder sobre a liga\xE7\xE3o gerida ao reposit\xF3rio",
+  "vs.source.cofounder.secrets": "Documenta\xE7\xE3o da Cofounder sobre ficheiros de ambiente e segredos",
+  "vs.source.cofounder.privacy": "Aviso de privacidade da Cofounder",
+  "vs.source.cofounder.pricing": "P\xE1gina de pre\xE7os da Cofounder",
+  "vs.nanocorp.name": "NanoCorp",
+  "vs.nanocorp.title": "Orvay e NanoCorp",
+  "vs.nanocorp.lead": "Ambos gerem uma empresa sem que uma pessoa conduza cada passo, e ambos medem esse trabalho em cr\xE9ditos. A NanoCorp otimiza para o dinheiro que um neg\xF3cio realmente recebe, e paga-lho. Tudo o que aqui se diz foi lido na sua documenta\xE7\xE3o e nas suas p\xE1ginas legais, ligadas no rodap\xE9 com a data em que foram lidas.",
+  "vs.nanocorp.meta.description": "Uma compara\xE7\xE3o com fontes entre a Orvay e a NanoCorp sobre aprova\xE7\xF5es, verifica\xE7\xE3o, portabilidade, localiza\xE7\xE3o dos dados e alojamento. Cada afirma\xE7\xE3o liga a p\xE1gina onde foi lida.",
+  "vs.nanocorp.credit.lead": "Vem primeiro porque \xE9 a parte honesta de qualquer compara\xE7\xE3o, e porque em dois destes pontos prefer\xEDamos n\xE3o ter de reconhecer que s\xE3o melhores.",
+  "vs.nanocorp.credit.dormant": "Quando um per\xEDodo de avalia\xE7\xE3o ou um plano termina, nada \xE9 apagado. O site continua a ser servido no seu pr\xF3prio endere\xE7o, o checkout e o email ficam em pausa, os agentes param, e reabrir o plano restaura tudo em minutos. Um produto que documenta o que para e o que fica, por essa ordem, \xE9 um produto do qual se pode sair e ao qual se pode voltar.",
+  "vs.nanocorp.credit.caps": "A autonomia tem dois indicadores que se podem ler e ajustar: quantas tarefas um neg\xF3cio pode correr por dia, e um teto di\xE1rio de cr\xE9ditos para tudo o que possui. Pausar um neg\xF3cio interrompe de imediato o seu trabalho sem supervis\xE3o. Limitar por contagem e por dinheiro em conjunto \xE9 mais do que a maioria dos produtos oferece.",
+  "vs.nanocorp.credit.payout": "O dinheiro que um neg\xF3cio ganha entra num saldo real e \xE9 levantado para o seu banco atrav\xE9s do processo de ades\xE3o do pr\xF3prio fornecedor de pagamentos, com a taxa e a aritm\xE9tica cambial explicadas passo a passo na p\xE1gina, para uma conta que n\xE3o est\xE1 em d\xF3lares. Mostrar a soma \xE9 melhor do que prometer o resultado.",
+  "vs.nanocorp.axis.approvals.heading": "Aprova\xE7\xF5es desde a conce\xE7\xE3o",
+  "vs.nanocorp.axis.approvals.them": "A NanoCorp limita uma execu\xE7\xE3o por contagem e por dinheiro, e n\xE3o por decis\xE3o. Em neg\xF3cios baseados em tarefas, um n\xEDvel de autonomia define quantas tarefas correm por dia, um teto di\xE1rio de cr\xE9ditos pode limitar todos os neg\xF3cios de uma vez, e pausar um neg\xF3cio interrompe tanto o seu trabalho sem supervis\xE3o como as suas execu\xE7\xF5es manuais. N\xE3o est\xE1 documentado, nas p\xE1ginas lidas para esta compara\xE7\xE3o, nenhum passo de aprova\xE7\xE3o sobre uma a\xE7\xE3o individual.",
+  "vs.nanocorp.axis.approvals.us": "A Orvay limita tamb\xE9m a decis\xE3o. Uma aprova\xE7\xE3o \xE9 um objeto delimitado e n\xE3o um sim: concedida uma vez, permanente, ou limitada por um teto, e guardada nessa forma, porque uma aprova\xE7\xE3o que n\xE3o sabe dizer o que abrangia n\xE3o serve a quem a rel\xEA um ano depois. Cada a\xE7\xE3o passa por uma \xFAnica fun\xE7\xE3o com oito verifica\xE7\xF5es em ordem fixa, e uma empresa parada continua parada mesmo para quem a det\xE9m.",
+  "vs.nanocorp.axis.verification.heading": "Quem pode conferir o trabalho",
+  "vs.nanocorp.axis.verification.them": "As p\xE1ginas lidas para esta compara\xE7\xE3o documentam como testar um checkout sem cobran\xE7a real, e enumeram uma pergunta sobre cr\xE9ditos gastos em tarefas falhadas, o que \xE9 a forma da preocupa\xE7\xE3o e n\xE3o o mecanismo que lhe responde. Como o resultado de uma tarefa \xE9 verificado antes de contar n\xE3o \xE9 ali descrito, pelo que esta p\xE1gina tamb\xE9m n\xE3o o descreve.",
+  "vs.nanocorp.axis.verification.us": "A Orvay sustenta que uma prova produzida por aquilo que executou o trabalho n\xE3o estabelece que o trabalho aconteceu, portanto o que confere tem de ser outra coisa. A Orvay conta ainda quantas vezes uma execu\xE7\xE3o declarou sucesso sem qualquer prova independente por tr\xE1s, e mostra essa propor\xE7\xE3o por cada capacidade, porque um sistema que contasse apenas os seus acertos estaria a corrigir o seu pr\xF3prio exame.",
+  "vs.nanocorp.axis.portability.heading": "Levar o seu trabalho para outro lado",
+  "vs.nanocorp.axis.portability.them": "O c\xF3digo de um neg\xF3cio vive num reposit\xF3rio que a NanoCorp constr\xF3i e mant\xE9m, e nos seus planos superiores \xE9 poss\xEDvel convidar-se a si pr\xF3prio ou a um programador como colaborador e edit\xE1-lo localmente. O painel de alojamento tamb\xE9m \xE9 acess\xEDvel, e \xE9 poss\xEDvel ligar um dom\xEDnio pr\xF3prio. Se a base de dados pode ser exportada \xE9 uma pergunta listada na sua documenta\xE7\xE3o, e a resposta n\xE3o estava nas p\xE1ginas aqui lidas.",
+  "vs.nanocorp.axis.portability.us": "A NanoCorp coloca um colaborador no reposit\xF3rio atr\xE1s de um escal\xE3o de plano; a Orvay ainda n\xE3o entrega o equivalente. Os seus pr\xF3prios dados pessoais podem ser retirados em qualquer plano, incluindo o gratuito, porque \xE9 um direito e n\xE3o uma funcionalidade, e cobrar por isso n\xE3o seria uma decis\xE3o de pre\xE7o. As exporta\xE7\xF5es maiores n\xE3o est\xE3o constru\xEDdas, e esta p\xE1gina di-lo em vez de dar a entender o contr\xE1rio.",
+  "vs.nanocorp.axis.consent.heading": "Onde ficam os dados, e em que assenta o contacto",
+  "vs.nanocorp.axis.consent.them": "O seu aviso de privacidade nomeia a empresa que a opera, indica que os dados pessoais s\xE3o mantidos enquanto a conta est\xE1 ativa ou pelo tempo necess\xE1rio para prestar o servi\xE7o, e que a elimina\xE7\xE3o pode ser pedida. A sua p\xE1gina de levantamentos explica a aritm\xE9tica para uma conta banc\xE1ria europeia, incluindo a taxa de transfer\xEAncia transfronteiri\xE7a para o EEE. Onde ficam os pr\xF3prios dados n\xE3o \xE9 indicado nas p\xE1ginas aqui lidas.",
+  "vs.nanocorp.axis.consent.us": "A Orvay \xE9 alojada, por isso temos de responder n\xF3s em vez de o deixar consigo. A base de dados est\xE1 em Zurique. A infer\xEAncia dos modelos n\xE3o acontece na Su\xED\xE7a, e uma frase sobre onde ficam os dados que omita isso n\xE3o vale a pena ler. Quando se recolhem contactos, o fundamento jur\xEDdico \xE9 registado nesse momento em vez de decidido depois, e um clique para parar o email escreve uma retirada no mesmo registo.",
+  "vs.nanocorp.axis.hosting.heading": "Quem faz correr o software",
+  "vs.nanocorp.axis.hosting.them": "A NanoCorp aloja tudo: um site no seu pr\xF3prio subdom\xEDnio, checkout atrav\xE9s de um fornecedor de pagamentos ligado, email, e agentes que correm segundo um hor\xE1rio. Um per\xEDodo de avalia\xE7\xE3o gratuito n\xE3o pede cart\xE3o, e depois dele a loja fica adormecida em vez de desaparecer. Um plano de reten\xE7\xE3o mant\xE9m a loja aberta sem os agentes, e s\xF3 \xE9 mostrado quando um plano termina.",
+  "vs.nanocorp.axis.hosting.us": "De um lado ou do outro, ningu\xE9m na sua empresa opera coisa alguma. A diferen\xE7a est\xE1 no que o dinheiro paga: a NanoCorp mede o trabalho e ainda fica com uma parte do que um neg\xF3cio levanta; a Orvay mede o trabalho e nada mais. \xC9 uma troca e n\xE3o uma vit\xF3ria, e as perguntas acima s\xE3o o que conv\xE9m pesar antes de decidir qual lhe serve.",
+  "vs.nanocorp.index.blurb": "Alojada de ponta a ponta, limitada por uma contagem di\xE1ria de tarefas e um teto de cr\xE9ditos, e paga ao seu banco o que um neg\xF3cio ganha.",
+  "vs.nanocorp.credit.heading": "O que a NanoCorp faz bem",
+  "vs.nanocorp.sources.caveat": "Estas liga\xE7\xF5es levam a material que a NanoCorp publica sobre si pr\xF3pria. Lemo-lo e n\xE3o o test\xE1mos, e ningu\xE9m aqui operou o produto deles. Nada nesta p\xE1gina vem da sua p\xE1gina inicial, porque um lema descreve uma empresa e n\xE3o como esta trata o seu trabalho.",
+  "vs.source.nanocorp.plans": "Documenta\xE7\xE3o da NanoCorp sobre planos e cr\xE9ditos",
+  "vs.source.nanocorp.github": "Documenta\xE7\xE3o da NanoCorp sobre o acesso ao c\xF3digo no GitHub",
+  "vs.source.nanocorp.withdrawals": "Documenta\xE7\xE3o da NanoCorp sobre levantamentos",
+  "vs.source.nanocorp.billing": "Documenta\xE7\xE3o da NanoCorp sobre fatura\xE7\xE3o, reembolsos e cancelamentos",
+  "vs.source.nanocorp.privacy": "Aviso de privacidade da NanoCorp",
+  "vs.source.nanocorp.pricing": "P\xE1gina de pre\xE7os da NanoCorp",
+  "vs.willo.name": "Willo",
+  "vs.willo.title": "Orvay e Willo",
+  "vs.willo.lead": "Ambos gerem uma empresa atrav\xE9s de uma equipa de agentes e deixam a dire\xE7\xE3o a cargo de uma pessoa. A Willo diz quais s\xE3o os sete pap\xE9is que executa e em que ciclo. Tudo o que aqui se diz foi lido nos seus pr\xF3prios textos e nas suas p\xE1ginas legais, ligados no rodap\xE9 com a data em que foram lidos.",
+  "vs.willo.meta.description": "Uma compara\xE7\xE3o com fontes entre a Orvay e a Willo sobre aprova\xE7\xF5es, verifica\xE7\xE3o, portabilidade, localiza\xE7\xE3o dos dados e alojamento. Cada afirma\xE7\xE3o liga a p\xE1gina onde foi lida.",
+  "vs.willo.credit.lead": "Isto vem primeiro porque \xE9 a parte honesta de qualquer compara\xE7\xE3o, e porque estas tr\xEAs s\xE3o frases que a maioria dos produtos evita escrever.",
+  "vs.willo.credit.ownership": "Os seus termos dizem-no numa frase: mant\xE9m a propriedade de tudo o que cria atrav\xE9s da plataforma, e a lista inclui c\xF3digo, reposit\xF3rios e conte\xFAdo de sites publicados. Uma p\xE1gina legal que nomeia o reposit\xF3rio, e n\xE3o apenas o conte\xFAdo, \xE9 mais rara do que devia ser.",
+  "vs.willo.credit.lifecycle": "O cancelamento est\xE1 documentado como um ciclo de vida e n\xE3o como um precip\xEDcio. Durante trinta dias o site \xE9 substitu\xEDdo por um marcador de posi\xE7\xE3o, a base de dados fica em pausa, e todos os dados, o c\xF3digo-fonte e o conte\xFAdo s\xE3o preservados; renovar a subscri\xE7\xE3o restaura o neg\xF3cio. Dizer o que acontece \xE0 sa\xEDda \xE9 a parte que a maioria dos produtos salta.",
+  "vs.willo.credit.candour": "Os seus termos dizem tamb\xE9m o que n\xE3o \xE9: n\xE3o oferece nenhum servi\xE7o para cumprir requisitos legais, e n\xE3o garante que a sua utiliza\xE7\xE3o satisfa\xE7a algum deles. \xC9 o oposto de um selo, e \xE9 a frase mais \xFAtil.",
+  "vs.willo.axis.approvals.heading": "Aprova\xE7\xF5es desde a conce\xE7\xE3o",
+  "vs.willo.axis.approvals.them": "Os pr\xF3prios textos da Willo s\xE3o expl\xEDcitos: os agentes executam de forma aut\xF3noma e a estrat\xE9gia e a dire\xE7\xE3o continuam a ser suas. Descrevem um ciclo de planear, executar, refletir, em que os agentes planeiam, publicam e depois analisam os resultados para afinar a ronda seguinte. N\xE3o est\xE1 documentado, nas p\xE1ginas lidas para esta compara\xE7\xE3o, nenhum passo de aprova\xE7\xE3o sobre uma a\xE7\xE3o individual; o limite \xE9 a dire\xE7\xE3o que define e os cr\xE9ditos que det\xE9m.",
+  "vs.willo.axis.approvals.us": "A Orvay limita tamb\xE9m a decis\xE3o. Uma aprova\xE7\xE3o \xE9 um objeto delimitado e n\xE3o um sim: concedida uma vez, permanente, ou limitada por um teto, e guardada nessa forma, porque uma aprova\xE7\xE3o que n\xE3o sabe dizer o que abrangia n\xE3o serve a quem a rel\xEA um ano depois. Cada a\xE7\xE3o passa por uma \xFAnica fun\xE7\xE3o com oito verifica\xE7\xF5es em ordem fixa, e uma empresa parada continua parada mesmo para quem a det\xE9m.",
+  "vs.willo.axis.verification.heading": "Quem pode conferir o trabalho",
+  "vs.willo.axis.verification.them": "\xC9 na etapa de reflex\xE3o que a verifica\xE7\xE3o acontece, e s\xE3o os pr\xF3prios agentes a verificarem-se a si mesmos: analisam o tr\xE1fego, as convers\xF5es e os sinais de receita, e alimentam isso no plano seguinte. Nas p\xE1ginas aqui lidas, nada fora da equipa que fez o trabalho confirma que o trabalho chegou a bom porto.",
+  "vs.willo.axis.verification.us": "A Orvay sustenta que uma prova produzida por aquilo que executou o trabalho n\xE3o estabelece que o trabalho aconteceu, portanto o que confere tem de ser outra coisa. A Orvay conta ainda quantas vezes uma execu\xE7\xE3o declarou sucesso sem qualquer prova independente por tr\xE1s, e mostra essa propor\xE7\xE3o por cada capacidade, porque um sistema que contasse apenas os seus acertos estaria a corrigir o seu pr\xF3prio exame.",
+  "vs.willo.axis.portability.heading": "Levar o seu trabalho para outro lado",
+  "vs.willo.axis.portability.them": "O site \xE9 constru\xEDdo e publicado com controlo de vers\xF5es no GitHub e num alojamento na nuvem, os pagamentos correm atrav\xE9s de um fornecedor de pagamentos ligado, e os termos declaram que o c\xF3digo e os reposit\xF3rios lhe pertencem. O que as p\xE1ginas aqui lidas n\xE3o descrevem \xE9 a exporta\xE7\xE3o em si: como retirar o reposit\xF3rio ou a base de dados, e se isso exige um determinado escal\xE3o de plano.",
+  "vs.willo.axis.portability.us": "A Willo coloca a propriedade nos seus termos; a Orvay entrega a exporta\xE7\xE3o pessoal e ainda n\xE3o as maiores. Os seus pr\xF3prios dados pessoais podem ser retirados em qualquer plano, incluindo o gratuito, porque \xE9 um direito e n\xE3o uma funcionalidade, e cobrar por isso n\xE3o seria uma decis\xE3o de pre\xE7o. As exporta\xE7\xF5es maiores n\xE3o est\xE3o constru\xEDdas, e esta p\xE1gina di-lo em vez de dar a entender o contr\xE1rio.",
+  "vs.willo.axis.consent.heading": "Onde ficam os dados, e em que assenta o contacto",
+  "vs.willo.axis.consent.them": "A Willo publica um aviso de privacidade, uma pol\xEDtica de utiliza\xE7\xE3o aceit\xE1vel e, o que \xE9 invulgar, uma pol\xEDtica de utiliza\xE7\xE3o e divulga\xE7\xE3o de IA a acompanh\xE1-los. Os seus termos indicam que cumprir a lei de prote\xE7\xE3o de dados \xE9 responsabilidade sua e n\xE3o um servi\xE7o que a Willo presta. Onde ficam os dados n\xE3o \xE9 indicado nas p\xE1ginas lidas para esta compara\xE7\xE3o.",
+  "vs.willo.axis.consent.us": "A Orvay \xE9 alojada, por isso temos de responder n\xF3s em vez de o deixar consigo. A base de dados est\xE1 em Zurique. A infer\xEAncia dos modelos n\xE3o acontece na Su\xED\xE7a, e uma frase sobre onde ficam os dados que omita isso n\xE3o vale a pena ler. Quando se recolhem contactos, o fundamento jur\xEDdico \xE9 registado nesse momento em vez de decidido depois, e um clique para parar o email escreve uma retirada no mesmo registo.",
+  "vs.willo.axis.hosting.heading": "Quem faz correr o software",
+  "vs.willo.axis.hosting.them": "A Willo aloja tudo: um site num subdom\xEDnio com dom\xEDnios pr\xF3prios nos planos superiores, um backend aprovisionado com base de dados, autentica\xE7\xE3o e interfaces, processamento de pagamentos e email transacional. O plano gratuito traz cr\xE9ditos para experimentar a\xE7\xF5es pagas mas sem backend aprovisionado e sem execu\xE7\xE3o sem supervis\xE3o, e a computa\xE7\xE3o do backend \xE9 medida pela utiliza\xE7\xE3o ativa enquanto o tempo parado nada custa.",
+  "vs.willo.axis.hosting.us": "De um lado ou do outro, ningu\xE9m na sua empresa opera coisa alguma. A diferen\xE7a est\xE1 no que chega j\xE1 ligado: na Orvay isso \xE9 a base de dados, o registo e o encaminhamento entre modelos, e n\xE3o uma montra de loja. \xC9 uma troca e n\xE3o uma vit\xF3ria, e as perguntas acima s\xE3o o que conv\xE9m pesar antes de decidir qual lhe serve.",
+  "vs.willo.index.blurb": "Sete agentes nomeados num ciclo de planear, executar, refletir, com a propriedade do c\xF3digo e dos reposit\xF3rios escrita nos seus termos.",
+  "vs.willo.credit.heading": "O que a Willo faz bem",
+  "vs.willo.sources.caveat": "Estas liga\xE7\xF5es levam a material que a Willo publica sobre si pr\xF3pria. Lemo-lo e n\xE3o o test\xE1mos, e ningu\xE9m aqui operou o produto deles. Nada nesta p\xE1gina vem da sua p\xE1gina inicial, porque um lema descreve uma empresa e n\xE3o como esta trata o seu trabalho.",
+  "vs.source.willo.how": "A Willo sobre o que \xE9 e como funciona",
+  "vs.source.willo.team": "A Willo sobre os sete agentes e o ciclo que executam",
+  "vs.source.willo.pricing": "P\xE1gina de pre\xE7os da Willo",
+  "vs.source.willo.billing": "Pol\xEDtica de fatura\xE7\xE3o e reembolso da Willo",
+  "vs.source.willo.terms": "Termos de servi\xE7o da Willo",
+  "vs.source.willo.privacy": "Aviso de privacidade da Willo",
   "waitlist.buildLog": "Enviem-me tamb\xE9m o registo de constru\xE7\xE3o mensal: o que foi constru\xEDdo, o que falhou e o que foi verificado. Uma escolha separada, e pode interromp\xEA-la sem sair da lista de espera.",
   "waitlist.next.heading": "Enquanto espera",
   "waitlist.next.docs": "Leia como os oito port\xF5es decidem",
@@ -15122,7 +18010,68 @@ var pt_default = {
   "onboarding.company.domain.fail-invalid": "Isto n\xE3o parece um nome de anfitri\xE3o. Algo como acme.com.",
   "onboarding.company.domain.fail-unreachable": "O site n\xE3o respondeu. Escreva o nome abaixo e continue: uma p\xE1gina inicial inacess\xEDvel n\xE3o \xE9 motivo para parar.",
   "onboarding.company.domain.fail-no-session": "A sua sess\xE3o expirou enquanto o site estava a ser lido. Inicie a sess\xE3o novamente e o processo continua aqui.",
-  "onboarding.company.domain.fetched": "Lido em {host} agora mesmo. Foi um pedido real a um servidor real, e \xE9 por isso que est\xE1 marcado como Real."
+  "onboarding.company.domain.fetched": "Lido em {host} agora mesmo. Foi um pedido real a um servidor real, e \xE9 por isso que est\xE1 marcado como Real.",
+  "team.remove.heading": "Remover algu\xE9m",
+  "team.remove.lead": "Uma pessoa removida deixa de poder abrir esta empresa. O lugar dela fica livre para outra pessoa, todas as suas chaves de API s\xE3o revogadas de forma permanente, e cada decis\xE3o que tomou permanece no registo em nome dela.",
+  "team.remove.no-grant": "N\xE3o tem autoridade para remover ningu\xE9m desta empresa. Um propriet\xE1rio pode faz\xEA-lo.",
+  "team.remove.nobody": "N\xE3o h\xE1 aqui ningu\xE9m para remover. N\xE3o pode remover o seu pr\xF3prio lugar, e quem j\xE1 foi removido n\xE3o pode ser removido duas vezes.",
+  "team.remove.who.label": "Quem remover",
+  "team.remove.who.hint": "Aqui s\xE3o oferecidos todos. Quem tem mais autoridade do que si, ou a \xFAltima pessoa que pode fazer tudo, \xE9 recusado com um motivo em vez de ficar escondido.",
+  "team.remove.confirm.label": "Sim, remover {name} desta empresa. Todas as suas chaves de API s\xE3o revogadas de forma permanente.",
+  "team.remove.submit": "Remover da empresa",
+  "team.remove.submitting": "A remover",
+  "team.remove.busy": "Esta remo\xE7\xE3o est\xE1 a ser registada.",
+  "team.remove.error.title": "N\xE3o foi removido ningu\xE9m",
+  "team.remove.ok.title": "Conclu\xEDdo",
+  "team.remove.audit": "Cada remo\xE7\xE3o fica registada no historial, com o lugar, quem a decidiu e quantas chaves de API foram com a pessoa.",
+  "team.remove.error.unconfirmed": "Marque a caixa para confirmar quem est\xE1 a remover. N\xE3o foi removido ningu\xE9m.",
+  "team.remove.error.halted": "Esta empresa est\xE1 parada, e uma paragem abrange todas as altera\xE7\xF5es, incluindo esta. Levante a paragem no cabe\xE7alho e remova a pessoa depois.",
+  "team.remove.error.gate": "Recusado no port\xE3o {gate}: {reason}",
+  "team.remove.error.signedOut": "N\xE3o tem sess\xE3o iniciada.",
+  "team.remove.error.self": "Ningu\xE9m pode remover o seu pr\xF3prio lugar, nem um propriet\xE1rio. Pe\xE7a a outro membro que tenha esta autoridade.",
+  "team.remove.error.notMember": "N\xE3o \xE9 membro desta empresa.",
+  "team.remove.error.beyondYourRole": "Tem autoridade que o pr\xF3prio n\xE3o tem, por isso n\xE3o lhe cabe remov\xEA-la. Um propriet\xE1rio pode faz\xEA-lo.",
+  "team.remove.error.lastOwner": "\xC9 a \xFAltima pessoa que aqui pode fazer tudo. D\xEA essa autoridade a outra pessoa primeiro e remova-a depois.",
+  "team.remove.ok.done": "{name} j\xE1 n\xE3o faz parte desta empresa. Deixa de poder abri-la, e o lugar fica livre.",
+  "team.remove.ok.already": "{name} j\xE1 n\xE3o fazia parte desta empresa, por isso nada mudou.",
+  "team.roles.error.last-owner": "\xC9 a \xFAltima pessoa que aqui pode fazer tudo, e esta altera\xE7\xE3o tirar-lhe-ia isso. D\xEA essa autoridade a outra pessoa primeiro.",
+  "team.remove.ok.keys": {
+    one: "Uma chave de API foi revogada e n\xE3o pode ser reposta.",
+    many: "{count} chaves de API foram revogadas e n\xE3o podem ser repostas.",
+    other: "{count} chaves de API foram revogadas e n\xE3o podem ser repostas."
+  },
+  "team.remove.noscript.title": "Remover algu\xE9m precisa de JavaScript",
+  "team.remove.noscript.body": "A lista de pessoas \xE9 desenhada pelo seu navegador: sem scripts seria um controlo que n\xE3o faz nada. Ative os scripts nesta p\xE1gina para remover algu\xE9m.",
+  // MCP tool descriptions. The four state words are literal argument values.
+  "mcp.tool.orvay_company_status": "O que \xE9 esta empresa e se est\xE1 suspensa.",
+  "mcp.tool.orvay_list_capabilities": "As capacidades que esta empresa concede e as que esta chave det\xE9m.",
+  "mcp.tool.orvay_list_contracts": "Trabalho proposto, do mais recente para o mais antigo. Filtra por estado: open, approved, refused ou run.",
+  "mcp.tool.orvay_get_contract": "Um contrato, pelo seu hash de 64 caracteres.",
+  "mcp.tool.orvay_list_decisions": "O que aguarda uma pessoa. As decis\xF5es abertas, salvo se pedir outro estado.",
+  "mcp.tool.orvay_list_runs": "As execu\xE7\xF5es registadas para um contrato.",
+  "mcp.tool.orvay_get_evidence": "As provas que uma execu\xE7\xE3o produziu, cada uma com a sua origem.",
+  "mcp.tool.orvay_propose_contract": "Propor trabalho para um objetivo. Passa os controlos antes de acontecer seja o que for.",
+  "mcp.tool.orvay_approve_decision": "Aprovar um contrato. \xC9 exigido um motivo e fica registado.",
+  "mcp.tool.orvay_reject_decision": "Recusar um contrato. \xC9 exigido um motivo e fica registado.",
+  // API keys. A key is a credential a person creates for a program; the token
+  // is shown exactly once because only its hash is stored.
+  "settings.keys.title": "Chaves de API",
+  "settings.keys.lead": "Uma chave permite que um programa aja em seu nome, e nunca mais do que voc\xEA pr\xF3prio pode fazer.",
+  "settings.keys.create.heading": "Criar uma chave",
+  "settings.keys.create.name.label": "Para que serve",
+  "settings.keys.create.scope.label": "O que pode fazer",
+  "settings.keys.create.scope.read": "Apenas leitura",
+  "settings.keys.create.scope.full": "Tudo o que pode fazer",
+  "settings.keys.create.submit": "Criar chave",
+  "settings.keys.shown-once": "Copie agora. \xC9 a \xFAnica vez que \xE9 mostrada, porque s\xF3 a sua impress\xE3o digital \xE9 guardada.",
+  "settings.keys.list.heading": "As suas chaves",
+  "settings.keys.list.empty": "Ainda n\xE3o h\xE1 chaves. Um programa precisa de uma para alcan\xE7ar a sua empresa.",
+  "settings.keys.list.never-used": "nunca usada",
+  "settings.keys.list.revoked": "revogada",
+  "settings.keys.revoke.submit": "Revogar",
+  "settings.keys.create.pending": "A criar a chave",
+  "settings.keys.error.empty": "Uma chave sem permiss\xF5es autenticava-se e n\xE3o fazia nada.",
+  "settings.keys.error.exceeds": "Uma chave n\xE3o pode fazer mais do que voc\xEA. Pe\xE7a primeiro a permiss\xE3o para si."
 };
 
 // ../../packages/content/src/messages/pt.legal.ts
@@ -15508,18 +18457,73 @@ var pt_legal_default = {
   "legal.terms.acceptable-use.p2": "Duas verifica\xE7\xF5es fazem cumprir a linha acima, e vale a pena saber exatamente quais s\xE3o para que n\xE3o as confunda com mais do que s\xE3o. O nome e o endere\xE7o web que nos d\xE1 s\xE3o comparados com uma lista curta de termos durante a configura\xE7\xE3o, antes de irmos buscar seja o que for. Em separado, um agente recusa-se a trabalhar num objetivo que pe\xE7a uma destas coisas. Nenhuma delas \xE9 uma revis\xE3o de tudo o que faz, nenhuma l\xEA os seus dados, e nenhuma substitui saber o que est\xE1 a executar."
 };
 
+// ../../packages/content/src/messages/pt.blog.ts
+var catalogue5 = {
+  "blog.title": "Blog",
+  "blog.kicker": "Textos",
+  "blog.lead": "Como pensamos as empresas dirigidas por pessoas e agentes em conjunto, e o que estamos construindo para elas.",
+  "blog.meta.description": "Ensaios e notas da Orvay sobre empresas dirigidas por pessoas e agentes em conjunto: o que conta como prova, como o trabalho \xE9 admitido e para que serve um registro.",
+  "blog.category.thinking": "Reflex\xE3o",
+  "blog.category.product": "Produto",
+  "blog.category.company": "Empresa",
+  "blog.read-time": "{minutes} min de leitura",
+  "blog.contents": "Conte\xFAdo",
+  "blog.introduction": "Introdu\xE7\xE3o",
+  "blog.published": "Publicado",
+  "blog.back": "Todos os artigos",
+  "blog.next.heading": "D\xEA um objetivo \xE0 sua empresa",
+  "blog.next.lead": "A Orvay abre devagar, para empresas que querem confiar trabalho real a agentes e ainda poder responder por ele.",
+  "blog.next.cta": "Entrar na lista de espera",
+  "blog.reading-time": "Tempo de leitura",
+  "blog.tab.all": "Todos",
+  "blog.tabs.label": "Categorias",
+  "blog.empty": "Ainda n\xE3o h\xE1 artigos nesta categoria.",
+  "blog.similar": "Artigos semelhantes",
+  "blog.pagination.label": "P\xE1ginas",
+  "blog.pagination.page": "P\xE1gina {n}",
+  "blog.pagination.next": "Pr\xF3xima p\xE1gina",
+  "blog.pagination.previous": "P\xE1gina anterior",
+  "blog.done-is-not-proof.title": "Um agente dizer \u201Cfeito\u201D n\xE3o \xE9 prova",
+  "blog.done-is-not-proof.lead": "Por que a Orvay trata cada tarefa conclu\xEDda como uma afirma\xE7\xE3o, e o que \xE9 preciso para transformar uma afirma\xE7\xE3o em um registro no qual uma empresa possa confiar.",
+  "blog.done-is-not-proof.description": "Todo agente termina seu trabalho com uma mensagem que diz \u201Cfeito\u201D. Uma empresa n\xE3o pode funcionar com essa mensagem. \xC9 assim que a Orvay separa a afirma\xE7\xE3o da prova.",
+  "blog.done-is-not-proof.cover-alt": "Um campo de cor quente que se dissolve em azul, atravessado por linhas finas que se curvam ao redor do seu centro.",
+  "blog.done-is-not-proof.introduction.p1": "Toda ferramenta que executa um agente termina do mesmo jeito. Chega uma mensagem dizendo que o trabalho est\xE1 feito. Segue um resumo, quase sempre confiante, \xE0s vezes com a lista do que mudou. Ent\xE3o uma pessoa decide se acredita.",
+  "blog.done-is-not-proof.introduction.p2": "Essa decis\xE3o \xE9 o problema inteiro. Uma empresa n\xE3o funciona com mensagens que dizem \u201Cfeito\u201D. Funciona com coisas que est\xE3o feitas, e com a capacidade de mostrar que est\xE3o. A Orvay \xE9 constru\xEDda sobre a diferen\xE7a entre as duas.",
+  "blog.done-is-not-proof.a-claim.heading": "Feito \xE9 uma afirma\xE7\xE3o",
+  "blog.done-is-not-proof.a-claim.p1": "Quando um modelo relata que terminou uma tarefa, ele descreve o pr\xF3prio trabalho de dentro. N\xE3o tem como saber se a implanta\xE7\xE3o que iniciou est\xE1 servindo tr\xE1fego, se o e-mail que redigiu foi entregue, ou se o registro que escreveu \xE9 o que uma colega vai ler amanh\xE3. Ele sabe o que pretendia e o que viu. Isso n\xE3o \xE9 a mesma coisa que o que aconteceu.",
+  "blog.done-is-not-proof.a-claim.p2": "Isso n\xE3o \xE9 uma falha de um modelo em particular. \xC9 a posi\xE7\xE3o de qualquer ator a quem se pede que avalie o pr\xF3prio trabalho. Uma pessoa que publica uma mudan\xE7a e confirma que ela chegou lendo a pr\xF3pria mensagem de commit fez a mesma coisa. Escrevemos a regra no produto porque n\xF3s mesmos n\xE3o par\xE1vamos de quebr\xE1-la.",
+  "blog.done-is-not-proof.evidence.heading": "O que conta como prova",
+  "blog.done-is-not-proof.evidence.p1": "A Orvay \xE9 constru\xEDda para que o ator que faz o trabalho nunca seja o ator que o verifica. Quem prop\xF5e n\xE3o verifica. A verifica\xE7\xE3o cabe a algo que n\xE3o teve parte no trabalho, e o tipo de prova importa mais do que quem a recolheu.",
+  "blog.done-is-not-proof.evidence.item1": "Um c\xF3digo de sa\xEDda do comando que rodou, n\xE3o uma frase dizendo que deu certo.",
+  "blog.done-is-not-proof.evidence.item2": "Uma resposta HTTP do servi\xE7o chamado, lida depois da chamada e n\xE3o antes.",
+  "blog.done-is-not-proof.evidence.item3": "Uma linha no banco de dados, relida em uma conex\xE3o pr\xF3pria.",
+  "blog.done-is-not-proof.evidence.item4": "Um hash do artefato, para que um leitor posterior possa saber se ele mudou.",
+  "blog.done-is-not-proof.evidence.p2": "Um segundo modelo pode revisar o trabalho de um primeiro, e \xE0s vezes essa \xE9 a \xFAnica verifica\xE7\xE3o dispon\xEDvel. Mas dois modelos podem errar do mesmo jeito, por isso o registro anota que a verifica\xE7\xE3o veio de um modelo e nunca trata isso, por si s\xF3, como prova. Prova \xE9 o tipo de evid\xEAncia que uma pessoa poderia executar de novo.",
+  "blog.done-is-not-proof.one-gate.heading": "Um s\xF3 port\xE3o, e nada que o contorne",
+  "blog.done-is-not-proof.one-gate.p1": "Toda a\xE7\xE3o que um agente realiza dentro da Orvay passa pelo mesmo port\xE3o. Ele verifica quem pede, por qual empresa age, se essa empresa est\xE1 parada, o que o plano dela permite, o que o ator est\xE1 autorizado a fazer, se a pessoa do outro lado consentiu, o que diz a pol\xEDtica da empresa e se ainda h\xE1 dinheiro para gastar. Nessa ordem, todas as vezes.",
+  "blog.done-is-not-proof.one-gate.quote": "Uma aprova\xE7\xE3o nunca \xE9 uma caixa marcada. \xC9 um objeto com um escopo, um titular e um limite: esta a\xE7\xE3o, este n\xFAmero de vezes, at\xE9 esta data.",
+  "blog.done-is-not-proof.one-gate.p2": "Quando a resposta \xE9 n\xE3o, o registro diz qual verifica\xE7\xE3o disse n\xE3o e por qu\xEA. Quando a resposta \xE9 sim, o registro diz quem permitiu e por quanto tempo essa permiss\xE3o vale.",
+  "blog.done-is-not-proof.the-record.heading": "O registro \xE9 o produto",
+  "blog.done-is-not-proof.the-record.p1": "Cada contrato que um agente prop\xF5e \xE9 escrito uma vez e nunca editado. Uma mudan\xE7a \xE9 um contrato novo que aponta para o que substitui. Cada tentativa de execut\xE1-lo \xE9 uma execu\xE7\xE3o pr\xF3pria, e uma nova tentativa \xE9 uma execu\xE7\xE3o nova, n\xE3o uma reescrita. Cada prova carrega um hash e diz se veio de um sistema real ou de uma simula\xE7\xE3o.",
+  "blog.done-is-not-proof.the-record.p2": "O resultado \xE9 uma cadeia que uma empresa pode ler um ano depois e na qual ainda pode confiar. N\xE3o porque os agentes eram confi\xE1veis, mas porque o registro n\xE3o depende de que eles sejam confi\xE1veis.",
+  "blog.done-is-not-proof.where-this-goes.heading": "Aonde isso leva",
+  "blog.done-is-not-proof.where-this-goes.p1": "A Orvay abre devagar, para empresas que querem confiar trabalho real a agentes e ainda poder responder por ele. Se essa \xE9 a sua empresa, a lista de espera \xE9 a porta. Preferimos poucas empresas capazes de verificar o que dizemos a muitas que acreditam na nossa palavra."
+};
+var pt_blog_default = catalogue5;
+
 // ../../packages/content/src/messages/catalogues.ts
-var SOURCE_CATALOGUE = { ...PRODUCT_SOURCE, ...LEGAL_SOURCE };
+var SOURCE_CATALOGUE = { ...PRODUCT_SOURCE, ...LEGAL_SOURCE, ...BLOG_SOURCE };
 var PRODUCT_BY = "anthropic/haiku-4.5";
 var LEGAL_BY = "anthropic/sonnet-5";
-var BOTH_BY = `${PRODUCT_BY} + ${LEGAL_BY}`;
+var BLOG_BY = "anthropic/fable-5.1";
+var BOTH_BY = `${PRODUCT_BY} + ${LEGAL_BY} + ${BLOG_BY}`;
 var CATALOGUES = {
   en: { messages: SOURCE_CATALOGUE, review: "source", by: "authored" },
-  de: { messages: { ...de_default, ...de_legal_default }, review: "machine", by: BOTH_BY },
-  fr: { messages: { ...fr_default, ...fr_legal_default }, review: "machine", by: BOTH_BY },
-  it: { messages: { ...it_default, ...it_legal_default }, review: "machine", by: BOTH_BY },
-  es: { messages: { ...es_default, ...es_legal_default }, review: "machine", by: BOTH_BY },
-  pt: { messages: { ...pt_default, ...pt_legal_default }, review: "machine", by: BOTH_BY }
+  de: { messages: { ...de_default, ...de_legal_default, ...de_blog_default }, review: "machine", by: BOTH_BY },
+  fr: { messages: { ...fr_default, ...fr_legal_default, ...fr_blog_default }, review: "machine", by: BOTH_BY },
+  it: { messages: { ...it_default, ...it_legal_default, ...it_blog_default }, review: "machine", by: BOTH_BY },
+  es: { messages: { ...es_default, ...es_legal_default, ...es_blog_default }, review: "machine", by: BOTH_BY },
+  pt: { messages: { ...pt_default, ...pt_legal_default, ...pt_blog_default }, review: "machine", by: BOTH_BY }
 };
 
 // ../../packages/content/src/index.ts
@@ -15756,6 +18760,11 @@ var REASON_TEXT = {
   "body-marker-missing": "the page did not contain its expected content",
   "probe-errored": "our own check could not run, so this says nothing about the service",
   challenged: "a bot filter stopped our own check before it reached the service, so this says nothing about whether the service is working",
+  // Worded like `challenged` rather than like a failure, because it is the same
+  // kind of event: our own check was turned away before it reached the thing it
+  // measures. A reader must not take this for an outage, so the sentence says
+  // what it says nothing about before it says anything else.
+  "probe-unauthorized": "our own check was not allowed in, so this says nothing about whether the service is working",
   "artifact-unreachable": "we could not read our own internal report",
   "artifact-malformed": "our own internal report was not readable",
   stale: "the last measurement is too old to rely on"
@@ -15796,10 +18805,10 @@ var historyBar = (series, endDay, label, notes, component) => {
     )}</span>${note === void 0 ? "" : `<span class="tip-note">${esc(note)}</span>`}</span></span>`;
   }).join("");
   const stats = statsFor(series);
-  const scale = stats.recorded === 0 ? "No history yet" : stats.recorded === 1 ? "1 day recorded" : `${stats.recorded} days recorded`;
+  const scale2 = stats.recorded === 0 ? "No history yet" : stats.recorded === 1 ? "1 day recorded" : `${stats.recorded} days recorded`;
   return `<div class="bar-wrap">
-          <div class="bar" role="img" aria-label="${esc(`${label}: history for the last ${series.length} days. ${scale}.`)}">${cells}</div>
-          <div class="bar-scale"><span>${series.length} days ago</span><span class="bar-count">${esc(scale)}</span><span>Today</span></div>
+          <div class="bar" role="img" aria-label="${esc(`${label}: history for the last ${series.length} days. ${scale2}.`)}">${cells}</div>
+          <div class="bar-scale"><span>${series.length} days ago</span><span class="bar-count">${esc(scale2)}</span><span>Today</span></div>
         </div>`;
 };
 var methodNote = (display) => {
@@ -15827,7 +18836,24 @@ var renderPage = (input) => {
   }
   const overall = overallFrom([...displays.values()]);
   const headline = overall.kind === "known" ? overall.level === "operational" ? "Everything we measure is working" : "Something we measure is not working" : "We cannot currently tell you the state of the service";
-  const caveat = overall.kind === "known" && !overall.complete ? `${overall.measured} of ${COMPONENTS.length} components are checked from outside our network.${overall.unknown > 0 ? ` ${overall.unknown} could not be checked just now.` : ""} The other ${overall.notMeasured} are not watched yet, and each one says so.` : overall.kind === "unknown" ? "Nothing we watch reported successfully on the last run, which usually means our own checker failed rather than that everything is down." : `All ${overall.measured} measured components are healthy.`;
+  const caveat = overall.kind === "known" && !overall.complete ? `${overall.measured} of ${COMPONENTS.length} components are checked from outside our network.${overall.unknown > 0 ? ` ${overall.unknown} could not be checked just now.` : ""} The other ${overall.notMeasured} are not watched yet, and each one says so.` : overall.kind === "unknown" ? "Nothing we watch reported successfully on the last run, which usually means our own checker failed rather than that everything is down." : (
+    /*
+                 COMPLETE IS NOT THE SAME AS HEALTHY, and this branch said it was.
+    
+                 It had never rendered. `complete` requires nothing unknown AND
+                 nothing unmeasured, and ten rows carried `notMeasuredWhy` for the
+                 whole life of this page, so every run took one of the two branches
+                 above. The first run with all eighteen rows measured printed "All 18
+                 measured components are healthy" directly underneath the headline
+                 "Something we measure is not working", with two components in major
+                 outage and one degraded.
+    
+                 §11a's exact shape: prose that is wrong about behaviour which still
+                 exists under the same name. The sentence was correct when nothing
+                 could reach it.
+              */
+    overall.impaired === 0 ? `All ${overall.measured} components are checked from outside our network, and every one of them is healthy.` : `All ${overall.measured} components are checked from outside our network. ${overall.impaired} of them ${overall.impaired === 1 ? "is" : "are"} not healthy right now.`
+  );
   const groups = GROUPS.map((group) => {
     const rows = COMPONENTS.filter((c) => c.group === group.id).map((spec) => {
       const display = displays.get(spec.id);
@@ -16278,16 +19304,16 @@ var stateOf = (display) => {
   }
 };
 var EMPTY_HISTORY = { schema: 1, entries: [] };
-var isRecord2 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+var isRecord3 = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 var readHistory = (raw) => {
   if (raw === void 0) return EMPTY_HISTORY;
   try {
     const parsed = JSON.parse(raw);
-    if (!isRecord2(parsed) || parsed["schema"] !== 1) return EMPTY_HISTORY;
+    if (!isRecord3(parsed) || parsed["schema"] !== 1) return EMPTY_HISTORY;
     const entries = parsed["entries"];
     if (!Array.isArray(entries)) return EMPTY_HISTORY;
     const clean = entries.filter(
-      (e) => isRecord2(e) && typeof e["at"] === "number" && typeof e["component"] === "string" && typeof e["label"] === "string" && typeof e["from"] === "string" && typeof e["to"] === "string"
+      (e) => isRecord3(e) && typeof e["at"] === "number" && typeof e["component"] === "string" && typeof e["label"] === "string" && typeof e["from"] === "string" && typeof e["to"] === "string"
     );
     return { schema: 1, entries: clean };
   } catch {
@@ -16409,7 +19435,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "2b448559" : "unknown";
+var sourceCommit = true ? "f0fff41b" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var M="/summary.json";var p=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),1e4);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,b=0,w=()=>Date.now()+b,S=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(b=n-Date.now())},c,u=!1,m=()=>document.getElementById("live"),A=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},h=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),R=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},I=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},_=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},L=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=A();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${R(w()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=2?"unreachable":o!==null&&w()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},x=async()=>{let o=await p("/",{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=h(t),l=I(t),s=document.importNode(n,!0);t.replaceWith(s),_(s,l),L(r,h(s))},E=async()=>{if(!u){u=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await p(M,{cache:"no-store",headers:o});if(S(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===A()){i=n;return}await x(),i=n}catch{a+=1}finally{u=!1,g()}}},v=()=>{c!==void 0&&(clearInterval(c),c=void 0)},f=()=>{v(),g(),E(),c=window.setInterval(()=>{E()},3e4)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?v():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
@@ -16490,7 +19516,8 @@ var main = async (outDir, options = {}) => {
         () => performance.now(),
         void 0,
         options.probeSecret,
-        previousSlow.has(target.url)
+        previousSlow.has(target.url),
+        options.probeKey
       );
       perTarget.set(target.url, reading);
     })
@@ -16682,6 +19709,7 @@ if (outArg !== void 0 && !outArg.startsWith("--")) {
   await main(resolve(outArg), {
     announceFile: flag("announce"),
     probeSecret: flag("probe-secret"),
+    probeKey: flag("probe-key"),
     fallbacks: fallbacks()
   });
 }
