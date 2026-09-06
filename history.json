@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1788674057523,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "operational",
+      "to": "major-outage"
+    },
+    {
+      "at": 1788674057523,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "major-outage"
+    },
+    {
+      "at": 1788674057523,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "major-outage"
+    },
+    {
       "at": 1788595590458,
       "component": "agent-runs",
       "label": "Agent runs",

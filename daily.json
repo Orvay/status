@@ -292,7 +292,7 @@
       "documentation": "operational",
       "agent-runs": "operational",
       "in-app-notifications": "operational",
-      "independent-verification": "operational",
+      "independent-verification": "major-outage",
       "webhook-delivery": "operational",
       "scheduled-work": "operational",
       "evidence-archive": "operational",
@@ -300,8 +300,8 @@
       "email-notifications": "operational",
       "inbound-mail": "operational",
       "voice-mode": "operational",
-      "mailbox": "operational",
-      "repository-changes": "operational"
+      "mailbox": "major-outage",
+      "repository-changes": "major-outage"
     }
   }
 }
