@@ -3105,7 +3105,13 @@ ul.incidents { list-style: none; margin: 0; padding: 0; }
 
 /* One block per phase, so the drawing says what happened and for how long. */
 .timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); position: relative; }
-.phase { border-radius: 2px; position: relative; display: flex; min-width: 6px; }
+/* STATIC, and this one is easy to get wrong: it was `relative`, and a positioned
+   phase becomes the containing block for the tooltip inside it. The clamp then
+   measures 100% as the width of one PHASE rather than of the whole timeline, so
+   a narrow phase at the end of an incident threw its tooltip 242px past the card.
+   Caught by measuring the incident page rather than by reading this file. The
+   timeline is the only positioned ancestor a zone tooltip may have. */
+.phase { border-radius: 2px; position: static; display: flex; min-width: 6px; }
 /* Transparent, contiguous hover zones inside the block. They are what makes the
    tooltip appear under the cursor instead of at the left edge of a block that
    can span the whole card, and they are invisible: the block is the drawing. */
