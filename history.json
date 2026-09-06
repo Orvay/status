@@ -27,21 +27,24 @@
       "component": "independent-verification",
       "label": "Independent verification",
       "from": "operational",
-      "to": "major-outage"
+      "to": "major-outage",
+      "correction": "Our check timed out and called the database unreachable. Other checks read it in the same run, so it was not. A read that does not finish now reads as slow rather than as an outage."
     },
     {
       "at": 1788674057523,
       "component": "mailbox",
       "label": "Connected mailbox",
       "from": "operational",
-      "to": "major-outage"
+      "to": "major-outage",
+      "correction": "Our check timed out and called the database unreachable. Other checks read it in the same run, so it was not. A read that does not finish now reads as slow rather than as an outage."
     },
     {
       "at": 1788674057523,
       "component": "repository-changes",
       "label": "Repository changes",
       "from": "operational",
-      "to": "major-outage"
+      "to": "major-outage",
+      "correction": "Our check timed out and called the database unreachable. Other checks read it in the same run, so it was not. A read that does not finish now reads as slow rather than as an outage."
     },
     {
       "at": 1788595590458,
@@ -140,7 +143,7 @@
       "label": "Company control plane",
       "from": "operational",
       "to": "partial-outage",
-      "correction": "Our own check was wrong, not the app. The app improved: it started refusing signed-out visitors with a proper redirect instead of a page that bounced them a second later. Our check was still looking for the old behaviour and called the improvement a partial outage. Fixed in the prober the same day."
+      "correction": "Our check was wrong, not the app. The app improved how it turns signed-out visitors away, and the check was still looking for the old behaviour. Fixed the same day."
     },
     {
       "at": 1787241953270,
@@ -155,7 +158,7 @@
       "label": "Public website",
       "from": "operational",
       "to": "partial-outage",
-      "correction": "Our own check looked for a sentence that had been rewritten on the site. The page was serving normally in about a quarter of a second. The check now looks for something the page structure carries rather than something a writer edits."
+      "correction": "Our check looked for a sentence that had since been rewritten. The page was serving normally throughout. The check now reads page structure instead of copy."
     },
     {
       "at": 1787232442801,
@@ -184,7 +187,7 @@
       "label": "Published websites",
       "from": "partial-outage",
       "to": "unknown",
-      "correction": "The same bot filter, once the prober learned to recognise it. This entry records our check becoming honest about being blocked, not a change in the service."
+      "correction": "The same bot filter, once the check learned to recognise it. This records our check becoming honest about being blocked, not a change in the service."
     },
     {
       "at": 1787115089486,
@@ -192,7 +195,7 @@
       "label": "Published websites",
       "from": "operational",
       "to": "partial-outage",
-      "correction": "Our own check was stopped by a bot filter in front of the sites, and graded that as the sites being broken. Every published website was serving normally throughout."
+      "correction": "A bot filter in front of the sites blocked our check, and it graded being blocked as the sites being broken. Every published website was serving normally."
     },
     {
       "at": 1787087533380,
@@ -200,7 +203,7 @@
       "label": "Website studio",
       "from": "partial-outage",
       "to": "operational",
-      "correction": "Our own check was wrong, not the studio. It expected the page to refuse an unauthenticated visitor and the page correctly served one, so the check called a working page a partial outage. Fixed in the prober the same day."
+      "correction": "Our check was wrong, not the studio. It expected the page to turn a signed-out visitor away, and the page was right to serve one. Fixed the same day."
     }
   ]
 }

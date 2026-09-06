@@ -1032,6 +1032,16 @@
      near-black and a near-white and the gap closes faster to the eye than the
      reference's accent does.
   */
+  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.
+     `.o-button[data-intent='primary']:hover` used to paint
+     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a
+     hover only while the two stops differ. The paper arms bind both stops to one
+     ink to get a flat slab, so on paper the hover painted exactly the rest state
+     and the product's loudest control answered the pointer with nothing. Measured
+     in both themes: the two stops resolve byte-identical, so rest and hover were
+     the same paint. Derived, so it is restated by every scope that rebinds its
+     inputs, which is what tokens.test and token-scopes.test require. */
+  --control-solid-hover: var(--control-solid-bottom);
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
@@ -1515,20 +1525,34 @@
      sRGB relative luminance against --v6-paper, which is what a browser
      actually paints:
 
-       --v6-ink     L 0.17   ~14.4:1   headlines, values, anything load-bearing
-       --v6-ink-2   L 0.40    ~6.5:1   body copy and secondary prose
-       --v6-ink-3   L 0.49    ~4.7:1   mono labels and metadata, the AA floor
-       --v6-ink-4   L 0.62    ~2.9:1   ORNAMENT ONLY, and every use is
+       --v6-ink     L 0.17   19.12:1   headlines, values, anything load-bearing
+       --v6-ink-2   L 0.40    9.21:1   body copy and secondary prose
+       --v6-ink-3   L 0.49    6.26:1   mono labels and metadata
+       --v6-ink-4   L 0.62    3.64:1   ORNAMENT ONLY, and every use is
                                        aria-hidden: register marks, the
                                        drafting grid, a rule that is drawn
                                        rather than read
+
+     THESE FIVE FIGURES ARE CHECKED, and until 2026-09-06 they were prose and
+     they were wrong. They read 14.4, 6.5, 4.7 and 2.9, with ink-3 labelled
+     "the AA floor". Every one was understated: the ramp is better than this
+     comment claimed, so nothing was unsafe, and that is exactly why it went
+     unnoticed for as long as it did. A number that is wrong in the safe
+     direction still teaches the next reader something untrue, and somebody
+     choosing a token for a new surface would have picked ink-3 believing it
+     sat ON 4.5:1 rather than comfortably above it.
+
+     `tokens-prose.test.ts` now parses these lines out of this file and
+     compares each against `contrastRatio()`. Change a token's lightness and
+     the test names the line to update. §11a: a citation is an assertion with
+     a truth value, and this one is inside the file it describes.
 
      Nothing a person must read is allowed below --v6-ink-3, and v6.css
      repeats that rule where it is applied.
 
      THE ACCENT IS ORVAY BLUE AT PAPER LIGHTNESS, not a new hue: hue 236 is
      the same family --v5-steel sits in, dropped to L 0.47 so it clears 4.5:1
-     on white. The bright steel of the dark comp measures 2.4:1 here, which
+     on white, and it measures 6.48:1 there. The bright steel of the dark comp measures 2.4:1 here, which
      is the exact mistake §12c records as the 1.21:1 button, so the tint that
      reads on a night ground is deliberately not carried across.
 
@@ -2264,6 +2288,16 @@
   */
   --app-rail-bg: var(--bg-canvas);
 
+  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.
+     `.o-button[data-intent='primary']:hover` used to paint
+     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a
+     hover only while the two stops differ. The paper arms bind both stops to one
+     ink to get a flat slab, so on paper the hover painted exactly the rest state
+     and the product's loudest control answered the pointer with nothing. Measured
+     in both themes: the two stops resolve byte-identical, so rest and hover were
+     the same paint. Derived, so it is restated by every scope that rebinds its
+     inputs, which is what tokens.test and token-scopes.test require. */
+  --control-solid-hover: var(--control-solid-bottom);
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
@@ -2475,6 +2509,16 @@
   /* Derived upstream from --control-solid-* and --bg-subtle, so restated here
      or the press preview would mix the neutral theme's near-black against this
      sheet. Same three lines the builder scope needs, for the same reason. */
+  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.
+     `.o-button[data-intent='primary']:hover` used to paint
+     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a
+     hover only while the two stops differ. The paper arms bind both stops to one
+     ink to get a flat slab, so on paper the hover painted exactly the rest state
+     and the product's loudest control answered the pointer with nothing. Measured
+     in both themes: the two stops resolve byte-identical, so rest and hover were
+     the same paint. Derived, so it is restated by every scope that rebinds its
+     inputs, which is what tokens.test and token-scopes.test require. */
+  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
@@ -2626,6 +2670,16 @@
   --control-solid-bottom: var(--o-night-ink);
   --control-solid-ink: var(--o-ink-solid-dark);
 
+  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.
+     `.o-button[data-intent='primary']:hover` used to paint
+     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a
+     hover only while the two stops differ. The paper arms bind both stops to one
+     ink to get a flat slab, so on paper the hover painted exactly the rest state
+     and the product's loudest control answered the pointer with nothing. Measured
+     in both themes: the two stops resolve byte-identical, so rest and hover were
+     the same paint. Derived, so it is restated by every scope that rebinds its
+     inputs, which is what tokens.test and token-scopes.test require. */
+  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
@@ -2782,12 +2836,28 @@ a { color: var(--accent-text); text-underline-offset: 0.16em; }
 .banner-body .updated { color: var(--fg-secondary); font: var(--o-text-label-14); }
 
 /* Cards ----------------------------------------------------------------- */
+/* NO overflow HERE, and that absence is the fix rather than an oversight.
+
+   This rule carried overflow: hidden so the rows inside could not square off the
+   rounded corners. It also made the card the only clipping ancestor a tooltip
+   had, and a tooltip is the one thing in here that is SUPPOSED to leave. At a
+   388px card, 326 of the 1620 tooltips were being cut, by up to 66px, and the
+   text simply ended mid-sentence.
+
+   What the clip was protecting is done directly instead: the last row carries
+   the bottom corners itself, which is the only row whose background can reach
+   them. Everything else in the card sits inside the border box already, measured
+   rather than assumed. */
 .card {
   background: var(--bg-raised);
   border: 1px solid var(--line-rule);
   border-radius: var(--o-radius-lg);
   margin-bottom: var(--o-space-5);
-  overflow: hidden;
+}
+/* What overflow: hidden used to do, done by the element that needs it. */
+.card > ul.rows > .row:last-child {
+  border-end-start-radius: var(--o-radius-lg);
+  border-end-end-radius: var(--o-radius-lg);
 }
 .card-head { padding: var(--o-space-5) var(--o-space-5) var(--o-space-4); }
 .card-head h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 2px; }
@@ -2853,18 +2923,46 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
    template literal, so a backtick here ends it. The first version of this very
    note did exactly that and broke the bundle. */
 .row { position: relative; }
+/* THE TOOLTIP IS POSITIONED AGAINST THE BAR, NOT AGAINST ITS OWN CELL, and that
+   is what makes it clampable. A cell is about 3px wide, so an element positioned
+   against one has no idea where the ends are and can only be centred and hoped
+   for. Against the bar, both edges are a percentage away and CSS can do the
+   arithmetic itself.
+
+   WHAT THIS REPLACED was data-tip="start" on the first eight cells and
+   data-tip="end" on the last eight, which pinned those sixteen and centred the
+   other seventy-four. The comment beside it said a tooltip "cannot leave the
+   card". Measured on the deployed page, at a 528px card 147 tooltips were
+   clipped and at 388px it was 326, because eight cells is about 28px of
+   clearance and a tooltip with a note is 306px wide. The threshold counted
+   CELLS when the thing that overflows is measured in PIXELS, so it could not
+   have been right at more than one viewport width. */
 .bar { position: relative; }
-.cell { position: relative; }
-.cell:hover, .cell:focus-within { z-index: 30; }
-.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
+.cell { position: static; }
+.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .tip {
-  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  min-width: 11rem; padding: 0; z-index: 31;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  /* --tip-anchor is the centre of THIS cell as a percentage of the bar, written
+     at build time where the index is known. The clamp keeps the tooltip inside
+     the card, letting it bleed into the card's own padding so a tooltip near an
+     end still points somewhere sensible instead of jamming against the rule.
+     Never past that: the card is nearly the full width of a phone, and a
+     tooltip allowed further would scroll the page sideways. */
+  --tip-w: 11rem;
+  --tip-bleed: var(--o-space-5);
+  left: clamp(
+    calc(-1 * var(--tip-bleed)),
+    var(--tip-anchor, 50%) - var(--tip-w) / 2,
+    calc(100% - var(--tip-w) + var(--tip-bleed))
+  );
+  width: var(--tip-w);
+  padding: 0; z-index: 31;
   background: var(--bg-raised); color: var(--fg-primary);
   border: 1px solid var(--line-border); border-radius: var(--o-radius-sm);
   box-shadow: var(--o-bevel-raised);
   opacity: 0; visibility: hidden; pointer-events: none;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateY(4px);
   /* 4px of travel, not 24. The reference measurements are explicit that a
      reveal moves a little and quickly; a longer one reads as a template. */
   transition:
@@ -2873,18 +2971,14 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
     visibility 0s linear 60ms;
   display: flex; flex-direction: column;
 }
-/* Anchored so a tooltip near either end cannot leave the card. */
-.cell[data-tip='start'] .tip, .zone[data-tip='start'] .tip { left: 0; transform: translateY(4px); }
-.cell[data-tip='end'] .tip, .zone[data-tip='end'] .tip { left: auto; right: 0; transform: translateY(4px); }
+/* A cell carrying a note or an incident needs the room to say so. The 78vw arm
+   is what keeps it inside a phone; the clamp above keeps it inside the card. */
+.cell--corrected .tip, .cell--incident .tip { --tip-w: min(19rem, 78vw); }
 .cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip,
 .zone:hover .tip, .zone:focus .tip, .zone:focus-visible .tip {
-  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+  opacity: 1; visibility: visible; transform: translateY(0);
   transition-delay: 60ms, 60ms, 0s;
 }
-.cell[data-tip='start']:hover .tip, .cell[data-tip='start']:focus .tip,
-.cell[data-tip='end']:hover .tip, .cell[data-tip='end']:focus .tip,
-.zone[data-tip='start']:hover .tip, .zone[data-tip='start']:focus .tip,
-.zone[data-tip='end']:hover .tip, .zone[data-tip='end']:focus .tip { transform: translateY(0); }
 .tip-day { padding: var(--o-space-3) var(--o-space-3) var(--o-space-2); font: var(--o-text-label-14); color: var(--fg-secondary); border-bottom: 1px solid var(--line-rule); white-space: nowrap; }
 .tip-state { padding: var(--o-space-3); font: var(--o-text-label-14); font-weight: var(--o-weight-medium); display: flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }
 /* The dot repeats the colour; the WORD beside it is what carries the meaning. */
@@ -2914,8 +3008,28 @@ ul.rows { list-style: none; margin: 0; padding: 0; }
      3px cell, so its available width is 3px and it collapses to min-content.
      A max-width would never be reached and the note would read as a 45-character
      column. */
-  white-space: normal; width: min(19rem, 62vw); text-wrap: pretty;
+  /* The WIDTH now lives on .tip, because the clamp that keeps the tooltip inside
+     the card has to know it. A second width here would be a second answer to one
+     question, and the one that drifts is always the one with fewer readers. */
+  white-space: normal; text-wrap: pretty;
 }
+
+/* The line that says where the rest of the story is.
+
+   §7 forbids dead UI, and a tooltip cannot hold a live link: it is
+   pointer-events: none, so a cursor moving toward the link dismisses the thing
+   it was aiming at. So THE CELL is the link and this is its affordance, which
+   also means the whole 3px column is the target rather than a word inside a
+   panel that vanishes. Keyboard users get it for free: an anchor is focusable
+   and Enter follows it. */
+.tip-more {
+  padding: var(--o-space-3); border-top: 1px solid var(--line-rule);
+  font: var(--o-text-label-14); font-weight: var(--o-weight-medium);
+  color: var(--accent-text); display: flex; align-items: center; gap: var(--o-space-2);
+  white-space: nowrap;
+}
+.tip-more::after { content: '\2192'; }
+a.cell { display: block; text-decoration: none; }
 
 /* Button and footer ------------------------------------------------------ */
 .cta { display: flex; justify-content: center; margin: var(--o-space-7) 0 var(--o-space-6); }
@@ -2995,11 +3109,14 @@ ul.incidents { list-style: none; margin: 0; padding: 0; }
 /* Transparent, contiguous hover zones inside the block. They are what makes the
    tooltip appear under the cursor instead of at the left edge of a block that
    can span the whole card, and they are invisible: the block is the drawing. */
-.zone { flex: 1 1 0; position: relative; }
-.zone:hover, .zone:focus-within { z-index: 30; }
-.zone:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; z-index: 30; }
-/* Upward, like the day cells: the card clips, and there is room above. */
+/* STATIC, for the same reason a day cell is: the tooltip clamps against the
+   TIMELINE, which knows where its own ends are, and a zone does not. */
+.zone { flex: 1 1 0; position: static; }
+.zone:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* Upward, like the day cells. There is room above and the card no longer clips. */
 .zone .tip { bottom: calc(100% + 8px); top: auto; }
+/* A phase tooltip always carries a sentence, so it gets the wider measure. */
+.timeline .tip { --tip-w: min(19rem, 78vw); }
 .timeline-scale { display: flex; justify-content: space-between; font: var(--o-text-micro-11); color: var(--fg-secondary); margin-top: var(--o-space-2); }
 
 ul.updates { list-style: none; margin: 0; padding: 0; }
