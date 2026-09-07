@@ -445,6 +445,34 @@
   --o-bevel-rim:
     inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),
     inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent);
+  /* ---- Density: a property of the SURFACE, never of the person (08 §5.2) ---- */
+  /*
+    THE THREE RUNGS, AND THE RULE THAT PICKS ONE. 08 §5.2 is explicit that there
+    is no density toggle and lists a compact/comfortable switch as a rejected
+    anti-pattern, because density is derived from CONSEQUENCE: a surface may
+    compress exactly as far as the consequence of misreading it is reversible.
+    Ledger is for looking something up, Console is the default, Decision is
+    mandatory wherever a click transfers authority, spends money or cannot be
+    undone.
+
+    THEY EXIST AS TOKENS BECAUSE THE LADDER WAS BEING FOLLOWED BY HAND. Every
+    surface picked its own number and wrote it as a literal, so the rungs were
+    real and unnamed, and nothing could tell a deliberate 32 from a typo.
+
+    NOT A PREFERENCE, and doc 26 disagrees with this and with itself; 08 is what
+    §9 names as the direction. A per-person mode would make one approval queue
+    read differently to two colleagues comparing screenshots of the same record,
+    which is the §7 print argument with a Slack thread in place of a printer.
+  */
+  --o-row-ledger: 32px;
+  --o-row-console: 40px;
+  --o-row-decision: 64px;
+
+  /* What a surface actually reads. Rebound by `[data-density]`, default Console. */
+  --o-row-block-size: var(--o-row-console);
+  --o-row-pad-block: 10px;
+  --o-row-pad-inline: 12px;
+
   --o-hairline: 1px;
   --o-tap-min: 44px;
 
@@ -528,7 +556,37 @@
   --o-z-content: 0;
   --o-z-sticky: 10;
   --o-z-overlay: 100;
+  /*
+    A CONFIRMATION SITS ABOVE THE PAGE AND BELOW THE STOP CONTROL.
+
+    Above `overlay`, because a toast confirms something that already happened and
+    must be readable while a panel is open. Below `halt`, which §0 G exempts from
+    overlay depth for the reason that matters here: nothing may ever cover the
+    control that stops the company. A native `<dialog>` is in the top layer and
+    will cover a toast, and that is correct, because a modal is deliberately
+    blocking and the announcement still reaches a screen reader regardless.
+  */
+  --o-z-toast: 200;
   --o-z-halt: 1000;
+}
+
+/*
+  THE RUNGS, BOUND BY ATTRIBUTE. A surface declares which one it is and the
+  primitives read the working variables, so a row height is a stated decision
+  rather than a literal somebody chose. `decision` is deliberately not offered
+  to a list primitive: a decision surface is a card, which the approvals queue
+  already is.
+*/
+[data-density='ledger'] {
+  --o-row-block-size: var(--o-row-ledger);
+  --o-row-pad-block: 8px;
+  --o-row-pad-inline: 12px;
+}
+
+[data-density='decision'] {
+  --o-row-block-size: var(--o-row-decision);
+  --o-row-pad-block: 16px;
+  --o-row-pad-inline: 20px;
 }
 
 
