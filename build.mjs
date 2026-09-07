@@ -494,7 +494,7 @@ var COMPONENTS = [
     id: "evidence-archive",
     group: "work",
     label: "Evidence archive",
-    summary: "The off-site, tamper-evident copy of your audit trail. We read the archive on every check, so storage we can no longer reach shows up here rather than on the day somebody needs it.",
+    summary: "The off-site, tamper-evident copy of your audit trail. Every hour, new entries are sealed into that copy and the run leaves a mark; this row reads the mark and checks the storage on every check, so a copy that has stopped being written, or storage we can no longer reach, shows up here rather than on the day you need it.",
     budget: { staleAfterMs: 45 * MINUTE }
   },
   // -------------------------------------------------------------------------
@@ -6693,6 +6693,28 @@ var PRODUCT_SOURCE = {
   "decision.ok.postedNote": "Posted {url}. {why}",
   "decision.notConfirmed": "It could not be confirmed.",
   "decision.ok.alreadyPosted": "That post is already published: {url}",
+  // ---------------------------------------------------------------------------
+  // EXEC-1 / EXEC-28: an approved tool call runs through its own port
+  //
+  // `{hash}` is the first twelve characters of the answer's hash. A tool call
+  // has no address a person can open, so the hash is what the row can name.
+  "decision.ok.called": "The tool answered, and a different actor confirmed its answer is on the record as {hash}.",
+  "decision.ok.calledNote": "The tool answered and its answer is on the record as {hash}. {why}",
+  "decision.ok.alreadyCalled": "That call already ran. Its answer is on the record as {hash}.",
+  "decision.error.toolServerGone": "The tool server this contract names is no longer registered here.",
+  "toolCall.run.refused": "This contract was refused, so its tool is not called.",
+  "toolCall.run.noStep": "This contract has no tool call to run.",
+  "toolCall.run.planMissing": "The input for this call is not on the record, so nothing was sent.",
+  "toolCall.run.planMismatch": "The input on the record is not the input that was approved, so nothing was sent.",
+  "toolCall.run.halted": "This company is halted. Nothing was sent.",
+  "toolCall.run.capabilityDenied": "The approval does not cover this tool. Nothing was sent.",
+  "toolCall.run.serverRefused": "The server refused the call: {reason}",
+  "toolCall.run.failed": "The call did not go through. Nothing is recorded as sent.",
+  "toolCall.run.notRecorded": "The tool answered, but the run could not be recorded.",
+  "toolCall.run.notEstablished": "The answer on the record could not be confirmed by a different actor.",
+  "toolCall.evidence.plan": "The input proposed for {tool} on {server}",
+  "toolCall.evidence.answer": "What {server} answered to {tool}",
+  "toolCall.evidence.verified": "The answer of {tool} on {server}, read back from the record",
   "decision.error.connectSocial": "Connect that social account on the integrations page first.",
   "decision.ok.opened": "Opened {url}, and GitHub confirms it.",
   "decision.ok.openedNote": "Opened {url}. {why}",
@@ -12446,7 +12468,25 @@ var de_default = {
   "goals.statement.label": "Was dieses Ziel sagt",
   "goals.statement.submit": "Speichern",
   "goals.statement.saved": "Gespeichert.",
-  "integrations.catalogue.email.name": "E-Mail von Ihrer eigenen Domain"
+  "integrations.catalogue.email.name": "E-Mail von Ihrer eigenen Domain",
+  // EXEC-1 / EXEC-28: an approved tool call runs through its own port
+  "decision.ok.called": "Das Tool hat geantwortet, und ein anderer Akteur hat best\xE4tigt, dass seine Antwort als {hash} im Protokoll steht.",
+  "decision.ok.calledNote": "Das Tool hat geantwortet, und seine Antwort steht als {hash} im Protokoll. {why}",
+  "decision.ok.alreadyCalled": "Dieser Aufruf ist bereits gelaufen. Seine Antwort steht als {hash} im Protokoll.",
+  "decision.error.toolServerGone": "Der Tool-Server, den dieser Vertrag nennt, ist hier nicht mehr registriert.",
+  "toolCall.run.refused": "Dieser Vertrag wurde abgelehnt, deshalb wird sein Tool nicht aufgerufen.",
+  "toolCall.run.noStep": "Dieser Vertrag enth\xE4lt keinen Tool-Aufruf, der ausgef\xFChrt werden k\xF6nnte.",
+  "toolCall.run.planMissing": "Die Eingabe f\xFCr diesen Aufruf steht nicht im Protokoll, deshalb wurde nichts gesendet.",
+  "toolCall.run.planMismatch": "Die Eingabe im Protokoll ist nicht die Eingabe, die genehmigt wurde, deshalb wurde nichts gesendet.",
+  "toolCall.run.halted": "Dieses Unternehmen ist angehalten. Es wurde nichts gesendet.",
+  "toolCall.run.capabilityDenied": "Die Genehmigung deckt dieses Tool nicht ab. Es wurde nichts gesendet.",
+  "toolCall.run.serverRefused": "Der Server hat den Aufruf abgelehnt: {reason}",
+  "toolCall.run.failed": "Der Aufruf ist nicht durchgegangen. Es ist nichts als gesendet verzeichnet.",
+  "toolCall.run.notRecorded": "Das Tool hat geantwortet, aber der Lauf konnte nicht aufgezeichnet werden.",
+  "toolCall.run.notEstablished": "Die Antwort im Protokoll konnte von einem anderen Akteur nicht best\xE4tigt werden.",
+  "toolCall.evidence.plan": "Die f\xFCr {tool} auf {server} vorgeschlagene Eingabe",
+  "toolCall.evidence.answer": "Was {server} auf {tool} geantwortet hat",
+  "toolCall.evidence.verified": "Die Antwort von {tool} auf {server}, aus dem Protokoll zur\xFCckgelesen"
 };
 
 // ../../packages/content/src/messages/de.legal.ts
@@ -16744,7 +16784,25 @@ var fr_default = {
   "goals.statement.label": "Ce que dit cet objectif",
   "goals.statement.submit": "Enregistrer",
   "goals.statement.saved": "Enregistr\xE9.",
-  "integrations.catalogue.email.name": "Courrier depuis votre propre domaine"
+  "integrations.catalogue.email.name": "Courrier depuis votre propre domaine",
+  // EXEC-1 / EXEC-28: an approved tool call runs through its own port
+  "decision.ok.called": "L'outil a r\xE9pondu, et un autre acteur a confirm\xE9 que sa r\xE9ponse figure au registre sous {hash}.",
+  "decision.ok.calledNote": "L'outil a r\xE9pondu et sa r\xE9ponse figure au registre sous {hash}. {why}",
+  "decision.ok.alreadyCalled": "Cet appel a d\xE9j\xE0 eu lieu. Sa r\xE9ponse figure au registre sous {hash}.",
+  "decision.error.toolServerGone": "Le serveur d'outils que ce contrat nomme n'est plus enregistr\xE9 ici.",
+  "toolCall.run.refused": "Ce contrat a \xE9t\xE9 refus\xE9, donc son outil n'est pas appel\xE9.",
+  "toolCall.run.noStep": "Ce contrat ne contient aucun appel d'outil \xE0 ex\xE9cuter.",
+  "toolCall.run.planMissing": "L'entr\xE9e de cet appel ne figure pas au registre, donc rien n'a \xE9t\xE9 envoy\xE9.",
+  "toolCall.run.planMismatch": "L'entr\xE9e au registre n'est pas celle qui a \xE9t\xE9 approuv\xE9e, donc rien n'a \xE9t\xE9 envoy\xE9.",
+  "toolCall.run.halted": "Cette entreprise est \xE0 l'arr\xEAt. Rien n'a \xE9t\xE9 envoy\xE9.",
+  "toolCall.run.capabilityDenied": "L'approbation ne couvre pas cet outil. Rien n'a \xE9t\xE9 envoy\xE9.",
+  "toolCall.run.serverRefused": "Le serveur a refus\xE9 l'appel\xA0: {reason}",
+  "toolCall.run.failed": "L'appel n'est pas pass\xE9. Rien n'est enregistr\xE9 comme envoy\xE9.",
+  "toolCall.run.notRecorded": "L'outil a r\xE9pondu, mais l'ex\xE9cution n'a pas pu \xEAtre enregistr\xE9e.",
+  "toolCall.run.notEstablished": "La r\xE9ponse au registre n'a pas pu \xEAtre confirm\xE9e par un autre acteur.",
+  "toolCall.evidence.plan": "L'entr\xE9e propos\xE9e pour {tool} sur {server}",
+  "toolCall.evidence.answer": "Ce que {server} a r\xE9pondu \xE0 {tool}",
+  "toolCall.evidence.verified": "La r\xE9ponse de {tool} sur {server}, relue depuis le registre"
 };
 
 // ../../packages/content/src/messages/fr.legal.ts
@@ -20901,7 +20959,25 @@ var it_default = {
   "goals.statement.label": "Che cosa dice questo obiettivo",
   "goals.statement.submit": "Salva",
   "goals.statement.saved": "Salvato.",
-  "integrations.catalogue.email.name": "Email dal Suo dominio"
+  "integrations.catalogue.email.name": "Email dal Suo dominio",
+  // EXEC-1 / EXEC-28: an approved tool call runs through its own port
+  "decision.ok.called": "Lo strumento ha risposto, e un altro attore ha confermato che la sua risposta \xE8 a registro come {hash}.",
+  "decision.ok.calledNote": "Lo strumento ha risposto e la sua risposta \xE8 a registro come {hash}. {why}",
+  "decision.ok.alreadyCalled": "Questa chiamata \xE8 gi\xE0 stata eseguita. La sua risposta \xE8 a registro come {hash}.",
+  "decision.error.toolServerGone": "Il server di strumenti che questo contratto nomina non \xE8 pi\xF9 registrato qui.",
+  "toolCall.run.refused": "Questo contratto \xE8 stato rifiutato, quindi il suo strumento non viene chiamato.",
+  "toolCall.run.noStep": "Questo contratto non contiene alcuna chiamata a uno strumento da eseguire.",
+  "toolCall.run.planMissing": "L'input di questa chiamata non \xE8 a registro, quindi non \xE8 stato inviato nulla.",
+  "toolCall.run.planMismatch": "L'input a registro non \xE8 quello che \xE8 stato approvato, quindi non \xE8 stato inviato nulla.",
+  "toolCall.run.halted": "Questa azienda \xE8 in arresto. Non \xE8 stato inviato nulla.",
+  "toolCall.run.capabilityDenied": "L'approvazione non copre questo strumento. Non \xE8 stato inviato nulla.",
+  "toolCall.run.serverRefused": "Il server ha rifiutato la chiamata: {reason}",
+  "toolCall.run.failed": "La chiamata non \xE8 andata a buon fine. Nulla risulta inviato.",
+  "toolCall.run.notRecorded": "Lo strumento ha risposto, ma l'esecuzione non ha potuto essere registrata.",
+  "toolCall.run.notEstablished": "La risposta a registro non ha potuto essere confermata da un altro attore.",
+  "toolCall.evidence.plan": "L'input proposto per {tool} su {server}",
+  "toolCall.evidence.answer": "Ci\xF2 che {server} ha risposto a {tool}",
+  "toolCall.evidence.verified": "La risposta di {tool} su {server}, riletta dal registro"
 };
 
 // ../../packages/content/src/messages/it.legal.ts
@@ -25052,7 +25128,25 @@ var es_default = {
   "goals.statement.label": "Qu\xE9 dice este objetivo",
   "goals.statement.submit": "Guardar",
   "goals.statement.saved": "Guardado.",
-  "integrations.catalogue.email.name": "Correo desde su propio dominio"
+  "integrations.catalogue.email.name": "Correo desde su propio dominio",
+  // EXEC-1 / EXEC-28: an approved tool call runs through its own port
+  "decision.ok.called": "La herramienta respondi\xF3, y otro actor confirm\xF3 que su respuesta consta en el registro como {hash}.",
+  "decision.ok.calledNote": "La herramienta respondi\xF3 y su respuesta consta en el registro como {hash}. {why}",
+  "decision.ok.alreadyCalled": "Esta llamada ya se ejecut\xF3. Su respuesta consta en el registro como {hash}.",
+  "decision.error.toolServerGone": "El servidor de herramientas que nombra este contrato ya no est\xE1 registrado aqu\xED.",
+  "toolCall.run.refused": "Este contrato fue rechazado, as\xED que su herramienta no se llama.",
+  "toolCall.run.noStep": "Este contrato no contiene ninguna llamada a herramienta que ejecutar.",
+  "toolCall.run.planMissing": "La entrada de esta llamada no consta en el registro, as\xED que no se envi\xF3 nada.",
+  "toolCall.run.planMismatch": "La entrada del registro no es la que se aprob\xF3, as\xED que no se envi\xF3 nada.",
+  "toolCall.run.halted": "Esta empresa est\xE1 detenida. No se envi\xF3 nada.",
+  "toolCall.run.capabilityDenied": "La aprobaci\xF3n no cubre esta herramienta. No se envi\xF3 nada.",
+  "toolCall.run.serverRefused": "El servidor rechaz\xF3 la llamada: {reason}",
+  "toolCall.run.failed": "La llamada no lleg\xF3 a realizarse. Nada consta como enviado.",
+  "toolCall.run.notRecorded": "La herramienta respondi\xF3, pero la ejecuci\xF3n no pudo registrarse.",
+  "toolCall.run.notEstablished": "La respuesta del registro no pudo ser confirmada por otro actor.",
+  "toolCall.evidence.plan": "La entrada propuesta para {tool} en {server}",
+  "toolCall.evidence.answer": "Lo que {server} respondi\xF3 a {tool}",
+  "toolCall.evidence.verified": "La respuesta de {tool} en {server}, rele\xEDda desde el registro"
 };
 
 // ../../packages/content/src/messages/es.legal.ts
@@ -29235,7 +29329,25 @@ var pt_default = {
   "goals.statement.label": "O que este objetivo diz",
   "goals.statement.submit": "Guardar",
   "goals.statement.saved": "Guardado.",
-  "integrations.catalogue.email.name": "Correio a partir do seu pr\xF3prio dom\xEDnio"
+  "integrations.catalogue.email.name": "Correio a partir do seu pr\xF3prio dom\xEDnio",
+  // EXEC-1 / EXEC-28: an approved tool call runs through its own port
+  "decision.ok.called": "A ferramenta respondeu, e outro ator confirmou que a sua resposta consta no registo como {hash}.",
+  "decision.ok.calledNote": "A ferramenta respondeu e a sua resposta consta no registo como {hash}. {why}",
+  "decision.ok.alreadyCalled": "Esta chamada j\xE1 foi executada. A sua resposta consta no registo como {hash}.",
+  "decision.error.toolServerGone": "O servidor de ferramentas que este contrato nomeia j\xE1 n\xE3o est\xE1 registado aqui.",
+  "toolCall.run.refused": "Este contrato foi recusado, por isso a sua ferramenta n\xE3o \xE9 chamada.",
+  "toolCall.run.noStep": "Este contrato n\xE3o cont\xE9m nenhuma chamada de ferramenta para executar.",
+  "toolCall.run.planMissing": "A entrada desta chamada n\xE3o consta no registo, por isso nada foi enviado.",
+  "toolCall.run.planMismatch": "A entrada no registo n\xE3o \xE9 a que foi aprovada, por isso nada foi enviado.",
+  "toolCall.run.halted": "Esta empresa est\xE1 parada. Nada foi enviado.",
+  "toolCall.run.capabilityDenied": "A aprova\xE7\xE3o n\xE3o abrange esta ferramenta. Nada foi enviado.",
+  "toolCall.run.serverRefused": "O servidor recusou a chamada: {reason}",
+  "toolCall.run.failed": "A chamada n\xE3o se concretizou. Nada consta como enviado.",
+  "toolCall.run.notRecorded": "A ferramenta respondeu, mas a execu\xE7\xE3o n\xE3o p\xF4de ser registada.",
+  "toolCall.run.notEstablished": "A resposta no registo n\xE3o p\xF4de ser confirmada por outro ator.",
+  "toolCall.evidence.plan": "A entrada proposta para {tool} em {server}",
+  "toolCall.evidence.answer": "O que {server} respondeu a {tool}",
+  "toolCall.evidence.verified": "A resposta de {tool} em {server}, relida a partir do registo"
 };
 
 // ../../packages/content/src/messages/pt.legal.ts
@@ -30650,7 +30762,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "0ce1cb8f" : "unknown";
+var sourceCommit = true ? "735bbccc" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
