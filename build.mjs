@@ -3,7 +3,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 // ../../packages/design-system/src/tokens.css
-var tokens_default = "/* =============================================================================\n   Orvay design tokens\n\n   THE ONLY FILE IN THIS REPOSITORY THAT MAY CONTAIN A COLOUR LITERAL.\n   ESLint errors on any hex, rgb(), hsl() or oklch() elsewhere, and\n   tests/enforcement proves that rule still fires. Spec: docs/plan/08.\n\n   Three tiers:\n     Tier 1  primitives (--o-<ramp>-<step>)  INTERNAL. Components must never\n             reference these. They exist so semantics can be re-pointed without\n             re-deriving colour.\n     Tier 2  semantic (--bg-*, --fg-*, --risk-*, --autonomy-*, ...)  The only\n             tier components consume.\n     Tier 3  component-scoped, defined next to the component that owns it.\n\n   Hue is a scarce budget and it is spent entirely on RISK. Lifecycle is shape,\n   autonomy is container edge, provenance is surface texture, actor is\n   typography and tile geometry. A healthy queue is monochrome, so one amber row\n   is pre-attentively salient rather than one more coloured rectangle.\n\n   Step 9 is theme-invariant but PER RAMP: L(amber-9) > L(ember-9) > L(signal-9)\n   with >= 0.06 separation, so rising risk is a luminance descent and survives\n   greyscale, every form of colour blindness, and a bad projector.\n   tokens.test.ts parses this file and asserts it.\n   ============================================================================= */\n\n:root {\n  /* `light dark` is correct ONLY for the system-default case, where the browser\n     should follow the OS. It must be narrowed the moment a reader picks a theme\n     explicitly, and the two rules below do that.\n\n     Without them, `data-theme='dark'` on a machine set to light leaves every\n     surface the BROWSER draws in light mode while every surface WE draw goes\n     dark: the default button face, form control internals, scrollbars, autofill\n     backgrounds, and the default text colour of any element we forgot to paint.\n     That is not theoretical \u2014 it rendered near-white ink on the UA's near-white\n     `buttonface` at 1.14:1 on the Reject button, on every route, and it looked\n     perfect in light mode where the two happened to agree. */\n  color-scheme: light dark;\n\n  /* No faux-bold, anywhere, ever.\n\n     Measured on the reference: the maximum weight on that entire site is 500.\n     Circular ships only a 500, `b { font-weight: 500 !important }` demotes\n     browser bold, and `font-synthesis: none` blocks the browser from inventing\n     the rest. Hierarchy is carried by size, family, tracking and ink alpha,\n     with weight doing almost no work, and that is the single largest source of\n     the \"expensive\" read (docs/research/warmwind-measurements.md, trap 9).\n\n     Declared here rather than in a component stylesheet because a synthesised\n     weight is a rendering behaviour of the whole document: any surface that\n     forgot to opt out would get a smeared fake bold that no contrast test and\n     no type token can see. Every app imports this file, so every app gets it. */\n  font-synthesis: none;\n\n  /* ---- Tier 1: primitives (light) ---- */\n    /* neutral \u2014 hue 260, the paper ramp. Steps 1 to 3 are the site's\n       --v6-paper, --v6-paper-cool and --v6-paper-deep; 6 and 7 its two rules;\n       9 its ornament ink; 11 and 12 its --v6-ink-3 and --v6-ink. One material\n       for the site and the product, docs/plan/26-brand-and-design-language.md \xA74. */\n    --o-neutral-1: oklch(1.000 0.0000 260);\n    --o-neutral-2: oklch(0.975 0.0030 260);\n    --o-neutral-3: oklch(0.955 0.0040 260);\n    --o-neutral-4: oklch(0.940 0.0040 260);\n    --o-neutral-5: oklch(0.925 0.0040 260);\n    --o-neutral-6: oklch(0.905 0.0030 260);\n    --o-neutral-7: oklch(0.840 0.0040 260);\n    --o-neutral-8: oklch(0.795 0.0040 260);\n    --o-neutral-9: oklch(0.620 0.0050 260);\n    --o-neutral-10: oklch(0.570 0.0050 260);\n    /* L 0.500 measured 4.29:1 against step 6, which is --bg-active. The floor is\n       4.5:1 and nothing caught it, because the contrast suite enumerated INKS\n       against a fixed list of canvases rather than enumerating FILLS. That\n       covers a diagonal of the matrix, not the matrix: primary ink was checked\n       on steps 1-5, secondary ink on step 1 alone, and the interactive ladder\n       (steps 4, 5, 6 = component, hover, active) had no secondary assertion at\n       all. 0.485 clears it at 4.57:1 and still reads as secondary, at 6.39:1 on\n       the raised surface against primary ink's 15:1. */\n    --o-neutral-11: oklch(0.485 0.0060 260);\n    --o-neutral-12: oklch(0.170 0.0080 260);\n    /* The solid-control slab. Not part of the 12-step ramp because it is a\n       two-stop gradient, not a scale position \u2014 the faint vertical fall is what\n       makes the control read as lit from above rather than as flat fill. */\n    --o-slab-top: oklch(0.383 0.0000 260);\n    --o-slab-bottom: oklch(0.256 0.0000 260);\n    /* The slab's ink, declared HERE and never anywhere else.\n       The slab inverts between themes and --o-neutral-9 does not: neutral-9 is\n       L 0.620 in both, so the ink that suits it (dark) is fixed, while the slab\n       runs L 0.26-0.38 in light and L 0.86-0.93 in dark. Wiring the button's\n       colour to --fg-on-solid therefore produced near-black text on a near-black\n       button in LIGHT mode at 1.21:1 \u2014 invisible, on the default theme, on the\n       landing page's main call to action. A fill and its ink have to be declared\n       as a pair, in one place, or they drift apart exactly like this. */\n    --o-slab-ink: var(--o-ink-solid-light);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.994 0.0087 236);\n    --o-steel-2: oklch(0.978 0.0145 236);\n    --o-steel-3: oklch(0.958 0.0232 236);\n    --o-steel-4: oklch(0.938 0.0319 236);\n    --o-steel-5: oklch(0.918 0.0435 236);\n    --o-steel-6: oklch(0.895 0.0551 236);\n    --o-steel-7: oklch(0.858 0.0725 236);\n    --o-steel-8: oklch(0.800 0.0957 236);\n    --o-steel-9: oklch(0.620 0.1450 236);\n    --o-steel-10: oklch(0.575 0.1421 236);\n  /* Step 11 is the INK step, and it has to clear 4.5:1 on every rung of the\n     background ladder rather than on the three anybody thought to check.\n\n     The suite asserted the risk inks on canvases 1, 2 and 3 and left verdant\n     out of the list entirely. Measured across all six rungs in the light theme,\n     every one of the five free inks failed: accent 3.72, verified 3.53, medium\n     3.75, high 3.88, critical 3.97 at their worst. The whole-site sweep caught\n     the verdant case in production markup, at 4.33:1 on the waitlist success\n     message, once its selector was widened to see a `span`.\n\n     These are FREE inks: nothing pairs them with a particular fill, so any of\n     them can land on any surface, and the only honest floor is the worst rung.\n     Dark needed no change; its step 11 sits at L 0.760 against dark grounds. */\n    --o-steel-11: oklch(0.478 0.1044 236);\n    --o-steel-12: oklch(0.255 0.0609 236);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.994 0.0081 75);\n    --o-amber-2: oklch(0.978 0.0135 75);\n    --o-amber-3: oklch(0.958 0.0216 75);\n    --o-amber-4: oklch(0.938 0.0297 75);\n    --o-amber-5: oklch(0.918 0.0405 75);\n    --o-amber-6: oklch(0.895 0.0513 75);\n    --o-amber-7: oklch(0.858 0.0675 75);\n    --o-amber-8: oklch(0.800 0.0891 75);\n    --o-amber-9: oklch(0.700 0.1350 75);\n    --o-amber-10: oklch(0.655 0.1323 75);\n    --o-amber-11: oklch(0.490 0.0972 75);\n    --o-amber-12: oklch(0.255 0.0567 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.994 0.0099 45);\n    --o-ember-2: oklch(0.978 0.0165 45);\n    --o-ember-3: oklch(0.958 0.0264 45);\n    --o-ember-4: oklch(0.938 0.0363 45);\n    --o-ember-5: oklch(0.918 0.0495 45);\n    --o-ember-6: oklch(0.895 0.0627 45);\n    --o-ember-7: oklch(0.858 0.0825 45);\n    --o-ember-8: oklch(0.800 0.1089 45);\n    --o-ember-9: oklch(0.630 0.1650 45);\n    --o-ember-10: oklch(0.585 0.1617 45);\n    --o-ember-11: oklch(0.500 0.1188 45);\n    --o-ember-12: oklch(0.255 0.0693 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.994 0.0118 25);\n    --o-signal-2: oklch(0.978 0.0196 25);\n    --o-signal-3: oklch(0.958 0.0314 25);\n    --o-signal-4: oklch(0.938 0.0431 25);\n    --o-signal-5: oklch(0.918 0.0588 25);\n    --o-signal-6: oklch(0.895 0.0745 25);\n    --o-signal-7: oklch(0.858 0.0980 25);\n    --o-signal-8: oklch(0.800 0.1294 25);\n    --o-signal-9: oklch(0.560 0.1960 25);\n    --o-signal-10: oklch(0.515 0.1921 25);\n    --o-signal-11: oklch(0.505 0.1411 25);\n    --o-signal-12: oklch(0.255 0.0823 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.994 0.0081 152);\n    --o-verdant-2: oklch(0.978 0.0135 152);\n    --o-verdant-3: oklch(0.958 0.0216 152);\n    --o-verdant-4: oklch(0.938 0.0297 152);\n    --o-verdant-5: oklch(0.918 0.0405 152);\n    --o-verdant-6: oklch(0.895 0.0513 152);\n    --o-verdant-7: oklch(0.858 0.0675 152);\n    --o-verdant-8: oklch(0.800 0.0891 152);\n    --o-verdant-9: oklch(0.620 0.1350 152);\n    --o-verdant-10: oklch(0.575 0.1323 152);\n    --o-verdant-11: oklch(0.475 0.0972 152);\n    --o-verdant-12: oklch(0.255 0.0567 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n  /* Ink for step-9 solids. Body ink (step 12) is deliberately not pure, which\n     makes it too light to reach 4.5:1 on a mid-lightness solid \u2014 4.32:1 on\n     neutral-9. Solids get their own inks, and because step 9 is\n     theme-invariant, so is its ink. Which one each ramp takes is derived from\n     the contrast maths, not chosen: only signal-9 is dark enough for light ink.\n     Asserted in tokens.test.ts. */\n  --o-ink-solid-dark: oklch(0.170 0.008 260);\n  --o-ink-solid-light: oklch(0.985 0.004 260);\n\n  /* ---- Weight ramp: off the CSS keyword ladder (\xA74.1), and capped ----\n\n     Off the ladder so that `font-weight: bold` can never be reached for by\n     habit; capped at 530 because the reference's maximum weight is 500 and\n     `font-synthesis: none` above blocks the browser from faking anything\n     heavier. A 620 in a system whose hierarchy is carried by size, family,\n     tracking and ink alpha is the one addition that most reliably destroys the\n     read (measurements, trap 9). tokens.test.ts asserts the cap numerically, so\n     reintroducing a heavier step fails rather than merely disagreeing with this\n     comment. */\n  --o-weight-regular: 400;\n  --o-weight-medium: 460;\n  --o-weight-strong: 530;\n  /* ---- Type scale: tracking is a function of size and inverts (\xA74.3) ---- */\n  /* The first entry in each stack is the face next/font generates in every app's\n     root layout, which resolves to the self-hosted family plus the fallback Next\n     derives from its real metrics. The literal names behind it are what a\n     surface rendered outside a Next app gets, which is how this file is read by\n     the token tests and the specimen sheet.\n\n     The var() carries a DEFAULT rather than standing alone, and that is\n     load-bearing: an undefined custom property makes the whole declaration\n     invalid at computed-value time, so a bare var(--o-font-sans-face) would drop\n     the entire stack rather than skip one absent entry. The failure would look\n     like a serif page, not like a missing font.\n\n     Before 2026-08-18 both stacks named families that nothing loaded, so every\n     surface rendered in system-ui while the tokens claimed otherwise. */\n  --o-font-sans: var(--o-font-sans-face, InterVariable), Inter, ui-sans-serif, system-ui, sans-serif;\n  --o-font-mono: var(--o-font-mono-face, \"IBM Plex Mono\"), ui-monospace, SFMono-Regular, monospace;\n  /* The one serif in the system, and it exists for exactly one line of type:\n     the waitlist headline sets its final word in italic serif against the sans\n     it follows. Two voices in one line is a figure of speech; three is noise,\n     so nothing else in this repository may reach for this token.\n\n     TIMES-METRIC, AND NOT `ui-serif`. Measured against the design it copies:\n     `ui-serif` resolves on Windows to a face 21% wider, which put the italic\n     run 31px over its target while the sans on the line above sat 11px under.\n     Pinned to Times metrics it lands within 1px. Georgia is the wrong voice as\n     well as the wrong width -- the design's italic carries about 64% of the\n     sans's stroke, which is what makes it read as an aside rather than as a\n     second headline.\n\n     The three names are one metric family: Times New Roman on Windows, Times\n     on macOS, Liberation Serif on Linux, so the line breaks the same\n     everywhere. Stack-only, never a webfont: it is one word on one page. */\n  --o-font-serif: \"Times New Roman\", Times, \"Liberation Serif\", serif;\n\n  /* THE SLOT PATTERN ABOVE ARRIVED TWICE, INDEPENDENTLY, AND MAIN'S COPY WINS.\n\n     This branch reached the same conclusion in parallel: a family token naming a\n     face nothing loads is the same class of untruth as a badge for a certificate\n     nobody holds, so the name belongs here and the bytes belong to the app. Main\n     shipped it first, with Inter through next/font/google, and pinned the three\n     apps to identical loader calls in scripts/check-enforcement.mjs.\n\n     Two implementations of one idea is worse than either, so the duplicate here\n     is deleted rather than reconciled. The face itself is a separate decision and\n     a repo-wide one: changing it now would mean editing that enforcement rule and\n     both other apps, which is not a marketing-site change. */\n\n  /* The display tiers, which did not exist. 32px was the ceiling of the whole\n     system, so the marketing hero bypassed the scale with a raw\n     clamp(1.875rem, 3.4vw, 2.5rem) in site.css and capped at 40px. A tier that\n     is not in the scale is a tier nothing can assert, so these are declared\n     here and the clamp is deleted in the same change.\n\n     Tracking continues the inversion the scale already states: -0.04em at 32,\n     tightening as size grows, because the optical gap between letterforms grows\n     with the em and a display line set at body tracking reads as loose. */\n  --o-text-display-64: 4rem/4.2rem var(--o-font-sans);\n  --o-tracking-display-64: -0.05em;\n  --o-text-display-48: 3rem/3.3rem var(--o-font-sans);\n  --o-tracking-display-48: -0.045em;\n  --o-text-display-32: 2rem/2.3rem var(--o-font-sans);\n  --o-tracking-display-32: -0.04em;\n  --o-text-title-24: 1.5rem/1.75rem var(--o-font-sans);\n  --o-tracking-title-24: -0.03em;\n  --o-text-title-19: 1.1875rem/1.5rem var(--o-font-sans);\n  --o-tracking-title-19: -0.025em;\n  --o-text-body-15: 0.9375rem/1.5rem var(--o-font-sans);\n  --o-tracking-body-15: -0.015em;\n  --o-text-label-14: 0.875rem/1rem var(--o-font-sans);\n  --o-tracking-label-14: -0.0125em;\n  --o-text-mono-13: 0.8125rem/1.25rem var(--o-font-mono);\n  --o-tracking-mono-13: 0em;\n  --o-text-micro-11: 0.6875rem/0.875rem var(--o-font-sans);\n  --o-tracking-micro-11: 0.012em;\n\n  /* Chrome tracks in ABSOLUTE PIXELS. Text tracks in percentages.\n\n     The convention deliberately flips at the chrome tier, and missing the flip\n     is what makes buttons look loose (measurements, trap 8). Text tracking is a\n     percentage so it scales with a fluid size; a control label is not fluid, it\n     is a fixed piece of furniture, and it wants a fixed optical correction.\n\n     Measured on the reference: button labels -0.35px, badges -0.2px, numerics\n     -0.5px with tabular figures. Note the size of the effect. `.Button\n     .Paragraph` OVERRIDES the paragraph's -1.5%, and at 16px that is -0.24px\n     against -0.35px, so a button label is tracked ~46% tighter than identical\n     body text sitting beside it. */\n  --o-tracking-control: -0.35px;\n  --o-tracking-badge: -0.2px;\n  --o-tracking-numeric: -0.5px;\n\n  /* ---- Space, radius, hairlines ---- */\n  --o-space-1: 0.25rem;  --o-space-2: 0.5rem;   --o-space-3: 0.75rem;\n  --o-space-4: 1rem;     --o-space-5: 1.5rem;   --o-space-6: 2rem;\n  --o-space-7: 3rem;     --o-space-8: 4rem;\n  --o-radius-sm: 8px;    --o-radius-md: 12px;   --o-radius-lg: 20px;\n  /* Two shapes carry the whole language: controls are fully round, surfaces\n     are generously rounded. Nothing in between, which is what stops the UI\n     drifting into a dozen near-identical corner radii. */\n  --o-radius-pill: 1000px;\n  --o-radius-panel: 30px;\n\n  /* ---------------------------------------------------------------------------\n     Bevel \u2014 where the \"glass\" impression actually comes from.\n\n     Measured on the reference (warmwind.com, 2026-08-09): there is NO\n     backdrop-filter anywhere on that page. Zero. The glassy quality is made\n     entirely from a white INSET highlight along the top edge plus a soft outer\n     shadow \u2014 a simulated bevel catching light, not a blurred backdrop.\n\n     That distinction is worth the paragraph, because backdrop-filter is\n     expensive to composite, disappears under forced-colors, and prints as\n     nothing. This achieves the same read with none of those costs.\n     ------------------------------------------------------------------------- */\n  --o-bevel-control:\n    inset 0 1px 1px 0 color-mix(in oklab, white 20%, transparent),\n    0 1px 2px -0.5px color-mix(in oklab, var(--o-neutral-12) 10%, transparent);\n  --o-bevel-control-solid:\n    0 1px 8px -3px color-mix(in oklab, var(--o-neutral-12) 20%, transparent),\n    inset 0.5px 0 0 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset -0.5px 0 0 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset 0 1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent),\n    inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent);\n  /* Measured off the reference card, not off its icon well. The previous recipe\n     here was `0 23px 29px` plus a 24px opaque-white inner glow, which is the\n     reference's .IconBox-Inner svg shadow -- a 60px lens -- applied to a 1000px\n     card. On an icon it reads as glass; on a card it is a lamp.\n     The real card is held up by the 15-unit luminance step from ground to\n     surface. The outer shadow is deliberately almost erased: a -10px spread on\n     a 12px blur measures 8/255 of darkening at its strongest. Any shadow you\n     would reach for by instinct is an order of magnitude louder. */\n  --o-bevel-raised:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent),\n    inset 0 2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    inset 0 -2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    0 5px 12px -10px color-mix(in oklab, var(--o-neutral-12) 20%, transparent);\n  /* The resting half of the pair. Elevation here is not a translate or a scale:\n     it is this swapping to --o-bevel-raised, six alpha points deeper. An\n     interactive surface must rest on THIS one, or it has nowhere to hover to. */\n  --o-bevel-resting:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 8%, transparent),\n    inset 0 2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    inset 0 -2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    0 4px 10px -8px color-mix(in oklab, var(--o-neutral-12) 10%, transparent);\n  /* Pressed into the ground rather than lifted off it \u2014 a double inset\n     vignette, top and bottom, for wells and inputs. */\n  --o-bevel-inset:\n    inset 0 -2.5px 15px 0 color-mix(in oklab, var(--o-neutral-12) 2%, transparent),\n    inset 0 2.5px 15px 0 color-mix(in oklab, var(--o-neutral-12) 2%, transparent);\n  /* Sub-pixel rims: the hairline that separates without drawing a border. */\n  --o-bevel-rim:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent);\n  --o-hairline: 1px;\n  --o-tap-min: 44px;\n\n  /* ---- Motion: meaning only, never decoration (\xA76) ----\n\n     Two registers, and they are not interchangeable.\n\n     CONTROL FEEDBACK answers \"did it hear me\", so it is fast and symmetric and\n     it never sits on a decision's critical path. Approve, reject, select and\n     halt are 0ms, always.\n\n     ENTER AND EXIT answer \"where did this come from and where did it go\", and\n     the reference's whole motion vocabulary is one asymmetric pair, measured:\n     0.225s in on cubic-bezier(.23, 1, .32, 1), 0.15s out on\n     cubic-bezier(.77, 0, .175, 1). The exit is 33% faster AND a completely\n     different shape. A symmetric ease-out at 300ms with 24px of travel reads as\n     a template (measurements, \xA712 and trap 16). */\n  --o-dur-instant: 80ms;\n  --o-dur-quick: 140ms;\n  --o-dur-considered: 240ms;\n  --o-ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);\n\n  /* AMBIENT: a cycle that repeats for as long as a state lasts, rather than a\n     transition between two states.\n\n     The three durations above answer \"how long does this take to happen\". This\n     answers \"how slowly does a live thing breathe\", which is a different\n     question and has no defensible answer on that scale: at 240ms a pulsing\n     element reads as an alarm. It exists for the voice orb, which has to look\n     alive while somebody talks to it, and it is a token rather than a literal\n     because the reduced-motion block below is the single control \xA79 allows and a\n     literal would escape it. */\n  --o-dur-ambient: 3200ms;\n\n  /* The measured pair, verbatim rather than rounded to the duration scale. A\n     motion curve is not a spacing rung: 225 and 150 are the values that were\n     read off the reference, and rounding them to 220 and 160 for tidiness would\n     be substituting taste for the measurement this file exists to record. */\n  --o-dur-enter: 225ms;\n  --o-ease-enter: cubic-bezier(0.23, 1, 0.32, 1);\n  --o-dur-exit: 150ms;\n  /* Previously cubic-bezier(0.4, 0, 1, 1), a plain ease-in, and referenced by\n     nothing. docs/plan/08 \xA76.3 states there is no ease-in curve in the token\n     set; that was already untrue of --o-ease-standard, whose first control\n     point sits below the diagonal. The amendment recorded in \xA76.3 is: the\n     asymmetric pair governs reveals and exits, and ease-out governs anything a\n     click is waiting on. An exit may accelerate away, because nobody is waiting\n     for a thing that has already left. */\n  --o-ease-exit: cubic-bezier(0.77, 0, 0.175, 1);\n\n  /* Reveals travel 4px, not 24px, and run once.\n     Measured: `whileInView opacity 0 -> 1, translateY(4px) -> 0`, 0.225s, 0.1s\n     delay, viewport once. The restraint is the point. A 24px reveal announces\n     itself; a 4px reveal is felt and not seen, which is the only kind of motion\n     a supervision surface can afford. */\n  --o-travel-reveal: 4px;\n\n  /* HOW FAR A CONTROL LEANS TOWARD THE STATE IT WOULD MOVE TO.\n     A scale rather than a distance, because the thumb stays anchored and\n     stretches: the reference's own affordance, and the reason a hovered switch\n     reads as \"I would go that way\" rather than as having already gone. Zeroed to\n     1 under reduced motion below, so this lives here rather than in a second\n     media query beside the control (\xA79: handled once, in one file). */\n  --o-lean-scale: 1.15;\n  --o-press-scale-x: 1.1;\n  --o-press-scale-y: 0.95;\n  /* Blur is part of the enter, not decoration: the reference's section and\n     slide presets carry 3px and 4px in their initial and exit states. */\n  --o-blur-enter: 3px;\n  /* 0.05s x index, measured. Staggering beyond a handful of items turns a list\n     into a performance, so this is for rows arriving, never for rows present. */\n  --o-stagger-unit: 50ms;\n\n  /* Kept as aliases of the measured pair. They are the names apps already use,\n     and repointing them here is what makes the correction reach every consumer\n     without this session editing a surface it does not own. */\n  --o-dur-reveal: var(--o-dur-enter);\n  --o-ease-reveal: var(--o-ease-enter);\n\n  /* ---- Elevation: the halt control is exempt from overlay depth (\xA70 G) ---- */\n  --o-z-content: 0;\n  --o-z-sticky: 10;\n  --o-z-overlay: 100;\n  --o-z-halt: 1000;\n}\n\n\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    /* neutral \u2014 hue 260, the paper ramp inverted: ink as ground, paper as ink. */\n    --o-neutral-1: oklch(0.160 0.0060 260);\n    --o-neutral-2: oklch(0.190 0.0065 260);\n    --o-neutral-3: oklch(0.220 0.0070 260);\n    --o-neutral-4: oklch(0.250 0.0075 260);\n    --o-neutral-5: oklch(0.280 0.0080 260);\n    --o-neutral-6: oklch(0.310 0.0080 260);\n    --o-neutral-7: oklch(0.365 0.0080 260);\n    --o-neutral-8: oklch(0.435 0.0070 260);\n    --o-neutral-9: oklch(0.620 0.0050 260);\n    --o-neutral-10: oklch(0.665 0.0050 260);\n    --o-neutral-11: oklch(0.760 0.0055 260);\n    --o-neutral-12: oklch(0.955 0.0040 260);\n    --o-slab-top: oklch(0.930 0.0030 260);\n    --o-slab-bottom: oklch(0.860 0.0030 260);\n    /* Inverted with the slab. See the note in the light block. */\n    --o-slab-ink: var(--o-ink-solid-dark);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.160 0.0079 236);\n    --o-steel-2: oklch(0.190 0.0132 236);\n    --o-steel-3: oklch(0.220 0.0211 236);\n    --o-steel-4: oklch(0.250 0.0290 236);\n    --o-steel-5: oklch(0.280 0.0396 236);\n    --o-steel-6: oklch(0.310 0.0501 236);\n    --o-steel-7: oklch(0.365 0.0660 236);\n    --o-steel-8: oklch(0.435 0.0871 236);\n    --o-steel-9: oklch(0.620 0.1319 236);\n    --o-steel-10: oklch(0.665 0.1293 236);\n    --o-steel-11: oklch(0.760 0.0950 236);\n    --o-steel-12: oklch(0.955 0.0554 236);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.160 0.0074 75);\n    --o-amber-2: oklch(0.190 0.0123 75);\n    --o-amber-3: oklch(0.220 0.0197 75);\n    --o-amber-4: oklch(0.250 0.0270 75);\n    --o-amber-5: oklch(0.280 0.0369 75);\n    --o-amber-6: oklch(0.310 0.0467 75);\n    --o-amber-7: oklch(0.365 0.0614 75);\n    --o-amber-8: oklch(0.435 0.0811 75);\n    --o-amber-9: oklch(0.700 0.1229 75);\n    --o-amber-10: oklch(0.745 0.1204 75);\n    --o-amber-11: oklch(0.760 0.0885 75);\n    --o-amber-12: oklch(0.955 0.0516 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.160 0.0090 45);\n    --o-ember-2: oklch(0.190 0.0150 45);\n    --o-ember-3: oklch(0.220 0.0240 45);\n    --o-ember-4: oklch(0.250 0.0330 45);\n    --o-ember-5: oklch(0.280 0.0450 45);\n    --o-ember-6: oklch(0.310 0.0571 45);\n    --o-ember-7: oklch(0.365 0.0751 45);\n    --o-ember-8: oklch(0.435 0.0991 45);\n    --o-ember-9: oklch(0.630 0.1502 45);\n    --o-ember-10: oklch(0.675 0.1471 45);\n    --o-ember-11: oklch(0.760 0.1081 45);\n    --o-ember-12: oklch(0.955 0.0631 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.160 0.0107 25);\n    --o-signal-2: oklch(0.190 0.0178 25);\n    --o-signal-3: oklch(0.220 0.0285 25);\n    --o-signal-4: oklch(0.250 0.0392 25);\n    --o-signal-5: oklch(0.280 0.0535 25);\n    --o-signal-6: oklch(0.310 0.0678 25);\n    --o-signal-7: oklch(0.365 0.0892 25);\n    --o-signal-8: oklch(0.435 0.1177 25);\n    --o-signal-9: oklch(0.560 0.1784 25);\n    --o-signal-10: oklch(0.605 0.1748 25);\n    --o-signal-11: oklch(0.760 0.1284 25);\n    --o-signal-12: oklch(0.955 0.0749 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.160 0.0074 152);\n    --o-verdant-2: oklch(0.190 0.0123 152);\n    --o-verdant-3: oklch(0.220 0.0197 152);\n    --o-verdant-4: oklch(0.250 0.0270 152);\n    --o-verdant-5: oklch(0.280 0.0369 152);\n    --o-verdant-6: oklch(0.310 0.0467 152);\n    --o-verdant-7: oklch(0.365 0.0614 152);\n    --o-verdant-8: oklch(0.435 0.0811 152);\n    --o-verdant-9: oklch(0.620 0.1229 152);\n    --o-verdant-10: oklch(0.665 0.1204 152);\n    --o-verdant-11: oklch(0.760 0.0885 152);\n    --o-verdant-12: oklch(0.955 0.0516 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n    /* -------------------------------------------------------------------------\n       Bevel, re-derived for a dark ground.\n\n       These MUST be restated per theme, and the reason is geometric rather than\n       chromatic. In light, a card is lifted by pooling white INSIDE its lower\n       edge -- white on white reads as a soft interior lift. Do the same thing on\n       a dark card and you get a lamp. The dark equivalent of \"lifted\" is a\n       lighter surface, a hairline of light caught on the TOP edge, and a shadow\n       that is actually dark. Different shapes, not the same shape recoloured, so\n       one shared recipe with swapped colours cannot express both.\n\n       Leaving them undefined here was a real, shipped bug: every shadow is mixed\n       from --o-neutral-12, which is near-black in light and near-white in dark,\n       so every shadow in the product inverted into a glow, and --o-bevel-raised\n       carried a 100%-opacity white inset that turned every card into a halo.\n\n       Shadows are mixed from black rather than from an ink token on purpose: a\n       shadow is an absence of light, and it must not follow the text colour when\n       the theme flips. That coupling is what broke.\n       ---------------------------------------------------------------------- */\n    --o-bevel-control:\n      inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),\n      0 1px 2px -0.5px color-mix(in oklab, black 55%, transparent);\n    --o-bevel-control-solid:\n      0 1px 8px -3px color-mix(in oklab, black 70%, transparent),\n      inset 0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset -0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset 0 1.25px 0 -0.5px color-mix(in oklab, white 14%, transparent),\n      inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 8%, transparent);\n    --o-bevel-raised:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 10%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 50%, transparent),\n      inset 0 2px 4px 0 color-mix(in oklab, white 4%, transparent),\n      0 5px 12px -10px color-mix(in oklab, black 75%, transparent);\n    --o-bevel-resting:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 6%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 40%, transparent),\n      0 4px 10px -8px color-mix(in oklab, black 60%, transparent);\n    --o-bevel-inset:\n      inset 0 -2.5px 15px 0 color-mix(in oklab, black 24%, transparent),\n      inset 0 2.5px 15px 0 color-mix(in oklab, black 24%, transparent);\n    /* The rim inverts, and only in dark: light collects on the top edge and the\n       bottom edge falls into shadow. In light both edges are ink. */\n    --o-bevel-rim:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);\n  }\n}\n\n:root[data-theme='dark'] {\n    /* neutral \u2014 hue 260, the paper ramp inverted: ink as ground, paper as ink. */\n    --o-neutral-1: oklch(0.160 0.0060 260);\n    --o-neutral-2: oklch(0.190 0.0065 260);\n    --o-neutral-3: oklch(0.220 0.0070 260);\n    --o-neutral-4: oklch(0.250 0.0075 260);\n    --o-neutral-5: oklch(0.280 0.0080 260);\n    --o-neutral-6: oklch(0.310 0.0080 260);\n    --o-neutral-7: oklch(0.365 0.0080 260);\n    --o-neutral-8: oklch(0.435 0.0070 260);\n    --o-neutral-9: oklch(0.620 0.0050 260);\n    --o-neutral-10: oklch(0.665 0.0050 260);\n    --o-neutral-11: oklch(0.760 0.0055 260);\n    --o-neutral-12: oklch(0.955 0.0040 260);\n    --o-slab-top: oklch(0.930 0.0030 260);\n    --o-slab-bottom: oklch(0.860 0.0030 260);\n    /* Inverted with the slab. See the note in the light block. */\n    --o-slab-ink: var(--o-ink-solid-dark);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.160 0.0079 236);\n    --o-steel-2: oklch(0.190 0.0132 236);\n    --o-steel-3: oklch(0.220 0.0211 236);\n    --o-steel-4: oklch(0.250 0.0290 236);\n    --o-steel-5: oklch(0.280 0.0396 236);\n    --o-steel-6: oklch(0.310 0.0501 236);\n    --o-steel-7: oklch(0.365 0.0660 236);\n    --o-steel-8: oklch(0.435 0.0871 236);\n    --o-steel-9: oklch(0.620 0.1319 236);\n    --o-steel-10: oklch(0.665 0.1293 236);\n    --o-steel-11: oklch(0.760 0.0950 236);\n    --o-steel-12: oklch(0.955 0.0554 236);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.160 0.0074 75);\n    --o-amber-2: oklch(0.190 0.0123 75);\n    --o-amber-3: oklch(0.220 0.0197 75);\n    --o-amber-4: oklch(0.250 0.0270 75);\n    --o-amber-5: oklch(0.280 0.0369 75);\n    --o-amber-6: oklch(0.310 0.0467 75);\n    --o-amber-7: oklch(0.365 0.0614 75);\n    --o-amber-8: oklch(0.435 0.0811 75);\n    --o-amber-9: oklch(0.700 0.1229 75);\n    --o-amber-10: oklch(0.745 0.1204 75);\n    --o-amber-11: oklch(0.760 0.0885 75);\n    --o-amber-12: oklch(0.955 0.0516 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.160 0.0090 45);\n    --o-ember-2: oklch(0.190 0.0150 45);\n    --o-ember-3: oklch(0.220 0.0240 45);\n    --o-ember-4: oklch(0.250 0.0330 45);\n    --o-ember-5: oklch(0.280 0.0450 45);\n    --o-ember-6: oklch(0.310 0.0571 45);\n    --o-ember-7: oklch(0.365 0.0751 45);\n    --o-ember-8: oklch(0.435 0.0991 45);\n    --o-ember-9: oklch(0.630 0.1502 45);\n    --o-ember-10: oklch(0.675 0.1471 45);\n    --o-ember-11: oklch(0.760 0.1081 45);\n    --o-ember-12: oklch(0.955 0.0631 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.160 0.0107 25);\n    --o-signal-2: oklch(0.190 0.0178 25);\n    --o-signal-3: oklch(0.220 0.0285 25);\n    --o-signal-4: oklch(0.250 0.0392 25);\n    --o-signal-5: oklch(0.280 0.0535 25);\n    --o-signal-6: oklch(0.310 0.0678 25);\n    --o-signal-7: oklch(0.365 0.0892 25);\n    --o-signal-8: oklch(0.435 0.1177 25);\n    --o-signal-9: oklch(0.560 0.1784 25);\n    --o-signal-10: oklch(0.605 0.1748 25);\n    --o-signal-11: oklch(0.760 0.1284 25);\n    --o-signal-12: oklch(0.955 0.0749 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.160 0.0074 152);\n    --o-verdant-2: oklch(0.190 0.0123 152);\n    --o-verdant-3: oklch(0.220 0.0197 152);\n    --o-verdant-4: oklch(0.250 0.0270 152);\n    --o-verdant-5: oklch(0.280 0.0369 152);\n    --o-verdant-6: oklch(0.310 0.0467 152);\n    --o-verdant-7: oklch(0.365 0.0614 152);\n    --o-verdant-8: oklch(0.435 0.0811 152);\n    --o-verdant-9: oklch(0.620 0.1229 152);\n    --o-verdant-10: oklch(0.665 0.1204 152);\n    --o-verdant-11: oklch(0.760 0.0885 152);\n    --o-verdant-12: oklch(0.955 0.0516 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n    /* -------------------------------------------------------------------------\n       Bevel, re-derived for a dark ground.\n\n       These MUST be restated per theme, and the reason is geometric rather than\n       chromatic. In light, a card is lifted by pooling white INSIDE its lower\n       edge -- white on white reads as a soft interior lift. Do the same thing on\n       a dark card and you get a lamp. The dark equivalent of \"lifted\" is a\n       lighter surface, a hairline of light caught on the TOP edge, and a shadow\n       that is actually dark. Different shapes, not the same shape recoloured, so\n       one shared recipe with swapped colours cannot express both.\n\n       Leaving them undefined here was a real, shipped bug: every shadow is mixed\n       from --o-neutral-12, which is near-black in light and near-white in dark,\n       so every shadow in the product inverted into a glow, and --o-bevel-raised\n       carried a 100%-opacity white inset that turned every card into a halo.\n\n       Shadows are mixed from black rather than from an ink token on purpose: a\n       shadow is an absence of light, and it must not follow the text colour when\n       the theme flips. That coupling is what broke.\n       ---------------------------------------------------------------------- */\n    --o-bevel-control:\n      inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),\n      0 1px 2px -0.5px color-mix(in oklab, black 55%, transparent);\n    --o-bevel-control-solid:\n      0 1px 8px -3px color-mix(in oklab, black 70%, transparent),\n      inset 0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset -0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset 0 1.25px 0 -0.5px color-mix(in oklab, white 14%, transparent),\n      inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 8%, transparent);\n    --o-bevel-raised:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 10%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 50%, transparent),\n      inset 0 2px 4px 0 color-mix(in oklab, white 4%, transparent),\n      0 5px 12px -10px color-mix(in oklab, black 75%, transparent);\n    --o-bevel-resting:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 6%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 40%, transparent),\n      0 4px 10px -8px color-mix(in oklab, black 60%, transparent);\n    --o-bevel-inset:\n      inset 0 -2.5px 15px 0 color-mix(in oklab, black 24%, transparent),\n      inset 0 2.5px 15px 0 color-mix(in oklab, black 24%, transparent);\n    /* The rim inverts, and only in dark: light collects on the top edge and the\n       bottom edge falls into shadow. In light both edges are ink. */\n    --o-bevel-rim:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);\n}\n\n/* =============================================================================\n   Tier 2 \u2014 semantic. The only tier components consume.\n   ============================================================================= */\n\n:root, :root[data-theme='dark'] {\n  /* PAPER. The ground is the site's --v6-paper-cool (step 2) and a surface\n     that floats (a menu, a dialog, an inspector) is paper itself (step 1).\n     The product used to draw a white card on a grey well, the shell copied\n     from another product; docs/plan/26-brand-and-design-language.md \xA75\n     deletes the card, so the sheet is the ground and nothing sits inset in it.\n\n     Step 2 rather than step 1 for the ground is the one place the product's\n     paper differs from the site's sheet, and it is forced by the invariant\n     \"a raised surface is LIGHTER than the ground it floats on\", which\n     `elevation is monotonic` in tokens.test.ts holds in both themes: a\n     popover needs somewhere to float from, and above pure white there is\n     nowhere. A lift of 0.025 is a hairline's worth of tone, invisible until\n     a panel opens, which is exactly when it should show. The dark override\n     below reverses the two steps, because in dark step 1 is the darkest. */\n  --bg-canvas: var(--o-neutral-2);\n  --bg-raised: var(--o-neutral-1);\n  --bg-subtle: var(--o-neutral-3);\n  --bg-component: var(--o-neutral-4);\n  --bg-hover: var(--o-neutral-5);\n  --bg-active: var(--o-neutral-6);\n\n  /* SOLID, NOT ALPHA. On paper a hairline does structural work (docs/plan/26\n     \xA72, \xA74): it separates rows and frames tables, and a 30% wash of step 6\n     over paper resolves to L 0.97, a line nobody sees. Step 6 is the site's\n     --v6-rule and step 7 its --v6-rule-2, so the product's rules are the\n     site's rules. */\n  --line-rule: var(--o-neutral-6);\n  --line-border: var(--o-neutral-7);\n  --line-strong: var(--o-neutral-8);\n  /* A border that IDENTIFIES a control, not a decorative rule. Steps 6-8 are\n     hairlines for table rules and dividers and legitimately sit below WCAG\n     1.4.11's 3:1 \u2014 at step 7 a control border is 1.5:1 on canvas, which is not\n     a boundary anyone can see. Control boundaries bind here instead. */\n  --line-control: var(--o-neutral-10);\n\n  --fg-primary: var(--o-neutral-12);\n  --fg-secondary: var(--o-neutral-11);\n  --fg-on-solid: var(--o-neutral-on-9);\n\n  --control-solid-top: var(--o-slab-top);\n  /* Anything setting `color` on a control-solid fill MUST use this and never\n     --fg-on-solid. The two are different inks for different fills. */\n  --control-solid-ink: var(--o-slab-ink);\n  --control-solid-bottom: var(--o-slab-bottom);\n\n  /*\n     THE PRESS PREVIEW, WHICH MUST NOT LOOK LIKE THE OUTCOME.\n\n     A switch previews while the pointer is down, so a reader can see where it\n     is going and still leave without taking it. That only works if the preview\n     is visibly SHORT of the destination. It was not: pressing an off switch\n     painted the full `--control-solid-*` gradient, byte-identical to the\n     committed on state, so the control appeared to have already changed before\n     it was released, and letting go changed nothing visible. Reported as \"it\n     already changes to black and white even though it has not been clicked\n     away\", which is exactly right.\n\n     78% of the way, both directions. Enough to read as movement, short enough\n     that the release still does something. The reference measures 82%; the\n     extra distance here is deliberate, because Orvay's endpoints are a\n     near-black and a near-white and the gap closes faster to the eye than the\n     reference's accent does.\n  */\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: var(--control-solid-bottom);\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n\n\n  /* ---------------------------------------------------------------- orb ----\n     Tier 3, component scoped, derived from Tier 2, and per theme because it has\n     to be.\n\n     A LIT SPHERE NEEDS A HIGHLIGHT LIGHTER THAN ITS BODY AND A RIM DARKER THAN\n     IT, and neither direction can be written once. \"Lighter\" is toward the\n     canvas in light and toward the ink in dark, because both of those flip. The\n     first version of the orb mixed toward `--bg-raised` and `--fg-primary`\n     directly and therefore rendered INVERTED in dark: the highlight came out as\n     a dark blot at the top of the sphere and the rim glowed. It looked like a\n     hole rather than an object, and no test could have said so.\n\n     So the direction is decided here, once, where the theme is already known,\n     and the stylesheet just uses three tokens that always mean the same thing.\n     ------------------------------------------------------------------------ */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 18%, var(--o-neutral-1));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-neutral-1));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-neutral-12));\n\n  --accent-solid: var(--o-steel-9);\n  --accent-hover: var(--o-steel-10);\n  --accent-line: var(--o-steel-a8);\n  /* The accent as INK. Same trap as risk: step 9 is a fill anchor and is only\n     3.6:1 as text on canvas. Links and inline accents bind here. */\n  --accent-text: var(--o-steel-11);\n  --accent-on-solid: var(--o-steel-on-9);\n  /* The ring is INK, not a fill, and binding it to step 9 was the same mistake\n     --accent-text and the risk text steps already exist to correct.\n\n     A focus indicator is judged against what it is ADJACENT to (WCAG 1.4.11,\n     3:1), and with `outline-offset` the adjacent colour is whatever the control\n     sits on. Step 9 is theme-invariant in lightness by design, so one value had\n     to answer for light grounds at L 0.89-1.00 and dark grounds at L 0.16-0.31.\n     It could only be right for one of them, and it was: measured across steps\n     1-6 it ran 3.47 down to 2.48:1 in light, failing on --bg-component,\n     --bg-hover and --bg-active. --bg-component is the button's own background,\n     so the indicator on the most common control in the product was 2.86:1.\n\n     Step 11 is theme-aware, so it moves with the ground: worst case 3.72:1 in\n     light and 6.24:1 in dark, across every surface a ring can border. No halo\n     layer is needed, which matters because \xA76.3's box-shadow ring would be\n     clipped by the `overflow: hidden` on every scrollable log panel we own.\n\n     This is the trap-6 fix. The reference removes focus indication entirely;\n     replacing it with an indicator that misses the non-text floor would have\n     been the same defect wearing a fix's clothes. */\n  /*\n     INK, NOT STEEL, SINCE 2026-08-21. This was `--o-steel-11`, a saturated blue,\n     and it was the one place in the product that spent hue on something that is\n     not risk. \xA79a's whole argument is that this product is three opaque colours\n     and a quiet one; a blue ring on every focused field is the single loudest\n     thing on a form and it reads as somebody else's design system.\n\n     WHAT DID NOT CHANGE IS THAT THERE IS A RING. \xA77a rule 3 makes a visible focus\n     indicator law here, and \xA79a trap 6 records the reference implementation\n     removing it as a defect we deliberately do not copy. Ink at 2px with a 2px\n     offset clears WCAG 1.4.11's 3:1 non-text floor by a wide margin on every\n     surface in both themes, because it is the same ink the body text is set in.\n\n     It stays STRUCTURALLY distinct from a border rather than only chromatically:\n     2px against the field's 1.5px, and offset, so it reads as a ring around the\n     control rather than as a heavier edge on it. That distinction is what a\n     hue was doing before. */\n  --focus-ring: var(--fg-primary);\n\n  /* Risk \u2014 the one family that spends hue. Low is the ABSENCE of hue. */\n  --risk-low-tint: transparent;\n  --risk-low-solid: var(--o-neutral-9);\n  --risk-medium-tint: var(--o-amber-a3);\n  --risk-medium-solid: var(--o-amber-9);\n  --risk-medium-on: var(--o-amber-on-9);\n  --risk-high-tint: var(--o-ember-a3);\n  --risk-high-solid: var(--o-ember-9);\n  --risk-high-on: var(--o-ember-on-9);\n  --risk-critical-tint: var(--o-signal-a3);\n  --risk-critical-solid: var(--o-signal-9);\n  --risk-critical-on: var(--o-signal-on-9);\n\n  /* Risk expressed as INK. Step 9 is a fill anchor at a lightness chosen to\n     carry ink, which makes it far too light to BE ink: amber-9 as text is\n     2.6:1 on canvas. Step 11 is the text step and meets 4.5:1. Grafana splits\n     redDarkMain from redDarkText for the same reason. */\n  --risk-medium-text: var(--o-amber-11);\n  --risk-high-text: var(--o-ember-11);\n  --risk-critical-text: var(--o-signal-11);\n\n  /*\n    SYNTAX, WHICH IS A SEMANTIC FAMILY AND NOT A THEME.\n\n    A code panel needs colour that means \"this is a string\" rather than colour\n    somebody liked, so it belongs here with risk and lifecycle rather than in the\n    stylesheet that draws the panel. Every entry binds to STEP 11, the ink step,\n    for exactly the reason written above the risk text tokens: step 9 is a fill\n    anchor chosen to carry ink and measures under 3:1 as text.\n\n    ONE DEFINITION, BOTH THEMES. The dark block redefines the ramps themselves\n    rather than the semantics on top of them, so binding to a step is what makes\n    this survive the flip without being written twice.\n\n    Comment and punctuation take the secondary ink deliberately. They are the two\n    kinds a reader skips, and giving them a hue of their own is how a code panel\n    ends up looking like confetti.\n  */\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n  --syntax-string: var(--o-verdant-11);\n  --syntax-keyword: var(--o-ember-11);\n  --syntax-number: var(--o-amber-11);\n  --syntax-tag: var(--o-steel-11);\n  --syntax-attribute: var(--o-amber-11);\n  --syntax-property: var(--o-steel-11);\n\n  --verified-solid: var(--o-verdant-9);\n  --verified-line: var(--o-verdant-a8);\n  /* The ink partner, for exactly the reason stated above the risk text steps:\n     verdant-9 is a FILL anchor and measures ~2.9:1 as text on canvas, which is\n     below the 4.5:1 floor. Anything setting `color` from a verified signal must\n     use this and never the solid. */\n  --verified-text: var(--o-verdant-11);\n  /* And the ink that sits ON the solid, so a filled success chip is a token\n     lookup rather than a judgement call. */\n  --verified-on: var(--o-verdant-on-9);\n\n  /* Autonomy \u2014 container edge. Line STYLE is the channel; nothing else uses it. */\n  --autonomy-rail-width: 3px;\n  --autonomy-autonomous-style: solid;\n  --autonomy-approval-style: dashed;\n  --autonomy-restricted-style: double;\n  --autonomy-forbidden-style: solid;\n  --autonomy-autonomous-color: var(--o-neutral-a8);\n  --autonomy-approval-color: var(--o-steel-a8);\n  --autonomy-restricted-color: var(--o-amber-a8);\n  --autonomy-forbidden-color: var(--o-signal-a8);\n\n  /* Provenance \u2014 the ground. ONE meaning: not an established fact (\xA70 C). */\n  --provenance-hatch-color: var(--o-neutral-a4);\n  --provenance-hatch: repeating-linear-gradient(\n    45deg,\n    var(--provenance-hatch-color) 0 1px,\n    transparent 1px 7px\n  );\n\n  /* Charts are monochrome by construction (\xA73.7). Colour must be asked for. */\n  --chart-1: var(--o-neutral-12);\n  --chart-2: var(--o-neutral-11);\n  --chart-3: var(--o-neutral-10);\n  --chart-4: var(--o-neutral-9);\n  --chart-5: var(--o-neutral-8);\n  --chart-6: var(--o-neutral-7);\n\n  /* ===========================================================================\n     GLASS \u2014 the one material that is not allowed on the flat ground.\n\n     THE RULE, and it decides everything about this family:\n       Glass only where it floats over a photograph. Opaque white everywhere it\n       sits on the flat ground.\n\n     This is measured, not preferred. Across every marketing page on the\n     reference, the count of elements with a computed `backdrop-filter` is\n     ZERO; its glassiness is inset white rims plus ink hairlines on opaque\n     fills, which is what --o-bevel-* already encodes. Its PRODUCT CSS uses\n     `blur(clamp(14px, .6vw, 44px))` on nearly every floating surface, because\n     there the ground is a photographic wallpaper. Putting blur on a card that\n     sits on our canvas is copying the product onto the site (trap 11).\n\n     Nothing in Orvay's product qualifies today: our ground is flat by\n     decision, so this family is currently reachable only from a surface that\n     declares `data-ground=\"photographic\"`. ui.css owns that gate and\n     tokens.test.ts proves the gate fires. The family is built rather than\n     deferred because the tenant-website preview surface is a real photographic\n     ground arriving later, and a material invented under deadline is how the\n     one rule above gets quietly broken.\n\n     THEME-INVARIANT ON PURPOSE, and this is the part that is easy to get\n     wrong. Every other surface token here inverts, because its ground is our\n     canvas. Glass floats over an arbitrary image that knows nothing about\n     `prefers-color-scheme`. Mixing the scrim from --o-neutral-12 would make it\n     a dark veil in light mode and a near-white veil in dark mode over the same\n     photograph. That is exactly the coupling that broke every shadow in the\n     product once already; the note above --o-bevel-* in the dark block records\n     it. So the scrim is declared once, here, and never restated.\n     ======================================================================== */\n\n  /* The measured ink, restated as a fixed value because it must not follow the\n     theme. Same construction and same reason as --o-ink-solid-light/dark. */\n  --o-glass-scrim: oklch(0.216 0.0075 248);\n  /* #171a1d59 measured \u2014 35% is the value that makes an arbitrary photograph\n     quiet enough to read white ink against without becoming a grey panel. */\n  --o-glass-fill: color-mix(in oklab, var(--o-glass-scrim) 35%, transparent);\n  /* The veil the GROUND wears, and the reason it has to exist.\n\n     The measured scrim is 35%, and at 35% glass ink is legible over the\n     reference's own wallpapers and nowhere else. Measured through the shipped\n     values: white ink on a 35% scrim is 10.27:1 over a mid-dark photograph and\n     2.11:1 over a white one. warmwind never meets the second case because it\n     ships the photographs; Orvay's only plausible photographic surface is a\n     tenant's own imagery, which is uploaded by somebody else and can be\n     anything at all.\n\n     So the ground guarantees its own ceiling rather than trusting its content.\n     0.40 is the minimum veil that clears 4.5:1 against a WHITE photograph;\n     0.45 is what ships, for headroom, and material.test.ts asserts the\n     arithmetic against the worst case rather than against a sample image.\n\n     This is the one place the measurement could not be copied. It was right for\n     the reference's situation and wrong for ours, and the difference is who\n     supplies the picture. */\n  --o-ground-veil: color-mix(in oklab, var(--o-glass-scrim) 45%, transparent);\n  --o-glass-blur: blur(clamp(14px, 0.6vw, 44px));\n  /* The modal scrim, which belongs to this family only because it shares the\n     fixed ink. Measured as a FLAT 60% scrim with no blur: the reference's own\n     dialog backdrop is flat, and blurring the page behind a modal is the same\n     trap-11 mistake as blurring a card on the flat ground. Theme-invariant,\n     because darkening the page is the same gesture in either theme. */\n  --o-scrim: color-mix(in oklab, var(--o-glass-scrim) 60%, transparent);\n  /*\n     THE PEEK'S OWN SHEET, LIGHTER THAN A MODAL'S.\n\n     `--o-scrim` at 60% is right for a dialog, which is meant to take the page\n     away. A peek is a glance: it dims to say the rail is in front, and the\n     reader can still read and click what is behind it. Measured against the\n     reference, which uses 35%; at 60% the sheet reads as a modal that forgot to\n     block anything, and its hard arrival was the \"flash\".\n  */\n  --o-scrim-soft: color-mix(in oklab, var(--o-glass-scrim) 35%, transparent);\n  /* The texture that makes a chart series legible without hue.\n     MEASURED, NOT CHOSEN. --o-steel-9, --o-verdant-9 and --o-neutral-9 all sit\n     at oklch lightness 0.620, so a stacked bar drawn by hue alone loses three\n     of its four series to achromatopsia, to greyscale print and to a\n     monochrome display. \xA77a rule 2 makes that a correctness question rather\n     than a cosmetic one, and no automated check catches it: axe measures ink\n     against fill, and these are fills beside each other.\n\n     A translucent white stripe over the tone, at a different ANGLE per series.\n     Theme-invariant on purpose: every solid it lies over is mid-lightness in\n     both themes, so the same wash reads in both, and a per-theme value would\n     be two numbers to keep in step for no gain. */\n  --o-chart-texture: color-mix(in oklab, white 28%, transparent);\n  /* One variant on the reference adds saturation, which puts colour back that\n     a heavy blur averages away. Use it on chrome that sits over a photograph\n     the reader is meant to still perceive as a photograph. */\n  --o-glass-blur-vivid: blur(clamp(14px, 0.6vw, 44px)) saturate(1.5);\n\n  /* The rim is what makes a 35% scrim legible against an unknown image, and\n     the bevel is INVERTED on purpose: ink insets on the left and right only,\n     white 30% rims on the top and bottom. That is backwards from a physical\n     bevel, and it is precisely why these read as glass rather than as plastic.\n     Put a dark inset on the bottom and you have built a button (trap 4).\n     Restated here rather than aliased to --o-bevel-control-solid because that\n     token inverts per theme and this one must not. */\n  --o-glass-rim:\n    0 1px 8px -3px color-mix(in oklab, var(--o-glass-scrim) 20%, transparent),\n    inset 0.5px 0 0 0 color-mix(in oklab, var(--o-glass-scrim) 10%, transparent),\n    inset -0.5px 0 0 0 color-mix(in oklab, var(--o-glass-scrim) 10%, transparent),\n    inset 0 1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent),\n    inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent);\n\n  /* Ink on glass is fixed light, for the same reason the scrim is fixed dark. */\n  --o-glass-ink: var(--o-ink-solid-light);\n\n  /* THERE IS NO SECONDARY INK ON GLASS, and the reason is arithmetic.\n\n     Over a white photograph, veiled and scrimmed, primary ink measures 5.06:1.\n     That leaves almost no budget: the minimum alpha that still clears 4.5:1 is\n     0.91, and ink at 91% is not a de-emphasised tier, it is primary ink with a\n     rounding error. Buying a real muted tier means a veil of 0.65, which\n     obscures the photograph badly enough that there was no reason to use one.\n\n     So on glass, de-emphasis is size, tracking and position, never opacity.\n     Same lesson as the weight cap, applied to a different channel: when a\n     channel has no headroom, stop spending in it rather than spending a token\n     amount and calling it hierarchy.\n\n     material.test.ts enumerates every --o-glass-ink* token and holds each to\n     4.5:1 against a white photograph, so adding one later is allowed and being\n     illegible is not. */\n  /* Panels on a photographic ground are separated by the WALLPAPER showing\n     through, never by a divider. There is no line token here on purpose. */\n\n  /* The progressive blur \u2014 ten layers, each doubling, each masked to a 10% band\n     shifted 10% further along. Worth stealing outright: a single large blur\n     reads as a smear, the stack reads as depth, and the difference is entirely\n     in the fact that the transition between blurred and unblurred is itself\n     gradual. The component that assembles the twelve layers is ProgressiveBlur\n     in @orvay/ui; the ladder is owned here so the doubling cannot drift. */\n  --o-blur-l1: 0.1px;\n  --o-blur-l2: 0.2px;\n  --o-blur-l3: 0.4px;\n  --o-blur-l4: 0.8px;\n  --o-blur-l5: 1.6px;\n  --o-blur-l6: 3.2px;\n  --o-blur-l7: 6.4px;\n  --o-blur-l8: 12.8px;\n  --o-blur-l9: 25.6px;\n  --o-blur-l10: 51.2px;\n  --o-blur-band: 10%;\n\n  /* ---- The night scene ---------------------------------------------------\n\n     A SCENE, NOT A SURFACE, and that distinction is the whole reason these are\n     declared once here rather than restated in the dark block below.\n\n     Every other Tier 2 token answers \"what is this rung of the ladder in this\n     theme\". These answer \"what is the ink on the photograph\", and a photograph\n     does not invert when a reader prefers light mode. The waitlist hero is a\n     picture of a planet limb at dawn; repainting its type for the light theme\n     would not be theming it, it would be illegible. So they are theme-invariant\n     BY CONSTRUCTION: declared in the shared block, absent from the dark block,\n     and therefore incapable of drifting apart.\n\n     WHY THEY ARE NOT REACHED FOR FROM THE NEUTRAL RAMP. --bg-canvas is step 3\n     in light and step 1 in dark. A hero wired to it is near-white for the\n     default theme's reader, which is the one case this scene must not have. And\n     the ink is the same problem mirrored: --fg-primary is near-black in light,\n     so every word of the headline would vanish into the sky.\n\n     EVERY VALUE BELOW WAS SAMPLED OFF THE REFERENCE DESIGN rather than chosen.\n     The comp was read as raw pixels: fills as the median of a clean interior\n     rectangle, ink as the 90th percentile of the glyph pixels in its own\n     bounding box, both converted sRGB -> OKLCH. That is why the field is a\n     blue-grey at L 0.468 rather than the near-black a dark control usually\n     gets, and why the quiet ink is as light as it is -- neither is a taste\n     decision and neither should be \"tidied\" toward the neutral ramp.\n\n     THE ARITHMETIC, since nothing in pairing.test.ts covers these -- they are\n     deliberately named so that suite's fill discovery does not claim them, and\n     a fill it does not claim is a fill it cannot check.\n\n     --night-ground is the colour UNDER the photograph: what shows before the\n     image decodes, and what the DOM contrast walk resolves to. The numbers that\n     matter for the type on the sky, though, are against the PHOTOGRAPH, whose\n     text band was sampled as a luminance profile and whose brightest pixel\n     above 66% -- the depth the layout permits -- measures 0.0590. Both are\n     listed, because the gap between them is the honest state of this page and\n     the waitlist stylesheet says so at length:\n\n                          on --night-ground   on the photo's worst pixel\n       --night-ink            20.02:1                  9.63:1\n       --night-ink-quiet      11.35:1                  5.46:1\n\n     And the pairs that never touch the photograph, each on the opaque fill it\n     actually sits on:\n\n       --night-ink             on --night-field    6.92:1\n       --night-ink-placeholder on --night-field    4.91:1\n       --night-action-ink      on --night-action  17.72:1\n       --night-focus           on --night-field    3.72:1   (1.4.11, floor 3:1)\n\n     THE PLACEHOLDER IS ITS OWN STEP, AND IT HAS TO BE. The obvious wiring is\n     --night-ink-quiet, which is the de-emphasised ink everywhere else on this\n     scene. On the field it measures 3.92:1 and fails, because the field is far\n     lighter than the sky the quiet ink was chosen against. Nothing would have\n     caught it: the contrast walk in e2e only measures elements with their own\n     text nodes, an <input> has none, and ::placeholder is not an element at\n     all. The reference solves it the same way, with a lighter ink in the field\n     than in the prose, which is the tell that its designer hit this too.\n\n     The floor is 4.5:1 for ink and 3:1 for the ring. The smallest number above\n     is 4.91:1 -- the placeholder -- and that is the one to re-measure if any of\n     these move, or if the photograph is ever replaced. */\n  --night-ground: oklch(0.135 0.0055 268);\n  --night-ink: oklch(1.000 0.0000 268);\n  --night-ink-quiet: oklch(0.818 0.0268 279);\n  --night-ink-placeholder: oklch(0.886 0.0080 279);\n  --night-field: oklch(0.468 0.0328 276);\n  --night-edge: oklch(0.545 0.0300 276);\n  /* The submit control. Fixed light with fixed dark ink, for the reason the\n     whole group is fixed: --control-solid-* INVERTS between themes, so a button\n     wired to it is near-black on a near-black sky for every reader on the\n     default theme. That is CLAUDE.md \xA712c's 1.21:1 button, rediscovered on a\n     surface the theme cannot reach. */\n  --night-action: oklch(0.952 0.0010 268);\n  --night-action-ink: oklch(0.115 0.0020 272);\n  --night-focus: oklch(0.800 0.0700 250);\n\n  /* ---- The v5 landing scenes ---------------------------------------------\n\n     A second scene family, and the same contract as --night-*: these are\n     PICTURES, not surfaces. The v5 landing alternates full-bleed dark and\n     paper-white sections whose colours were sampled off the approved design\n     comp (claude.ai/design project f90fa068, \"Orvay Landing v5\"), and a comp\n     does not invert when a reader prefers the other theme. Declared once in\n     the shared block, absent from the dark block, incapable of drifting.\n\n     THE DARK RAMP IS NUMBERED BY LIGHTNESS (--v5-d15 is L 0.15) because the\n     comp genuinely uses a ramp: four radial-gradient grounds share one\n     blue-grey hue and differ only in how deep each stop sits. Semantic names\n     were tried and lied -- the same step is \"card\" in one section and\n     \"gradient crown\" in another. The number is the one honest name.\n\n     NEAR-DUPLICATES IN THE COMP WERE UNIFIED, deliberately and narrowly:\n     values within 0.002 chroma / 1 hue step of a neighbour collapse into it\n     (0.14 0.012 250, 0.14 0.011 250 and 0.14 0.01 250 are one token). Every\n     unification is below the threshold of vision at these lightnesses; the\n     comp's 154 distinct literals become 47 tokens without a visible delta.\n\n     ALPHA VARIANTS ARE NOT DECLARED HERE. The comp uses ~15 base colours at\n     dozens of opacities; v5.css derives every one as\n     color-mix(in oklab, var(--v5-x) N%, transparent), which is the owner\n     being used, not bypassed. Naming avoids the discovery suffixes on\n     purpose: nothing here ends in -tint, -solid or -text and nothing starts\n     with bg-, so pairing.test.ts does not claim fills it cannot check. The\n     contrast duties for this family are carried by the section's own audit\n     in v5.css, the same arrangement --night-* has. */\n  --v5-ink: oklch(0.955 0.005 250);\n  --v5-ink-dark: oklch(0.255 0.015 250);\n  --v5-ink-dark-hover: oklch(0.35 0.02 250);\n  --v5-ink-on-steel: oklch(0.13 0.02 240);\n  --v5-white: oklch(1 0 0);\n  /* Mask stop only: it is the opaque end of a mask-image gradient, where only\n     the alpha channel exists. It never paints. */\n  --v5-mask: oklch(0 0 0);\n\n  --v5-d05: oklch(0.05 0.01 250);\n  --v5-d10: oklch(0.1 0.01 250);\n  --v5-d11: oklch(0.11 0.01 250);\n  --v5-d13: oklch(0.13 0.01 250);\n  --v5-d135: oklch(0.135 0.01 250);\n  --v5-d14: oklch(0.14 0.011 250);\n  --v5-d15: oklch(0.15 0.012 250);\n  --v5-d155: oklch(0.155 0.012 250);\n  --v5-d16: oklch(0.16 0.012 250);\n  --v5-d165: oklch(0.165 0.014 248);\n  --v5-d17: oklch(0.17 0.015 248);\n  --v5-d185: oklch(0.185 0.016 246);\n  --v5-d19: oklch(0.19 0.016 246);\n  --v5-d20: oklch(0.2 0.02 245);\n  --v5-d22: oklch(0.22 0.02 245);\n  --v5-d24: oklch(0.24 0.022 244);\n  --v5-d26: oklch(0.26 0.03 240);\n  --v5-d27: oklch(0.27 0.03 240);\n  --v5-d30: oklch(0.3 0.035 240);\n  --v5-plate-live: oklch(0.3 0.045 238);\n\n  --v5-paper: oklch(0.985 0.004 250);\n  --v5-paper-hi: oklch(0.994 0.004 250);\n\n  --v5-steel: oklch(0.68 0.13 232);\n  --v5-steel-deep: oklch(0.62 0.13 232);\n  --v5-steel-strong: oklch(0.46 0.12 232);\n  --v5-steel-hover: oklch(0.73 0.12 232);\n  --v5-steel-link: oklch(0.75 0.12 232);\n  --v5-steel-tag: oklch(0.75 0.1 235);\n  --v5-steel-haze: oklch(0.72 0.09 235);\n  --v5-steel-beam: oklch(0.8 0.09 233);\n  --v5-steel-sheen: oklch(0.85 0.08 232);\n  --v5-steel-edge: oklch(0.78 0.11 233);\n  --v5-steel-ring: oklch(0.72 0.12 233);\n\n  --v5-signal: oklch(0.62 0.17 25);\n  --v5-signal-ink: oklch(0.78 0.12 25);\n  --v5-verdant: oklch(0.72 0.11 152);\n  --v5-verdant-deep: oklch(0.66 0.12 152);\n\n  --v5-slate-1: oklch(0.5 0.03 245);\n  --v5-slate-2: oklch(0.55 0.035 245);\n  --v5-slate-3: oklch(0.6 0.04 245);\n  --v5-slate-4: oklch(0.72 0.03 245);\n\n  /* ---- The v6 landing, the white one --------------------------------------\n\n     A THIRD SCENE FAMILY, under the same contract as --night-* and --v5-*:\n     these are PICTURES rather than surfaces, so they are declared once here\n     and are absent from the dark block. A printed dossier does not invert\n     when a reader prefers dark mode, and v6's whole argument is that it is a\n     printed thing.\n\n     WHY A SEPARATE FAMILY RATHER THAN --v5-* REUSED. v6 is not v5 inverted.\n     v5's ramp is numbered by lightness because its four grounds differ only\n     in depth; v6 has ONE ground (white paper) and spends its budget on an\n     INK ramp instead, because on paper the hierarchy is carried by how dark\n     a mark is, never by how deep the surface behind it sits. The two\n     families therefore have different shapes, not different values.\n\n     THE INK RAMP IS AUDITED AND THE AA LINE IS DRAWN INSIDE IT. Computed as\n     sRGB relative luminance against --v6-paper, which is what a browser\n     actually paints:\n\n       --v6-ink     L 0.17   19.12:1   headlines, values, anything load-bearing\n       --v6-ink-2   L 0.40    9.21:1   body copy and secondary prose\n       --v6-ink-3   L 0.49    6.26:1   mono labels and metadata\n       --v6-ink-4   L 0.62    3.64:1   ORNAMENT ONLY, and every use is\n                                       aria-hidden: register marks, the\n                                       drafting grid, a rule that is drawn\n                                       rather than read\n\n     THESE FIVE FIGURES ARE CHECKED, and until 2026-09-06 they were prose and\n     they were wrong. They read 14.4, 6.5, 4.7 and 2.9, with ink-3 labelled\n     \"the AA floor\". Every one was understated: the ramp is better than this\n     comment claimed, so nothing was unsafe, and that is exactly why it went\n     unnoticed for as long as it did. A number that is wrong in the safe\n     direction still teaches the next reader something untrue, and somebody\n     choosing a token for a new surface would have picked ink-3 believing it\n     sat ON 4.5:1 rather than comfortably above it.\n\n     `tokens-prose.test.ts` now parses these lines out of this file and\n     compares each against `contrastRatio()`. Change a token's lightness and\n     the test names the line to update. \xA711a: a citation is an assertion with\n     a truth value, and this one is inside the file it describes.\n\n     Nothing a person must read is allowed below --v6-ink-3, and v6.css\n     repeats that rule where it is applied.\n\n     THE ACCENT IS ORVAY BLUE AT PAPER LIGHTNESS, not a new hue: hue 236 is\n     the same family --v5-steel sits in, dropped to L 0.47 so it clears 4.5:1\n     on white, and it measures 6.48:1 there. The bright steel of the dark comp measures 2.4:1 here, which\n     is the exact mistake \xA712c records as the 1.21:1 button, so the tint that\n     reads on a night ground is deliberately not carried across.\n\n     The two system indicators are equally restrained: --v6-void for a\n     refusal and --v6-seal for a verification, both dark enough to be read as\n     text and desaturated enough that neither becomes a decorative colour.\n     Colour is never their only carrier; the word beside them says the same\n     thing (\xA75, WCAG 1.4.1).\n\n     ALPHA VARIANTS ARE NOT DECLARED HERE, same arrangement as --v5-*:\n     v6.css derives every one with color-mix(in oklab, var(--v6-x) N%,\n     transparent), which is the owner being used rather than bypassed. No\n     name here ends in -tint, -solid or -text and none begins with bg-, so\n     pairing.test.ts makes no claim about fills it cannot check. */\n  --v6-paper: oklch(1 0 0);\n  --v6-paper-warm: oklch(0.985 0.002 90);\n  --v6-paper-cool: oklch(0.975 0.003 250);\n  --v6-paper-deep: oklch(0.955 0.004 250);\n\n  --v6-ink: oklch(0.17 0.008 260);\n  --v6-ink-2: oklch(0.4 0.008 260);\n  --v6-ink-3: oklch(0.49 0.006 260);\n  --v6-ink-4: oklch(0.62 0.005 260);\n\n  /* A step lighter than --v6-ink, for the one mark on the page that is a\n     sculpture rather than a line of text: at full --v6-ink the record totem\n     reads as a flat silhouette instead of a lit object. */\n  --v6-totem-ink: oklch(0.24 0.008 260);\n\n  --v6-rule: oklch(0.905 0.003 260);\n  --v6-rule-2: oklch(0.84 0.004 260);\n\n  --v6-blue: oklch(0.47 0.13 236);\n  --v6-blue-deep: oklch(0.37 0.11 236);\n  --v6-blue-wash: oklch(0.965 0.018 236);\n\n  --v6-void: oklch(0.46 0.15 27);\n  --v6-seal: oklch(0.44 0.1 155);\n\n  /* THE HEAT. Five bands for the landing hero's mound, hot at the crest and\n     cold at the foot, the one place on the site where colour is spent as\n     colour. Decorative by declaration: nothing reads on them, nothing is\n     encoded by them, and pairing.test.ts makes no claim about them because\n     none is named as a fill or an ink. */\n  --v6-heat-1: oklch(0.62 0.25 20);\n  --v6-heat-2: oklch(0.72 0.19 50);\n  --v6-heat-3: oklch(0.9 0.18 95);\n  --v6-heat-4: oklch(0.82 0.1 225);\n  --v6-heat-5: oklch(0.6 0.18 255);\n\n  /* The sculptural model: three neutral faces and the shadow it casts. Read\n     as one object lit from the upper left, which is why the top plane is the\n     darkest of the three and the right face the lightest. */\n  --v6-face: oklch(0.95 0.003 260);\n  --v6-face-lit: oklch(0.985 0.002 260);\n  --v6-face-top: oklch(0.915 0.004 260);\n  --v6-shade: oklch(0.74 0.008 260);\n}\n\n\n/* =============================================================================\n   Tier 2 \u2014 dark. Only the surface ladder moves.\n\n   Everything else in Tier 2 is expressed as a var() onto a Tier 1 step that\n   already flips, so it needs no restatement: --fg-primary is step 12 and step 12\n   is ink in both themes. The BACKGROUNDS are the exception, because \"raised\" is\n   not a step, it is a DIRECTION along the ramp, and the ramp reverses.\n\n   Light: ground 3 (0.955) -> surface 1 (1.000), a lift of +0.045.\n   Dark:  ground 1 (0.160) -> surface 3 (0.220), a lift of +0.060.\n\n   Same gesture, opposite steps. Leaving this out is what made every card in dark\n   sit BELOW its ground; the white halo was a second, independent bug on top of\n   it, and fixing only the halo would have produced something that looked better\n   and was still inverted.\n   ============================================================================= */\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    --bg-canvas: var(--o-neutral-1);\n    --bg-subtle: var(--o-neutral-2);\n    --bg-raised: var(--o-neutral-3);\n    /* The orb's three stops, restated because \"lighter\" and \"darker\" reverse.\n       Same gesture, opposite steps, exactly as the surface ladder above. */\n    --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-neutral-12));\n    --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-neutral-12));\n    --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-neutral-1));\n\n  }\n}\n:root[data-theme='dark'] {\n  --bg-canvas: var(--o-neutral-1);\n  --bg-subtle: var(--o-neutral-2);\n  --bg-raised: var(--o-neutral-3);\n  /* The orb's three stops, for the reader who CHOSE dark rather than inheriting\n     it. Leaving them out of this block is what made the specimen sheet render\n     an inverted sphere: it stamps `data-theme` explicitly, so it never matched\n     the media-query block above and quietly took the light values. */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-neutral-12));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-neutral-12));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-neutral-1));\n}\n\n/* `color-scheme`, pinned to the explicit choice.\n   Declared HERE rather than beside the bare `:root` declaration at the top of\n   the file, because tokens.test.ts slices this document into theme blocks by\n   the FIRST occurrence of each selector and asserts they appear in ramp order.\n   A `[data-theme='dark']` rule above the ramps makes that slice start in the\n   wrong place and every dark-theme assertion in the suite silently measures the\n   light values. The suite caught it; the placement below keeps it honest. */\n:root[data-theme='light'] { color-scheme: light; }\n:root[data-theme='dark'] { color-scheme: dark; }\n\n/* =============================================================================\n   Print under a dark theme.\n\n   `--bg-canvas: #ffffff` alone was not enough, and for this product that is a\n   critical bug rather than a cosmetic one: a reader in dark mode printing an\n   evidence exhibit got near-white ink (step 12 = 0.955) on a forced-white page.\n   The exhibit prints blank. CLAUDE.md section 7 says a printed simulated run\n   that looks live is a critical bug; a printed run that shows nothing at all is\n   the same class of failure.\n\n   The neutral ramp is restated at its LIGHT values for print, rather than only\n   the ground, because ink and ground have to agree about which way the ramp\n   runs. Only the steps that carry ground, surface and ink are listed; the risk\n   hues keep their own values and are already forced with print-color-adjust.\n   ============================================================================= */\n@media print {\n  :root, :root[data-theme='dark'], :root:not([data-theme='light']) {\n    --o-neutral-1: oklch(1.000 0.0000 260);\n    --o-neutral-2: oklch(0.975 0.0030 260);\n    --o-neutral-3: oklch(0.955 0.0040 260);\n    /* Mirrors the light value exactly. It had drifted to L 0.528 / C 0.0090\n       against light's 0.500 / 0.0055, which is a third ramp nobody chose: the\n       block's whole purpose is to restate the LIGHT ramp so a dark-mode reader\n       printing an exhibit gets ink on paper. A print-only value that agrees\n       with neither theme is how an exhibit stops matching the screen it was\n       taken from. tokens.test.ts now asserts the mirroring. */\n    --o-neutral-11: oklch(0.485 0.0060 260);\n    --o-neutral-12: oklch(0.170 0.0080 260);\n    --bg-canvas: var(--o-neutral-2);\n    --bg-subtle: var(--o-neutral-3);\n    --bg-raised: var(--o-neutral-1);\n  }\n}\n\n/* =============================================================================\n   Print \u2014 a first-class output (\xA70 E).\n\n   Screenshots of Orvay are exhibits. Browsers strip backgrounds by default,\n   which would remove the risk tint AND the provenance hatch, so a printed\n   SIMULATED run would look live. That is the one thing this product must never\n   do. Colour is forced, and the redundant text carriers do the rest.\n   ============================================================================= */\n@media print {\n  :root { --bg-canvas: #ffffff; }\n  [data-provenance], [data-risk] {\n    print-color-adjust: exact;\n    -webkit-print-color-adjust: exact;\n  }\n}\n\n/* =============================================================================\n   Reduced motion \u2014 stand the movement down, never the signal.\n\n   This is trap 19, and it is law here rather than taste (CLAUDE.md \xA77a). The\n   reference ships `*, ::before, ::after { animation-duration: .001ms }`, which\n   DELETES its pulsing .ActiveIndicator. That indicator is the only thing on the\n   screen saying a worker is alive, and nothing takes its place. A reader who\n   sets a motion preference is asking not to be moved; they are not asking to be\n   told less.\n\n   So the rule for this repository is stated as an obligation on the AUTHOR of a\n   motion, not on this block: any motion that carries meaning must have a\n   non-motion carrier that survives here. The theme toggle's glyph swap is one\n   (the sun still becomes a moon with the travel at zero); the stale-run signal\n   in ui.css is the other, and it degrades to a static hatch plus the literal\n   word rather than to a still dot.\n\n   Every duration is listed, including the aliases. Relying on an alias to\n   inherit its target's zero would work today and break silently the moment\n   somebody gives the alias its own value, and this block is the single control\n   that must not have an escape hatch. tokens.test.ts asserts the list is\n   complete against the tokens actually declared above.\n   ============================================================================= */\n@media (prefers-reduced-motion: reduce) {\n  :root {\n    --o-dur-instant: 0ms;\n    --o-dur-quick: 0ms;\n    --o-dur-considered: 0ms;\n    --o-dur-ambient: 0ms;\n    --o-dur-enter: 0ms;\n    --o-dur-exit: 0ms;\n    --o-dur-reveal: 0ms;\n    --o-stagger-unit: 0ms;\n    /* The travel and the blur are stood down too. A 0ms transition on a 4px\n       translate still paints the element 4px out of place on the first frame\n       if the travel itself survives, and an enter blur with no duration is a\n       permanently blurred element. */\n    --o-travel-reveal: 0px;\n    /* A lean is movement even without a duration: a thumb that jumps 15% wider\n       the instant a pointer arrives is exactly what somebody asking for stillness\n       asked not to have. */\n    --o-lean-scale: 1;\n    --o-press-scale-x: 1;\n    --o-press-scale-y: 1;\n    --o-blur-enter: 0px;\n  }\n}\n\n/* =============================================================================\n   Tier 3 \u2014 documentation chrome.\n\n   The docs are a third surface of the same product, so they get component-scoped\n   tokens here rather than a palette of their own in apps/docs. \xA74: one owner.\n\n   THE GEOMETRY IS ALREADY IN TIER 2, which is why this block is thin. The\n   reference layout is an \"in-card view\": the page canvas is RECESSED and the\n   prose sits on a LIFTED card with a hairline keyline. That is the structural\n   inversion the semantic layer above already commits to \u2014 ground is\n   --bg-canvas, a floating surface is --bg-raised, and the two swap steps\n   between themes so the lift stays a lift. Aliasing onto them means the docs\n   card inherits the flip for free and cannot drift from the app's cards.\n\n   Nothing here is restated per theme for exactly that reason. A value that\n   needed a dark override would be a value that had stopped deriving.\n   ============================================================================= */\n:root {\n  --docs-page-bg: var(--bg-canvas);\n  --docs-card-bg: var(--bg-raised);\n  --docs-card-line: var(--line-rule);\n  --docs-card-radius: var(--o-radius-lg);\n\n  /* The two fixed measures the whole shell is laid out against. Named because\n     four different rules need to agree about them: the card's height subtracts\n     the bar, the sidebar's top offset matches it, the main column's inline\n     start clears the rail, and the mobile drawer's width is the same rail. */\n  --docs-bar-h: 3.5rem;\n  --docs-rail-w: 16.5rem;\n\n  /* The sidebar has NO fill: it is chrome sitting on the canvas, so the card is\n     the only lifted surface in the shell. Its states are therefore washes, not\n     surfaces, or they would read as a second card. */\n  --docs-rail-fg: var(--fg-secondary);\n  --docs-rail-fg-active: var(--fg-primary);\n  --docs-rail-hover-bg: var(--o-neutral-a3);\n  --docs-rail-active-bg: var(--o-neutral-a4);\n\n  /* The table-of-contents rail. One continuous hairline with the active entry\n     painting its own segment, so position reads as a moving highlight rather\n     than a set of disconnected ticks. */\n  --docs-toc-rail: var(--line-rule);\n  --docs-toc-rail-active: var(--fg-primary);\n  --docs-toc-fg: var(--fg-secondary);\n  --docs-toc-fg-active: var(--fg-primary);\n}\n\n/* =============================================================================\n   Tier 3 \u2014 the application shell.\n\n   The Company OS is the fourth surface of the same product, so its chrome gets\n   component-scoped tokens here rather than a palette of its own in apps/app.\n   \xA74: one owner.\n\n   THE GEOMETRY IS ALREADY IN TIER 2, and that is the whole reason this block is\n   thin. The reference shell (app-zenovay) is three surfaces: a RECESSED ground\n   the sidebar sits on, and a LIFTED card the content lives in, floating in a\n   small gutter. Tier 2 already commits to exactly that inversion \u2014 ground is\n   --bg-canvas, a floating surface is --bg-raised \u2014 and the two SWAP ramp steps\n   between themes so the lift stays a lift once the ramp runs the other way.\n\n   So nothing here declares a colour. Aliasing means the app's shell inherits\n   the theme flip for free, cannot drift from the docs card or from the app's\n   own panels, and stays inside the contrast proof: tokens.test.ts asserts\n   primary ink at 7:1 across canvases 1-5 in BOTH themes, and every surface\n   named below is one of those steps. A hand-written --bg-sidebar would have\n   been a fourth surface outside that proof, unmeasured on the one surface a\n   person reads navigation labels off.\n\n   WHAT IS DELIBERATELY ABSENT. The reference carries a third ink tier\n   (--fg-subtle) beneath its muted one. It is not ported. Orvay asserts a floor\n   for primary (7:1) and secondary (4.5:1) and nothing below, so a third tier is\n   either ink under 4.5:1, which \xA77a forbids, or a second name for\n   --fg-secondary. Every --fg-subtle usage in the reference maps to\n   --fg-secondary here.\n   ============================================================================= */\n\n/* Typed so the rail's width INTERPOLATES. See --app-rail-shown below: an\n   unregistered custom property is an opaque string, so the well's padding would\n   snap while the rail glides. `inherits` is true because the well is not a\n   descendant of the rail and both read the same value off the root. */\n@property --app-rail-shown {\n  syntax: '<length>';\n  initial-value: 16rem;\n  inherits: true;\n}\n\n:root {\n  /* The three fixed measures the shell is laid out against. Named because\n     several rules have to agree about them: the well clears the rail, the card\n     subtracts the gutter twice, and the card's own header row is subtracted\n     again by the scrollport inside it. */\n  --app-rail-w: 15rem;\n  /* The collapsed rail, and it is a WIDTH rather than an absence: 56px holds a\n     32px tile centred in 12px of padding, which is the spec's icon rail\n     (26 \xA75.2). `rail-state.tsx` carries the same number for the width it\n     reserves; that file's note says why the two must agree. */\n  --app-rail-icon: 56px;\n  --app-gutter: var(--o-space-3);\n  --app-bar-h: 3rem;\n\n  /* REGISTERED, and this is load-bearing rather than decoration.\n\n     The rail collapses by translating off-canvas while the well's inline\n     padding shrinks to match. Those two have to move together or the content\n     jumps out from under the rail and back. An unregistered custom property is\n     an opaque string to the interpolator, so `padding-inline-start` SNAPS while\n     the transform glides, which is a visible flicker on every collapse. Typing\n     it as a <length> is what makes the padding animate at all. */\n  --app-rail-shown: var(--app-rail-w);\n\n  /* The rail has NO fill: it is chrome sitting directly on the canvas, so the\n     card is the only lifted surface in the shell. Its states are therefore\n     washes rather than surfaces, or an active row would read as a second card\n     floating on the first. Same construction and same reason as --docs-rail-*.\n\n     Alpha washes rather than ramp steps, because the rail sits on --bg-canvas\n     in light and on the inverted step in dark; a fixed step that lifts on one\n     would sink on the other. */\n  /*\n     THE RAIL SHARES THE GROUND, AND NO SEAM IS VISIBLE BETWEEN THEM.\n\n     For a few hours this was `--o-neutral-2`, a dedicated surface one step\n     recessed, because that is what the reference application does and the\n     survey measured it. The operator looked at the result and rejected it: the\n     rail and the well outside the card are one continuous ground here, and the\n     card is the only thing with an edge.\n\n     That is the better call for THIS product even though it diverges from the\n     reference, and the reason is in \xA79a: three opaque colours, and shadows at\n     the edge of perceptibility. A fourth surface a hair off the third is\n     exactly the kind of nearly-invisible boundary that reads as a rendering\n     fault rather than as depth. Recorded rather than reverted silently, so\n     nobody re-derives the recessed version from the reference again.\n  */\n  --app-rail-bg: var(--bg-canvas);\n\n  /*\n     ROW HEIGHT: THE REFERENCE'S EXACTLY.\n\n     32px, which is what the reference draws. This was 36px for a day, as a\n     compromise with \xA77a rule 4's flat 44px; the operator lowered that rule on\n     2026-08-28, so the compromise is gone and the number is the real one. The\n     rule was above the legal line rather than on it, and still is: EN 301 549\n     incorporates WCAG 2.1 AA, which sets no target size, and 32px clears 2.2\n     AA's 24px. A costly control still takes 44px; a navigation row is neither\n     costly nor irreversible.\n  */\n  --app-rail-row-h: 32px;\n\n  --app-rail-fg: var(--fg-secondary);\n  --app-rail-fg-active: var(--fg-primary);\n  --app-rail-hover-bg: var(--o-neutral-a3);\n  --app-rail-active-bg: var(--o-neutral-a4);\n\n  /* How strongly the resize hairline lights on hover. An OPACITY rather than a\n     colour, because the line is `--fg-primary` and must read the same way in\n     both themes; a fixed colour would be near-invisible in one of them. The\n     reference's own value, kept rather than re-picked. */\n  --app-handle-lit: 0.32;\n\n  /* THE PEEK'S SHADOW, AND IT IS THE ONE PLACE THE RESTRAINT RULE DOES NOT APPLY.\n\n     \xA79a measures the reference's shadows at the edge of perceptibility, and that\n     is right for a card resting on the flat ground. The peek is not resting on\n     anything: it floats over the page with a dimmed scrim behind it, and a\n     hairline shadow there reads as a rendering fault rather than as depth. Two\n     layers, because one large blur is a smear and a tight layer under a wide one\n     is what reads as an object with a height above the page.\n\n     Built from `--o-neutral-a*` rather than a literal, so it inverts with the\n     theme instead of becoming a black bruise on a dark canvas. */\n  --app-peek-shadow:\n    0 20px 50px -12px var(--o-neutral-a6),\n    0 8px 20px -8px var(--o-neutral-a5);\n\n  /* Three tokens used to sit here and no longer do: `--app-rail-marker` and\n     `--app-rail-marker-w` fed a 2px bar down the inline-start edge of the\n     current row, and `--app-rail-group-fg` coloured four uppercase headings over\n     a flat list. The bar and the headings are both gone from the rail (see\n     `.a-rail__link[aria-current='page']` and `.a-rail__sub` in apps/app), so the\n     tokens went with them rather than being left declared and unread. An unused\n     token is indistinguishable from a token whose consumer was deleted by\n     accident, and the next person wanting an active-row or group treatment would\n     find plausible values here and assume something already draws them. */\n\n  /* The card. Same three values as the docs card and deliberately not shared\n     with it: the two surfaces are allowed to diverge later, and one alias\n     pretending they are one thing is how a change to the docs silently\n     restyles the product.\n\n     THE RADIUS IS 20px AND THE REFERENCE'S IS 16px, which is the one measured\n     value in this file that is not carried across, so it is worth saying why\n     rather than leaving it as a rounding error. Orvay's radius scale has no\n     16: it offers 12 and 20, deliberately, because \xA79a's two-shape doctrine\n     treats an in-between radius as the thing that makes a set of surfaces look\n     assembled rather than designed. Both neighbours were available and 20 wins\n     for a reason outside this app: the documentation card shipped on\n     --o-radius-lg on 2026-08-20 and is the same in-card idea on the same\n     product. A customer moving between docs.orvayos.com and the product should\n     not see the corner change. */\n  --app-card-bg: var(--bg-raised);\n  --app-card-line: var(--line-rule);\n  --app-card-radius: var(--o-radius-md);\n}\n\n/* =============================================================================\n   The builder surface \u2014 a ground the theme cannot reach, and the tokens for it.\n\n   The builder is the two-pane workbench a person generates a site in: a chat\n   pane, a preview, and a top bar over both. Its ramp is MEASURED rather than\n   chosen, off the live Lovable editor in a browser, and the numbers plus the\n   method are in docs/research/lovable-measurements.md \xA72 and \xA77. Four grounds, a\n   hairline, and exactly one saturated colour in the entire surface \u2014 which is\n   the same discipline \xA79a already makes law here, arrived at independently by\n   somebody else, and the most useful thing the measurement found.\n\n   IT IS A CONTEXT, NOT A RUNG OF THE LADDER, and that is the decision everything\n   else here follows from. Every other surface token in this file answers \"what\n   is this rung in this theme\". These answer \"what is this rung on a workbench\",\n   and a workbench is pinned dark: what was measured is a dark ramp, and a light\n   counterpart would be invented rather than measured. Inventing one and stamping\n   it with the measurement's authority is exactly the move \xA712b calls a\n   placeholder. So the builder is a scope, it declares `color-scheme: dark` (the\n   note at the top of this file is the argument: without it the UA keeps drawing\n   its own controls, scrollbars and autofill in the reader's theme, and that is\n   how a 1.14:1 Reject button once shipped), and it RESTATES every semantic token\n   that carries a ground assumption. Which is what the dark theme block does, for\n   the same reason, in the same shape.\n\n   THE NAMES ARE THE SYSTEM'S, DELIBERATELY. There is no --builder-raised, and\n   there must not be one: --bg-raised already means \"a surface floating on the\n   ground\", and every primitive in @orvay/ui reads --bg-raised, --fg-primary,\n   --line-rule and --focus-ring. Re-pointing those means Notice, Field, Dropdown\n   and the rest render correctly inside the builder with no change at all. A\n   parallel --builder-* family would mean restyling each of them, and then\n   restyling each of them again the next time one of them changed.\n\n   THE OBVIOUS FIRST ATTEMPT DOES NOT WORK, and it is worth a paragraph because\n   it looks like it should. Re-pointing the Tier 1 ramp inside the scope --\n   --o-neutral-1 and friends -- changes nothing, because a custom property has\n   its var() substituted at computed-value time ON THE ELEMENT THAT DECLARES IT.\n   --bg-canvas: var(--o-neutral-3) is computed at :root and inherited as a\n   literal colour; a descendant that redefines --o-neutral-3 is redefining\n   something --bg-canvas has already stopped reading. The same rule is why the\n   alpha washes (--o-neutral-a3 and the rest) cannot follow this scope either,\n   and why anything inside the builder that wants one has to be given a token\n   here instead.\n\n   THE MEASURED LADDER, WITH A SURPRISE IN IT. Ordered by lightness, which is not\n   the order the measurement table lists them in:\n\n     pane ground     L 0.2300   rgb(29,29,28)   measured\n     root background L 0.2389   rgb(31,31,30)   measured\n     raised surface  L 0.2474   rgb(33,33,32)   measured\n     message bubble  L 0.2720   rgb(39,39,38)   measured\n\n   The document's own background is NOT the bottom rung: the panes are painted\n   two units of 255 BELOW it, so they are recessed into the shell rather than\n   floating on it. That is a fact about how that editor is built and not a\n   naming accident, and it is why --bg-canvas takes the pane and --bg-subtle\n   takes the root background rather than the other way round.\n\n   AND THE LIFT IS TOO SMALL FOR OUR OWN LADDER. Canvas to raised measures\n   0.0174, under the 0.02 'elevation is monotonic' asks of a card in tokens.test.ts,\n   which is to say Lovable does not hold a surface up with luminance at all: it\n   holds it up with an opaque hairline. So the hairline here is load-bearing\n   rather than decoration, the test asserts it stays lighter than every rung it\n   separates, and a future session that \"tidies\" the rungs closer together is\n   removing the only separation this surface has.\n\n   THE INK IS NOT PURE WHITE, THOUGH THE MEASUREMENT IS. Lovable's root ink is\n   rgb(255,255,255). The note above --o-ink-solid-* says body ink in this system\n   is deliberately not pure, and that is not a preference to discard for one\n   surface: pure white on a near-black ground halates. The cost is measured\n   rather than assumed -- 16.89:1 becomes 14.82:1 on the pane -- and both are so\n   far above the 7:1 floor that the choice costs nothing a reader can use.\n\n   THE ACCENT IS BOXED IN ON THREE SIDES, and this is the one measured value that\n   could not be shipped as it stands without an argument.\n\n   Measured: oklch(0.5243 0.2396 264.41), the Publish button and nothing else.\n   Against the pane it sits on that is 2.92:1, and against the message bubble\n   2.59:1. WCAG 1.4.11 wants 3:1 for the visual information that identifies a\n   control, and \xA77a makes that law here rather than taste; Lovable is a US\n   product with no European Accessibility Act duty and is free to ship it.\n\n   The instinct is to lighten the fill until it passes. It does not fit:\n\n     L 0.5582   the lowest lightness clearing 3:1 on every rung\n     L 0.5637   the highest lightness still inside sRGB at this chroma and hue\n     L 0.5748   the highest lightness whose light ink still clears 4.5:1\n\n   That is a legal window 0.0055 wide, and a fill sitting in it is one rounding\n   away from either clipping or taking its own label below the floor. So the\n   FILL ships as measured and the RIM carries the boundary: --accent-line is\n   3.93:1 at its worst rung, which is what 1.4.11 actually asks for, and it is\n   the same answer --line-control already gives for the same problem on the\n   neutral ramp. A builder control filled with --accent-solid MUST draw that rim;\n   the fill alone does not identify it.\n\n   The one lift that does fit inside the window is the hover state, which is why\n   --accent-hover is L 0.560: 3.02:1 on the bubble, 4.74:1 for its own label, and\n   inside sRGB by 0.0037. It is derived, not measured. Nothing measured a hover.\n\n   THE CHROMATIC FAMILIES ARE RESTATED NOW, AND THIS PARAGRAPH USED TO SAY THEY\n   WERE NOT. It said the builder rendered none of them and left instructions for\n   whichever session first did: give it an ink in this block, or put it on a\n   themed surface. That session arrived. `Notice` is on this surface, with\n   `data-tone='warning'`, so `--risk-medium-tint` and `--risk-medium-text` are\n   both live here.\n\n   IT FAILED EXACTLY AS PREDICTED, AND ONLY IN ONE THEME, which is why it was\n   easy to miss: for a reader in DARK the families already resolve to their dark\n   steps and the notice reads perfectly. For a reader in LIGHT the builder is\n   still pinned dark, so the ink came from this block and the tint came from the\n   reader's light ramp: a near-white sentence on a near-white wash. Measured at\n   1.0:1 in a browser and visible in a screenshot as a warning triangle with\n   nothing beside it.\n\n   So the steps the tone families consume are pinned to their dark values below.\n   The literals are the same ones the dark theme block declares, and they are\n   written out because CSS has no way to say \"whatever that block says\": a scope\n   cannot inherit from a sibling scope. `tokens.test.ts` audits this block as a\n   third ground, so these are inside the contrast proof rather than beside it. The bevels are the same\n   story with a better excuse: the measurement found no computed shadow anywhere\n   in that editor, so the builder is flat by construction, and reaching for\n   --o-bevel-raised inside it would paint the light theme's white inset onto a\n   dark card, which is the halo bug this file already fixed once.\n   ============================================================================= */\n:root {\n  /* Tier 1, internal, and declared HERE rather than up with the other primitives\n     on purpose: the block that consumes them is the next twenty lines. Proximity\n     is the mechanism, the same one the slab and its ink needed after drifting\n     700 lines apart. Hue is 107 on every one of these; the two values converted\n     out of sRGB measured 106.54 and 106.72 and are written as 107 with the rest,\n     which is a unification well under the threshold of vision and the same one\n     the v5 family makes for the same reason. */\n  --o-workbench-pane: oklch(0.230 0.0020 107);\n  --o-workbench-shell: oklch(0.239 0.0019 107);\n  --o-workbench-raised: oklch(0.2474 0.0020 107);\n  --o-workbench-bubble: oklch(0.272 0.0020 107);\n  /* Derived. Nothing measured a hover or an active row, so these continue the\n     ladder at the 0.030 spacing the dark neutral ramp uses at the same rungs\n     rather than at a spacing somebody liked the look of. */\n  --o-workbench-hover: oklch(0.302 0.0020 107);\n  --o-workbench-active: oklch(0.332 0.0020 107);\n  /* The hairline, measured, and the only separation this surface has. 1.65:1 on\n     the pane, which is a divider and not a boundary -- exactly the honest range\n     the note above --line-control describes for steps 6 to 8. */\n  --o-workbench-rule: oklch(0.374 0.0067 107);\n  /* Derived. The measurement offers ONE hairline and this system asks for three\n     weights of line, so these two continue the same ladder. Both sit under 3:1\n     and are meant to; a line that has to be SEEN is --o-workbench-edge.\n\n     THE WORDING HERE IS LOAD-BEARING AND THAT IS ABSURD, SO IT IS WRITTEN DOWN.\n     This comment used to open its second sentence with the word \"N-e-i-t-h-e-r\",\n     and that failed `apps/status/src/render.test.ts`. Not a flake: `build.ts`\n     inlines this entire file into the status page document, and that test\n     asserts the rendered page does NOT contain that word, because the page's\n     fallback sentence must read as singular when only one channel is down. The\n     assertion searches the whole document, so every prose comment in this file\n     is inside the haystack for a copy test in another package.\n\n     Left as prose rather than \"fixed\" by deleting the comment, because \xA74 says\n     the tokens are one owner and this file's comments are how the arithmetic is\n     auditable. The real fix belongs to the status page: scope that assertion to\n     the rendered copy instead of the document. Raised as a handoff. */\n  --o-workbench-border: oklch(0.435 0.0060 107);\n  --o-workbench-strong: oklch(0.520 0.0055 107);\n  /* The control boundary, 3.98:1 at its worst rung. Derived at the lightness the\n     dark neutral ramp already uses for the same job, because the job is the\n     same: WCAG 1.4.11, and a border that identifies a control rather than\n     decorating a table. */\n  --o-workbench-edge: oklch(0.665 0.0050 107);\n  /* 5.65:1 at its worst rung against a 4.5:1 floor, and 7.87:1 on the pane. */\n  --o-workbench-ink-quiet: oklch(0.760 0.0040 107);\n  /* 10.64:1 at its worst rung against a 7:1 floor, and 14.82:1 on the pane. */\n  --o-workbench-ink: oklch(0.955 0.0040 107);\n  /* The solid-control slab, re-derived for this ground rather than inherited:\n     --control-solid-* INVERTS between themes, so a button inside a pinned-dark\n     pane would be a near-black slab on a near-black ground for every reader on\n     the light theme. That is \xA712c's 1.21:1 button rediscovered on a surface the\n     theme cannot reach, which is the same sentence the night scene needed. Its\n     ink is the shared dark ink at 15.56:1 on the top stop and 12.50:1 on the\n     bottom, and the slab reads 13.75:1 against the pane, so the control has an\n     edge without needing to draw one. */\n  --o-workbench-control: oklch(0.930 0.0030 107);\n  --o-workbench-control-low: oklch(0.860 0.0030 107);\n  /* The single accent, measured. Read the argument above before moving it. */\n  --o-workbench-accent: oklch(0.5243 0.2396 264.41);\n  --o-workbench-accent-hover: oklch(0.560 0.2396 264.41);\n  /* The rim that identifies an accent-filled control, since its fill cannot.\n     3.93:1 at the worst rung. */\n  --o-workbench-accent-line: oklch(0.665 0.1200 264.41);\n  /* The accent as INK, which is the same trap the neutral ramp's step 9 sets:\n     the measured accent as text is 2.92:1 on the pane. This is 5.61:1 at its\n     worst rung, and it is a FREE ink -- nothing pairs it with a fill, so it is\n     held to the worst rung rather than to the one anybody had in mind. */\n  --o-workbench-accent-text: oklch(0.760 0.1000 264.41);\n}\n\n/* Tier 2, restated for this ground. The attribute goes on the element that wraps\n   the workbench; custom properties inherit, so everything under it follows.\n   Nothing outside the builder may set it. */\n[data-surface='builder'] {\n  color-scheme: dark;\n\n  /* THE TONE FAMILIES, PINNED TO THEIR DARK STEPS. `Notice` builds every tone\n     out of `--risk-*-tint` and `--risk-*-text`, which derive from these. A\n     surface that is dark whatever the reader chose has to carry them, or a\n     light-theme reader gets this block's near-white ink on the light ramp's\n     near-white tint. Only the steps the tones actually consume are restated:\n     step 3 is what the 12% tint is mixed from, step 11 is the ink. */\n  --o-amber-3: oklch(0.220 0.0197 75);\n  --o-amber-11: oklch(0.760 0.0885 75);\n  --o-signal-3: oklch(0.220 0.0285 25);\n  --o-signal-11: oklch(0.760 0.1284 25);\n  --o-verdant-3: oklch(0.220 0.0197 152);\n  --o-verdant-11: oklch(0.760 0.0885 152);\n\n  /* AND THE SEMANTIC TOKENS AGAIN, WHICH IS NOT REDUNDANT WITH THE SIX ABOVE.\n\n     A custom property is computed WHERE IT IS DECLARED and inherits as a\n     finished value. `--risk-medium-tint: var(--o-amber-a3)` and\n     `--o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent)` are\n     both declared on `:root`, so they resolved against the READER'S amber-3\n     before this scope existed, and the builder inherits that result. Restating\n     the input downstream cannot re-derive an output declared upstream.\n\n     Measured, because it looks like it should work: with only the six steps\n     above restated, `--o-amber-11` on this element correctly read as the dark\n     step while `--risk-medium-tint` still carried the light theme's near-white\n     wash. Re-declaring these HERE is what makes them resolve against the six\n     steps above. */\n  --risk-medium-tint: var(--o-amber-a3);\n  --risk-critical-tint: var(--o-signal-a3);\n  --risk-medium-text: var(--o-amber-11);\n  --risk-critical-text: var(--o-signal-11);\n  --verified-text: var(--o-verdant-11);\n  --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n  --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n  --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n  --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n  --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n  --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n\n  /* THE CODE PANE, WHICH IS THE SAME DEFECT ACROSS EIGHT TOKENS AT ONCE.\n\n     Every `--syntax-*` is derived: two from `--fg-secondary`, which this scope\n     already overrides, and six from ramp step 11 of four families. All eight are\n     declared on `:root`, so all eight computed against the READER'S theme and a\n     light-theme reader got the light ramp's syntax colours on the workbench's\n     dark ground. Not one token: a whole file of code, every keyword, string,\n     number and comment.\n\n     `--o-ember-11` and `--o-steel-11` are pinned here for the first time because\n     nothing else in this scope needed them; keyword, tag and property do.\n     `tests/schema/token-scopes.test.ts` is what found the rest, and it found\n     them as a consequence of the six steps pinned above: overriding an input\n     without its outputs is the defect, and the scan states it in those words. */\n  --o-ember-11: oklch(0.760 0.1081 45);\n  --o-steel-11: oklch(0.760 0.0950 236);\n  /* AND WHAT THOSE TWO FEED, which the scan named only once they were pinned.\n     Closing one layer reveals the next, and that is the graph being walked\n     rather than the scan being fussy: `--risk-high-text` is the third risk ink\n     and would have been the next `Notice` tone to go invisible here. */\n  --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n  --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n  --risk-high-text: var(--o-ember-11);\n\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n  --syntax-string: var(--o-verdant-11);\n  --syntax-keyword: var(--o-ember-11);\n  --syntax-number: var(--o-amber-11);\n  --syntax-tag: var(--o-steel-11);\n  --syntax-attribute: var(--o-amber-11);\n  --syntax-property: var(--o-steel-11);\n\n  --bg-canvas: var(--o-workbench-pane);\n  --bg-subtle: var(--o-workbench-shell);\n  --bg-raised: var(--o-workbench-raised);\n  --bg-component: var(--o-workbench-bubble);\n  --bg-hover: var(--o-workbench-hover);\n  --bg-active: var(--o-workbench-active);\n\n  --line-rule: var(--o-workbench-rule);\n  --line-border: var(--o-workbench-border);\n  --line-strong: var(--o-workbench-strong);\n  --line-control: var(--o-workbench-edge);\n\n  --fg-primary: var(--o-workbench-ink);\n  --fg-secondary: var(--o-workbench-ink-quiet);\n\n  --control-solid-top: var(--o-workbench-control);\n  --control-solid-bottom: var(--o-workbench-control-low);\n\n  /*\n     THE PRESS PREVIEW, RE-DERIVED IN THIS SCOPE, and it would have been wrong\n     without these three lines.\n\n     A custom property is computed WHERE IT IS DECLARED and inherits as a\n     finished value. `--control-solid-press-top` is declared on `:root` as a mix\n     of `--control-solid-top` and `--bg-subtle`, so it resolves there against\n     the ROOT'S versions of both. Overriding the two inputs above changes\n     nothing about the already-resolved output: a switch inside the builder\n     would have previewed toward the light theme's near-black on a dark pane.\n\n     Found by `tests/schema/token-scopes.test.ts`, which is the scan written for\n     exactly this and caught its own author's tokens on its first real run.\n  */\n  /*\n     THE RAIL'S GROUND FOLLOWS THE CANVAS HERE TOO. `--app-rail-bg` is declared\n     on :root as `var(--bg-canvas)`, and this scope overrides `--bg-canvas`, so\n     without this line a rail inside the builder would paint the light theme's\n     near-white against a dark workbench.\n\n     Caught by tests/schema/token-scopes.test.ts the moment `--app-rail-bg`\n     stopped being a literal and became derived, which is the whole reason that\n     scan exists: the dependency it checks is created by an ordinary edit\n     somewhere else entirely.\n  */\n  --app-rail-bg: var(--bg-canvas);\n\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: var(--control-solid-bottom);\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n  --control-solid-ink: var(--o-ink-solid-dark);\n\n  --accent-solid: var(--o-workbench-accent);\n  --accent-hover: var(--o-workbench-accent-hover);\n  --accent-line: var(--o-workbench-accent-line);\n  --accent-text: var(--o-workbench-accent-text);\n  --accent-on-solid: var(--o-ink-solid-light);\n  /* The orb's three stops, derived from the accent this scope just re-pointed.\n     A custom property is computed where it is DECLARED, so leaving these out\n     would paint the workbench orb in the ROOT accent while everything beside it\n     wore the workbench one. Caught by `token-scopes.test.ts`, which exists for\n     exactly this and named all three. The dark formulation, because this surface\n     is dark whatever the reader chose. */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-neutral-12));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-neutral-12));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-neutral-1));\n  /* The ring is ink, not a fill, and it binds to the accent's ink step for the\n     reason the note on --focus-ring gives at length: a fill anchor is chosen to\n     CARRY ink, which makes it too dark to BE ink. 5.61:1 at the worst rung\n     against a 3:1 floor. */\n  --focus-ring: var(--o-workbench-accent-text);\n}\n\n/* =============================================================================\n   THE PAPER SURFACE \u2014 the product app's ground, and a fourth set of grounds.\n\n   The app was copied from another product's shell and reads as a settings\n   screen: a grey canvas with white cards inset on it, every control lifted on a\n   bevel, the primary button a gradient slab. The operator's decision is PAPER\n   FIRST. One sheet from the rail to the foot, hairlines as the structural\n   element, almost no fills, one accent, and a dark scheme derived from the same\n   ramp at hue 260. docs/plan/26-brand-and-design-language.md is the spec.\n\n   WHY A SCOPE AND NOT A CHANGE TO :root. Three apps import this file. The site\n   is invariant paper already, through its own --v6-* family, and apps/docs\n   inherits the neutral ramp; repainting Tier 2 for everybody would restyle two\n   surfaces this change has neither measured nor screenshotted. CLAUDE.md \xA79e\n   says the site argues and the product works and they are allowed to look\n   different. So the app opts in by stamping `data-surface=\"paper\"` on <html>,\n   exactly as the builder opts into its pinned-dark workbench above.\n\n   ELEVATION ON PAPER IS A LINE, NOT A LIFT, AND THAT IS THE WHOLE IDEA.\n   The Tier 2 block above states the invariant \"a raised surface is lighter than\n   the ground it floats on\", and `elevation is monotonic` in tokens.test.ts\n   enforces it. That invariant cannot hold here: the sheet is oklch(1 0 0) and\n   nothing is lighter than white. So the doctrine is RESTATED rather than\n   dropped, and the restatement is the design:\n\n     A surface on paper is separated by its EDGE and its SHADOW, never by its\n     fill. Resting is a hairline; raised is the same hairline plus a soft\n     shadow; the primary control is flat.\n\n   THE HAIRLINE DOES NOT GET LIGHTER ON THE WAY DOWN, and that is not laziness.\n   An input's boundary identifies a control and is bound by WCAG 1.4.11 at 3:1,\n   so it cannot be the weaker half of a resting/raised pair. The ascent is\n   therefore the SHADOW: resting has none, raised has two layers. Stated this\n   way it is countable, which is what `the paper surface` asserts.\n\n   That is one sentence and it is testable, so `the paper surface` in\n   tokens.test.ts measures it: the edge weights must ascend, and no bevel on\n   this surface may carry a fill lift.\n\n   WHAT THIS BUYS FOR ONE ATTRIBUTE. Every control in @orvay/ui reads its depth\n   from --o-bevel-*, and `.o-input` has NO border at all: its only definition is\n   --o-bevel-resting. So rebinding six bevel tokens re-materialises every input,\n   button, menu, popover, dialog and Notice in the product at once, with no\n   component edited. Setting them to `none` instead would have made every input\n   an invisible white box on a white sheet, which is why resting is a hairline\n   here and not an absence.\n\n   THE RAMP RUNS DOWN, NOT UP. In the neutral system the ground is step 3 and a\n   surface is step 1. Here the ground IS the lightest value, so the five rungs\n   descend from the sheet and the ink ramp is the v6 one, unchanged, because the\n   landing page a customer sees first is already set in it.\n\n   MEASURED, NOT CHOSEN BY EYE. Every ratio below was computed through\n   ./oklch.ts against the WORST rung a token can land on, not against the\n   flattering one, which is the correction --o-neutral-11 already carries a note\n   about. The control boundary is the case that changed: at the v6 ornament\n   step (L 0.62) it read 2.70:1 on --bg-active and failed WCAG 1.4.11's 3:1, so\n   it is L 0.56 here.\n   ============================================================================= */\n:root {\n  /* Tier 1, internal, declared beside the block that consumes them for the same\n     reason the workbench family is: proximity is what stopped the slab and its\n     ink drifting 700 lines apart. Hue 260 throughout, which is the v6 ink hue.\n\n       --o-paper-sheet      1.000   the one sheet; canvas AND raised\n       --o-paper-quiet      0.985   a quiet band: table head, a fold, a footer\n       --o-paper-component  0.960   a control's own ground\n       --o-paper-hover      0.930\n       --o-paper-active     0.900   the worst rung, and what every ink below is\n                                    held against\n  */\n  --o-paper-sheet: oklch(1.000 0.0000 260);\n  --o-paper-quiet: oklch(0.985 0.0020 260);\n  --o-paper-component: oklch(0.960 0.0030 260);\n  --o-paper-hover: oklch(0.930 0.0040 260);\n  --o-paper-active: oklch(0.900 0.0050 260);\n\n  /* The two hairlines, taken from v6 unchanged. 1.33:1 on the sheet, which is a\n     divider and not a boundary, exactly the honest range the note above\n     --line-control describes. A line that must be SEEN is --o-paper-edge. */\n  --o-paper-rule: oklch(0.905 0.0030 260);\n  --o-paper-rule-2: oklch(0.840 0.0040 260);\n  --o-paper-rule-3: oklch(0.740 0.0050 260);\n  /* The control boundary. 3.45:1 on --bg-active and 4.65:1 on the sheet,\n     against WCAG 1.4.11's 3:1 floor. v6's ornament step is L 0.62 and reads\n     2.70:1 here, so this is derived for the job rather than borrowed. */\n  --o-paper-edge: oklch(0.560 0.0050 260);\n\n  /* The v6 ink ramp. 19.12:1 and 9.21:1 on the sheet; 14.19:1 and 6.83:1 on\n     the worst rung.\n\n     TWO STEPS, NOT v6's THREE. The third, L 0.490, is the AA floor v6 spends on\n     mono labels and metadata, and it is not declared here because nothing in\n     this scope would bind it: --fg-primary is the first ink and --fg-secondary\n     is the second, and there is no Tier 2 token for meta text yet. A primitive\n     no semantic reads is the \xA74 case of a value that looks owned and is not, so\n     the third ink arrives with `--fg-meta` and the tabular rows that consume\n     it, and not before. */\n  --o-paper-ink: oklch(0.170 0.0080 260);\n  --o-paper-ink-2: oklch(0.400 0.0080 260);\n\n  /* The one accent, the v6 blue, spent on the active row, the focus ring and a\n     link. 4.81:1 as ink on the worst rung, 6.48:1 on the sheet, and 6.48:1\n     carrying white as a fill. */\n  --o-paper-blue: oklch(0.470 0.1300 236);\n  --o-paper-blue-hover: oklch(0.370 0.1100 236);\n\n  /* NIGHT \u2014 the same ladder inverted, hue 260 throughout, for the reader who\n     chose dark and for a 23:00 halt from a phone. Derived, not measured from a\n     reference, because there is no dark reference: the spec asks for the paper\n     ramp read the other way.\n\n     17.28:1 and 8.91:1 on the sheet; 11.25:1 and 5.80:1 on the worst rung. Two\n     steps, for the reason the paper ramp above gives. The blue moves up the\n     ramp because a L 0.47 blue is 4.11:1 on a L 0.17 ground and would fail as\n     ink. */\n  --o-night-sheet: oklch(0.170 0.0080 260);\n  --o-night-quiet: oklch(0.205 0.0080 260);\n  --o-night-component: oklch(0.245 0.0080 260);\n  --o-night-hover: oklch(0.285 0.0080 260);\n  --o-night-active: oklch(0.325 0.0080 260);\n\n  --o-night-rule: oklch(0.300 0.0080 260);\n  --o-night-rule-2: oklch(0.360 0.0080 260);\n  --o-night-rule-3: oklch(0.440 0.0080 260);\n  /* 3.42:1 on --bg-active, 5.25:1 on the sheet. */\n  --o-night-edge: oklch(0.620 0.0100 260);\n\n  --o-night-ink: oklch(0.965 0.0040 260);\n  --o-night-ink-2: oklch(0.760 0.0080 260);\n\n  /* 4.75:1 as ink on the worst rung, 7.29:1 on the sheet. The fill is a\n     separate step because a fill is chosen to CARRY ink and is therefore too\n     light to BE ink here, which is the same trap --accent-text exists for.\n     4.95:1 carrying the shared dark ink. */\n  --o-night-blue: oklch(0.700 0.1100 236);\n  --o-night-blue-hover: oklch(0.760 0.1100 236);\n  --o-night-blue-fill: oklch(0.600 0.1300 236);\n}\n\n/* Tier 2, restated for paper. The attribute goes on <html> in apps/app; custom\n   properties inherit, so every route follows. Nothing outside apps/app may set\n   it, and apps/site and apps/docs are untouched by this whole section.\n\n   THE NEUTRAL RAMP IS DELIBERATELY NOT OVERRIDDEN HERE, which is what keeps\n   this block short. Every alpha family (--o-neutral-a3, the risk tints, the\n   autonomy lines) is translucent and composites correctly over whatever ground\n   it lands on, and each already flips with the reader's theme through the\n   blocks far above. Restating them would fork them. Only the semantics that\n   carry a GROUND ASSUMPTION move, plus every token derived from one of those,\n   because a property is computed where it is DECLARED and overriding an input\n   upstream of its output changes nothing. */\n[data-surface='paper'] {\n  color-scheme: light;\n\n  /* One sheet. --bg-raised is the SAME value as --bg-canvas on purpose: a card\n     inset on a darker ground is the frame-inside-a-frame this redesign deletes,\n     and on paper the hairline is what says where a surface begins. */\n  --bg-canvas: var(--o-paper-sheet);\n  --bg-raised: var(--o-paper-sheet);\n  --bg-subtle: var(--o-paper-quiet);\n  --bg-component: var(--o-paper-component);\n  --bg-hover: var(--o-paper-hover);\n  --bg-active: var(--o-paper-active);\n\n  --line-rule: var(--o-paper-rule);\n  --line-border: var(--o-paper-rule-2);\n  --line-strong: var(--o-paper-rule-3);\n  --line-control: var(--o-paper-edge);\n\n  --fg-primary: var(--o-paper-ink);\n  --fg-secondary: var(--o-paper-ink-2);\n\n  /* THE PRIMARY CONTROL IS A FLAT BLACK PILL, and it is flattened here rather\n     than in button.css. The rule reads\n     `linear-gradient(var(--control-solid-top), var(--control-solid-bottom))`,\n     so binding both stops to one ink produces a flat fill with no component\n     edited and no second code path. Paired ink at 19.12:1. */\n  --control-solid-top: var(--o-paper-ink);\n  --control-solid-bottom: var(--o-paper-ink);\n  --control-solid-ink: var(--o-ink-solid-light);\n\n  /* Derived upstream from --control-solid-* and --bg-subtle, so restated here\n     or the press preview would mix the neutral theme's near-black against this\n     sheet. Same three lines the builder scope needs, for the same reason. */\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n\n  --accent-solid: var(--o-paper-blue);\n  --accent-hover: var(--o-paper-blue-hover);\n  --accent-line: var(--o-paper-blue);\n  --accent-text: var(--o-paper-blue);\n  --accent-on-solid: var(--o-ink-solid-light);\n\n  /* Derived upstream from --fg-primary, which this scope moves. The spec spends\n     the accent on the active row, the focus ring and a link, so the ring is the\n     blue rather than the ink: 4.81:1 at its worst rung against a 3:1 floor. */\n  --focus-ring: var(--o-paper-blue);\n\n  /* Derived upstream from --accent-solid and the neutral ramp. The light\n     formulation, because this surface is paper whatever the reader chose. */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 18%, var(--o-paper-sheet));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-paper-sheet));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-paper-ink));\n\n  /* The shell's Tier 3, every one of them derived from a Tier 2 token this\n     scope moves. Left out, the rail would paint the old grey canvas against a\n     paper sheet and the seam would be the most visible thing on the screen. */\n  /* THE FRAME'S GEOMETRY, ZEROED, because on paper there is no frame. The\n     names stay so app.css keeps stating no values, and the handle's own\n     hairline derives from both, so a full-height sheet gets a full-height\n     edge with no second rule. */\n  --app-gutter: 0px;\n  --app-card-radius: 0px;\n  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.\n     \xA72 of the design language reads \"never 16px or above\" and \xA74 is exact: 2px\n     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.\n     The shared scale runs 8, 12, 20 and 30, so every surface in the app was\n     between four and fifteen times the spec, and a 30px panel corner is what\n     makes a settings screen read as a consumer app rather than a register.\n     Restated here rather than at :root because the site's own language is\n     built on the same four names and is not this. The pill is untouched: a\n     control is a pill or a surface, and those are the only two shapes. */\n  --o-radius-sm: 2px;\n  --o-radius-md: 2px;\n  --o-radius-lg: 2px;\n  --o-radius-panel: 2px;\n  /* Derived from --o-radius-lg, which the four lines above move. Inert in this\n     app, like the nine --docs-* bindings further down, and declared for the same\n     reason: eleven correct lines cost less than one frozen list. */\n  --docs-card-radius: var(--o-radius-lg);\n  --app-rail-bg: var(--bg-canvas);\n  --app-rail-fg: var(--fg-secondary);\n  --app-rail-fg-active: var(--fg-primary);\n  --app-card-bg: var(--bg-raised);\n  --app-card-line: var(--line-rule);\n\n  /* THE RAIL'S TWO WASHES, WHICH THE DERIVATION SCAN CANNOT SEE.\n     They are `--o-neutral-a3` and `--o-neutral-a4`, alphas of the NEUTRAL ramp,\n     which this scope deliberately leaves alone: every other alpha family\n     composites correctly over any ground, so they were reasoned safe as a\n     class. These two are the exception, and the exception is arithmetic rather\n     than theory. Both mix toward a near-white step (0.955 and 0.940) at 12% and\n     16%, which over a grey canvas was a faint darkening and over PAPER is a mix\n     of white into white. The hovered row and the CURRENT row both came out at\n     the sheet, so the rail had no selected state at all.\n     Restated as mixes of the surface's OWN ink, which is the rule: a wash on\n     paper is pulled toward the ink, never inherited from a ramp that was\n     lightening a different ground. */\n  --app-rail-hover-bg: color-mix(in oklab, var(--o-paper-ink) 5%, transparent);\n  --app-rail-active-bg: color-mix(in oklab, var(--o-paper-ink) 9%, transparent);\n\n  /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.\n     tests/schema/token-scopes.test.ts walks the derivation graph and reported\n     these as overriding an input without its outputs. Two are live in this app\n     today: `--syntax-*` colour every code block the markdown renderer emits, and\n     without these lines a code sample on paper would take the neutral theme's\n     secondary ink. The nine `--docs-*` are consumed only by apps/docs, which\n     never sets this attribute, so they are inert here; they are declared anyway\n     because eleven correct lines cost less than one frozen list that somebody\n     later reads as permission. */\n  --docs-page-bg: var(--bg-canvas);\n  --docs-card-bg: var(--bg-raised);\n  --docs-card-line: var(--line-rule);\n  --docs-rail-fg: var(--fg-secondary);\n  --docs-rail-fg-active: var(--fg-primary);\n  --docs-toc-fg: var(--fg-secondary);\n  --docs-toc-fg-active: var(--fg-primary);\n  --docs-toc-rail: var(--line-rule);\n  --docs-toc-rail-active: var(--fg-primary);\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n\n  /* THE SIX BEVELS, WHICH ARE THE WHOLE MATERIAL CHANGE.\n     Resting is a hairline. Raised is that hairline plus two shadow layers.\n     The solid control is flat. Shadows are mixed from black, never from an ink\n     step, which is the rule the theme blocks above already carry. */\n  --o-bevel-control-solid: none;\n  /* --o-bevel-control IS A HAIRLINE AND --o-bevel-resting IS A BOUNDARY, and\n     the two were the same line until it was measured on a real page.\n     WCAG 1.4.11 asks for 3:1 on a boundary that IDENTIFIES a control. An empty\n     input is identified by nothing else, so it keeps --line-control. A\n     secondary pill, a dropdown trigger and a menu button all carry a label, so\n     the 4.65:1 ring was doing no work the words were not already doing, and the\n     spec asks for \"a hairline pill in ink\" rather than an outlined one. */\n  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);\n  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);\n  --o-bevel-raised:\n    inset 0 0 0 var(--o-hairline) var(--line-control),\n    0 1px 2px -1px color-mix(in oklab, black 10%, transparent),\n    0 12px 28px -14px color-mix(in oklab, black 20%, transparent);\n  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);\n  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);\n}\n\n/* A NOTE FOR WHOEVER RE-ARMS THE BUILDER. `[data-surface='builder']` above is\n   dead today by an operator decision recorded in builder.tsx, and it does not\n   restate the bevels. It sits BELOW <html>, so the day anything sets it again\n   it will inherit the six declarations above: a hairline resolved from\n   `--line-control` AS THAT TOKEN COMPUTES ON <html>, which is the paper edge,\n   painted onto a pinned-dark pane. A property is computed where it is declared,\n   so re-arming that scope means restating these six there. Not written here in\n   advance, because a scope nothing selects is CSS nobody can see is wrong.\n   `a token scope is selected by something` in tests/schema/token-scopes.test.ts\n   holds the builder VALUE frozen so this stays a line somebody can read. */\n\n/* NIGHT. The reader who chose dark, on the same surface. `data-theme` is always\n   stamped by apps/app, server-side and then by the switcher, so this attribute\n   pair is the only selector needed: there is no `system` theme in this product\n   and a paper surface with no theme attribute is paper, which is the default\n   the spec asks for. */\n[data-surface='paper'][data-theme='dark'] {\n  color-scheme: dark;\n\n  --bg-canvas: var(--o-night-sheet);\n  --bg-raised: var(--o-night-sheet);\n  --bg-subtle: var(--o-night-quiet);\n  --bg-component: var(--o-night-component);\n  --bg-hover: var(--o-night-hover);\n  --bg-active: var(--o-night-active);\n\n  --line-rule: var(--o-night-rule);\n  --line-border: var(--o-night-rule-2);\n  --line-strong: var(--o-night-rule-3);\n  --line-control: var(--o-night-edge);\n\n  --fg-primary: var(--o-night-ink);\n  --fg-secondary: var(--o-night-ink-2);\n\n  /* The pill inverts, as the slab does everywhere else in this system: a black\n     pill on a near-black sheet is the 1.21:1 button \xA712c records. 17.28:1. */\n  --control-solid-top: var(--o-night-ink);\n  --control-solid-bottom: var(--o-night-ink);\n  --control-solid-ink: var(--o-ink-solid-dark);\n\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n\n  /* The fill and the ink are two steps, because a fill is chosen to CARRY ink\n     and is therefore too light to BE ink. 4.95:1 and 4.75:1 respectively. */\n  --accent-solid: var(--o-night-blue-fill);\n  --accent-hover: var(--o-night-blue);\n  --accent-line: var(--o-night-blue);\n  --accent-text: var(--o-night-blue);\n  --accent-on-solid: var(--o-ink-solid-dark);\n  --focus-ring: var(--o-night-blue);\n\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-night-ink));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-night-ink));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-night-sheet));\n\n  /* THE FRAME'S GEOMETRY, ZEROED, because on paper there is no frame. The\n     names stay so app.css keeps stating no values, and the handle's own\n     hairline derives from both, so a full-height sheet gets a full-height\n     edge with no second rule. */\n  --app-gutter: 0px;\n  --app-card-radius: 0px;\n  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.\n     \xA72 of the design language reads \"never 16px or above\" and \xA74 is exact: 2px\n     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.\n     The shared scale runs 8, 12, 20 and 30, so every surface in the app was\n     between four and fifteen times the spec, and a 30px panel corner is what\n     makes a settings screen read as a consumer app rather than a register.\n     Restated here rather than at :root because the site's own language is\n     built on the same four names and is not this. The pill is untouched: a\n     control is a pill or a surface, and those are the only two shapes. */\n  --o-radius-sm: 2px;\n  --o-radius-md: 2px;\n  --o-radius-lg: 2px;\n  --o-radius-panel: 2px;\n  /* Derived from --o-radius-lg, which the four lines above move. Inert in this\n     app, like the nine --docs-* bindings further down, and declared for the same\n     reason: eleven correct lines cost less than one frozen list. */\n  --docs-card-radius: var(--o-radius-lg);\n  --app-rail-bg: var(--bg-canvas);\n  --app-rail-fg: var(--fg-secondary);\n  --app-rail-fg-active: var(--fg-primary);\n  --app-card-bg: var(--bg-raised);\n  --app-card-line: var(--line-rule);\n\n  /* The same two washes, pulled the other way. \"Toward the ink\" is toward\n     near-white here, and the percentages are higher because a light film over a\n     dark ground carries less than a dark film over a light one. */\n  --app-rail-hover-bg: color-mix(in oklab, var(--o-night-ink) 8%, transparent);\n  --app-rail-active-bg: color-mix(in oklab, var(--o-night-ink) 14%, transparent);\n\n  /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.\n     tests/schema/token-scopes.test.ts walks the derivation graph and reported\n     these as overriding an input without its outputs. Two are live in this app\n     today: `--syntax-*` colour every code block the markdown renderer emits, and\n     without these lines a code sample on paper would take the neutral theme's\n     secondary ink. The nine `--docs-*` are consumed only by apps/docs, which\n     never sets this attribute, so they are inert here; they are declared anyway\n     because eleven correct lines cost less than one frozen list that somebody\n     later reads as permission. */\n  --docs-page-bg: var(--bg-canvas);\n  --docs-card-bg: var(--bg-raised);\n  --docs-card-line: var(--line-rule);\n  --docs-rail-fg: var(--fg-secondary);\n  --docs-rail-fg-active: var(--fg-primary);\n  --docs-toc-fg: var(--fg-secondary);\n  --docs-toc-fg-active: var(--fg-primary);\n  --docs-toc-rail: var(--line-rule);\n  --docs-toc-rail-active: var(--fg-primary);\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n\n  /* Restated, not inherited. The two shadow layers are mixed from black on a\n     near-black ground, where they do almost nothing, so the hairline carries\n     the whole separation and is a rung lighter than paper's for it. */\n  --o-bevel-control-solid: none;\n  /* The same split as the paper arm: a hairline on a labelled control, a\n     boundary on an input that has no label inside it. */\n  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);\n  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);\n  --o-bevel-raised:\n    inset 0 0 0 var(--o-hairline) var(--line-control),\n    0 1px 2px -1px color-mix(in oklab, black 40%, transparent),\n    0 12px 28px -14px color-mix(in oklab, black 60%, transparent);\n  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);\n  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);\n}\n\n";
+var tokens_default = "/* =============================================================================\n   Orvay design tokens\n\n   THE ONLY FILE IN THIS REPOSITORY THAT MAY CONTAIN A COLOUR LITERAL.\n   ESLint errors on any hex, rgb(), hsl() or oklch() elsewhere, and\n   tests/enforcement proves that rule still fires. Spec: docs/plan/08.\n\n   Three tiers:\n     Tier 1  primitives (--o-<ramp>-<step>)  INTERNAL. Components must never\n             reference these. They exist so semantics can be re-pointed without\n             re-deriving colour.\n     Tier 2  semantic (--bg-*, --fg-*, --risk-*, --autonomy-*, ...)  The only\n             tier components consume.\n     Tier 3  component-scoped, defined next to the component that owns it.\n\n   Hue is a scarce budget and it is spent entirely on RISK. Lifecycle is shape,\n   autonomy is container edge, provenance is surface texture, actor is\n   typography and tile geometry. A healthy queue is monochrome, so one amber row\n   is pre-attentively salient rather than one more coloured rectangle.\n\n   Step 9 is theme-invariant but PER RAMP: L(amber-9) > L(ember-9) > L(signal-9)\n   with >= 0.06 separation, so rising risk is a luminance descent and survives\n   greyscale, every form of colour blindness, and a bad projector.\n   tokens.test.ts parses this file and asserts it.\n   ============================================================================= */\n\n:root {\n  /* `light dark` is correct ONLY for the system-default case, where the browser\n     should follow the OS. It must be narrowed the moment a reader picks a theme\n     explicitly, and the two rules below do that.\n\n     Without them, `data-theme='dark'` on a machine set to light leaves every\n     surface the BROWSER draws in light mode while every surface WE draw goes\n     dark: the default button face, form control internals, scrollbars, autofill\n     backgrounds, and the default text colour of any element we forgot to paint.\n     That is not theoretical \u2014 it rendered near-white ink on the UA's near-white\n     `buttonface` at 1.14:1 on the Reject button, on every route, and it looked\n     perfect in light mode where the two happened to agree. */\n  color-scheme: light dark;\n\n  /* No faux-bold, anywhere, ever.\n\n     Measured on the reference: the maximum weight on that entire site is 500.\n     Circular ships only a 500, `b { font-weight: 500 !important }` demotes\n     browser bold, and `font-synthesis: none` blocks the browser from inventing\n     the rest. Hierarchy is carried by size, family, tracking and ink alpha,\n     with weight doing almost no work, and that is the single largest source of\n     the \"expensive\" read (docs/research/warmwind-measurements.md, trap 9).\n\n     Declared here rather than in a component stylesheet because a synthesised\n     weight is a rendering behaviour of the whole document: any surface that\n     forgot to opt out would get a smeared fake bold that no contrast test and\n     no type token can see. Every app imports this file, so every app gets it. */\n  font-synthesis: none;\n\n  /* ---- Tier 1: primitives (light) ---- */\n    /* neutral \u2014 hue 260, the paper ramp. Steps 1 to 3 are the site's\n       --v6-paper, --v6-paper-cool and --v6-paper-deep; 6 and 7 its two rules;\n       9 its ornament ink; 11 and 12 its --v6-ink-3 and --v6-ink. One material\n       for the site and the product, docs/plan/26-brand-and-design-language.md \xA74. */\n    --o-neutral-1: oklch(1.000 0.0000 260);\n    --o-neutral-2: oklch(0.975 0.0030 260);\n    --o-neutral-3: oklch(0.955 0.0040 260);\n    --o-neutral-4: oklch(0.940 0.0040 260);\n    --o-neutral-5: oklch(0.925 0.0040 260);\n    --o-neutral-6: oklch(0.905 0.0030 260);\n    --o-neutral-7: oklch(0.840 0.0040 260);\n    --o-neutral-8: oklch(0.795 0.0040 260);\n    --o-neutral-9: oklch(0.620 0.0050 260);\n    --o-neutral-10: oklch(0.570 0.0050 260);\n    /* L 0.500 measured 4.29:1 against step 6, which is --bg-active. The floor is\n       4.5:1 and nothing caught it, because the contrast suite enumerated INKS\n       against a fixed list of canvases rather than enumerating FILLS. That\n       covers a diagonal of the matrix, not the matrix: primary ink was checked\n       on steps 1-5, secondary ink on step 1 alone, and the interactive ladder\n       (steps 4, 5, 6 = component, hover, active) had no secondary assertion at\n       all. 0.485 clears it at 4.57:1 and still reads as secondary, at 6.39:1 on\n       the raised surface against primary ink's 15:1. */\n    --o-neutral-11: oklch(0.485 0.0060 260);\n    --o-neutral-12: oklch(0.170 0.0080 260);\n    /* The solid-control slab. Not part of the 12-step ramp because it is a\n       two-stop gradient, not a scale position \u2014 the faint vertical fall is what\n       makes the control read as lit from above rather than as flat fill. */\n    --o-slab-top: oklch(0.383 0.0000 260);\n    --o-slab-bottom: oklch(0.256 0.0000 260);\n    /* The slab's ink, declared HERE and never anywhere else.\n       The slab inverts between themes and --o-neutral-9 does not: neutral-9 is\n       L 0.620 in both, so the ink that suits it (dark) is fixed, while the slab\n       runs L 0.26-0.38 in light and L 0.86-0.93 in dark. Wiring the button's\n       colour to --fg-on-solid therefore produced near-black text on a near-black\n       button in LIGHT mode at 1.21:1 \u2014 invisible, on the default theme, on the\n       landing page's main call to action. A fill and its ink have to be declared\n       as a pair, in one place, or they drift apart exactly like this. */\n    --o-slab-ink: var(--o-ink-solid-light);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.994 0.0087 236);\n    --o-steel-2: oklch(0.978 0.0145 236);\n    --o-steel-3: oklch(0.958 0.0232 236);\n    --o-steel-4: oklch(0.938 0.0319 236);\n    --o-steel-5: oklch(0.918 0.0435 236);\n    --o-steel-6: oklch(0.895 0.0551 236);\n    --o-steel-7: oklch(0.858 0.0725 236);\n    --o-steel-8: oklch(0.800 0.0957 236);\n    --o-steel-9: oklch(0.620 0.1450 236);\n    --o-steel-10: oklch(0.575 0.1421 236);\n  /* Step 11 is the INK step, and it has to clear 4.5:1 on every rung of the\n     background ladder rather than on the three anybody thought to check.\n\n     The suite asserted the risk inks on canvases 1, 2 and 3 and left verdant\n     out of the list entirely. Measured across all six rungs in the light theme,\n     every one of the five free inks failed: accent 3.72, verified 3.53, medium\n     3.75, high 3.88, critical 3.97 at their worst. The whole-site sweep caught\n     the verdant case in production markup, at 4.33:1 on the waitlist success\n     message, once its selector was widened to see a `span`.\n\n     These are FREE inks: nothing pairs them with a particular fill, so any of\n     them can land on any surface, and the only honest floor is the worst rung.\n     Dark needed no change; its step 11 sits at L 0.760 against dark grounds. */\n    --o-steel-11: oklch(0.478 0.1044 236);\n    --o-steel-12: oklch(0.255 0.0609 236);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.994 0.0081 75);\n    --o-amber-2: oklch(0.978 0.0135 75);\n    --o-amber-3: oklch(0.958 0.0216 75);\n    --o-amber-4: oklch(0.938 0.0297 75);\n    --o-amber-5: oklch(0.918 0.0405 75);\n    --o-amber-6: oklch(0.895 0.0513 75);\n    --o-amber-7: oklch(0.858 0.0675 75);\n    --o-amber-8: oklch(0.800 0.0891 75);\n    --o-amber-9: oklch(0.700 0.1350 75);\n    --o-amber-10: oklch(0.655 0.1323 75);\n    --o-amber-11: oklch(0.490 0.0972 75);\n    --o-amber-12: oklch(0.255 0.0567 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.994 0.0099 45);\n    --o-ember-2: oklch(0.978 0.0165 45);\n    --o-ember-3: oklch(0.958 0.0264 45);\n    --o-ember-4: oklch(0.938 0.0363 45);\n    --o-ember-5: oklch(0.918 0.0495 45);\n    --o-ember-6: oklch(0.895 0.0627 45);\n    --o-ember-7: oklch(0.858 0.0825 45);\n    --o-ember-8: oklch(0.800 0.1089 45);\n    --o-ember-9: oklch(0.630 0.1650 45);\n    --o-ember-10: oklch(0.585 0.1617 45);\n    --o-ember-11: oklch(0.500 0.1188 45);\n    --o-ember-12: oklch(0.255 0.0693 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.994 0.0118 25);\n    --o-signal-2: oklch(0.978 0.0196 25);\n    --o-signal-3: oklch(0.958 0.0314 25);\n    --o-signal-4: oklch(0.938 0.0431 25);\n    --o-signal-5: oklch(0.918 0.0588 25);\n    --o-signal-6: oklch(0.895 0.0745 25);\n    --o-signal-7: oklch(0.858 0.0980 25);\n    --o-signal-8: oklch(0.800 0.1294 25);\n    --o-signal-9: oklch(0.560 0.1960 25);\n    --o-signal-10: oklch(0.515 0.1921 25);\n    --o-signal-11: oklch(0.505 0.1411 25);\n    --o-signal-12: oklch(0.255 0.0823 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.994 0.0081 152);\n    --o-verdant-2: oklch(0.978 0.0135 152);\n    --o-verdant-3: oklch(0.958 0.0216 152);\n    --o-verdant-4: oklch(0.938 0.0297 152);\n    --o-verdant-5: oklch(0.918 0.0405 152);\n    --o-verdant-6: oklch(0.895 0.0513 152);\n    --o-verdant-7: oklch(0.858 0.0675 152);\n    --o-verdant-8: oklch(0.800 0.0891 152);\n    --o-verdant-9: oklch(0.620 0.1350 152);\n    --o-verdant-10: oklch(0.575 0.1323 152);\n    --o-verdant-11: oklch(0.475 0.0972 152);\n    --o-verdant-12: oklch(0.255 0.0567 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n  /* Ink for step-9 solids. Body ink (step 12) is deliberately not pure, which\n     makes it too light to reach 4.5:1 on a mid-lightness solid \u2014 4.32:1 on\n     neutral-9. Solids get their own inks, and because step 9 is\n     theme-invariant, so is its ink. Which one each ramp takes is derived from\n     the contrast maths, not chosen: only signal-9 is dark enough for light ink.\n     Asserted in tokens.test.ts. */\n  --o-ink-solid-dark: oklch(0.170 0.008 260);\n  --o-ink-solid-light: oklch(0.985 0.004 260);\n\n  /* ---- Weight ramp: off the CSS keyword ladder (\xA74.1), and capped ----\n\n     Off the ladder so that `font-weight: bold` can never be reached for by\n     habit; capped at 530 because the reference's maximum weight is 500 and\n     `font-synthesis: none` above blocks the browser from faking anything\n     heavier. A 620 in a system whose hierarchy is carried by size, family,\n     tracking and ink alpha is the one addition that most reliably destroys the\n     read (measurements, trap 9). tokens.test.ts asserts the cap numerically, so\n     reintroducing a heavier step fails rather than merely disagreeing with this\n     comment. */\n  --o-weight-regular: 400;\n  --o-weight-medium: 460;\n  --o-weight-strong: 530;\n  /* ---- Type scale: tracking is a function of size and inverts (\xA74.3) ---- */\n  /* The first entry in each stack is the face next/font generates in every app's\n     root layout, which resolves to the self-hosted family plus the fallback Next\n     derives from its real metrics. The literal names behind it are what a\n     surface rendered outside a Next app gets, which is how this file is read by\n     the token tests and the specimen sheet.\n\n     The var() carries a DEFAULT rather than standing alone, and that is\n     load-bearing: an undefined custom property makes the whole declaration\n     invalid at computed-value time, so a bare var(--o-font-sans-face) would drop\n     the entire stack rather than skip one absent entry. The failure would look\n     like a serif page, not like a missing font.\n\n     Before 2026-08-18 both stacks named families that nothing loaded, so every\n     surface rendered in system-ui while the tokens claimed otherwise. */\n  --o-font-sans: var(--o-font-sans-face, InterVariable), Inter, ui-sans-serif, system-ui, sans-serif;\n  --o-font-mono: var(--o-font-mono-face, \"IBM Plex Mono\"), ui-monospace, SFMono-Regular, monospace;\n  /* The one serif in the system, and it exists for exactly one line of type:\n     the waitlist headline sets its final word in italic serif against the sans\n     it follows. Two voices in one line is a figure of speech; three is noise,\n     so nothing else in this repository may reach for this token.\n\n     TIMES-METRIC, AND NOT `ui-serif`. Measured against the design it copies:\n     `ui-serif` resolves on Windows to a face 21% wider, which put the italic\n     run 31px over its target while the sans on the line above sat 11px under.\n     Pinned to Times metrics it lands within 1px. Georgia is the wrong voice as\n     well as the wrong width -- the design's italic carries about 64% of the\n     sans's stroke, which is what makes it read as an aside rather than as a\n     second headline.\n\n     The three names are one metric family: Times New Roman on Windows, Times\n     on macOS, Liberation Serif on Linux, so the line breaks the same\n     everywhere. Stack-only, never a webfont: it is one word on one page. */\n  --o-font-serif: \"Times New Roman\", Times, \"Liberation Serif\", serif;\n\n  /* THE SLOT PATTERN ABOVE ARRIVED TWICE, INDEPENDENTLY, AND MAIN'S COPY WINS.\n\n     This branch reached the same conclusion in parallel: a family token naming a\n     face nothing loads is the same class of untruth as a badge for a certificate\n     nobody holds, so the name belongs here and the bytes belong to the app. Main\n     shipped it first, with Inter through next/font/google, and pinned the three\n     apps to identical loader calls in scripts/check-enforcement.mjs.\n\n     Two implementations of one idea is worse than either, so the duplicate here\n     is deleted rather than reconciled. The face itself is a separate decision and\n     a repo-wide one: changing it now would mean editing that enforcement rule and\n     both other apps, which is not a marketing-site change. */\n\n  /* The display tiers, which did not exist. 32px was the ceiling of the whole\n     system, so the marketing hero bypassed the scale with a raw\n     clamp(1.875rem, 3.4vw, 2.5rem) in site.css and capped at 40px. A tier that\n     is not in the scale is a tier nothing can assert, so these are declared\n     here and the clamp is deleted in the same change.\n\n     Tracking continues the inversion the scale already states: -0.04em at 32,\n     tightening as size grows, because the optical gap between letterforms grows\n     with the em and a display line set at body tracking reads as loose. */\n  --o-text-display-64: 4rem/4.2rem var(--o-font-sans);\n  --o-tracking-display-64: -0.05em;\n  --o-text-display-48: 3rem/3.3rem var(--o-font-sans);\n  --o-tracking-display-48: -0.045em;\n  --o-text-display-32: 2rem/2.3rem var(--o-font-sans);\n  --o-tracking-display-32: -0.04em;\n  --o-text-title-24: 1.5rem/1.75rem var(--o-font-sans);\n  --o-tracking-title-24: -0.03em;\n  --o-text-title-19: 1.1875rem/1.5rem var(--o-font-sans);\n  --o-tracking-title-19: -0.025em;\n  --o-text-body-15: 0.9375rem/1.5rem var(--o-font-sans);\n  --o-tracking-body-15: -0.015em;\n  --o-text-label-14: 0.875rem/1rem var(--o-font-sans);\n  --o-tracking-label-14: -0.0125em;\n  --o-text-mono-13: 0.8125rem/1.25rem var(--o-font-mono);\n  --o-tracking-mono-13: 0em;\n  --o-text-micro-11: 0.6875rem/0.875rem var(--o-font-sans);\n  --o-tracking-micro-11: 0.012em;\n\n  /* Chrome tracks in ABSOLUTE PIXELS. Text tracks in percentages.\n\n     The convention deliberately flips at the chrome tier, and missing the flip\n     is what makes buttons look loose (measurements, trap 8). Text tracking is a\n     percentage so it scales with a fluid size; a control label is not fluid, it\n     is a fixed piece of furniture, and it wants a fixed optical correction.\n\n     Measured on the reference: button labels -0.35px, badges -0.2px, numerics\n     -0.5px with tabular figures. Note the size of the effect. `.Button\n     .Paragraph` OVERRIDES the paragraph's -1.5%, and at 16px that is -0.24px\n     against -0.35px, so a button label is tracked ~46% tighter than identical\n     body text sitting beside it. */\n  --o-tracking-control: -0.35px;\n  --o-tracking-badge: -0.2px;\n  --o-tracking-numeric: -0.5px;\n\n  /* ---- Space, radius, hairlines ---- */\n  --o-space-1: 0.25rem;  --o-space-2: 0.5rem;   --o-space-3: 0.75rem;\n  --o-space-4: 1rem;     --o-space-5: 1.5rem;   --o-space-6: 2rem;\n  --o-space-7: 3rem;     --o-space-8: 4rem;\n  --o-radius-sm: 8px;    --o-radius-md: 12px;   --o-radius-lg: 20px;\n  /* Two shapes carry the whole language: controls are fully round, surfaces\n     are generously rounded. Nothing in between, which is what stops the UI\n     drifting into a dozen near-identical corner radii. */\n  --o-radius-pill: 1000px;\n  --o-radius-panel: 30px;\n\n  /* ---------------------------------------------------------------------------\n     Bevel \u2014 where the \"glass\" impression actually comes from.\n\n     Measured on the reference (warmwind.com, 2026-08-09): there is NO\n     backdrop-filter anywhere on that page. Zero. The glassy quality is made\n     entirely from a white INSET highlight along the top edge plus a soft outer\n     shadow \u2014 a simulated bevel catching light, not a blurred backdrop.\n\n     That distinction is worth the paragraph, because backdrop-filter is\n     expensive to composite, disappears under forced-colors, and prints as\n     nothing. This achieves the same read with none of those costs.\n     ------------------------------------------------------------------------- */\n  --o-bevel-control:\n    inset 0 1px 1px 0 color-mix(in oklab, white 20%, transparent),\n    0 1px 2px -0.5px color-mix(in oklab, var(--o-neutral-12) 10%, transparent);\n  --o-bevel-control-solid:\n    0 1px 8px -3px color-mix(in oklab, var(--o-neutral-12) 20%, transparent),\n    inset 0.5px 0 0 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset -0.5px 0 0 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset 0 1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent),\n    inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent);\n  /* Measured off the reference card, not off its icon well. The previous recipe\n     here was `0 23px 29px` plus a 24px opaque-white inner glow, which is the\n     reference's .IconBox-Inner svg shadow -- a 60px lens -- applied to a 1000px\n     card. On an icon it reads as glass; on a card it is a lamp.\n     The real card is held up by the 15-unit luminance step from ground to\n     surface. The outer shadow is deliberately almost erased: a -10px spread on\n     a 12px blur measures 8/255 of darkening at its strongest. Any shadow you\n     would reach for by instinct is an order of magnitude louder. */\n  --o-bevel-raised:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent),\n    inset 0 2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    inset 0 -2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    0 5px 12px -10px color-mix(in oklab, var(--o-neutral-12) 20%, transparent);\n  /* The resting half of the pair. Elevation here is not a translate or a scale:\n     it is this swapping to --o-bevel-raised, six alpha points deeper. An\n     interactive surface must rest on THIS one, or it has nowhere to hover to. */\n  --o-bevel-resting:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 10%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 8%, transparent),\n    inset 0 2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    inset 0 -2px 4px 0 color-mix(in oklab, white 40%, transparent),\n    0 4px 10px -8px color-mix(in oklab, var(--o-neutral-12) 10%, transparent);\n  /* Pressed into the ground rather than lifted off it \u2014 a double inset\n     vignette, top and bottom, for wells and inputs. */\n  --o-bevel-inset:\n    inset 0 -2.5px 15px 0 color-mix(in oklab, var(--o-neutral-12) 2%, transparent),\n    inset 0 2.5px 15px 0 color-mix(in oklab, var(--o-neutral-12) 2%, transparent);\n  /* Sub-pixel rims: the hairline that separates without drawing a border. */\n  --o-bevel-rim:\n    inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),\n    inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent);\n  /* ---- Density: a property of the SURFACE, never of the person (08 \xA75.2) ---- */\n  /*\n    THE THREE RUNGS, AND THE RULE THAT PICKS ONE. 08 \xA75.2 is explicit that there\n    is no density toggle and lists a compact/comfortable switch as a rejected\n    anti-pattern, because density is derived from CONSEQUENCE: a surface may\n    compress exactly as far as the consequence of misreading it is reversible.\n    Ledger is for looking something up, Console is the default, Decision is\n    mandatory wherever a click transfers authority, spends money or cannot be\n    undone.\n\n    THEY EXIST AS TOKENS BECAUSE THE LADDER WAS BEING FOLLOWED BY HAND. Every\n    surface picked its own number and wrote it as a literal, so the rungs were\n    real and unnamed, and nothing could tell a deliberate 32 from a typo.\n\n    NOT A PREFERENCE, and doc 26 disagrees with this and with itself; 08 is what\n    \xA79 names as the direction. A per-person mode would make one approval queue\n    read differently to two colleagues comparing screenshots of the same record,\n    which is the \xA77 print argument with a Slack thread in place of a printer.\n  */\n  --o-row-ledger: 32px;\n  --o-row-console: 40px;\n  --o-row-decision: 64px;\n\n  /* What a surface actually reads. Rebound by `[data-density]`, default Console. */\n  --o-row-block-size: var(--o-row-console);\n  --o-row-pad-block: 10px;\n  --o-row-pad-inline: 12px;\n\n  --o-hairline: 1px;\n  --o-tap-min: 44px;\n\n  /* ---- Motion: meaning only, never decoration (\xA76) ----\n\n     Two registers, and they are not interchangeable.\n\n     CONTROL FEEDBACK answers \"did it hear me\", so it is fast and symmetric and\n     it never sits on a decision's critical path. Approve, reject, select and\n     halt are 0ms, always.\n\n     ENTER AND EXIT answer \"where did this come from and where did it go\", and\n     the reference's whole motion vocabulary is one asymmetric pair, measured:\n     0.225s in on cubic-bezier(.23, 1, .32, 1), 0.15s out on\n     cubic-bezier(.77, 0, .175, 1). The exit is 33% faster AND a completely\n     different shape. A symmetric ease-out at 300ms with 24px of travel reads as\n     a template (measurements, \xA712 and trap 16). */\n  --o-dur-instant: 80ms;\n  --o-dur-quick: 140ms;\n  --o-dur-considered: 240ms;\n  --o-ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);\n\n  /* AMBIENT: a cycle that repeats for as long as a state lasts, rather than a\n     transition between two states.\n\n     The three durations above answer \"how long does this take to happen\". This\n     answers \"how slowly does a live thing breathe\", which is a different\n     question and has no defensible answer on that scale: at 240ms a pulsing\n     element reads as an alarm. It exists for the voice orb, which has to look\n     alive while somebody talks to it, and it is a token rather than a literal\n     because the reduced-motion block below is the single control \xA79 allows and a\n     literal would escape it. */\n  --o-dur-ambient: 3200ms;\n\n  /* The measured pair, verbatim rather than rounded to the duration scale. A\n     motion curve is not a spacing rung: 225 and 150 are the values that were\n     read off the reference, and rounding them to 220 and 160 for tidiness would\n     be substituting taste for the measurement this file exists to record. */\n  --o-dur-enter: 225ms;\n  --o-ease-enter: cubic-bezier(0.23, 1, 0.32, 1);\n  --o-dur-exit: 150ms;\n  /* Previously cubic-bezier(0.4, 0, 1, 1), a plain ease-in, and referenced by\n     nothing. docs/plan/08 \xA76.3 states there is no ease-in curve in the token\n     set; that was already untrue of --o-ease-standard, whose first control\n     point sits below the diagonal. The amendment recorded in \xA76.3 is: the\n     asymmetric pair governs reveals and exits, and ease-out governs anything a\n     click is waiting on. An exit may accelerate away, because nobody is waiting\n     for a thing that has already left. */\n  --o-ease-exit: cubic-bezier(0.77, 0, 0.175, 1);\n\n  /* Reveals travel 4px, not 24px, and run once.\n     Measured: `whileInView opacity 0 -> 1, translateY(4px) -> 0`, 0.225s, 0.1s\n     delay, viewport once. The restraint is the point. A 24px reveal announces\n     itself; a 4px reveal is felt and not seen, which is the only kind of motion\n     a supervision surface can afford. */\n  --o-travel-reveal: 4px;\n\n  /* HOW FAR A CONTROL LEANS TOWARD THE STATE IT WOULD MOVE TO.\n     A scale rather than a distance, because the thumb stays anchored and\n     stretches: the reference's own affordance, and the reason a hovered switch\n     reads as \"I would go that way\" rather than as having already gone. Zeroed to\n     1 under reduced motion below, so this lives here rather than in a second\n     media query beside the control (\xA79: handled once, in one file). */\n  --o-lean-scale: 1.15;\n  --o-press-scale-x: 1.1;\n  --o-press-scale-y: 0.95;\n  /* Blur is part of the enter, not decoration: the reference's section and\n     slide presets carry 3px and 4px in their initial and exit states. */\n  --o-blur-enter: 3px;\n  /* 0.05s x index, measured. Staggering beyond a handful of items turns a list\n     into a performance, so this is for rows arriving, never for rows present. */\n  --o-stagger-unit: 50ms;\n\n  /* Kept as aliases of the measured pair. They are the names apps already use,\n     and repointing them here is what makes the correction reach every consumer\n     without this session editing a surface it does not own. */\n  --o-dur-reveal: var(--o-dur-enter);\n  --o-ease-reveal: var(--o-ease-enter);\n\n  /* ---- Elevation: the halt control is exempt from overlay depth (\xA70 G) ---- */\n  --o-z-content: 0;\n  --o-z-sticky: 10;\n  --o-z-overlay: 100;\n  /*\n    A CONFIRMATION SITS ABOVE THE PAGE AND BELOW THE STOP CONTROL.\n\n    Above `overlay`, because a toast confirms something that already happened and\n    must be readable while a panel is open. Below `halt`, which \xA70 G exempts from\n    overlay depth for the reason that matters here: nothing may ever cover the\n    control that stops the company. A native `<dialog>` is in the top layer and\n    will cover a toast, and that is correct, because a modal is deliberately\n    blocking and the announcement still reaches a screen reader regardless.\n  */\n  --o-z-toast: 200;\n  --o-z-halt: 1000;\n}\n\n/*\n  THE RUNGS, BOUND BY ATTRIBUTE. A surface declares which one it is and the\n  primitives read the working variables, so a row height is a stated decision\n  rather than a literal somebody chose. `decision` is deliberately not offered\n  to a list primitive: a decision surface is a card, which the approvals queue\n  already is.\n*/\n[data-density='ledger'] {\n  --o-row-block-size: var(--o-row-ledger);\n  --o-row-pad-block: 8px;\n  --o-row-pad-inline: 12px;\n}\n\n[data-density='decision'] {\n  --o-row-block-size: var(--o-row-decision);\n  --o-row-pad-block: 16px;\n  --o-row-pad-inline: 20px;\n}\n\n\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    /* neutral \u2014 hue 260, the paper ramp inverted: ink as ground, paper as ink. */\n    --o-neutral-1: oklch(0.160 0.0060 260);\n    --o-neutral-2: oklch(0.190 0.0065 260);\n    --o-neutral-3: oklch(0.220 0.0070 260);\n    --o-neutral-4: oklch(0.250 0.0075 260);\n    --o-neutral-5: oklch(0.280 0.0080 260);\n    --o-neutral-6: oklch(0.310 0.0080 260);\n    --o-neutral-7: oklch(0.365 0.0080 260);\n    --o-neutral-8: oklch(0.435 0.0070 260);\n    --o-neutral-9: oklch(0.620 0.0050 260);\n    --o-neutral-10: oklch(0.665 0.0050 260);\n    --o-neutral-11: oklch(0.760 0.0055 260);\n    --o-neutral-12: oklch(0.955 0.0040 260);\n    --o-slab-top: oklch(0.930 0.0030 260);\n    --o-slab-bottom: oklch(0.860 0.0030 260);\n    /* Inverted with the slab. See the note in the light block. */\n    --o-slab-ink: var(--o-ink-solid-dark);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.160 0.0079 236);\n    --o-steel-2: oklch(0.190 0.0132 236);\n    --o-steel-3: oklch(0.220 0.0211 236);\n    --o-steel-4: oklch(0.250 0.0290 236);\n    --o-steel-5: oklch(0.280 0.0396 236);\n    --o-steel-6: oklch(0.310 0.0501 236);\n    --o-steel-7: oklch(0.365 0.0660 236);\n    --o-steel-8: oklch(0.435 0.0871 236);\n    --o-steel-9: oklch(0.620 0.1319 236);\n    --o-steel-10: oklch(0.665 0.1293 236);\n    --o-steel-11: oklch(0.760 0.0950 236);\n    --o-steel-12: oklch(0.955 0.0554 236);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.160 0.0074 75);\n    --o-amber-2: oklch(0.190 0.0123 75);\n    --o-amber-3: oklch(0.220 0.0197 75);\n    --o-amber-4: oklch(0.250 0.0270 75);\n    --o-amber-5: oklch(0.280 0.0369 75);\n    --o-amber-6: oklch(0.310 0.0467 75);\n    --o-amber-7: oklch(0.365 0.0614 75);\n    --o-amber-8: oklch(0.435 0.0811 75);\n    --o-amber-9: oklch(0.700 0.1229 75);\n    --o-amber-10: oklch(0.745 0.1204 75);\n    --o-amber-11: oklch(0.760 0.0885 75);\n    --o-amber-12: oklch(0.955 0.0516 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.160 0.0090 45);\n    --o-ember-2: oklch(0.190 0.0150 45);\n    --o-ember-3: oklch(0.220 0.0240 45);\n    --o-ember-4: oklch(0.250 0.0330 45);\n    --o-ember-5: oklch(0.280 0.0450 45);\n    --o-ember-6: oklch(0.310 0.0571 45);\n    --o-ember-7: oklch(0.365 0.0751 45);\n    --o-ember-8: oklch(0.435 0.0991 45);\n    --o-ember-9: oklch(0.630 0.1502 45);\n    --o-ember-10: oklch(0.675 0.1471 45);\n    --o-ember-11: oklch(0.760 0.1081 45);\n    --o-ember-12: oklch(0.955 0.0631 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.160 0.0107 25);\n    --o-signal-2: oklch(0.190 0.0178 25);\n    --o-signal-3: oklch(0.220 0.0285 25);\n    --o-signal-4: oklch(0.250 0.0392 25);\n    --o-signal-5: oklch(0.280 0.0535 25);\n    --o-signal-6: oklch(0.310 0.0678 25);\n    --o-signal-7: oklch(0.365 0.0892 25);\n    --o-signal-8: oklch(0.435 0.1177 25);\n    --o-signal-9: oklch(0.560 0.1784 25);\n    --o-signal-10: oklch(0.605 0.1748 25);\n    --o-signal-11: oklch(0.760 0.1284 25);\n    --o-signal-12: oklch(0.955 0.0749 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.160 0.0074 152);\n    --o-verdant-2: oklch(0.190 0.0123 152);\n    --o-verdant-3: oklch(0.220 0.0197 152);\n    --o-verdant-4: oklch(0.250 0.0270 152);\n    --o-verdant-5: oklch(0.280 0.0369 152);\n    --o-verdant-6: oklch(0.310 0.0467 152);\n    --o-verdant-7: oklch(0.365 0.0614 152);\n    --o-verdant-8: oklch(0.435 0.0811 152);\n    --o-verdant-9: oklch(0.620 0.1229 152);\n    --o-verdant-10: oklch(0.665 0.1204 152);\n    --o-verdant-11: oklch(0.760 0.0885 152);\n    --o-verdant-12: oklch(0.955 0.0516 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n    /* -------------------------------------------------------------------------\n       Bevel, re-derived for a dark ground.\n\n       These MUST be restated per theme, and the reason is geometric rather than\n       chromatic. In light, a card is lifted by pooling white INSIDE its lower\n       edge -- white on white reads as a soft interior lift. Do the same thing on\n       a dark card and you get a lamp. The dark equivalent of \"lifted\" is a\n       lighter surface, a hairline of light caught on the TOP edge, and a shadow\n       that is actually dark. Different shapes, not the same shape recoloured, so\n       one shared recipe with swapped colours cannot express both.\n\n       Leaving them undefined here was a real, shipped bug: every shadow is mixed\n       from --o-neutral-12, which is near-black in light and near-white in dark,\n       so every shadow in the product inverted into a glow, and --o-bevel-raised\n       carried a 100%-opacity white inset that turned every card into a halo.\n\n       Shadows are mixed from black rather than from an ink token on purpose: a\n       shadow is an absence of light, and it must not follow the text colour when\n       the theme flips. That coupling is what broke.\n       ---------------------------------------------------------------------- */\n    --o-bevel-control:\n      inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),\n      0 1px 2px -0.5px color-mix(in oklab, black 55%, transparent);\n    --o-bevel-control-solid:\n      0 1px 8px -3px color-mix(in oklab, black 70%, transparent),\n      inset 0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset -0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset 0 1.25px 0 -0.5px color-mix(in oklab, white 14%, transparent),\n      inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 8%, transparent);\n    --o-bevel-raised:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 10%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 50%, transparent),\n      inset 0 2px 4px 0 color-mix(in oklab, white 4%, transparent),\n      0 5px 12px -10px color-mix(in oklab, black 75%, transparent);\n    --o-bevel-resting:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 6%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 40%, transparent),\n      0 4px 10px -8px color-mix(in oklab, black 60%, transparent);\n    --o-bevel-inset:\n      inset 0 -2.5px 15px 0 color-mix(in oklab, black 24%, transparent),\n      inset 0 2.5px 15px 0 color-mix(in oklab, black 24%, transparent);\n    /* The rim inverts, and only in dark: light collects on the top edge and the\n       bottom edge falls into shadow. In light both edges are ink. */\n    --o-bevel-rim:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);\n  }\n}\n\n:root[data-theme='dark'] {\n    /* neutral \u2014 hue 260, the paper ramp inverted: ink as ground, paper as ink. */\n    --o-neutral-1: oklch(0.160 0.0060 260);\n    --o-neutral-2: oklch(0.190 0.0065 260);\n    --o-neutral-3: oklch(0.220 0.0070 260);\n    --o-neutral-4: oklch(0.250 0.0075 260);\n    --o-neutral-5: oklch(0.280 0.0080 260);\n    --o-neutral-6: oklch(0.310 0.0080 260);\n    --o-neutral-7: oklch(0.365 0.0080 260);\n    --o-neutral-8: oklch(0.435 0.0070 260);\n    --o-neutral-9: oklch(0.620 0.0050 260);\n    --o-neutral-10: oklch(0.665 0.0050 260);\n    --o-neutral-11: oklch(0.760 0.0055 260);\n    --o-neutral-12: oklch(0.955 0.0040 260);\n    --o-slab-top: oklch(0.930 0.0030 260);\n    --o-slab-bottom: oklch(0.860 0.0030 260);\n    /* Inverted with the slab. See the note in the light block. */\n    --o-slab-ink: var(--o-ink-solid-dark);\n    --o-neutral-a1: color-mix(in oklab, var(--o-neutral-1) 4%, transparent);\n    --o-neutral-a2: color-mix(in oklab, var(--o-neutral-2) 8%, transparent);\n    --o-neutral-a3: color-mix(in oklab, var(--o-neutral-3) 12%, transparent);\n    --o-neutral-a4: color-mix(in oklab, var(--o-neutral-4) 16%, transparent);\n    --o-neutral-a5: color-mix(in oklab, var(--o-neutral-5) 22%, transparent);\n    --o-neutral-a6: color-mix(in oklab, var(--o-neutral-6) 30%, transparent);\n    --o-neutral-a7: color-mix(in oklab, var(--o-neutral-7) 40%, transparent);\n    --o-neutral-a8: color-mix(in oklab, var(--o-neutral-8) 55%, transparent);\n    --o-neutral-a9: color-mix(in oklab, var(--o-neutral-9) 100%, transparent);\n    --o-neutral-a10: color-mix(in oklab, var(--o-neutral-10) 100%, transparent);\n    --o-neutral-a11: color-mix(in oklab, var(--o-neutral-11) 80%, transparent);\n    --o-neutral-a12: color-mix(in oklab, var(--o-neutral-12) 60%, transparent);\n    --o-neutral-on-9: var(--o-ink-solid-dark);\n\n    /* steel \u2014 hue 232 */\n    --o-steel-1: oklch(0.160 0.0079 236);\n    --o-steel-2: oklch(0.190 0.0132 236);\n    --o-steel-3: oklch(0.220 0.0211 236);\n    --o-steel-4: oklch(0.250 0.0290 236);\n    --o-steel-5: oklch(0.280 0.0396 236);\n    --o-steel-6: oklch(0.310 0.0501 236);\n    --o-steel-7: oklch(0.365 0.0660 236);\n    --o-steel-8: oklch(0.435 0.0871 236);\n    --o-steel-9: oklch(0.620 0.1319 236);\n    --o-steel-10: oklch(0.665 0.1293 236);\n    --o-steel-11: oklch(0.760 0.0950 236);\n    --o-steel-12: oklch(0.955 0.0554 236);\n    --o-steel-a1: color-mix(in oklab, var(--o-steel-1) 4%, transparent);\n    --o-steel-a2: color-mix(in oklab, var(--o-steel-2) 8%, transparent);\n    --o-steel-a3: color-mix(in oklab, var(--o-steel-3) 12%, transparent);\n    --o-steel-a4: color-mix(in oklab, var(--o-steel-4) 16%, transparent);\n    --o-steel-a5: color-mix(in oklab, var(--o-steel-5) 22%, transparent);\n    --o-steel-a6: color-mix(in oklab, var(--o-steel-6) 30%, transparent);\n    --o-steel-a7: color-mix(in oklab, var(--o-steel-7) 40%, transparent);\n    --o-steel-a8: color-mix(in oklab, var(--o-steel-8) 55%, transparent);\n    --o-steel-a9: color-mix(in oklab, var(--o-steel-9) 100%, transparent);\n    --o-steel-a10: color-mix(in oklab, var(--o-steel-10) 100%, transparent);\n    --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n    --o-steel-a12: color-mix(in oklab, var(--o-steel-12) 60%, transparent);\n    --o-steel-on-9: var(--o-ink-solid-dark);\n\n    /* amber \u2014 hue 75 */\n    --o-amber-1: oklch(0.160 0.0074 75);\n    --o-amber-2: oklch(0.190 0.0123 75);\n    --o-amber-3: oklch(0.220 0.0197 75);\n    --o-amber-4: oklch(0.250 0.0270 75);\n    --o-amber-5: oklch(0.280 0.0369 75);\n    --o-amber-6: oklch(0.310 0.0467 75);\n    --o-amber-7: oklch(0.365 0.0614 75);\n    --o-amber-8: oklch(0.435 0.0811 75);\n    --o-amber-9: oklch(0.700 0.1229 75);\n    --o-amber-10: oklch(0.745 0.1204 75);\n    --o-amber-11: oklch(0.760 0.0885 75);\n    --o-amber-12: oklch(0.955 0.0516 75);\n    --o-amber-a1: color-mix(in oklab, var(--o-amber-1) 4%, transparent);\n    --o-amber-a2: color-mix(in oklab, var(--o-amber-2) 8%, transparent);\n    --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n    --o-amber-a4: color-mix(in oklab, var(--o-amber-4) 16%, transparent);\n    --o-amber-a5: color-mix(in oklab, var(--o-amber-5) 22%, transparent);\n    --o-amber-a6: color-mix(in oklab, var(--o-amber-6) 30%, transparent);\n    --o-amber-a7: color-mix(in oklab, var(--o-amber-7) 40%, transparent);\n    --o-amber-a8: color-mix(in oklab, var(--o-amber-8) 55%, transparent);\n    --o-amber-a9: color-mix(in oklab, var(--o-amber-9) 100%, transparent);\n    --o-amber-a10: color-mix(in oklab, var(--o-amber-10) 100%, transparent);\n    --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n    --o-amber-a12: color-mix(in oklab, var(--o-amber-12) 60%, transparent);\n    --o-amber-on-9: var(--o-ink-solid-dark);\n\n    /* ember \u2014 hue 45 */\n    --o-ember-1: oklch(0.160 0.0090 45);\n    --o-ember-2: oklch(0.190 0.0150 45);\n    --o-ember-3: oklch(0.220 0.0240 45);\n    --o-ember-4: oklch(0.250 0.0330 45);\n    --o-ember-5: oklch(0.280 0.0450 45);\n    --o-ember-6: oklch(0.310 0.0571 45);\n    --o-ember-7: oklch(0.365 0.0751 45);\n    --o-ember-8: oklch(0.435 0.0991 45);\n    --o-ember-9: oklch(0.630 0.1502 45);\n    --o-ember-10: oklch(0.675 0.1471 45);\n    --o-ember-11: oklch(0.760 0.1081 45);\n    --o-ember-12: oklch(0.955 0.0631 45);\n    --o-ember-a1: color-mix(in oklab, var(--o-ember-1) 4%, transparent);\n    --o-ember-a2: color-mix(in oklab, var(--o-ember-2) 8%, transparent);\n    --o-ember-a3: color-mix(in oklab, var(--o-ember-3) 12%, transparent);\n    --o-ember-a4: color-mix(in oklab, var(--o-ember-4) 16%, transparent);\n    --o-ember-a5: color-mix(in oklab, var(--o-ember-5) 22%, transparent);\n    --o-ember-a6: color-mix(in oklab, var(--o-ember-6) 30%, transparent);\n    --o-ember-a7: color-mix(in oklab, var(--o-ember-7) 40%, transparent);\n    --o-ember-a8: color-mix(in oklab, var(--o-ember-8) 55%, transparent);\n    --o-ember-a9: color-mix(in oklab, var(--o-ember-9) 100%, transparent);\n    --o-ember-a10: color-mix(in oklab, var(--o-ember-10) 100%, transparent);\n    --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n    --o-ember-a12: color-mix(in oklab, var(--o-ember-12) 60%, transparent);\n    --o-ember-on-9: var(--o-ink-solid-dark);\n\n    /* signal \u2014 hue 25 */\n    --o-signal-1: oklch(0.160 0.0107 25);\n    --o-signal-2: oklch(0.190 0.0178 25);\n    --o-signal-3: oklch(0.220 0.0285 25);\n    --o-signal-4: oklch(0.250 0.0392 25);\n    --o-signal-5: oklch(0.280 0.0535 25);\n    --o-signal-6: oklch(0.310 0.0678 25);\n    --o-signal-7: oklch(0.365 0.0892 25);\n    --o-signal-8: oklch(0.435 0.1177 25);\n    --o-signal-9: oklch(0.560 0.1784 25);\n    --o-signal-10: oklch(0.605 0.1748 25);\n    --o-signal-11: oklch(0.760 0.1284 25);\n    --o-signal-12: oklch(0.955 0.0749 25);\n    --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);\n    --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);\n    --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n    --o-signal-a4: color-mix(in oklab, var(--o-signal-4) 16%, transparent);\n    --o-signal-a5: color-mix(in oklab, var(--o-signal-5) 22%, transparent);\n    --o-signal-a6: color-mix(in oklab, var(--o-signal-6) 30%, transparent);\n    --o-signal-a7: color-mix(in oklab, var(--o-signal-7) 40%, transparent);\n    --o-signal-a8: color-mix(in oklab, var(--o-signal-8) 55%, transparent);\n    --o-signal-a9: color-mix(in oklab, var(--o-signal-9) 100%, transparent);\n    --o-signal-a10: color-mix(in oklab, var(--o-signal-10) 100%, transparent);\n    --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n    --o-signal-a12: color-mix(in oklab, var(--o-signal-12) 60%, transparent);\n    --o-signal-on-9: var(--o-ink-solid-light);\n\n    /* verdant \u2014 hue 152 */\n    --o-verdant-1: oklch(0.160 0.0074 152);\n    --o-verdant-2: oklch(0.190 0.0123 152);\n    --o-verdant-3: oklch(0.220 0.0197 152);\n    --o-verdant-4: oklch(0.250 0.0270 152);\n    --o-verdant-5: oklch(0.280 0.0369 152);\n    --o-verdant-6: oklch(0.310 0.0467 152);\n    --o-verdant-7: oklch(0.365 0.0614 152);\n    --o-verdant-8: oklch(0.435 0.0811 152);\n    --o-verdant-9: oklch(0.620 0.1229 152);\n    --o-verdant-10: oklch(0.665 0.1204 152);\n    --o-verdant-11: oklch(0.760 0.0885 152);\n    --o-verdant-12: oklch(0.955 0.0516 152);\n    --o-verdant-a1: color-mix(in oklab, var(--o-verdant-1) 4%, transparent);\n    --o-verdant-a2: color-mix(in oklab, var(--o-verdant-2) 8%, transparent);\n    --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n    --o-verdant-a4: color-mix(in oklab, var(--o-verdant-4) 16%, transparent);\n    --o-verdant-a5: color-mix(in oklab, var(--o-verdant-5) 22%, transparent);\n    --o-verdant-a6: color-mix(in oklab, var(--o-verdant-6) 30%, transparent);\n    --o-verdant-a7: color-mix(in oklab, var(--o-verdant-7) 40%, transparent);\n    --o-verdant-a8: color-mix(in oklab, var(--o-verdant-8) 55%, transparent);\n    --o-verdant-a9: color-mix(in oklab, var(--o-verdant-9) 100%, transparent);\n    --o-verdant-a10: color-mix(in oklab, var(--o-verdant-10) 100%, transparent);\n    --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n    --o-verdant-a12: color-mix(in oklab, var(--o-verdant-12) 60%, transparent);\n    --o-verdant-on-9: var(--o-ink-solid-dark);\n\n    /* -------------------------------------------------------------------------\n       Bevel, re-derived for a dark ground.\n\n       These MUST be restated per theme, and the reason is geometric rather than\n       chromatic. In light, a card is lifted by pooling white INSIDE its lower\n       edge -- white on white reads as a soft interior lift. Do the same thing on\n       a dark card and you get a lamp. The dark equivalent of \"lifted\" is a\n       lighter surface, a hairline of light caught on the TOP edge, and a shadow\n       that is actually dark. Different shapes, not the same shape recoloured, so\n       one shared recipe with swapped colours cannot express both.\n\n       Leaving them undefined here was a real, shipped bug: every shadow is mixed\n       from --o-neutral-12, which is near-black in light and near-white in dark,\n       so every shadow in the product inverted into a glow, and --o-bevel-raised\n       carried a 100%-opacity white inset that turned every card into a halo.\n\n       Shadows are mixed from black rather than from an ink token on purpose: a\n       shadow is an absence of light, and it must not follow the text colour when\n       the theme flips. That coupling is what broke.\n       ---------------------------------------------------------------------- */\n    --o-bevel-control:\n      inset 0 1px 0 0 color-mix(in oklab, white 8%, transparent),\n      0 1px 2px -0.5px color-mix(in oklab, black 55%, transparent);\n    --o-bevel-control-solid:\n      0 1px 8px -3px color-mix(in oklab, black 70%, transparent),\n      inset 0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset -0.5px 0 0 0 color-mix(in oklab, black 40%, transparent),\n      inset 0 1.25px 0 -0.5px color-mix(in oklab, white 14%, transparent),\n      inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 8%, transparent);\n    --o-bevel-raised:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 10%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 50%, transparent),\n      inset 0 2px 4px 0 color-mix(in oklab, white 4%, transparent),\n      0 5px 12px -10px color-mix(in oklab, black 75%, transparent);\n    --o-bevel-resting:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 6%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 40%, transparent),\n      0 4px 10px -8px color-mix(in oklab, black 60%, transparent);\n    --o-bevel-inset:\n      inset 0 -2.5px 15px 0 color-mix(in oklab, black 24%, transparent),\n      inset 0 2.5px 15px 0 color-mix(in oklab, black 24%, transparent);\n    /* The rim inverts, and only in dark: light collects on the top edge and the\n       bottom edge falls into shadow. In light both edges are ink. */\n    --o-bevel-rim:\n      inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),\n      inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);\n}\n\n/* =============================================================================\n   Tier 2 \u2014 semantic. The only tier components consume.\n   ============================================================================= */\n\n:root, :root[data-theme='dark'] {\n  /* PAPER. The ground is the site's --v6-paper-cool (step 2) and a surface\n     that floats (a menu, a dialog, an inspector) is paper itself (step 1).\n     The product used to draw a white card on a grey well, the shell copied\n     from another product; docs/plan/26-brand-and-design-language.md \xA75\n     deletes the card, so the sheet is the ground and nothing sits inset in it.\n\n     Step 2 rather than step 1 for the ground is the one place the product's\n     paper differs from the site's sheet, and it is forced by the invariant\n     \"a raised surface is LIGHTER than the ground it floats on\", which\n     `elevation is monotonic` in tokens.test.ts holds in both themes: a\n     popover needs somewhere to float from, and above pure white there is\n     nowhere. A lift of 0.025 is a hairline's worth of tone, invisible until\n     a panel opens, which is exactly when it should show. The dark override\n     below reverses the two steps, because in dark step 1 is the darkest. */\n  --bg-canvas: var(--o-neutral-2);\n  --bg-raised: var(--o-neutral-1);\n  --bg-subtle: var(--o-neutral-3);\n  --bg-component: var(--o-neutral-4);\n  --bg-hover: var(--o-neutral-5);\n  --bg-active: var(--o-neutral-6);\n\n  /* SOLID, NOT ALPHA. On paper a hairline does structural work (docs/plan/26\n     \xA72, \xA74): it separates rows and frames tables, and a 30% wash of step 6\n     over paper resolves to L 0.97, a line nobody sees. Step 6 is the site's\n     --v6-rule and step 7 its --v6-rule-2, so the product's rules are the\n     site's rules. */\n  --line-rule: var(--o-neutral-6);\n  --line-border: var(--o-neutral-7);\n  --line-strong: var(--o-neutral-8);\n  /* A border that IDENTIFIES a control, not a decorative rule. Steps 6-8 are\n     hairlines for table rules and dividers and legitimately sit below WCAG\n     1.4.11's 3:1 \u2014 at step 7 a control border is 1.5:1 on canvas, which is not\n     a boundary anyone can see. Control boundaries bind here instead. */\n  --line-control: var(--o-neutral-10);\n\n  --fg-primary: var(--o-neutral-12);\n  --fg-secondary: var(--o-neutral-11);\n  --fg-on-solid: var(--o-neutral-on-9);\n\n  --control-solid-top: var(--o-slab-top);\n  /* Anything setting `color` on a control-solid fill MUST use this and never\n     --fg-on-solid. The two are different inks for different fills. */\n  --control-solid-ink: var(--o-slab-ink);\n  --control-solid-bottom: var(--o-slab-bottom);\n\n  /*\n     THE PRESS PREVIEW, WHICH MUST NOT LOOK LIKE THE OUTCOME.\n\n     A switch previews while the pointer is down, so a reader can see where it\n     is going and still leave without taking it. That only works if the preview\n     is visibly SHORT of the destination. It was not: pressing an off switch\n     painted the full `--control-solid-*` gradient, byte-identical to the\n     committed on state, so the control appeared to have already changed before\n     it was released, and letting go changed nothing visible. Reported as \"it\n     already changes to black and white even though it has not been clicked\n     away\", which is exactly right.\n\n     78% of the way, both directions. Enough to read as movement, short enough\n     that the release still does something. The reference measures 82%; the\n     extra distance here is deliberate, because Orvay's endpoints are a\n     near-black and a near-white and the gap closes faster to the eye than the\n     reference's accent does.\n  */\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: var(--control-solid-bottom);\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n\n\n  /* ---------------------------------------------------------------- orb ----\n     Tier 3, component scoped, derived from Tier 2, and per theme because it has\n     to be.\n\n     A LIT SPHERE NEEDS A HIGHLIGHT LIGHTER THAN ITS BODY AND A RIM DARKER THAN\n     IT, and neither direction can be written once. \"Lighter\" is toward the\n     canvas in light and toward the ink in dark, because both of those flip. The\n     first version of the orb mixed toward `--bg-raised` and `--fg-primary`\n     directly and therefore rendered INVERTED in dark: the highlight came out as\n     a dark blot at the top of the sphere and the rim glowed. It looked like a\n     hole rather than an object, and no test could have said so.\n\n     So the direction is decided here, once, where the theme is already known,\n     and the stylesheet just uses three tokens that always mean the same thing.\n     ------------------------------------------------------------------------ */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 18%, var(--o-neutral-1));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-neutral-1));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-neutral-12));\n\n  --accent-solid: var(--o-steel-9);\n  --accent-hover: var(--o-steel-10);\n  --accent-line: var(--o-steel-a8);\n  /* The accent as INK. Same trap as risk: step 9 is a fill anchor and is only\n     3.6:1 as text on canvas. Links and inline accents bind here. */\n  --accent-text: var(--o-steel-11);\n  --accent-on-solid: var(--o-steel-on-9);\n  /* The ring is INK, not a fill, and binding it to step 9 was the same mistake\n     --accent-text and the risk text steps already exist to correct.\n\n     A focus indicator is judged against what it is ADJACENT to (WCAG 1.4.11,\n     3:1), and with `outline-offset` the adjacent colour is whatever the control\n     sits on. Step 9 is theme-invariant in lightness by design, so one value had\n     to answer for light grounds at L 0.89-1.00 and dark grounds at L 0.16-0.31.\n     It could only be right for one of them, and it was: measured across steps\n     1-6 it ran 3.47 down to 2.48:1 in light, failing on --bg-component,\n     --bg-hover and --bg-active. --bg-component is the button's own background,\n     so the indicator on the most common control in the product was 2.86:1.\n\n     Step 11 is theme-aware, so it moves with the ground: worst case 3.72:1 in\n     light and 6.24:1 in dark, across every surface a ring can border. No halo\n     layer is needed, which matters because \xA76.3's box-shadow ring would be\n     clipped by the `overflow: hidden` on every scrollable log panel we own.\n\n     This is the trap-6 fix. The reference removes focus indication entirely;\n     replacing it with an indicator that misses the non-text floor would have\n     been the same defect wearing a fix's clothes. */\n  /*\n     INK, NOT STEEL, SINCE 2026-08-21. This was `--o-steel-11`, a saturated blue,\n     and it was the one place in the product that spent hue on something that is\n     not risk. \xA79a's whole argument is that this product is three opaque colours\n     and a quiet one; a blue ring on every focused field is the single loudest\n     thing on a form and it reads as somebody else's design system.\n\n     WHAT DID NOT CHANGE IS THAT THERE IS A RING. \xA77a rule 3 makes a visible focus\n     indicator law here, and \xA79a trap 6 records the reference implementation\n     removing it as a defect we deliberately do not copy. Ink at 2px with a 2px\n     offset clears WCAG 1.4.11's 3:1 non-text floor by a wide margin on every\n     surface in both themes, because it is the same ink the body text is set in.\n\n     It stays STRUCTURALLY distinct from a border rather than only chromatically:\n     2px against the field's 1.5px, and offset, so it reads as a ring around the\n     control rather than as a heavier edge on it. That distinction is what a\n     hue was doing before. */\n  --focus-ring: var(--fg-primary);\n\n  /* Risk \u2014 the one family that spends hue. Low is the ABSENCE of hue. */\n  --risk-low-tint: transparent;\n  --risk-low-solid: var(--o-neutral-9);\n  --risk-medium-tint: var(--o-amber-a3);\n  --risk-medium-solid: var(--o-amber-9);\n  --risk-medium-on: var(--o-amber-on-9);\n  --risk-high-tint: var(--o-ember-a3);\n  --risk-high-solid: var(--o-ember-9);\n  --risk-high-on: var(--o-ember-on-9);\n  --risk-critical-tint: var(--o-signal-a3);\n  --risk-critical-solid: var(--o-signal-9);\n  --risk-critical-on: var(--o-signal-on-9);\n\n  /* Risk expressed as INK. Step 9 is a fill anchor at a lightness chosen to\n     carry ink, which makes it far too light to BE ink: amber-9 as text is\n     2.6:1 on canvas. Step 11 is the text step and meets 4.5:1. Grafana splits\n     redDarkMain from redDarkText for the same reason. */\n  --risk-medium-text: var(--o-amber-11);\n  --risk-high-text: var(--o-ember-11);\n  --risk-critical-text: var(--o-signal-11);\n\n  /*\n    SYNTAX, WHICH IS A SEMANTIC FAMILY AND NOT A THEME.\n\n    A code panel needs colour that means \"this is a string\" rather than colour\n    somebody liked, so it belongs here with risk and lifecycle rather than in the\n    stylesheet that draws the panel. Every entry binds to STEP 11, the ink step,\n    for exactly the reason written above the risk text tokens: step 9 is a fill\n    anchor chosen to carry ink and measures under 3:1 as text.\n\n    ONE DEFINITION, BOTH THEMES. The dark block redefines the ramps themselves\n    rather than the semantics on top of them, so binding to a step is what makes\n    this survive the flip without being written twice.\n\n    Comment and punctuation take the secondary ink deliberately. They are the two\n    kinds a reader skips, and giving them a hue of their own is how a code panel\n    ends up looking like confetti.\n  */\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n  --syntax-string: var(--o-verdant-11);\n  --syntax-keyword: var(--o-ember-11);\n  --syntax-number: var(--o-amber-11);\n  --syntax-tag: var(--o-steel-11);\n  --syntax-attribute: var(--o-amber-11);\n  --syntax-property: var(--o-steel-11);\n\n  --verified-solid: var(--o-verdant-9);\n  --verified-line: var(--o-verdant-a8);\n  /* The ink partner, for exactly the reason stated above the risk text steps:\n     verdant-9 is a FILL anchor and measures ~2.9:1 as text on canvas, which is\n     below the 4.5:1 floor. Anything setting `color` from a verified signal must\n     use this and never the solid. */\n  --verified-text: var(--o-verdant-11);\n  /* And the ink that sits ON the solid, so a filled success chip is a token\n     lookup rather than a judgement call. */\n  --verified-on: var(--o-verdant-on-9);\n\n  /* Autonomy \u2014 container edge. Line STYLE is the channel; nothing else uses it. */\n  --autonomy-rail-width: 3px;\n  --autonomy-autonomous-style: solid;\n  --autonomy-approval-style: dashed;\n  --autonomy-restricted-style: double;\n  --autonomy-forbidden-style: solid;\n  --autonomy-autonomous-color: var(--o-neutral-a8);\n  --autonomy-approval-color: var(--o-steel-a8);\n  --autonomy-restricted-color: var(--o-amber-a8);\n  --autonomy-forbidden-color: var(--o-signal-a8);\n\n  /* Provenance \u2014 the ground. ONE meaning: not an established fact (\xA70 C). */\n  --provenance-hatch-color: var(--o-neutral-a4);\n  --provenance-hatch: repeating-linear-gradient(\n    45deg,\n    var(--provenance-hatch-color) 0 1px,\n    transparent 1px 7px\n  );\n\n  /* Charts are monochrome by construction (\xA73.7). Colour must be asked for. */\n  --chart-1: var(--o-neutral-12);\n  --chart-2: var(--o-neutral-11);\n  --chart-3: var(--o-neutral-10);\n  --chart-4: var(--o-neutral-9);\n  --chart-5: var(--o-neutral-8);\n  --chart-6: var(--o-neutral-7);\n\n  /* ===========================================================================\n     GLASS \u2014 the one material that is not allowed on the flat ground.\n\n     THE RULE, and it decides everything about this family:\n       Glass only where it floats over a photograph. Opaque white everywhere it\n       sits on the flat ground.\n\n     This is measured, not preferred. Across every marketing page on the\n     reference, the count of elements with a computed `backdrop-filter` is\n     ZERO; its glassiness is inset white rims plus ink hairlines on opaque\n     fills, which is what --o-bevel-* already encodes. Its PRODUCT CSS uses\n     `blur(clamp(14px, .6vw, 44px))` on nearly every floating surface, because\n     there the ground is a photographic wallpaper. Putting blur on a card that\n     sits on our canvas is copying the product onto the site (trap 11).\n\n     Nothing in Orvay's product qualifies today: our ground is flat by\n     decision, so this family is currently reachable only from a surface that\n     declares `data-ground=\"photographic\"`. ui.css owns that gate and\n     tokens.test.ts proves the gate fires. The family is built rather than\n     deferred because the tenant-website preview surface is a real photographic\n     ground arriving later, and a material invented under deadline is how the\n     one rule above gets quietly broken.\n\n     THEME-INVARIANT ON PURPOSE, and this is the part that is easy to get\n     wrong. Every other surface token here inverts, because its ground is our\n     canvas. Glass floats over an arbitrary image that knows nothing about\n     `prefers-color-scheme`. Mixing the scrim from --o-neutral-12 would make it\n     a dark veil in light mode and a near-white veil in dark mode over the same\n     photograph. That is exactly the coupling that broke every shadow in the\n     product once already; the note above --o-bevel-* in the dark block records\n     it. So the scrim is declared once, here, and never restated.\n     ======================================================================== */\n\n  /* The measured ink, restated as a fixed value because it must not follow the\n     theme. Same construction and same reason as --o-ink-solid-light/dark. */\n  --o-glass-scrim: oklch(0.216 0.0075 248);\n  /* #171a1d59 measured \u2014 35% is the value that makes an arbitrary photograph\n     quiet enough to read white ink against without becoming a grey panel. */\n  --o-glass-fill: color-mix(in oklab, var(--o-glass-scrim) 35%, transparent);\n  /* The veil the GROUND wears, and the reason it has to exist.\n\n     The measured scrim is 35%, and at 35% glass ink is legible over the\n     reference's own wallpapers and nowhere else. Measured through the shipped\n     values: white ink on a 35% scrim is 10.27:1 over a mid-dark photograph and\n     2.11:1 over a white one. warmwind never meets the second case because it\n     ships the photographs; Orvay's only plausible photographic surface is a\n     tenant's own imagery, which is uploaded by somebody else and can be\n     anything at all.\n\n     So the ground guarantees its own ceiling rather than trusting its content.\n     0.40 is the minimum veil that clears 4.5:1 against a WHITE photograph;\n     0.45 is what ships, for headroom, and material.test.ts asserts the\n     arithmetic against the worst case rather than against a sample image.\n\n     This is the one place the measurement could not be copied. It was right for\n     the reference's situation and wrong for ours, and the difference is who\n     supplies the picture. */\n  --o-ground-veil: color-mix(in oklab, var(--o-glass-scrim) 45%, transparent);\n  --o-glass-blur: blur(clamp(14px, 0.6vw, 44px));\n  /* The modal scrim, which belongs to this family only because it shares the\n     fixed ink. Measured as a FLAT 60% scrim with no blur: the reference's own\n     dialog backdrop is flat, and blurring the page behind a modal is the same\n     trap-11 mistake as blurring a card on the flat ground. Theme-invariant,\n     because darkening the page is the same gesture in either theme. */\n  --o-scrim: color-mix(in oklab, var(--o-glass-scrim) 60%, transparent);\n  /*\n     THE PEEK'S OWN SHEET, LIGHTER THAN A MODAL'S.\n\n     `--o-scrim` at 60% is right for a dialog, which is meant to take the page\n     away. A peek is a glance: it dims to say the rail is in front, and the\n     reader can still read and click what is behind it. Measured against the\n     reference, which uses 35%; at 60% the sheet reads as a modal that forgot to\n     block anything, and its hard arrival was the \"flash\".\n  */\n  --o-scrim-soft: color-mix(in oklab, var(--o-glass-scrim) 35%, transparent);\n  /* The texture that makes a chart series legible without hue.\n     MEASURED, NOT CHOSEN. --o-steel-9, --o-verdant-9 and --o-neutral-9 all sit\n     at oklch lightness 0.620, so a stacked bar drawn by hue alone loses three\n     of its four series to achromatopsia, to greyscale print and to a\n     monochrome display. \xA77a rule 2 makes that a correctness question rather\n     than a cosmetic one, and no automated check catches it: axe measures ink\n     against fill, and these are fills beside each other.\n\n     A translucent white stripe over the tone, at a different ANGLE per series.\n     Theme-invariant on purpose: every solid it lies over is mid-lightness in\n     both themes, so the same wash reads in both, and a per-theme value would\n     be two numbers to keep in step for no gain. */\n  --o-chart-texture: color-mix(in oklab, white 28%, transparent);\n  /* One variant on the reference adds saturation, which puts colour back that\n     a heavy blur averages away. Use it on chrome that sits over a photograph\n     the reader is meant to still perceive as a photograph. */\n  --o-glass-blur-vivid: blur(clamp(14px, 0.6vw, 44px)) saturate(1.5);\n\n  /* The rim is what makes a 35% scrim legible against an unknown image, and\n     the bevel is INVERTED on purpose: ink insets on the left and right only,\n     white 30% rims on the top and bottom. That is backwards from a physical\n     bevel, and it is precisely why these read as glass rather than as plastic.\n     Put a dark inset on the bottom and you have built a button (trap 4).\n     Restated here rather than aliased to --o-bevel-control-solid because that\n     token inverts per theme and this one must not. */\n  --o-glass-rim:\n    0 1px 8px -3px color-mix(in oklab, var(--o-glass-scrim) 20%, transparent),\n    inset 0.5px 0 0 0 color-mix(in oklab, var(--o-glass-scrim) 10%, transparent),\n    inset -0.5px 0 0 0 color-mix(in oklab, var(--o-glass-scrim) 10%, transparent),\n    inset 0 1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent),\n    inset 0 -1.25px 0 -0.5px color-mix(in oklab, white 30%, transparent);\n\n  /* Ink on glass is fixed light, for the same reason the scrim is fixed dark. */\n  --o-glass-ink: var(--o-ink-solid-light);\n\n  /* THERE IS NO SECONDARY INK ON GLASS, and the reason is arithmetic.\n\n     Over a white photograph, veiled and scrimmed, primary ink measures 5.06:1.\n     That leaves almost no budget: the minimum alpha that still clears 4.5:1 is\n     0.91, and ink at 91% is not a de-emphasised tier, it is primary ink with a\n     rounding error. Buying a real muted tier means a veil of 0.65, which\n     obscures the photograph badly enough that there was no reason to use one.\n\n     So on glass, de-emphasis is size, tracking and position, never opacity.\n     Same lesson as the weight cap, applied to a different channel: when a\n     channel has no headroom, stop spending in it rather than spending a token\n     amount and calling it hierarchy.\n\n     material.test.ts enumerates every --o-glass-ink* token and holds each to\n     4.5:1 against a white photograph, so adding one later is allowed and being\n     illegible is not. */\n  /* Panels on a photographic ground are separated by the WALLPAPER showing\n     through, never by a divider. There is no line token here on purpose. */\n\n  /* The progressive blur \u2014 ten layers, each doubling, each masked to a 10% band\n     shifted 10% further along. Worth stealing outright: a single large blur\n     reads as a smear, the stack reads as depth, and the difference is entirely\n     in the fact that the transition between blurred and unblurred is itself\n     gradual. The component that assembles the twelve layers is ProgressiveBlur\n     in @orvay/ui; the ladder is owned here so the doubling cannot drift. */\n  --o-blur-l1: 0.1px;\n  --o-blur-l2: 0.2px;\n  --o-blur-l3: 0.4px;\n  --o-blur-l4: 0.8px;\n  --o-blur-l5: 1.6px;\n  --o-blur-l6: 3.2px;\n  --o-blur-l7: 6.4px;\n  --o-blur-l8: 12.8px;\n  --o-blur-l9: 25.6px;\n  --o-blur-l10: 51.2px;\n  --o-blur-band: 10%;\n\n  /* ---- The night scene ---------------------------------------------------\n\n     A SCENE, NOT A SURFACE, and that distinction is the whole reason these are\n     declared once here rather than restated in the dark block below.\n\n     Every other Tier 2 token answers \"what is this rung of the ladder in this\n     theme\". These answer \"what is the ink on the photograph\", and a photograph\n     does not invert when a reader prefers light mode. The waitlist hero is a\n     picture of a planet limb at dawn; repainting its type for the light theme\n     would not be theming it, it would be illegible. So they are theme-invariant\n     BY CONSTRUCTION: declared in the shared block, absent from the dark block,\n     and therefore incapable of drifting apart.\n\n     WHY THEY ARE NOT REACHED FOR FROM THE NEUTRAL RAMP. --bg-canvas is step 3\n     in light and step 1 in dark. A hero wired to it is near-white for the\n     default theme's reader, which is the one case this scene must not have. And\n     the ink is the same problem mirrored: --fg-primary is near-black in light,\n     so every word of the headline would vanish into the sky.\n\n     EVERY VALUE BELOW WAS SAMPLED OFF THE REFERENCE DESIGN rather than chosen.\n     The comp was read as raw pixels: fills as the median of a clean interior\n     rectangle, ink as the 90th percentile of the glyph pixels in its own\n     bounding box, both converted sRGB -> OKLCH. That is why the field is a\n     blue-grey at L 0.468 rather than the near-black a dark control usually\n     gets, and why the quiet ink is as light as it is -- neither is a taste\n     decision and neither should be \"tidied\" toward the neutral ramp.\n\n     THE ARITHMETIC, since nothing in pairing.test.ts covers these -- they are\n     deliberately named so that suite's fill discovery does not claim them, and\n     a fill it does not claim is a fill it cannot check.\n\n     --night-ground is the colour UNDER the photograph: what shows before the\n     image decodes, and what the DOM contrast walk resolves to. The numbers that\n     matter for the type on the sky, though, are against the PHOTOGRAPH, whose\n     text band was sampled as a luminance profile and whose brightest pixel\n     above 66% -- the depth the layout permits -- measures 0.0590. Both are\n     listed, because the gap between them is the honest state of this page and\n     the waitlist stylesheet says so at length:\n\n                          on --night-ground   on the photo's worst pixel\n       --night-ink            20.02:1                  9.63:1\n       --night-ink-quiet      11.35:1                  5.46:1\n\n     And the pairs that never touch the photograph, each on the opaque fill it\n     actually sits on:\n\n       --night-ink             on --night-field    6.92:1\n       --night-ink-placeholder on --night-field    4.91:1\n       --night-action-ink      on --night-action  17.72:1\n       --night-focus           on --night-field    3.72:1   (1.4.11, floor 3:1)\n\n     THE PLACEHOLDER IS ITS OWN STEP, AND IT HAS TO BE. The obvious wiring is\n     --night-ink-quiet, which is the de-emphasised ink everywhere else on this\n     scene. On the field it measures 3.92:1 and fails, because the field is far\n     lighter than the sky the quiet ink was chosen against. Nothing would have\n     caught it: the contrast walk in e2e only measures elements with their own\n     text nodes, an <input> has none, and ::placeholder is not an element at\n     all. The reference solves it the same way, with a lighter ink in the field\n     than in the prose, which is the tell that its designer hit this too.\n\n     The floor is 4.5:1 for ink and 3:1 for the ring. The smallest number above\n     is 4.91:1 -- the placeholder -- and that is the one to re-measure if any of\n     these move, or if the photograph is ever replaced. */\n  --night-ground: oklch(0.135 0.0055 268);\n  --night-ink: oklch(1.000 0.0000 268);\n  --night-ink-quiet: oklch(0.818 0.0268 279);\n  --night-ink-placeholder: oklch(0.886 0.0080 279);\n  --night-field: oklch(0.468 0.0328 276);\n  --night-edge: oklch(0.545 0.0300 276);\n  /* The submit control. Fixed light with fixed dark ink, for the reason the\n     whole group is fixed: --control-solid-* INVERTS between themes, so a button\n     wired to it is near-black on a near-black sky for every reader on the\n     default theme. That is CLAUDE.md \xA712c's 1.21:1 button, rediscovered on a\n     surface the theme cannot reach. */\n  --night-action: oklch(0.952 0.0010 268);\n  --night-action-ink: oklch(0.115 0.0020 272);\n  --night-focus: oklch(0.800 0.0700 250);\n\n  /* ---- The v5 landing scenes ---------------------------------------------\n\n     A second scene family, and the same contract as --night-*: these are\n     PICTURES, not surfaces. The v5 landing alternates full-bleed dark and\n     paper-white sections whose colours were sampled off the approved design\n     comp (claude.ai/design project f90fa068, \"Orvay Landing v5\"), and a comp\n     does not invert when a reader prefers the other theme. Declared once in\n     the shared block, absent from the dark block, incapable of drifting.\n\n     THE DARK RAMP IS NUMBERED BY LIGHTNESS (--v5-d15 is L 0.15) because the\n     comp genuinely uses a ramp: four radial-gradient grounds share one\n     blue-grey hue and differ only in how deep each stop sits. Semantic names\n     were tried and lied -- the same step is \"card\" in one section and\n     \"gradient crown\" in another. The number is the one honest name.\n\n     NEAR-DUPLICATES IN THE COMP WERE UNIFIED, deliberately and narrowly:\n     values within 0.002 chroma / 1 hue step of a neighbour collapse into it\n     (0.14 0.012 250, 0.14 0.011 250 and 0.14 0.01 250 are one token). Every\n     unification is below the threshold of vision at these lightnesses; the\n     comp's 154 distinct literals become 47 tokens without a visible delta.\n\n     ALPHA VARIANTS ARE NOT DECLARED HERE. The comp uses ~15 base colours at\n     dozens of opacities; v5.css derives every one as\n     color-mix(in oklab, var(--v5-x) N%, transparent), which is the owner\n     being used, not bypassed. Naming avoids the discovery suffixes on\n     purpose: nothing here ends in -tint, -solid or -text and nothing starts\n     with bg-, so pairing.test.ts does not claim fills it cannot check. The\n     contrast duties for this family are carried by the section's own audit\n     in v5.css, the same arrangement --night-* has. */\n  --v5-ink: oklch(0.955 0.005 250);\n  --v5-ink-dark: oklch(0.255 0.015 250);\n  --v5-ink-dark-hover: oklch(0.35 0.02 250);\n  --v5-ink-on-steel: oklch(0.13 0.02 240);\n  --v5-white: oklch(1 0 0);\n  /* Mask stop only: it is the opaque end of a mask-image gradient, where only\n     the alpha channel exists. It never paints. */\n  --v5-mask: oklch(0 0 0);\n\n  --v5-d05: oklch(0.05 0.01 250);\n  --v5-d10: oklch(0.1 0.01 250);\n  --v5-d11: oklch(0.11 0.01 250);\n  --v5-d13: oklch(0.13 0.01 250);\n  --v5-d135: oklch(0.135 0.01 250);\n  --v5-d14: oklch(0.14 0.011 250);\n  --v5-d15: oklch(0.15 0.012 250);\n  --v5-d155: oklch(0.155 0.012 250);\n  --v5-d16: oklch(0.16 0.012 250);\n  --v5-d165: oklch(0.165 0.014 248);\n  --v5-d17: oklch(0.17 0.015 248);\n  --v5-d185: oklch(0.185 0.016 246);\n  --v5-d19: oklch(0.19 0.016 246);\n  --v5-d20: oklch(0.2 0.02 245);\n  --v5-d22: oklch(0.22 0.02 245);\n  --v5-d24: oklch(0.24 0.022 244);\n  --v5-d26: oklch(0.26 0.03 240);\n  --v5-d27: oklch(0.27 0.03 240);\n  --v5-d30: oklch(0.3 0.035 240);\n  --v5-plate-live: oklch(0.3 0.045 238);\n\n  --v5-paper: oklch(0.985 0.004 250);\n  --v5-paper-hi: oklch(0.994 0.004 250);\n\n  --v5-steel: oklch(0.68 0.13 232);\n  --v5-steel-deep: oklch(0.62 0.13 232);\n  --v5-steel-strong: oklch(0.46 0.12 232);\n  --v5-steel-hover: oklch(0.73 0.12 232);\n  --v5-steel-link: oklch(0.75 0.12 232);\n  --v5-steel-tag: oklch(0.75 0.1 235);\n  --v5-steel-haze: oklch(0.72 0.09 235);\n  --v5-steel-beam: oklch(0.8 0.09 233);\n  --v5-steel-sheen: oklch(0.85 0.08 232);\n  --v5-steel-edge: oklch(0.78 0.11 233);\n  --v5-steel-ring: oklch(0.72 0.12 233);\n\n  --v5-signal: oklch(0.62 0.17 25);\n  --v5-signal-ink: oklch(0.78 0.12 25);\n  --v5-verdant: oklch(0.72 0.11 152);\n  --v5-verdant-deep: oklch(0.66 0.12 152);\n\n  --v5-slate-1: oklch(0.5 0.03 245);\n  --v5-slate-2: oklch(0.55 0.035 245);\n  --v5-slate-3: oklch(0.6 0.04 245);\n  --v5-slate-4: oklch(0.72 0.03 245);\n\n  /* ---- The v6 landing, the white one --------------------------------------\n\n     A THIRD SCENE FAMILY, under the same contract as --night-* and --v5-*:\n     these are PICTURES rather than surfaces, so they are declared once here\n     and are absent from the dark block. A printed dossier does not invert\n     when a reader prefers dark mode, and v6's whole argument is that it is a\n     printed thing.\n\n     WHY A SEPARATE FAMILY RATHER THAN --v5-* REUSED. v6 is not v5 inverted.\n     v5's ramp is numbered by lightness because its four grounds differ only\n     in depth; v6 has ONE ground (white paper) and spends its budget on an\n     INK ramp instead, because on paper the hierarchy is carried by how dark\n     a mark is, never by how deep the surface behind it sits. The two\n     families therefore have different shapes, not different values.\n\n     THE INK RAMP IS AUDITED AND THE AA LINE IS DRAWN INSIDE IT. Computed as\n     sRGB relative luminance against --v6-paper, which is what a browser\n     actually paints:\n\n       --v6-ink     L 0.17   19.12:1   headlines, values, anything load-bearing\n       --v6-ink-2   L 0.40    9.21:1   body copy and secondary prose\n       --v6-ink-3   L 0.49    6.26:1   mono labels and metadata\n       --v6-ink-4   L 0.62    3.64:1   ORNAMENT ONLY, and every use is\n                                       aria-hidden: register marks, the\n                                       drafting grid, a rule that is drawn\n                                       rather than read\n\n     THESE FIVE FIGURES ARE CHECKED, and until 2026-09-06 they were prose and\n     they were wrong. They read 14.4, 6.5, 4.7 and 2.9, with ink-3 labelled\n     \"the AA floor\". Every one was understated: the ramp is better than this\n     comment claimed, so nothing was unsafe, and that is exactly why it went\n     unnoticed for as long as it did. A number that is wrong in the safe\n     direction still teaches the next reader something untrue, and somebody\n     choosing a token for a new surface would have picked ink-3 believing it\n     sat ON 4.5:1 rather than comfortably above it.\n\n     `tokens-prose.test.ts` now parses these lines out of this file and\n     compares each against `contrastRatio()`. Change a token's lightness and\n     the test names the line to update. \xA711a: a citation is an assertion with\n     a truth value, and this one is inside the file it describes.\n\n     Nothing a person must read is allowed below --v6-ink-3, and v6.css\n     repeats that rule where it is applied.\n\n     THE ACCENT IS ORVAY BLUE AT PAPER LIGHTNESS, not a new hue: hue 236 is\n     the same family --v5-steel sits in, dropped to L 0.47 so it clears 4.5:1\n     on white, and it measures 6.48:1 there. The bright steel of the dark comp measures 2.4:1 here, which\n     is the exact mistake \xA712c records as the 1.21:1 button, so the tint that\n     reads on a night ground is deliberately not carried across.\n\n     The two system indicators are equally restrained: --v6-void for a\n     refusal and --v6-seal for a verification, both dark enough to be read as\n     text and desaturated enough that neither becomes a decorative colour.\n     Colour is never their only carrier; the word beside them says the same\n     thing (\xA75, WCAG 1.4.1).\n\n     ALPHA VARIANTS ARE NOT DECLARED HERE, same arrangement as --v5-*:\n     v6.css derives every one with color-mix(in oklab, var(--v6-x) N%,\n     transparent), which is the owner being used rather than bypassed. No\n     name here ends in -tint, -solid or -text and none begins with bg-, so\n     pairing.test.ts makes no claim about fills it cannot check. */\n  --v6-paper: oklch(1 0 0);\n  --v6-paper-warm: oklch(0.985 0.002 90);\n  --v6-paper-cool: oklch(0.975 0.003 250);\n  --v6-paper-deep: oklch(0.955 0.004 250);\n\n  --v6-ink: oklch(0.17 0.008 260);\n  --v6-ink-2: oklch(0.4 0.008 260);\n  --v6-ink-3: oklch(0.49 0.006 260);\n  --v6-ink-4: oklch(0.62 0.005 260);\n\n  /* A step lighter than --v6-ink, for the one mark on the page that is a\n     sculpture rather than a line of text: at full --v6-ink the record totem\n     reads as a flat silhouette instead of a lit object. */\n  --v6-totem-ink: oklch(0.24 0.008 260);\n\n  --v6-rule: oklch(0.905 0.003 260);\n  --v6-rule-2: oklch(0.84 0.004 260);\n\n  --v6-blue: oklch(0.47 0.13 236);\n  --v6-blue-deep: oklch(0.37 0.11 236);\n  --v6-blue-wash: oklch(0.965 0.018 236);\n\n  --v6-void: oklch(0.46 0.15 27);\n  --v6-seal: oklch(0.44 0.1 155);\n\n  /* THE HEAT. Five bands for the landing hero's mound, hot at the crest and\n     cold at the foot, the one place on the site where colour is spent as\n     colour. Decorative by declaration: nothing reads on them, nothing is\n     encoded by them, and pairing.test.ts makes no claim about them because\n     none is named as a fill or an ink. */\n  --v6-heat-1: oklch(0.62 0.25 20);\n  --v6-heat-2: oklch(0.72 0.19 50);\n  --v6-heat-3: oklch(0.9 0.18 95);\n  --v6-heat-4: oklch(0.82 0.1 225);\n  --v6-heat-5: oklch(0.6 0.18 255);\n\n  /* The sculptural model: three neutral faces and the shadow it casts. Read\n     as one object lit from the upper left, which is why the top plane is the\n     darkest of the three and the right face the lightest. */\n  --v6-face: oklch(0.95 0.003 260);\n  --v6-face-lit: oklch(0.985 0.002 260);\n  --v6-face-top: oklch(0.915 0.004 260);\n  --v6-shade: oklch(0.74 0.008 260);\n}\n\n\n/* =============================================================================\n   Tier 2 \u2014 dark. Only the surface ladder moves.\n\n   Everything else in Tier 2 is expressed as a var() onto a Tier 1 step that\n   already flips, so it needs no restatement: --fg-primary is step 12 and step 12\n   is ink in both themes. The BACKGROUNDS are the exception, because \"raised\" is\n   not a step, it is a DIRECTION along the ramp, and the ramp reverses.\n\n   Light: ground 3 (0.955) -> surface 1 (1.000), a lift of +0.045.\n   Dark:  ground 1 (0.160) -> surface 3 (0.220), a lift of +0.060.\n\n   Same gesture, opposite steps. Leaving this out is what made every card in dark\n   sit BELOW its ground; the white halo was a second, independent bug on top of\n   it, and fixing only the halo would have produced something that looked better\n   and was still inverted.\n   ============================================================================= */\n@media (prefers-color-scheme: dark) {\n  :root:not([data-theme='light']) {\n    --bg-canvas: var(--o-neutral-1);\n    --bg-subtle: var(--o-neutral-2);\n    --bg-raised: var(--o-neutral-3);\n    /* The orb's three stops, restated because \"lighter\" and \"darker\" reverse.\n       Same gesture, opposite steps, exactly as the surface ladder above. */\n    --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-neutral-12));\n    --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-neutral-12));\n    --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-neutral-1));\n\n  }\n}\n:root[data-theme='dark'] {\n  --bg-canvas: var(--o-neutral-1);\n  --bg-subtle: var(--o-neutral-2);\n  --bg-raised: var(--o-neutral-3);\n  /* The orb's three stops, for the reader who CHOSE dark rather than inheriting\n     it. Leaving them out of this block is what made the specimen sheet render\n     an inverted sphere: it stamps `data-theme` explicitly, so it never matched\n     the media-query block above and quietly took the light values. */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-neutral-12));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-neutral-12));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-neutral-1));\n}\n\n/* `color-scheme`, pinned to the explicit choice.\n   Declared HERE rather than beside the bare `:root` declaration at the top of\n   the file, because tokens.test.ts slices this document into theme blocks by\n   the FIRST occurrence of each selector and asserts they appear in ramp order.\n   A `[data-theme='dark']` rule above the ramps makes that slice start in the\n   wrong place and every dark-theme assertion in the suite silently measures the\n   light values. The suite caught it; the placement below keeps it honest. */\n:root[data-theme='light'] { color-scheme: light; }\n:root[data-theme='dark'] { color-scheme: dark; }\n\n/* =============================================================================\n   Print under a dark theme.\n\n   `--bg-canvas: #ffffff` alone was not enough, and for this product that is a\n   critical bug rather than a cosmetic one: a reader in dark mode printing an\n   evidence exhibit got near-white ink (step 12 = 0.955) on a forced-white page.\n   The exhibit prints blank. CLAUDE.md section 7 says a printed simulated run\n   that looks live is a critical bug; a printed run that shows nothing at all is\n   the same class of failure.\n\n   The neutral ramp is restated at its LIGHT values for print, rather than only\n   the ground, because ink and ground have to agree about which way the ramp\n   runs. Only the steps that carry ground, surface and ink are listed; the risk\n   hues keep their own values and are already forced with print-color-adjust.\n   ============================================================================= */\n@media print {\n  :root, :root[data-theme='dark'], :root:not([data-theme='light']) {\n    --o-neutral-1: oklch(1.000 0.0000 260);\n    --o-neutral-2: oklch(0.975 0.0030 260);\n    --o-neutral-3: oklch(0.955 0.0040 260);\n    /* Mirrors the light value exactly. It had drifted to L 0.528 / C 0.0090\n       against light's 0.500 / 0.0055, which is a third ramp nobody chose: the\n       block's whole purpose is to restate the LIGHT ramp so a dark-mode reader\n       printing an exhibit gets ink on paper. A print-only value that agrees\n       with neither theme is how an exhibit stops matching the screen it was\n       taken from. tokens.test.ts now asserts the mirroring. */\n    --o-neutral-11: oklch(0.485 0.0060 260);\n    --o-neutral-12: oklch(0.170 0.0080 260);\n    --bg-canvas: var(--o-neutral-2);\n    --bg-subtle: var(--o-neutral-3);\n    --bg-raised: var(--o-neutral-1);\n  }\n}\n\n/* =============================================================================\n   Print \u2014 a first-class output (\xA70 E).\n\n   Screenshots of Orvay are exhibits. Browsers strip backgrounds by default,\n   which would remove the risk tint AND the provenance hatch, so a printed\n   SIMULATED run would look live. That is the one thing this product must never\n   do. Colour is forced, and the redundant text carriers do the rest.\n   ============================================================================= */\n@media print {\n  :root { --bg-canvas: #ffffff; }\n  [data-provenance], [data-risk] {\n    print-color-adjust: exact;\n    -webkit-print-color-adjust: exact;\n  }\n}\n\n/* =============================================================================\n   Reduced motion \u2014 stand the movement down, never the signal.\n\n   This is trap 19, and it is law here rather than taste (CLAUDE.md \xA77a). The\n   reference ships `*, ::before, ::after { animation-duration: .001ms }`, which\n   DELETES its pulsing .ActiveIndicator. That indicator is the only thing on the\n   screen saying a worker is alive, and nothing takes its place. A reader who\n   sets a motion preference is asking not to be moved; they are not asking to be\n   told less.\n\n   So the rule for this repository is stated as an obligation on the AUTHOR of a\n   motion, not on this block: any motion that carries meaning must have a\n   non-motion carrier that survives here. The theme toggle's glyph swap is one\n   (the sun still becomes a moon with the travel at zero); the stale-run signal\n   in ui.css is the other, and it degrades to a static hatch plus the literal\n   word rather than to a still dot.\n\n   Every duration is listed, including the aliases. Relying on an alias to\n   inherit its target's zero would work today and break silently the moment\n   somebody gives the alias its own value, and this block is the single control\n   that must not have an escape hatch. tokens.test.ts asserts the list is\n   complete against the tokens actually declared above.\n   ============================================================================= */\n@media (prefers-reduced-motion: reduce) {\n  :root {\n    --o-dur-instant: 0ms;\n    --o-dur-quick: 0ms;\n    --o-dur-considered: 0ms;\n    --o-dur-ambient: 0ms;\n    --o-dur-enter: 0ms;\n    --o-dur-exit: 0ms;\n    --o-dur-reveal: 0ms;\n    --o-stagger-unit: 0ms;\n    /* The travel and the blur are stood down too. A 0ms transition on a 4px\n       translate still paints the element 4px out of place on the first frame\n       if the travel itself survives, and an enter blur with no duration is a\n       permanently blurred element. */\n    --o-travel-reveal: 0px;\n    /* A lean is movement even without a duration: a thumb that jumps 15% wider\n       the instant a pointer arrives is exactly what somebody asking for stillness\n       asked not to have. */\n    --o-lean-scale: 1;\n    --o-press-scale-x: 1;\n    --o-press-scale-y: 1;\n    --o-blur-enter: 0px;\n  }\n}\n\n/* =============================================================================\n   Tier 3 \u2014 documentation chrome.\n\n   The docs are a third surface of the same product, so they get component-scoped\n   tokens here rather than a palette of their own in apps/docs. \xA74: one owner.\n\n   THE GEOMETRY IS ALREADY IN TIER 2, which is why this block is thin. The\n   reference layout is an \"in-card view\": the page canvas is RECESSED and the\n   prose sits on a LIFTED card with a hairline keyline. That is the structural\n   inversion the semantic layer above already commits to \u2014 ground is\n   --bg-canvas, a floating surface is --bg-raised, and the two swap steps\n   between themes so the lift stays a lift. Aliasing onto them means the docs\n   card inherits the flip for free and cannot drift from the app's cards.\n\n   Nothing here is restated per theme for exactly that reason. A value that\n   needed a dark override would be a value that had stopped deriving.\n   ============================================================================= */\n:root {\n  --docs-page-bg: var(--bg-canvas);\n  --docs-card-bg: var(--bg-raised);\n  --docs-card-line: var(--line-rule);\n  --docs-card-radius: var(--o-radius-lg);\n\n  /* The two fixed measures the whole shell is laid out against. Named because\n     four different rules need to agree about them: the card's height subtracts\n     the bar, the sidebar's top offset matches it, the main column's inline\n     start clears the rail, and the mobile drawer's width is the same rail. */\n  --docs-bar-h: 3.5rem;\n  --docs-rail-w: 16.5rem;\n\n  /* The sidebar has NO fill: it is chrome sitting on the canvas, so the card is\n     the only lifted surface in the shell. Its states are therefore washes, not\n     surfaces, or they would read as a second card. */\n  --docs-rail-fg: var(--fg-secondary);\n  --docs-rail-fg-active: var(--fg-primary);\n  --docs-rail-hover-bg: var(--o-neutral-a3);\n  --docs-rail-active-bg: var(--o-neutral-a4);\n\n  /* The table-of-contents rail. One continuous hairline with the active entry\n     painting its own segment, so position reads as a moving highlight rather\n     than a set of disconnected ticks. */\n  --docs-toc-rail: var(--line-rule);\n  --docs-toc-rail-active: var(--fg-primary);\n  --docs-toc-fg: var(--fg-secondary);\n  --docs-toc-fg-active: var(--fg-primary);\n}\n\n/* =============================================================================\n   Tier 3 \u2014 the application shell.\n\n   The Company OS is the fourth surface of the same product, so its chrome gets\n   component-scoped tokens here rather than a palette of its own in apps/app.\n   \xA74: one owner.\n\n   THE GEOMETRY IS ALREADY IN TIER 2, and that is the whole reason this block is\n   thin. The reference shell (app-zenovay) is three surfaces: a RECESSED ground\n   the sidebar sits on, and a LIFTED card the content lives in, floating in a\n   small gutter. Tier 2 already commits to exactly that inversion \u2014 ground is\n   --bg-canvas, a floating surface is --bg-raised \u2014 and the two SWAP ramp steps\n   between themes so the lift stays a lift once the ramp runs the other way.\n\n   So nothing here declares a colour. Aliasing means the app's shell inherits\n   the theme flip for free, cannot drift from the docs card or from the app's\n   own panels, and stays inside the contrast proof: tokens.test.ts asserts\n   primary ink at 7:1 across canvases 1-5 in BOTH themes, and every surface\n   named below is one of those steps. A hand-written --bg-sidebar would have\n   been a fourth surface outside that proof, unmeasured on the one surface a\n   person reads navigation labels off.\n\n   WHAT IS DELIBERATELY ABSENT. The reference carries a third ink tier\n   (--fg-subtle) beneath its muted one. It is not ported. Orvay asserts a floor\n   for primary (7:1) and secondary (4.5:1) and nothing below, so a third tier is\n   either ink under 4.5:1, which \xA77a forbids, or a second name for\n   --fg-secondary. Every --fg-subtle usage in the reference maps to\n   --fg-secondary here.\n   ============================================================================= */\n\n/* Typed so the rail's width INTERPOLATES. See --app-rail-shown below: an\n   unregistered custom property is an opaque string, so the well's padding would\n   snap while the rail glides. `inherits` is true because the well is not a\n   descendant of the rail and both read the same value off the root. */\n@property --app-rail-shown {\n  syntax: '<length>';\n  initial-value: 16rem;\n  inherits: true;\n}\n\n:root {\n  /* The three fixed measures the shell is laid out against. Named because\n     several rules have to agree about them: the well clears the rail, the card\n     subtracts the gutter twice, and the card's own header row is subtracted\n     again by the scrollport inside it. */\n  --app-rail-w: 15rem;\n  /* The collapsed rail, and it is a WIDTH rather than an absence: 56px holds a\n     32px tile centred in 12px of padding, which is the spec's icon rail\n     (26 \xA75.2). `rail-state.tsx` carries the same number for the width it\n     reserves; that file's note says why the two must agree. */\n  --app-rail-icon: 56px;\n  --app-gutter: var(--o-space-3);\n  --app-bar-h: 3rem;\n\n  /* REGISTERED, and this is load-bearing rather than decoration.\n\n     The rail collapses by translating off-canvas while the well's inline\n     padding shrinks to match. Those two have to move together or the content\n     jumps out from under the rail and back. An unregistered custom property is\n     an opaque string to the interpolator, so `padding-inline-start` SNAPS while\n     the transform glides, which is a visible flicker on every collapse. Typing\n     it as a <length> is what makes the padding animate at all. */\n  --app-rail-shown: var(--app-rail-w);\n\n  /* The rail has NO fill: it is chrome sitting directly on the canvas, so the\n     card is the only lifted surface in the shell. Its states are therefore\n     washes rather than surfaces, or an active row would read as a second card\n     floating on the first. Same construction and same reason as --docs-rail-*.\n\n     Alpha washes rather than ramp steps, because the rail sits on --bg-canvas\n     in light and on the inverted step in dark; a fixed step that lifts on one\n     would sink on the other. */\n  /*\n     THE RAIL SHARES THE GROUND, AND NO SEAM IS VISIBLE BETWEEN THEM.\n\n     For a few hours this was `--o-neutral-2`, a dedicated surface one step\n     recessed, because that is what the reference application does and the\n     survey measured it. The operator looked at the result and rejected it: the\n     rail and the well outside the card are one continuous ground here, and the\n     card is the only thing with an edge.\n\n     That is the better call for THIS product even though it diverges from the\n     reference, and the reason is in \xA79a: three opaque colours, and shadows at\n     the edge of perceptibility. A fourth surface a hair off the third is\n     exactly the kind of nearly-invisible boundary that reads as a rendering\n     fault rather than as depth. Recorded rather than reverted silently, so\n     nobody re-derives the recessed version from the reference again.\n  */\n  --app-rail-bg: var(--bg-canvas);\n\n  /*\n     ROW HEIGHT: THE REFERENCE'S EXACTLY.\n\n     32px, which is what the reference draws. This was 36px for a day, as a\n     compromise with \xA77a rule 4's flat 44px; the operator lowered that rule on\n     2026-08-28, so the compromise is gone and the number is the real one. The\n     rule was above the legal line rather than on it, and still is: EN 301 549\n     incorporates WCAG 2.1 AA, which sets no target size, and 32px clears 2.2\n     AA's 24px. A costly control still takes 44px; a navigation row is neither\n     costly nor irreversible.\n  */\n  --app-rail-row-h: 32px;\n\n  --app-rail-fg: var(--fg-secondary);\n  --app-rail-fg-active: var(--fg-primary);\n  --app-rail-hover-bg: var(--o-neutral-a3);\n  --app-rail-active-bg: var(--o-neutral-a4);\n\n  /* How strongly the resize hairline lights on hover. An OPACITY rather than a\n     colour, because the line is `--fg-primary` and must read the same way in\n     both themes; a fixed colour would be near-invisible in one of them. The\n     reference's own value, kept rather than re-picked. */\n  --app-handle-lit: 0.32;\n\n  /* THE PEEK'S SHADOW, AND IT IS THE ONE PLACE THE RESTRAINT RULE DOES NOT APPLY.\n\n     \xA79a measures the reference's shadows at the edge of perceptibility, and that\n     is right for a card resting on the flat ground. The peek is not resting on\n     anything: it floats over the page with a dimmed scrim behind it, and a\n     hairline shadow there reads as a rendering fault rather than as depth. Two\n     layers, because one large blur is a smear and a tight layer under a wide one\n     is what reads as an object with a height above the page.\n\n     Built from `--o-neutral-a*` rather than a literal, so it inverts with the\n     theme instead of becoming a black bruise on a dark canvas. */\n  --app-peek-shadow:\n    0 20px 50px -12px var(--o-neutral-a6),\n    0 8px 20px -8px var(--o-neutral-a5);\n\n  /* Three tokens used to sit here and no longer do: `--app-rail-marker` and\n     `--app-rail-marker-w` fed a 2px bar down the inline-start edge of the\n     current row, and `--app-rail-group-fg` coloured four uppercase headings over\n     a flat list. The bar and the headings are both gone from the rail (see\n     `.a-rail__link[aria-current='page']` and `.a-rail__sub` in apps/app), so the\n     tokens went with them rather than being left declared and unread. An unused\n     token is indistinguishable from a token whose consumer was deleted by\n     accident, and the next person wanting an active-row or group treatment would\n     find plausible values here and assume something already draws them. */\n\n  /* The card. Same three values as the docs card and deliberately not shared\n     with it: the two surfaces are allowed to diverge later, and one alias\n     pretending they are one thing is how a change to the docs silently\n     restyles the product.\n\n     THE RADIUS IS 20px AND THE REFERENCE'S IS 16px, which is the one measured\n     value in this file that is not carried across, so it is worth saying why\n     rather than leaving it as a rounding error. Orvay's radius scale has no\n     16: it offers 12 and 20, deliberately, because \xA79a's two-shape doctrine\n     treats an in-between radius as the thing that makes a set of surfaces look\n     assembled rather than designed. Both neighbours were available and 20 wins\n     for a reason outside this app: the documentation card shipped on\n     --o-radius-lg on 2026-08-20 and is the same in-card idea on the same\n     product. A customer moving between docs.orvayos.com and the product should\n     not see the corner change. */\n  --app-card-bg: var(--bg-raised);\n  --app-card-line: var(--line-rule);\n  --app-card-radius: var(--o-radius-md);\n}\n\n/* =============================================================================\n   The builder surface \u2014 a ground the theme cannot reach, and the tokens for it.\n\n   The builder is the two-pane workbench a person generates a site in: a chat\n   pane, a preview, and a top bar over both. Its ramp is MEASURED rather than\n   chosen, off the live Lovable editor in a browser, and the numbers plus the\n   method are in docs/research/lovable-measurements.md \xA72 and \xA77. Four grounds, a\n   hairline, and exactly one saturated colour in the entire surface \u2014 which is\n   the same discipline \xA79a already makes law here, arrived at independently by\n   somebody else, and the most useful thing the measurement found.\n\n   IT IS A CONTEXT, NOT A RUNG OF THE LADDER, and that is the decision everything\n   else here follows from. Every other surface token in this file answers \"what\n   is this rung in this theme\". These answer \"what is this rung on a workbench\",\n   and a workbench is pinned dark: what was measured is a dark ramp, and a light\n   counterpart would be invented rather than measured. Inventing one and stamping\n   it with the measurement's authority is exactly the move \xA712b calls a\n   placeholder. So the builder is a scope, it declares `color-scheme: dark` (the\n   note at the top of this file is the argument: without it the UA keeps drawing\n   its own controls, scrollbars and autofill in the reader's theme, and that is\n   how a 1.14:1 Reject button once shipped), and it RESTATES every semantic token\n   that carries a ground assumption. Which is what the dark theme block does, for\n   the same reason, in the same shape.\n\n   THE NAMES ARE THE SYSTEM'S, DELIBERATELY. There is no --builder-raised, and\n   there must not be one: --bg-raised already means \"a surface floating on the\n   ground\", and every primitive in @orvay/ui reads --bg-raised, --fg-primary,\n   --line-rule and --focus-ring. Re-pointing those means Notice, Field, Dropdown\n   and the rest render correctly inside the builder with no change at all. A\n   parallel --builder-* family would mean restyling each of them, and then\n   restyling each of them again the next time one of them changed.\n\n   THE OBVIOUS FIRST ATTEMPT DOES NOT WORK, and it is worth a paragraph because\n   it looks like it should. Re-pointing the Tier 1 ramp inside the scope --\n   --o-neutral-1 and friends -- changes nothing, because a custom property has\n   its var() substituted at computed-value time ON THE ELEMENT THAT DECLARES IT.\n   --bg-canvas: var(--o-neutral-3) is computed at :root and inherited as a\n   literal colour; a descendant that redefines --o-neutral-3 is redefining\n   something --bg-canvas has already stopped reading. The same rule is why the\n   alpha washes (--o-neutral-a3 and the rest) cannot follow this scope either,\n   and why anything inside the builder that wants one has to be given a token\n   here instead.\n\n   THE MEASURED LADDER, WITH A SURPRISE IN IT. Ordered by lightness, which is not\n   the order the measurement table lists them in:\n\n     pane ground     L 0.2300   rgb(29,29,28)   measured\n     root background L 0.2389   rgb(31,31,30)   measured\n     raised surface  L 0.2474   rgb(33,33,32)   measured\n     message bubble  L 0.2720   rgb(39,39,38)   measured\n\n   The document's own background is NOT the bottom rung: the panes are painted\n   two units of 255 BELOW it, so they are recessed into the shell rather than\n   floating on it. That is a fact about how that editor is built and not a\n   naming accident, and it is why --bg-canvas takes the pane and --bg-subtle\n   takes the root background rather than the other way round.\n\n   AND THE LIFT IS TOO SMALL FOR OUR OWN LADDER. Canvas to raised measures\n   0.0174, under the 0.02 'elevation is monotonic' asks of a card in tokens.test.ts,\n   which is to say Lovable does not hold a surface up with luminance at all: it\n   holds it up with an opaque hairline. So the hairline here is load-bearing\n   rather than decoration, the test asserts it stays lighter than every rung it\n   separates, and a future session that \"tidies\" the rungs closer together is\n   removing the only separation this surface has.\n\n   THE INK IS NOT PURE WHITE, THOUGH THE MEASUREMENT IS. Lovable's root ink is\n   rgb(255,255,255). The note above --o-ink-solid-* says body ink in this system\n   is deliberately not pure, and that is not a preference to discard for one\n   surface: pure white on a near-black ground halates. The cost is measured\n   rather than assumed -- 16.89:1 becomes 14.82:1 on the pane -- and both are so\n   far above the 7:1 floor that the choice costs nothing a reader can use.\n\n   THE ACCENT IS BOXED IN ON THREE SIDES, and this is the one measured value that\n   could not be shipped as it stands without an argument.\n\n   Measured: oklch(0.5243 0.2396 264.41), the Publish button and nothing else.\n   Against the pane it sits on that is 2.92:1, and against the message bubble\n   2.59:1. WCAG 1.4.11 wants 3:1 for the visual information that identifies a\n   control, and \xA77a makes that law here rather than taste; Lovable is a US\n   product with no European Accessibility Act duty and is free to ship it.\n\n   The instinct is to lighten the fill until it passes. It does not fit:\n\n     L 0.5582   the lowest lightness clearing 3:1 on every rung\n     L 0.5637   the highest lightness still inside sRGB at this chroma and hue\n     L 0.5748   the highest lightness whose light ink still clears 4.5:1\n\n   That is a legal window 0.0055 wide, and a fill sitting in it is one rounding\n   away from either clipping or taking its own label below the floor. So the\n   FILL ships as measured and the RIM carries the boundary: --accent-line is\n   3.93:1 at its worst rung, which is what 1.4.11 actually asks for, and it is\n   the same answer --line-control already gives for the same problem on the\n   neutral ramp. A builder control filled with --accent-solid MUST draw that rim;\n   the fill alone does not identify it.\n\n   The one lift that does fit inside the window is the hover state, which is why\n   --accent-hover is L 0.560: 3.02:1 on the bubble, 4.74:1 for its own label, and\n   inside sRGB by 0.0037. It is derived, not measured. Nothing measured a hover.\n\n   THE CHROMATIC FAMILIES ARE RESTATED NOW, AND THIS PARAGRAPH USED TO SAY THEY\n   WERE NOT. It said the builder rendered none of them and left instructions for\n   whichever session first did: give it an ink in this block, or put it on a\n   themed surface. That session arrived. `Notice` is on this surface, with\n   `data-tone='warning'`, so `--risk-medium-tint` and `--risk-medium-text` are\n   both live here.\n\n   IT FAILED EXACTLY AS PREDICTED, AND ONLY IN ONE THEME, which is why it was\n   easy to miss: for a reader in DARK the families already resolve to their dark\n   steps and the notice reads perfectly. For a reader in LIGHT the builder is\n   still pinned dark, so the ink came from this block and the tint came from the\n   reader's light ramp: a near-white sentence on a near-white wash. Measured at\n   1.0:1 in a browser and visible in a screenshot as a warning triangle with\n   nothing beside it.\n\n   So the steps the tone families consume are pinned to their dark values below.\n   The literals are the same ones the dark theme block declares, and they are\n   written out because CSS has no way to say \"whatever that block says\": a scope\n   cannot inherit from a sibling scope. `tokens.test.ts` audits this block as a\n   third ground, so these are inside the contrast proof rather than beside it. The bevels are the same\n   story with a better excuse: the measurement found no computed shadow anywhere\n   in that editor, so the builder is flat by construction, and reaching for\n   --o-bevel-raised inside it would paint the light theme's white inset onto a\n   dark card, which is the halo bug this file already fixed once.\n   ============================================================================= */\n:root {\n  /* Tier 1, internal, and declared HERE rather than up with the other primitives\n     on purpose: the block that consumes them is the next twenty lines. Proximity\n     is the mechanism, the same one the slab and its ink needed after drifting\n     700 lines apart. Hue is 107 on every one of these; the two values converted\n     out of sRGB measured 106.54 and 106.72 and are written as 107 with the rest,\n     which is a unification well under the threshold of vision and the same one\n     the v5 family makes for the same reason. */\n  --o-workbench-pane: oklch(0.230 0.0020 107);\n  --o-workbench-shell: oklch(0.239 0.0019 107);\n  --o-workbench-raised: oklch(0.2474 0.0020 107);\n  --o-workbench-bubble: oklch(0.272 0.0020 107);\n  /* Derived. Nothing measured a hover or an active row, so these continue the\n     ladder at the 0.030 spacing the dark neutral ramp uses at the same rungs\n     rather than at a spacing somebody liked the look of. */\n  --o-workbench-hover: oklch(0.302 0.0020 107);\n  --o-workbench-active: oklch(0.332 0.0020 107);\n  /* The hairline, measured, and the only separation this surface has. 1.65:1 on\n     the pane, which is a divider and not a boundary -- exactly the honest range\n     the note above --line-control describes for steps 6 to 8. */\n  --o-workbench-rule: oklch(0.374 0.0067 107);\n  /* Derived. The measurement offers ONE hairline and this system asks for three\n     weights of line, so these two continue the same ladder. Both sit under 3:1\n     and are meant to; a line that has to be SEEN is --o-workbench-edge.\n\n     THE WORDING HERE IS LOAD-BEARING AND THAT IS ABSURD, SO IT IS WRITTEN DOWN.\n     This comment used to open its second sentence with the word \"N-e-i-t-h-e-r\",\n     and that failed `apps/status/src/render.test.ts`. Not a flake: `build.ts`\n     inlines this entire file into the status page document, and that test\n     asserts the rendered page does NOT contain that word, because the page's\n     fallback sentence must read as singular when only one channel is down. The\n     assertion searches the whole document, so every prose comment in this file\n     is inside the haystack for a copy test in another package.\n\n     Left as prose rather than \"fixed\" by deleting the comment, because \xA74 says\n     the tokens are one owner and this file's comments are how the arithmetic is\n     auditable. The real fix belongs to the status page: scope that assertion to\n     the rendered copy instead of the document. Raised as a handoff. */\n  --o-workbench-border: oklch(0.435 0.0060 107);\n  --o-workbench-strong: oklch(0.520 0.0055 107);\n  /* The control boundary, 3.98:1 at its worst rung. Derived at the lightness the\n     dark neutral ramp already uses for the same job, because the job is the\n     same: WCAG 1.4.11, and a border that identifies a control rather than\n     decorating a table. */\n  --o-workbench-edge: oklch(0.665 0.0050 107);\n  /* 5.65:1 at its worst rung against a 4.5:1 floor, and 7.87:1 on the pane. */\n  --o-workbench-ink-quiet: oklch(0.760 0.0040 107);\n  /* 10.64:1 at its worst rung against a 7:1 floor, and 14.82:1 on the pane. */\n  --o-workbench-ink: oklch(0.955 0.0040 107);\n  /* The solid-control slab, re-derived for this ground rather than inherited:\n     --control-solid-* INVERTS between themes, so a button inside a pinned-dark\n     pane would be a near-black slab on a near-black ground for every reader on\n     the light theme. That is \xA712c's 1.21:1 button rediscovered on a surface the\n     theme cannot reach, which is the same sentence the night scene needed. Its\n     ink is the shared dark ink at 15.56:1 on the top stop and 12.50:1 on the\n     bottom, and the slab reads 13.75:1 against the pane, so the control has an\n     edge without needing to draw one. */\n  --o-workbench-control: oklch(0.930 0.0030 107);\n  --o-workbench-control-low: oklch(0.860 0.0030 107);\n  /* The single accent, measured. Read the argument above before moving it. */\n  --o-workbench-accent: oklch(0.5243 0.2396 264.41);\n  --o-workbench-accent-hover: oklch(0.560 0.2396 264.41);\n  /* The rim that identifies an accent-filled control, since its fill cannot.\n     3.93:1 at the worst rung. */\n  --o-workbench-accent-line: oklch(0.665 0.1200 264.41);\n  /* The accent as INK, which is the same trap the neutral ramp's step 9 sets:\n     the measured accent as text is 2.92:1 on the pane. This is 5.61:1 at its\n     worst rung, and it is a FREE ink -- nothing pairs it with a fill, so it is\n     held to the worst rung rather than to the one anybody had in mind. */\n  --o-workbench-accent-text: oklch(0.760 0.1000 264.41);\n}\n\n/* Tier 2, restated for this ground. The attribute goes on the element that wraps\n   the workbench; custom properties inherit, so everything under it follows.\n   Nothing outside the builder may set it. */\n[data-surface='builder'] {\n  color-scheme: dark;\n\n  /* THE TONE FAMILIES, PINNED TO THEIR DARK STEPS. `Notice` builds every tone\n     out of `--risk-*-tint` and `--risk-*-text`, which derive from these. A\n     surface that is dark whatever the reader chose has to carry them, or a\n     light-theme reader gets this block's near-white ink on the light ramp's\n     near-white tint. Only the steps the tones actually consume are restated:\n     step 3 is what the 12% tint is mixed from, step 11 is the ink. */\n  --o-amber-3: oklch(0.220 0.0197 75);\n  --o-amber-11: oklch(0.760 0.0885 75);\n  --o-signal-3: oklch(0.220 0.0285 25);\n  --o-signal-11: oklch(0.760 0.1284 25);\n  --o-verdant-3: oklch(0.220 0.0197 152);\n  --o-verdant-11: oklch(0.760 0.0885 152);\n\n  /* AND THE SEMANTIC TOKENS AGAIN, WHICH IS NOT REDUNDANT WITH THE SIX ABOVE.\n\n     A custom property is computed WHERE IT IS DECLARED and inherits as a\n     finished value. `--risk-medium-tint: var(--o-amber-a3)` and\n     `--o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent)` are\n     both declared on `:root`, so they resolved against the READER'S amber-3\n     before this scope existed, and the builder inherits that result. Restating\n     the input downstream cannot re-derive an output declared upstream.\n\n     Measured, because it looks like it should work: with only the six steps\n     above restated, `--o-amber-11` on this element correctly read as the dark\n     step while `--risk-medium-tint` still carried the light theme's near-white\n     wash. Re-declaring these HERE is what makes them resolve against the six\n     steps above. */\n  --risk-medium-tint: var(--o-amber-a3);\n  --risk-critical-tint: var(--o-signal-a3);\n  --risk-medium-text: var(--o-amber-11);\n  --risk-critical-text: var(--o-signal-11);\n  --verified-text: var(--o-verdant-11);\n  --o-amber-a3: color-mix(in oklab, var(--o-amber-3) 12%, transparent);\n  --o-signal-a3: color-mix(in oklab, var(--o-signal-3) 12%, transparent);\n  --o-verdant-a3: color-mix(in oklab, var(--o-verdant-3) 12%, transparent);\n  --o-amber-a11: color-mix(in oklab, var(--o-amber-11) 80%, transparent);\n  --o-signal-a11: color-mix(in oklab, var(--o-signal-11) 80%, transparent);\n  --o-verdant-a11: color-mix(in oklab, var(--o-verdant-11) 80%, transparent);\n\n  /* THE CODE PANE, WHICH IS THE SAME DEFECT ACROSS EIGHT TOKENS AT ONCE.\n\n     Every `--syntax-*` is derived: two from `--fg-secondary`, which this scope\n     already overrides, and six from ramp step 11 of four families. All eight are\n     declared on `:root`, so all eight computed against the READER'S theme and a\n     light-theme reader got the light ramp's syntax colours on the workbench's\n     dark ground. Not one token: a whole file of code, every keyword, string,\n     number and comment.\n\n     `--o-ember-11` and `--o-steel-11` are pinned here for the first time because\n     nothing else in this scope needed them; keyword, tag and property do.\n     `tests/schema/token-scopes.test.ts` is what found the rest, and it found\n     them as a consequence of the six steps pinned above: overriding an input\n     without its outputs is the defect, and the scan states it in those words. */\n  --o-ember-11: oklch(0.760 0.1081 45);\n  --o-steel-11: oklch(0.760 0.0950 236);\n  /* AND WHAT THOSE TWO FEED, which the scan named only once they were pinned.\n     Closing one layer reveals the next, and that is the graph being walked\n     rather than the scan being fussy: `--risk-high-text` is the third risk ink\n     and would have been the next `Notice` tone to go invisible here. */\n  --o-ember-a11: color-mix(in oklab, var(--o-ember-11) 80%, transparent);\n  --o-steel-a11: color-mix(in oklab, var(--o-steel-11) 80%, transparent);\n  --risk-high-text: var(--o-ember-11);\n\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n  --syntax-string: var(--o-verdant-11);\n  --syntax-keyword: var(--o-ember-11);\n  --syntax-number: var(--o-amber-11);\n  --syntax-tag: var(--o-steel-11);\n  --syntax-attribute: var(--o-amber-11);\n  --syntax-property: var(--o-steel-11);\n\n  --bg-canvas: var(--o-workbench-pane);\n  --bg-subtle: var(--o-workbench-shell);\n  --bg-raised: var(--o-workbench-raised);\n  --bg-component: var(--o-workbench-bubble);\n  --bg-hover: var(--o-workbench-hover);\n  --bg-active: var(--o-workbench-active);\n\n  --line-rule: var(--o-workbench-rule);\n  --line-border: var(--o-workbench-border);\n  --line-strong: var(--o-workbench-strong);\n  --line-control: var(--o-workbench-edge);\n\n  --fg-primary: var(--o-workbench-ink);\n  --fg-secondary: var(--o-workbench-ink-quiet);\n\n  --control-solid-top: var(--o-workbench-control);\n  --control-solid-bottom: var(--o-workbench-control-low);\n\n  /*\n     THE PRESS PREVIEW, RE-DERIVED IN THIS SCOPE, and it would have been wrong\n     without these three lines.\n\n     A custom property is computed WHERE IT IS DECLARED and inherits as a\n     finished value. `--control-solid-press-top` is declared on `:root` as a mix\n     of `--control-solid-top` and `--bg-subtle`, so it resolves there against\n     the ROOT'S versions of both. Overriding the two inputs above changes\n     nothing about the already-resolved output: a switch inside the builder\n     would have previewed toward the light theme's near-black on a dark pane.\n\n     Found by `tests/schema/token-scopes.test.ts`, which is the scan written for\n     exactly this and caught its own author's tokens on its first real run.\n  */\n  /*\n     THE RAIL'S GROUND FOLLOWS THE CANVAS HERE TOO. `--app-rail-bg` is declared\n     on :root as `var(--bg-canvas)`, and this scope overrides `--bg-canvas`, so\n     without this line a rail inside the builder would paint the light theme's\n     near-white against a dark workbench.\n\n     Caught by tests/schema/token-scopes.test.ts the moment `--app-rail-bg`\n     stopped being a literal and became derived, which is the whole reason that\n     scan exists: the dependency it checks is created by an ordinary edit\n     somewhere else entirely.\n  */\n  --app-rail-bg: var(--bg-canvas);\n\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: var(--control-solid-bottom);\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n  --control-solid-ink: var(--o-ink-solid-dark);\n\n  --accent-solid: var(--o-workbench-accent);\n  --accent-hover: var(--o-workbench-accent-hover);\n  --accent-line: var(--o-workbench-accent-line);\n  --accent-text: var(--o-workbench-accent-text);\n  --accent-on-solid: var(--o-ink-solid-light);\n  /* The orb's three stops, derived from the accent this scope just re-pointed.\n     A custom property is computed where it is DECLARED, so leaving these out\n     would paint the workbench orb in the ROOT accent while everything beside it\n     wore the workbench one. Caught by `token-scopes.test.ts`, which exists for\n     exactly this and named all three. The dark formulation, because this surface\n     is dark whatever the reader chose. */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-neutral-12));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-neutral-12));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-neutral-1));\n  /* The ring is ink, not a fill, and it binds to the accent's ink step for the\n     reason the note on --focus-ring gives at length: a fill anchor is chosen to\n     CARRY ink, which makes it too dark to BE ink. 5.61:1 at the worst rung\n     against a 3:1 floor. */\n  --focus-ring: var(--o-workbench-accent-text);\n}\n\n/* =============================================================================\n   THE PAPER SURFACE \u2014 the product app's ground, and a fourth set of grounds.\n\n   The app was copied from another product's shell and reads as a settings\n   screen: a grey canvas with white cards inset on it, every control lifted on a\n   bevel, the primary button a gradient slab. The operator's decision is PAPER\n   FIRST. One sheet from the rail to the foot, hairlines as the structural\n   element, almost no fills, one accent, and a dark scheme derived from the same\n   ramp at hue 260. docs/plan/26-brand-and-design-language.md is the spec.\n\n   WHY A SCOPE AND NOT A CHANGE TO :root. Three apps import this file. The site\n   is invariant paper already, through its own --v6-* family, and apps/docs\n   inherits the neutral ramp; repainting Tier 2 for everybody would restyle two\n   surfaces this change has neither measured nor screenshotted. CLAUDE.md \xA79e\n   says the site argues and the product works and they are allowed to look\n   different. So the app opts in by stamping `data-surface=\"paper\"` on <html>,\n   exactly as the builder opts into its pinned-dark workbench above.\n\n   ELEVATION ON PAPER IS A LINE, NOT A LIFT, AND THAT IS THE WHOLE IDEA.\n   The Tier 2 block above states the invariant \"a raised surface is lighter than\n   the ground it floats on\", and `elevation is monotonic` in tokens.test.ts\n   enforces it. That invariant cannot hold here: the sheet is oklch(1 0 0) and\n   nothing is lighter than white. So the doctrine is RESTATED rather than\n   dropped, and the restatement is the design:\n\n     A surface on paper is separated by its EDGE and its SHADOW, never by its\n     fill. Resting is a hairline; raised is the same hairline plus a soft\n     shadow; the primary control is flat.\n\n   THE HAIRLINE DOES NOT GET LIGHTER ON THE WAY DOWN, and that is not laziness.\n   An input's boundary identifies a control and is bound by WCAG 1.4.11 at 3:1,\n   so it cannot be the weaker half of a resting/raised pair. The ascent is\n   therefore the SHADOW: resting has none, raised has two layers. Stated this\n   way it is countable, which is what `the paper surface` asserts.\n\n   That is one sentence and it is testable, so `the paper surface` in\n   tokens.test.ts measures it: the edge weights must ascend, and no bevel on\n   this surface may carry a fill lift.\n\n   WHAT THIS BUYS FOR ONE ATTRIBUTE. Every control in @orvay/ui reads its depth\n   from --o-bevel-*, and `.o-input` has NO border at all: its only definition is\n   --o-bevel-resting. So rebinding six bevel tokens re-materialises every input,\n   button, menu, popover, dialog and Notice in the product at once, with no\n   component edited. Setting them to `none` instead would have made every input\n   an invisible white box on a white sheet, which is why resting is a hairline\n   here and not an absence.\n\n   THE RAMP RUNS DOWN, NOT UP. In the neutral system the ground is step 3 and a\n   surface is step 1. Here the ground IS the lightest value, so the five rungs\n   descend from the sheet and the ink ramp is the v6 one, unchanged, because the\n   landing page a customer sees first is already set in it.\n\n   MEASURED, NOT CHOSEN BY EYE. Every ratio below was computed through\n   ./oklch.ts against the WORST rung a token can land on, not against the\n   flattering one, which is the correction --o-neutral-11 already carries a note\n   about. The control boundary is the case that changed: at the v6 ornament\n   step (L 0.62) it read 2.70:1 on --bg-active and failed WCAG 1.4.11's 3:1, so\n   it is L 0.56 here.\n   ============================================================================= */\n:root {\n  /* Tier 1, internal, declared beside the block that consumes them for the same\n     reason the workbench family is: proximity is what stopped the slab and its\n     ink drifting 700 lines apart. Hue 260 throughout, which is the v6 ink hue.\n\n       --o-paper-sheet      1.000   the one sheet; canvas AND raised\n       --o-paper-quiet      0.985   a quiet band: table head, a fold, a footer\n       --o-paper-component  0.960   a control's own ground\n       --o-paper-hover      0.930\n       --o-paper-active     0.900   the worst rung, and what every ink below is\n                                    held against\n  */\n  --o-paper-sheet: oklch(1.000 0.0000 260);\n  --o-paper-quiet: oklch(0.985 0.0020 260);\n  --o-paper-component: oklch(0.960 0.0030 260);\n  --o-paper-hover: oklch(0.930 0.0040 260);\n  --o-paper-active: oklch(0.900 0.0050 260);\n\n  /* The two hairlines, taken from v6 unchanged. 1.33:1 on the sheet, which is a\n     divider and not a boundary, exactly the honest range the note above\n     --line-control describes. A line that must be SEEN is --o-paper-edge. */\n  --o-paper-rule: oklch(0.905 0.0030 260);\n  --o-paper-rule-2: oklch(0.840 0.0040 260);\n  --o-paper-rule-3: oklch(0.740 0.0050 260);\n  /* The control boundary. 3.45:1 on --bg-active and 4.65:1 on the sheet,\n     against WCAG 1.4.11's 3:1 floor. v6's ornament step is L 0.62 and reads\n     2.70:1 here, so this is derived for the job rather than borrowed. */\n  --o-paper-edge: oklch(0.560 0.0050 260);\n\n  /* The v6 ink ramp. 19.12:1 and 9.21:1 on the sheet; 14.19:1 and 6.83:1 on\n     the worst rung.\n\n     TWO STEPS, NOT v6's THREE. The third, L 0.490, is the AA floor v6 spends on\n     mono labels and metadata, and it is not declared here because nothing in\n     this scope would bind it: --fg-primary is the first ink and --fg-secondary\n     is the second, and there is no Tier 2 token for meta text yet. A primitive\n     no semantic reads is the \xA74 case of a value that looks owned and is not, so\n     the third ink arrives with `--fg-meta` and the tabular rows that consume\n     it, and not before. */\n  --o-paper-ink: oklch(0.170 0.0080 260);\n  --o-paper-ink-2: oklch(0.400 0.0080 260);\n\n  /* The one accent, the v6 blue, spent on the active row, the focus ring and a\n     link. 4.81:1 as ink on the worst rung, 6.48:1 on the sheet, and 6.48:1\n     carrying white as a fill. */\n  --o-paper-blue: oklch(0.470 0.1300 236);\n  --o-paper-blue-hover: oklch(0.370 0.1100 236);\n\n  /* NIGHT \u2014 the same ladder inverted, hue 260 throughout, for the reader who\n     chose dark and for a 23:00 halt from a phone. Derived, not measured from a\n     reference, because there is no dark reference: the spec asks for the paper\n     ramp read the other way.\n\n     17.28:1 and 8.91:1 on the sheet; 11.25:1 and 5.80:1 on the worst rung. Two\n     steps, for the reason the paper ramp above gives. The blue moves up the\n     ramp because a L 0.47 blue is 4.11:1 on a L 0.17 ground and would fail as\n     ink. */\n  --o-night-sheet: oklch(0.170 0.0080 260);\n  --o-night-quiet: oklch(0.205 0.0080 260);\n  --o-night-component: oklch(0.245 0.0080 260);\n  --o-night-hover: oklch(0.285 0.0080 260);\n  --o-night-active: oklch(0.325 0.0080 260);\n\n  --o-night-rule: oklch(0.300 0.0080 260);\n  --o-night-rule-2: oklch(0.360 0.0080 260);\n  --o-night-rule-3: oklch(0.440 0.0080 260);\n  /* 3.42:1 on --bg-active, 5.25:1 on the sheet. */\n  --o-night-edge: oklch(0.620 0.0100 260);\n\n  --o-night-ink: oklch(0.965 0.0040 260);\n  --o-night-ink-2: oklch(0.760 0.0080 260);\n\n  /* 4.75:1 as ink on the worst rung, 7.29:1 on the sheet. The fill is a\n     separate step because a fill is chosen to CARRY ink and is therefore too\n     light to BE ink here, which is the same trap --accent-text exists for.\n     4.95:1 carrying the shared dark ink. */\n  --o-night-blue: oklch(0.700 0.1100 236);\n  --o-night-blue-hover: oklch(0.760 0.1100 236);\n  --o-night-blue-fill: oklch(0.600 0.1300 236);\n}\n\n/* Tier 2, restated for paper. The attribute goes on <html> in apps/app; custom\n   properties inherit, so every route follows. Nothing outside apps/app may set\n   it, and apps/site and apps/docs are untouched by this whole section.\n\n   THE NEUTRAL RAMP IS DELIBERATELY NOT OVERRIDDEN HERE, which is what keeps\n   this block short. Every alpha family (--o-neutral-a3, the risk tints, the\n   autonomy lines) is translucent and composites correctly over whatever ground\n   it lands on, and each already flips with the reader's theme through the\n   blocks far above. Restating them would fork them. Only the semantics that\n   carry a GROUND ASSUMPTION move, plus every token derived from one of those,\n   because a property is computed where it is DECLARED and overriding an input\n   upstream of its output changes nothing. */\n[data-surface='paper'] {\n  color-scheme: light;\n\n  /* One sheet. --bg-raised is the SAME value as --bg-canvas on purpose: a card\n     inset on a darker ground is the frame-inside-a-frame this redesign deletes,\n     and on paper the hairline is what says where a surface begins. */\n  --bg-canvas: var(--o-paper-sheet);\n  --bg-raised: var(--o-paper-sheet);\n  --bg-subtle: var(--o-paper-quiet);\n  --bg-component: var(--o-paper-component);\n  --bg-hover: var(--o-paper-hover);\n  --bg-active: var(--o-paper-active);\n\n  --line-rule: var(--o-paper-rule);\n  --line-border: var(--o-paper-rule-2);\n  --line-strong: var(--o-paper-rule-3);\n  --line-control: var(--o-paper-edge);\n\n  --fg-primary: var(--o-paper-ink);\n  --fg-secondary: var(--o-paper-ink-2);\n\n  /* THE PRIMARY CONTROL IS A FLAT BLACK PILL, and it is flattened here rather\n     than in button.css. The rule reads\n     `linear-gradient(var(--control-solid-top), var(--control-solid-bottom))`,\n     so binding both stops to one ink produces a flat fill with no component\n     edited and no second code path. Paired ink at 19.12:1. */\n  --control-solid-top: var(--o-paper-ink);\n  --control-solid-bottom: var(--o-paper-ink);\n  --control-solid-ink: var(--o-ink-solid-light);\n\n  /* Derived upstream from --control-solid-* and --bg-subtle, so restated here\n     or the press preview would mix the neutral theme's near-black against this\n     sheet. Same three lines the builder scope needs, for the same reason. */\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n\n  --accent-solid: var(--o-paper-blue);\n  --accent-hover: var(--o-paper-blue-hover);\n  --accent-line: var(--o-paper-blue);\n  --accent-text: var(--o-paper-blue);\n  --accent-on-solid: var(--o-ink-solid-light);\n\n  /* Derived upstream from --fg-primary, which this scope moves. The spec spends\n     the accent on the active row, the focus ring and a link, so the ring is the\n     blue rather than the ink: 4.81:1 at its worst rung against a 3:1 floor. */\n  --focus-ring: var(--o-paper-blue);\n\n  /* Derived upstream from --accent-solid and the neutral ramp. The light\n     formulation, because this surface is paper whatever the reader chose. */\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 18%, var(--o-paper-sheet));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-paper-sheet));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-paper-ink));\n\n  /* The shell's Tier 3, every one of them derived from a Tier 2 token this\n     scope moves. Left out, the rail would paint the old grey canvas against a\n     paper sheet and the seam would be the most visible thing on the screen. */\n  /* THE FRAME'S GEOMETRY, ZEROED, because on paper there is no frame. The\n     names stay so app.css keeps stating no values, and the handle's own\n     hairline derives from both, so a full-height sheet gets a full-height\n     edge with no second rule. */\n  --app-gutter: 0px;\n  --app-card-radius: 0px;\n  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.\n     \xA72 of the design language reads \"never 16px or above\" and \xA74 is exact: 2px\n     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.\n     The shared scale runs 8, 12, 20 and 30, so every surface in the app was\n     between four and fifteen times the spec, and a 30px panel corner is what\n     makes a settings screen read as a consumer app rather than a register.\n     Restated here rather than at :root because the site's own language is\n     built on the same four names and is not this. The pill is untouched: a\n     control is a pill or a surface, and those are the only two shapes. */\n  --o-radius-sm: 2px;\n  --o-radius-md: 2px;\n  --o-radius-lg: 2px;\n  --o-radius-panel: 2px;\n  /* Derived from --o-radius-lg, which the four lines above move. Inert in this\n     app, like the nine --docs-* bindings further down, and declared for the same\n     reason: eleven correct lines cost less than one frozen list. */\n  --docs-card-radius: var(--o-radius-lg);\n  --app-rail-bg: var(--bg-canvas);\n  --app-rail-fg: var(--fg-secondary);\n  --app-rail-fg-active: var(--fg-primary);\n  --app-card-bg: var(--bg-raised);\n  --app-card-line: var(--line-rule);\n\n  /* THE RAIL'S TWO WASHES, WHICH THE DERIVATION SCAN CANNOT SEE.\n     They are `--o-neutral-a3` and `--o-neutral-a4`, alphas of the NEUTRAL ramp,\n     which this scope deliberately leaves alone: every other alpha family\n     composites correctly over any ground, so they were reasoned safe as a\n     class. These two are the exception, and the exception is arithmetic rather\n     than theory. Both mix toward a near-white step (0.955 and 0.940) at 12% and\n     16%, which over a grey canvas was a faint darkening and over PAPER is a mix\n     of white into white. The hovered row and the CURRENT row both came out at\n     the sheet, so the rail had no selected state at all.\n     Restated as mixes of the surface's OWN ink, which is the rule: a wash on\n     paper is pulled toward the ink, never inherited from a ramp that was\n     lightening a different ground. */\n  --app-rail-hover-bg: color-mix(in oklab, var(--o-paper-ink) 5%, transparent);\n  --app-rail-active-bg: color-mix(in oklab, var(--o-paper-ink) 9%, transparent);\n\n  /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.\n     tests/schema/token-scopes.test.ts walks the derivation graph and reported\n     these as overriding an input without its outputs. Two are live in this app\n     today: `--syntax-*` colour every code block the markdown renderer emits, and\n     without these lines a code sample on paper would take the neutral theme's\n     secondary ink. The nine `--docs-*` are consumed only by apps/docs, which\n     never sets this attribute, so they are inert here; they are declared anyway\n     because eleven correct lines cost less than one frozen list that somebody\n     later reads as permission. */\n  --docs-page-bg: var(--bg-canvas);\n  --docs-card-bg: var(--bg-raised);\n  --docs-card-line: var(--line-rule);\n  --docs-rail-fg: var(--fg-secondary);\n  --docs-rail-fg-active: var(--fg-primary);\n  --docs-toc-fg: var(--fg-secondary);\n  --docs-toc-fg-active: var(--fg-primary);\n  --docs-toc-rail: var(--line-rule);\n  --docs-toc-rail-active: var(--fg-primary);\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n\n  /* THE SIX BEVELS, WHICH ARE THE WHOLE MATERIAL CHANGE.\n     Resting is a hairline. Raised is that hairline plus two shadow layers.\n     The solid control is flat. Shadows are mixed from black, never from an ink\n     step, which is the rule the theme blocks above already carry. */\n  --o-bevel-control-solid: none;\n  /* --o-bevel-control IS A HAIRLINE AND --o-bevel-resting IS A BOUNDARY, and\n     the two were the same line until it was measured on a real page.\n     WCAG 1.4.11 asks for 3:1 on a boundary that IDENTIFIES a control. An empty\n     input is identified by nothing else, so it keeps --line-control. A\n     secondary pill, a dropdown trigger and a menu button all carry a label, so\n     the 4.65:1 ring was doing no work the words were not already doing, and the\n     spec asks for \"a hairline pill in ink\" rather than an outlined one. */\n  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);\n  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);\n  --o-bevel-raised:\n    inset 0 0 0 var(--o-hairline) var(--line-control),\n    0 1px 2px -1px color-mix(in oklab, black 10%, transparent),\n    0 12px 28px -14px color-mix(in oklab, black 20%, transparent);\n  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);\n  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);\n}\n\n/* A NOTE FOR WHOEVER RE-ARMS THE BUILDER. `[data-surface='builder']` above is\n   dead today by an operator decision recorded in builder.tsx, and it does not\n   restate the bevels. It sits BELOW <html>, so the day anything sets it again\n   it will inherit the six declarations above: a hairline resolved from\n   `--line-control` AS THAT TOKEN COMPUTES ON <html>, which is the paper edge,\n   painted onto a pinned-dark pane. A property is computed where it is declared,\n   so re-arming that scope means restating these six there. Not written here in\n   advance, because a scope nothing selects is CSS nobody can see is wrong.\n   `a token scope is selected by something` in tests/schema/token-scopes.test.ts\n   holds the builder VALUE frozen so this stays a line somebody can read. */\n\n/* NIGHT. The reader who chose dark, on the same surface. `data-theme` is always\n   stamped by apps/app, server-side and then by the switcher, so this attribute\n   pair is the only selector needed: there is no `system` theme in this product\n   and a paper surface with no theme attribute is paper, which is the default\n   the spec asks for. */\n[data-surface='paper'][data-theme='dark'] {\n  color-scheme: dark;\n\n  --bg-canvas: var(--o-night-sheet);\n  --bg-raised: var(--o-night-sheet);\n  --bg-subtle: var(--o-night-quiet);\n  --bg-component: var(--o-night-component);\n  --bg-hover: var(--o-night-hover);\n  --bg-active: var(--o-night-active);\n\n  --line-rule: var(--o-night-rule);\n  --line-border: var(--o-night-rule-2);\n  --line-strong: var(--o-night-rule-3);\n  --line-control: var(--o-night-edge);\n\n  --fg-primary: var(--o-night-ink);\n  --fg-secondary: var(--o-night-ink-2);\n\n  /* The pill inverts, as the slab does everywhere else in this system: a black\n     pill on a near-black sheet is the 1.21:1 button \xA712c records. 17.28:1. */\n  --control-solid-top: var(--o-night-ink);\n  --control-solid-bottom: var(--o-night-ink);\n  --control-solid-ink: var(--o-ink-solid-dark);\n\n  /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.\n     `.o-button[data-intent='primary']:hover` used to paint\n     `linear-gradient(--control-solid-bottom, --control-solid-bottom)`, which is a\n     hover only while the two stops differ. The paper arms bind both stops to one\n     ink to get a flat slab, so on paper the hover painted exactly the rest state\n     and the product's loudest control answered the pointer with nothing. Measured\n     in both themes: the two stops resolve byte-identical, so rest and hover were\n     the same paint. Derived, so it is restated by every scope that rebinds its\n     inputs, which is what tokens.test and token-scopes.test require. */\n  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));\n  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));\n  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));\n  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));\n\n  /* The fill and the ink are two steps, because a fill is chosen to CARRY ink\n     and is therefore too light to BE ink. 4.95:1 and 4.75:1 respectively. */\n  --accent-solid: var(--o-night-blue-fill);\n  --accent-hover: var(--o-night-blue);\n  --accent-line: var(--o-night-blue);\n  --accent-text: var(--o-night-blue);\n  --accent-on-solid: var(--o-ink-solid-dark);\n  --focus-ring: var(--o-night-blue);\n\n  --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-night-ink));\n  --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-night-ink));\n  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 62%, var(--o-night-sheet));\n\n  /* THE FRAME'S GEOMETRY, ZEROED, because on paper there is no frame. The\n     names stay so app.css keeps stating no values, and the handle's own\n     hairline derives from both, so a full-height sheet gets a full-height\n     edge with no second rule. */\n  --app-gutter: 0px;\n  --app-card-radius: 0px;\n  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.\n     \xA72 of the design language reads \"never 16px or above\" and \xA74 is exact: 2px\n     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.\n     The shared scale runs 8, 12, 20 and 30, so every surface in the app was\n     between four and fifteen times the spec, and a 30px panel corner is what\n     makes a settings screen read as a consumer app rather than a register.\n     Restated here rather than at :root because the site's own language is\n     built on the same four names and is not this. The pill is untouched: a\n     control is a pill or a surface, and those are the only two shapes. */\n  --o-radius-sm: 2px;\n  --o-radius-md: 2px;\n  --o-radius-lg: 2px;\n  --o-radius-panel: 2px;\n  /* Derived from --o-radius-lg, which the four lines above move. Inert in this\n     app, like the nine --docs-* bindings further down, and declared for the same\n     reason: eleven correct lines cost less than one frozen list. */\n  --docs-card-radius: var(--o-radius-lg);\n  --app-rail-bg: var(--bg-canvas);\n  --app-rail-fg: var(--fg-secondary);\n  --app-rail-fg-active: var(--fg-primary);\n  --app-card-bg: var(--bg-raised);\n  --app-card-line: var(--line-rule);\n\n  /* The same two washes, pulled the other way. \"Toward the ink\" is toward\n     near-white here, and the percentages are higher because a light film over a\n     dark ground carries less than a dark film over a light one. */\n  --app-rail-hover-bg: color-mix(in oklab, var(--o-night-ink) 8%, transparent);\n  --app-rail-active-bg: color-mix(in oklab, var(--o-night-ink) 14%, transparent);\n\n  /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.\n     tests/schema/token-scopes.test.ts walks the derivation graph and reported\n     these as overriding an input without its outputs. Two are live in this app\n     today: `--syntax-*` colour every code block the markdown renderer emits, and\n     without these lines a code sample on paper would take the neutral theme's\n     secondary ink. The nine `--docs-*` are consumed only by apps/docs, which\n     never sets this attribute, so they are inert here; they are declared anyway\n     because eleven correct lines cost less than one frozen list that somebody\n     later reads as permission. */\n  --docs-page-bg: var(--bg-canvas);\n  --docs-card-bg: var(--bg-raised);\n  --docs-card-line: var(--line-rule);\n  --docs-rail-fg: var(--fg-secondary);\n  --docs-rail-fg-active: var(--fg-primary);\n  --docs-toc-fg: var(--fg-secondary);\n  --docs-toc-fg-active: var(--fg-primary);\n  --docs-toc-rail: var(--line-rule);\n  --docs-toc-rail-active: var(--fg-primary);\n  --syntax-comment: var(--fg-secondary);\n  --syntax-punctuation: var(--fg-secondary);\n\n  /* Restated, not inherited. The two shadow layers are mixed from black on a\n     near-black ground, where they do almost nothing, so the hairline carries\n     the whole separation and is a rung lighter than paper's for it. */\n  --o-bevel-control-solid: none;\n  /* The same split as the paper arm: a hairline on a labelled control, a\n     boundary on an input that has no label inside it. */\n  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);\n  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);\n  --o-bevel-raised:\n    inset 0 0 0 var(--o-hairline) var(--line-control),\n    0 1px 2px -1px color-mix(in oklab, black 40%, transparent),\n    0 12px 28px -14px color-mix(in oklab, black 60%, transparent);\n  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);\n  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);\n}\n\n";
 
 // src/page.css
 var page_default = "/*\n * The status pages' own styles. Every colour is a token from tokens.css, which\n * is inlined ahead of this block by shell.ts.\n *\n * A REAL .css FILE, not a template literal in TypeScript, and that is the point\n * of it. This lived in shell.ts as `String.raw` and a backtick in a comment ends\n * a template literal, so twice a note explaining a fix broke the file the fix was\n * in, and the second time was inside the comment warning about the first. esbuild\n * loads this with the text loader exactly as it loads tokens.css, so the whole\n * class of mistake is gone rather than guarded against.\n */\n\n/* -------------------------------------------------------------------------\n   Every colour below is a token from the block above.\n   ------------------------------------------------------------------------- */\n*, *::before, *::after { box-sizing: border-box; }\n\nbody {\n  margin: 0;\n  background: var(--bg-canvas);\n  color: var(--fg-primary);\n  font: var(--o-text-body-15);\n  font-weight: var(--o-weight-regular);\n  -webkit-font-smoothing: antialiased;\n}\n\n.sr-only {\n  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;\n  overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0;\n}\n\n.wrap { max-width: 58rem; margin: 0 auto; padding: var(--o-space-6) var(--o-space-4) var(--o-space-8); }\n\na { color: var(--accent-text); text-underline-offset: 0.16em; }\n:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }\n\n/* Masthead -------------------------------------------------------------- */\n.masthead { display: flex; align-items: center; gap: var(--o-space-3); flex-wrap: wrap; margin-bottom: var(--o-space-6); }\n.masthead img { width: 26px; height: 26px; border-radius: 7px; display: block; }\n.masthead .name { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); }\n.masthead .kicker { font: var(--o-text-label-14); color: var(--fg-secondary); }\n\n/* Banner ---------------------------------------------------------------- */\n.banner {\n  border: 1px solid var(--line-rule);\n  border-radius: var(--o-radius-lg);\n  overflow: hidden;\n  margin-bottom: var(--o-space-6);\n  background: var(--bg-raised);\n}\n/* A tint keyed to the state, with the border to match. Colour is the LAST\n   carrier here: the glyph and the sentence both say it first. */\n.banner[data-level='operational'] { border-color: var(--verified-line); }\n.banner[data-level='operational'] .banner-head { background: var(--o-verdant-a3); }\n.banner[data-level='degraded'] .banner-head { background: var(--risk-medium-tint); }\n.banner[data-level='partial-outage'] .banner-head { background: var(--risk-high-tint); }\n.banner[data-level='major-outage'] .banner-head { background: var(--risk-critical-tint); }\n.banner-head { display: flex; align-items: center; gap: var(--o-space-3); padding: var(--o-space-4) var(--o-space-5); }\n.banner-head h1 { font: var(--o-text-title-24); font-weight: var(--o-weight-strong); margin: 0; letter-spacing: -0.012em; }\n.banner-mark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: none; }\n.banner-mark svg { width: 15px; height: 15px; }\n.banner-body { padding: var(--o-space-4) var(--o-space-5); border-top: 1px solid var(--line-rule); display: flex; flex-direction: column; gap: var(--o-space-2); }\n.banner-body p { margin: 0; max-width: 70ch; }\n.banner-body .updated { color: var(--fg-secondary); font: var(--o-text-label-14); }\n\n/* Cards ----------------------------------------------------------------- */\n/* NO overflow HERE, and that absence is the fix rather than an oversight.\n\n   This rule carried overflow: hidden so the rows inside could not square off the\n   rounded corners. It also made the card the only clipping ancestor a tooltip\n   had, and a tooltip is the one thing in here that is SUPPOSED to leave. At a\n   388px card, 326 of the 1620 tooltips were being cut, by up to 66px, and the\n   text simply ended mid-sentence.\n\n   What the clip was protecting is done directly instead: the last row carries\n   the bottom corners itself, which is the only row whose background can reach\n   them. Everything else in the card sits inside the border box already, measured\n   rather than assumed. */\n.card {\n  background: var(--bg-raised);\n  border: 1px solid var(--line-rule);\n  border-radius: var(--o-radius-lg);\n  margin-bottom: var(--o-space-5);\n}\n/* What overflow: hidden used to do, done by the element that needs it. */\n.card > ul.rows > .row:last-child {\n  border-end-start-radius: var(--o-radius-lg);\n  border-end-end-radius: var(--o-radius-lg);\n}\n.card-head { padding: var(--o-space-5) var(--o-space-5) var(--o-space-4); }\n.card-head h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 2px; }\n.card-head p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }\n\nul.rows { list-style: none; margin: 0; padding: 0; }\n.row { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); border-top: 1px solid var(--line-rule); display: flex; flex-direction: column; gap: var(--o-space-2); }\n.row[data-unmeasured='true'] { background-image: var(--provenance-hatch); }\n.row-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--o-space-2) var(--o-space-4); }\n.row-label { font: var(--o-text-title-19); font-weight: var(--o-weight-medium); margin: 0; letter-spacing: -0.005em; }\n.row-summary { margin: 0; color: var(--fg-secondary); max-width: 68ch; font: var(--o-text-label-14); line-height: 1.5; }\n.row-method { margin: 2px 0 0; font: var(--o-text-mono-13); color: var(--fg-secondary); }\n\n/* State badge ------------------------------------------------------------ */\n.state { display: inline-flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }\n.glyph { width: 1.05em; height: 1.05em; flex: none; }\n.state-word { font: var(--o-text-label-14); font-weight: var(--o-weight-medium); }\n\n/* History bar ------------------------------------------------------------ */\n.bar-wrap { display: flex; flex-direction: column; gap: var(--o-space-2); margin-top: var(--o-space-2); }\n/* No gap. A 2px gap is 2px of nothing to hover, and on a 90 cell bar that is a\n   quarter of the strip where the tooltip vanishes and reappears. The cells are\n   contiguous for the pointer and separated for the eye: the padding is part of\n   the cell, and background-clip: content-box keeps the paint out of it. */\n.bar { display: flex; align-items: stretch; height: 32px; }\n.cell {\n  flex: 1 1 0; min-width: 3px; border-radius: 2px;\n  padding: 0 1.5px;\n  background-clip: content-box;\n}\n/* Barely there on purpose. A visible grey cell reads as a measurement that went\n   badly; this has to read as a day we were not yet watching, which is what an\n   empty track says and a filled one cannot. */\n/* background-COLOR, not the shorthand. `background:` resets background-clip to\n   border-box, which paints the tint through the padding that is the gap. That\n   happened twice: once here and once in the inline style on each cell. */\n.cell--none { background-color: var(--o-neutral-3); }\n.bar-scale { display: flex; justify-content: space-between; align-items: baseline; font: var(--o-text-micro-11); color: var(--fg-secondary); letter-spacing: 0.02em; }\n.bar-count { font-variant-numeric: tabular-nums; }\n\n/* History ---------------------------------------------------------------- */\n.history h2, .legend-wrap h2 { font: var(--o-text-title-24); font-weight: var(--o-weight-regular); margin: var(--o-space-7) 0 var(--o-space-2); }\n.history p.lede { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); max-width: 62ch; font: var(--o-text-label-14); }\n.day { border-top: 1px solid var(--line-rule); padding: var(--o-space-4) 0; }\n.day h3 { font: var(--o-text-label-14); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-2); }\n.day ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--o-space-2); }\n.day li { color: var(--fg-secondary); font: var(--o-text-label-14); }\n.day strong { color: var(--fg-primary); font-weight: var(--o-weight-medium); }\n.ev-time { font: var(--o-text-mono-13); color: var(--fg-secondary); margin-right: var(--o-space-2); }\n.empty { margin: 0; color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; font: var(--o-text-label-14); line-height: 1.55; }\n\n/* Tooltips, with no JavaScript ------------------------------------------- */\n/* The hovered cell lifts so its tooltip clears its NEIGHBOURS. That is the only\n   layering this needs.\n   Three rules used to live here, added to fix a stacking problem that turned out\n   not to exist. The tooltip looked like it was painting underneath the row\n   header. It was in fact rendering at 55 percent opacity, because the\n   cell--none rule carried an opacity, and opacity composites the whole subtree,\n   tooltip included. They are gone rather than left in as insurance, because CSS\n   kept for a reason that was wrong is CSS nobody can safely remove later.\n\n   No backtick appears in this comment and that is load-bearing: this block is a\n   template literal, so a backtick here ends it. The first version of this very\n   note did exactly that and broke the bundle. */\n.row { position: relative; }\n/* THE TOOLTIP IS POSITIONED AGAINST THE BAR, NOT AGAINST ITS OWN CELL, and that\n   is what makes it clampable. A cell is about 3px wide, so an element positioned\n   against one has no idea where the ends are and can only be centred and hoped\n   for. Against the bar, both edges are a percentage away and CSS can do the\n   arithmetic itself.\n\n   WHAT THIS REPLACED was data-tip=\"start\" on the first eight cells and\n   data-tip=\"end\" on the last eight, which pinned those sixteen and centred the\n   other seventy-four. The comment beside it said a tooltip \"cannot leave the\n   card\". Measured on the deployed page, at a 528px card 147 tooltips were\n   clipped and at 388px it was 326, because eight cells is about 28px of\n   clearance and a tooltip with a note is 306px wide. The threshold counted\n   CELLS when the thing that overflows is measured in PIXELS, so it could not\n   have been right at more than one viewport width. */\n.bar { position: relative; }\n.cell { position: static; }\n.cell:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }\n.tip {\n  position: absolute;\n  bottom: calc(100% + 8px);\n  /* --tip-anchor is the centre of THIS cell as a percentage of the bar, written\n     at build time where the index is known. The clamp keeps the tooltip inside\n     the card, letting it bleed into the card's own padding so a tooltip near an\n     end still points somewhere sensible instead of jamming against the rule.\n     Never past that: the card is nearly the full width of a phone, and a\n     tooltip allowed further would scroll the page sideways. */\n  --tip-w: 11rem;\n  --tip-bleed: var(--o-space-5);\n  left: clamp(\n    calc(-1 * var(--tip-bleed)),\n    var(--tip-anchor, 50%) - var(--tip-w) / 2,\n    calc(100% - var(--tip-w) + var(--tip-bleed))\n  );\n  width: var(--tip-w);\n  padding: 0; z-index: 31;\n  background: var(--bg-raised); color: var(--fg-primary);\n  border: 1px solid var(--line-border); border-radius: var(--o-radius-sm);\n  box-shadow: var(--o-bevel-raised);\n  opacity: 0; visibility: hidden; pointer-events: none;\n  transform: translateY(4px);\n  /* 4px of travel, not 24. The reference measurements are explicit that a\n     reveal moves a little and quickly; a longer one reads as a template. */\n  transition:\n    opacity var(--o-dur-enter) var(--o-ease-enter) 60ms,\n    transform var(--o-dur-enter) var(--o-ease-enter) 60ms,\n    visibility 0s linear 60ms;\n  display: flex; flex-direction: column;\n}\n/* A cell carrying a note or an incident needs the room to say so. The 78vw arm\n   is what keeps it inside a phone; the clamp above keeps it inside the card. */\n.cell--corrected .tip, .cell--incident .tip { --tip-w: min(19rem, 78vw); }\n.cell:hover .tip, .cell:focus .tip, .cell:focus-visible .tip,\n.zone:hover .tip, .zone:focus .tip, .zone:focus-visible .tip {\n  opacity: 1; visibility: visible; transform: translateY(0);\n  transition-delay: 60ms, 60ms, 0s;\n}\n.tip-day { padding: var(--o-space-3) var(--o-space-3) var(--o-space-2); font: var(--o-text-label-14); color: var(--fg-secondary); border-bottom: 1px solid var(--line-rule); white-space: nowrap; }\n.tip-state { padding: var(--o-space-3); font: var(--o-text-label-14); font-weight: var(--o-weight-medium); display: flex; align-items: center; gap: var(--o-space-2); white-space: nowrap; }\n/* The dot repeats the colour; the WORD beside it is what carries the meaning. */\n.tip-state::before { content: ''; width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--o-neutral-8); }\n.tip-state[data-s='operational']::before { background: var(--verified-solid); }\n.tip-state[data-s='degraded']::before { background: var(--risk-medium-solid); }\n.tip-state[data-s='partial-outage']::before { background: var(--risk-high-solid); }\n.tip-state[data-s='major-outage']::before { background: var(--risk-critical-solid); }\n.tip-state[data-s='not-measured']::before { background: var(--o-neutral-6); }\n.tip-state[data-s='none']::before { background: var(--o-neutral-5); }\n/* A cell repainted because our OWN check was at fault, not the service.\n\n   The colour now says what the service was doing, which is true, so the hatch\n   and the sentence carry the part the colour cannot: that this cell is a\n   correction rather than a reading. \xA77 forbids colour as the sole carrier, and a\n   3px cell has no room for a glyph, so the tooltip does the work and the hatch\n   makes the cell findable by someone looking for it.\n\n   background-IMAGE, never the shorthand: `.cell` sets `background-clip:\n   content-box` to draw the gap, and the shorthand resets it. That has broken the\n   bar twice. */\n.cell--corrected { background-image: var(--provenance-hatch); }\n.tip-note {\n  padding: var(--o-space-3); border-top: 1px solid var(--line-rule);\n  font: var(--o-text-micro-11); color: var(--fg-secondary); line-height: 1.5;\n  /* An explicit measure, because `.tip` shrink-wraps: it is positioned against a\n     3px cell, so its available width is 3px and it collapses to min-content.\n     A max-width would never be reached and the note would read as a 45-character\n     column. */\n  /* The WIDTH now lives on .tip, because the clamp that keeps the tooltip inside\n     the card has to know it. A second width here would be a second answer to one\n     question, and the one that drifts is always the one with fewer readers. */\n  white-space: normal; text-wrap: pretty;\n}\n\n/* The line that says where the rest of the story is.\n\n   \xA77 forbids dead UI, and a tooltip cannot hold a live link: it is\n   pointer-events: none, so a cursor moving toward the link dismisses the thing\n   it was aiming at. So THE CELL is the link and this is its affordance, which\n   also means the whole 3px column is the target rather than a word inside a\n   panel that vanishes. Keyboard users get it for free: an anchor is focusable\n   and Enter follows it. */\n.tip-more {\n  padding: var(--o-space-3); border-top: 1px solid var(--line-rule);\n  font: var(--o-text-label-14); font-weight: var(--o-weight-medium);\n  color: var(--accent-text); display: flex; align-items: center; gap: var(--o-space-2);\n  white-space: nowrap;\n}\n.tip-more::after { content: '\\2192'; }\na.cell { display: block; text-decoration: none; }\n\n/* Button and footer ------------------------------------------------------ */\n.cta { display: flex; justify-content: center; margin: var(--o-space-7) 0 var(--o-space-6); }\n.button {\n  display: inline-flex; align-items: center; gap: var(--o-space-2);\n  padding: 0.7rem 1.15rem; border-radius: var(--o-radius-pill);\n  background: var(--bg-raised); border: 1px solid var(--line-border);\n  color: var(--fg-primary); text-decoration: none;\n  font: var(--o-text-label-14); font-weight: var(--o-weight-medium);\n  /* 44px hit area, \xA77a rule 4. */\n  min-height: 44px;\n  transition: background var(--o-dur-quick) var(--o-ease-standard);\n}\n.button:hover { background: var(--bg-hover); }\n.button svg { width: 16px; height: 16px; }\n\nfooter { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); color: var(--fg-secondary); display: flex; flex-direction: column; gap: var(--o-space-4); align-items: center; text-align: center; font: var(--o-text-label-14); line-height: 1.55; }\nfooter p { margin: 0; max-width: 66ch; }\nfooter nav { display: flex; flex-wrap: wrap; gap: var(--o-space-2) var(--o-space-4); justify-content: center; }\nfooter nav a { color: var(--fg-secondary); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }\nfooter nav a:hover { color: var(--fg-primary); text-decoration: underline; }\n\n@media (max-width: 34rem) {\n  .bar { height: 26px; }\n  .card-head, .row { padding-left: var(--o-space-4); padding-right: var(--o-space-4); }\n  .banner-head h1 { font: var(--o-text-title-19); }\n  .banner-head, .banner-body { padding-left: var(--o-space-4); padding-right: var(--o-space-4); }\n}\n\n@media print {\n  .row, .card, .state, .glyph, .cell, .banner, .banner-mark { print-color-adjust: exact; -webkit-print-color-adjust: exact; }\n  a[href]::after { content: ' (' attr(href) ')'; font: var(--o-text-mono-13); }\n}\n\n/* History and incident pages -------------------------------------------- */\n.page-head { margin-bottom: var(--o-space-6); }\n.page-head h1 { font: var(--o-text-display-32); font-weight: var(--o-weight-regular); margin: 0 0 var(--o-space-2); letter-spacing: -0.018em; }\n.page-head p { margin: 0; color: var(--fg-secondary); max-width: 62ch; }\n/* The history page carries no lede, so its heading is the last child and the gap\n   it was holding open for a paragraph would double up with .page-head's own. */\n.page-head h1:last-child { margin-bottom: 0; }\n\n.month { margin-bottom: var(--o-space-6); }\n.month h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }\nul.incidents { list-style: none; margin: 0; padding: 0; }\n.incident-row { display: grid; grid-template-columns: 3.4rem 1fr; gap: var(--o-space-3); align-items: start; padding: var(--o-space-3) 0; border-top: 1px solid var(--line-rule); }\n.incident-date { font: var(--o-text-label-14); color: var(--fg-secondary); white-space: nowrap; padding-top: var(--o-space-3); }\n.incident-date .dd { font-weight: var(--o-weight-strong); color: var(--fg-primary); }\n/* The whole card is the target. A four-word title is a small thing to hit, and\n   a row that highlights but does not respond is worse than one that does not\n   highlight at all. */\n.incident-card {\n  position: relative;\n  display: grid; grid-template-columns: 3px 1fr auto; gap: var(--o-space-3);\n  align-items: start; padding: var(--o-space-3) var(--o-space-4);\n  border-radius: var(--o-radius-md);\n  transition: background var(--o-dur-quick) var(--o-ease-standard);\n}\n.incident-card:hover { background: var(--bg-subtle); }\n.incident-card:focus-within { background: var(--bg-subtle); }\n.incident-rail { border-radius: 2px; align-self: stretch; min-height: 2.4rem; }\n.incident-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }\n.incident-title { color: var(--fg-primary); text-decoration: none; font-weight: var(--o-weight-medium); }\n/* The stretched-link pattern: the anchor covers the card, so the target is the\n   card and the accessible name is still the title. No JavaScript involved. */\n.incident-title::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }\n/* No underline. The whole card already lifts on hover, so underlining the\n   title as well says the same thing twice and reads as a link inside a link. */\n.incident-card:hover .incident-title { text-decoration: none; }\n.incident-main p { margin: 0; color: var(--fg-secondary); font: var(--o-text-label-14); }\n.incident-time { font: var(--o-text-mono-13); color: var(--fg-secondary); }\n.incident-meta { color: var(--fg-secondary); font: var(--o-text-label-14); }\n\n/* One block per phase, so the drawing says what happened and for how long. */\n.timeline { display: flex; gap: 2px; height: 26px; margin-top: var(--o-space-2); position: relative; }\n/* STATIC, and this one is easy to get wrong: it was `relative`, and a positioned\n   phase becomes the containing block for the tooltip inside it. The clamp then\n   measures 100% as the width of one PHASE rather than of the whole timeline, so\n   a narrow phase at the end of an incident threw its tooltip 242px past the card.\n   Caught by measuring the incident page rather than by reading this file. The\n   timeline is the only positioned ancestor a zone tooltip may have. */\n.phase { border-radius: 2px; position: static; display: flex; min-width: 6px; }\n/* Transparent, contiguous hover zones inside the block. They are what makes the\n   tooltip appear under the cursor instead of at the left edge of a block that\n   can span the whole card, and they are invisible: the block is the drawing. */\n/* STATIC, for the same reason a day cell is: the tooltip clamps against the\n   TIMELINE, which knows where its own ends are, and a zone does not. */\n.zone { flex: 1 1 0; position: static; }\n.zone:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }\n/* Upward, like the day cells. There is room above and the card no longer clips. */\n.zone .tip { bottom: calc(100% + 8px); top: auto; }\n/* A phase tooltip always carries a sentence, so it gets the wider measure. */\n.timeline .tip { --tip-w: min(19rem, 78vw); }\n.timeline-scale { display: flex; justify-content: space-between; font: var(--o-text-micro-11); color: var(--fg-secondary); margin-top: var(--o-space-2); }\n\nul.updates { list-style: none; margin: 0; padding: 0; }\nul.updates { padding: var(--o-space-4) var(--o-space-5) var(--o-space-5); }\nul.updates li { display: grid; grid-template-columns: 12px 1fr; gap: var(--o-space-3); position: relative; padding-bottom: var(--o-space-5); }\nul.updates li:last-child { padding-bottom: 0; }\n/* The rail between dots, which is what makes a list of times read as one\n   sequence rather than as several unrelated notes. */\nul.updates li::before {\n  content: ''; position: absolute; left: 5px; top: 1.1em; bottom: -0.2em;\n  width: 1px; background: var(--line-border);\n}\nul.updates li:last-child::before { display: none; }\nul.updates .dot { width: 11px; height: 11px; border-radius: 50%; margin-top: 0.38em; position: relative; z-index: 1; box-shadow: 0 0 0 3px var(--bg-raised); }\nul.updates strong { font-weight: var(--o-weight-medium); }\nul.updates p { margin: 2px 0 0; color: var(--fg-secondary); font: var(--o-text-label-14); }\nul.updates .when { font: var(--o-text-mono-13); }\n\n.notes { margin-top: var(--o-space-7); padding-top: var(--o-space-5); border-top: 1px solid var(--line-rule); }\n.notes h2 { font: var(--o-text-title-19); font-weight: var(--o-weight-strong); margin: 0 0 var(--o-space-3); }\n.notes p { margin: 0 0 var(--o-space-3); color: var(--fg-secondary); max-width: 68ch; line-height: 1.55; }\n.notes strong { color: var(--fg-primary); font-weight: var(--o-weight-medium); }\n.empty { color: var(--fg-secondary); border-top: 1px solid var(--line-rule); padding-top: var(--o-space-4); max-width: 62ch; }\n\n@media (max-width: 34rem) {\n  .incident-row { grid-template-columns: 2.8rem 3px 1fr; }\n  .incident-time { grid-column: 3; font: var(--o-text-micro-11); }\n}\n\n/* Breadcrumbs and shared page furniture --------------------------------- */\n.masthead-brand { display: inline-flex; align-items: center; gap: var(--o-space-3); text-decoration: none; color: var(--fg-primary); }\n.crumbs { display: flex; align-items: center; gap: var(--o-space-2); margin-top: var(--o-space-5); margin-bottom: var(--o-space-5); font: var(--o-text-label-14); color: var(--fg-secondary); }\n.crumbs a { color: var(--fg-secondary); text-decoration: none; }\n.crumbs a:hover { color: var(--fg-primary); text-decoration: underline; }\n.crumb-sep { color: var(--line-strong); }\n\n/* ------------------------------------------------------- the live notice ---- */\n\n/* `hidden` LOSES TO A CLASS, AND THAT IS NOT A DETAIL.\n\n   The attribute works through the user agent stylesheet's `[hidden] { display:\n   none }`, which is one specificity point. `.o-notice` sets `display: grid`,\n   which is ten, so the borrowed component ignored `hidden` completely and the\n   notice rendered on every load as an empty tinted box with a warning glyph and\n   no sentence in it.\n\n   It shipped nowhere, because the browser test caught it on its first run. Worth\n   the comment anyway: nothing about the markup looks wrong, `pnpm verify`\n   without an e2e would have been fully green, and the failure is on the one\n   surface whose entire job is not to alarm people incorrectly. \xA712a. */\n#live-notice[hidden] {\n  display: none;\n}\n\n/* SPACING ONLY, AND THAT IS THE DECISION RATHER THAN THE LEFTOVER.\n\n   This briefly gave the notice `--bg-raised` and a card border, because\n   `.o-notice` tints itself with amber at 12% alpha and that reads on a card\n   while it nearly vanishes on this page's canvas.\n\n   It was wrong twice. An id selector outranks `.o-notice[data-tone='warning']`,\n   so a background here does not sit behind the component's tint, it replaces it,\n   and the notice rendered plain white with no tone at all. Reaching around that\n   needs a copy of a token \xA79b gives to one owner.\n\n   Understated is also the better answer on its own terms. The glyph and the\n   screen-reader word are the carriers \xA77a rule 2 requires, both present and both\n   measured, so the tint was never permitted to be the only one. \xA79a says the\n   instinct to add a border and a fill is the instinct to resist. */\n#live-notice {\n  margin-bottom: var(--o-space-5);\n}\n\n/* The reader's own clock, filled in by `live.ts`. Empty and therefore invisible\n   when no script runs, which is the no-JavaScript page exactly as it was. */\n.age:empty {\n  display: none;\n}\n";
@@ -15,7 +15,7 @@ var not_found_default = "/* ====================================================
 var button_default = "/* =============================================================================\n   The button.\n\n   ITS OWN PARTIAL BECAUSE IT HAS A SECOND CONSUMER THAT CANNOT LOAD `ui.css`.\n   `apps/status` is a static generator with no React and no bundler pipeline for\n   stylesheets: it inlines `tokens.css` and `page.css` through esbuild's text\n   loader, and inlining the whole of `ui.css` to reach one control would drag in\n   fields, menus, overlays and navigation that page does not have. Its 404 uses\n   the same two controls as the product's, so this file is the one place their\n   shape is decided, exactly as `not-found.css` is for the lockup they sit under.\n\n   Moved out of `ui.css` verbatim. An `@import` has to precede every rule, so\n   these declarations now sit earlier in the cascade than they used to; nothing\n   in this package or its partials targets `.o-button`, so there is nothing for\n   the move to reorder. The app's own overrides live in `apps/app/src/app/app.css`\n   and still come after this file in full.\n   ============================================================================= */\n\n/* -------------------------------------------------------------- button ---- */\n\n.o-button {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--o-space-2);\n  min-height: var(--o-tap-min);\n  padding: 0 var(--o-space-5);\n  font: var(--o-text-label-14);\n  /* The control tracking, not the label tracking. This is the exact element the\n     flip was measured on: `.Button .Paragraph` OVERRIDES the paragraph's -1.5%\n     with -0.35px, so a button label is tracked ~46% tighter than identical body\n     text beside it (trap 8). The token existed and every new control used it\n     while the button, the halt and the switch still carried the body-tier\n     value, which put a 14px button label at half the tracking of a 14px menu\n     item in the same font. */\n  letter-spacing: var(--o-tracking-control);\n  font-weight: var(--o-weight-medium);\n  /* Fully round. Controls and surfaces are the only two shapes in the system,\n     which is what stops a UI drifting into a dozen near-identical radii. */\n  border-radius: var(--o-radius-pill);\n  border: var(--o-hairline) solid transparent;\n  cursor: pointer;\n  /* An <a> wearing this class is a real case: \"go home\" on the 404 page is a\n     navigation, so it must be an anchor, and a control that navigates should\n     look like the controls beside it. Without this the user agent underlines it\n     and it is the one button in the product with a line under its label. Inert\n     on a <button>, which has no default decoration to reset. */\n  text-decoration: none;\n  /* Declared, never inherited from the user agent.\n     A <button> with no background gets `buttonface`, which is a UA colour that\n     follows `color-scheme` rather than our tokens. It looked right in the light\n     theme purely because the two agreed there, and put near-white ink on a\n     near-white face in dark. A control in a themed system paints its own\n     surface, so that the surface and the ink are decided in the same place. */\n  background: var(--bg-component);\n  color: var(--fg-primary);\n  border-color: var(--line-control);\n  /* Padding is animated deliberately: the control breathes on interaction\n     rather than only changing colour, which reads as physical. */\n  transition:\n    background-color var(--o-dur-quick) var(--o-ease-standard),\n    box-shadow var(--o-dur-quick) var(--o-ease-standard),\n    padding var(--o-dur-quick) var(--o-ease-standard);\n}\n\n/* Approve is FILLED, Reject is OUTLINE. They differed only by hue in the draft\n   and collapsed to identical rectangles in greyscale and forced-colors. */\n/* The solid control: a slab with a faint vertical gradient, so the surface\n   reads as lit from above rather than as flat fill. It is dark in the light\n   theme and light in the dark theme, which is why its ink is a paired token. */\n.o-button[data-intent='primary'] {\n  background: linear-gradient(\n    var(--control-solid-top) 0%,\n    var(--control-solid-bottom) 100%\n  );\n  /* --control-solid-ink, NOT --fg-on-solid. The slab inverts between themes and\n     --o-neutral-9 (which --fg-on-solid is the ink for) does not, so the two\n     drift apart: this rule rendered near-black text on a near-black button at\n     1.21:1 in the LIGHT theme \u2014 the default one \u2014 on every primary button in\n     the product. A fill and its ink are one decision, made in tokens.css. */\n  color: var(--control-solid-ink);\n  box-shadow: var(--o-bevel-control-solid);\n}\n.o-button[data-intent='primary']:hover:not(:disabled) {\n  /* ONE DECLARED COLOUR, NOT THE BOTTOM STOP PAINTED TWICE.\n     Repainting the gradient with its own lower stop is a hover only while the\n     two stops differ, and the paper scope binds both to one ink so the slab\n     reads flat. That made this rule paint the rest state on every surface the\n     product ships, so the loudest control answered the pointer with nothing.\n     `--control-solid-hover` is bound per scope: the neutral surfaces keep the\n     lower stop, which is exactly what this rule used to paint, and paper mixes\n     toward `--bg-subtle` so the direction matches `:active` without going as\n     far. */\n  background: var(--control-solid-hover);\n}\n\n/* The raised control: white, lifted off the ground by a white inset highlight\n   along its top edge plus a soft shadow beneath. This is the bevel that reads\n   as glass \u2014 no backdrop blur is involved (ADR: see tokens.css). */\n.o-button[data-intent='secondary'] {\n  background: var(--bg-raised);\n  color: var(--fg-primary);\n  border-color: transparent;\n  box-shadow: var(--o-bevel-control);\n}\n.o-button[data-intent='secondary']:hover:not(:disabled) {\n  padding-inline: var(--o-space-6);\n}\n\n.o-button[data-intent='danger'] {\n  background: var(--risk-critical-solid);\n  color: var(--risk-critical-on);\n}\n\n/* `[aria-disabled]`, NOT `:disabled`, and the difference was a shipped defect.\n\n   Button sets `aria-disabled` rather than the native attribute on purpose: the\n   native one removes the control from the tab order and announces nothing, so a\n   reader who tabs to a greyed Approve would never hear why it is unavailable.\n   That is right. But `:disabled` matches only the native attribute, so this rule\n   never applied to anything \u2014 a disabled button was inert to clicks, announced\n   as unavailable to a screen reader, and visually identical to a working one for\n   everybody else. Each half was individually correct, which is why nothing\n   caught it. Both selectors are listed so a caller using the native attribute\n   for a form control still gets the visual. */\n.o-button:disabled,\n.o-button[aria-disabled='true'] {\n  opacity: 0.55;\n  cursor: not-allowed;\n}\n\n.o-button:focus-visible {\n  outline: 2px solid var(--focus-ring);\n  outline-offset: 2px;\n}\n\n/* ===================================================================== actions ===\n   A row of buttons, owned here so a screen cannot invent a fifth geometry.\n\n   `flex: 0 0 auto` on the children is the whole rule. Without it a row that\n   happens to be a grid stretches its items to full width, which is how the\n   onboarding wizard ended up rendering the same two buttons in four different\n   shapes across seven screens.\n   ============================================================================ */\n\n.o-actions {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: var(--o-space-3);\n  margin-block-start: var(--o-space-5);\n}\n\n.o-actions[data-align='end'] {\n  justify-content: flex-end;\n}\n\n/* Never stretch, never shrink below the label. \"Back\" is four characters and\n   \"Go to the command center\" is twenty-three; one width would make the first\n   absurd and both filling would make each a slab. */\n.o-actions > * {\n  flex: 0 0 auto;\n}\n\n/* An action row is the last thing on a step, so it owns the space above it and\n   nothing owns space below. A margin on both sides double-spaces a wrapped row. */\n.o-actions:last-child {\n  margin-block-end: 0;\n}\n\n/* The last child pushed to the far end. `margin-inline-start: auto` rather than\n   `justify-content: space-between`, because the row may wrap and space-between\n   would then spread a wrapped line across the whole column. */\n.o-actions[data-split] > :last-child {\n  margin-inline-start: auto;\n}\n";
 
 // ../../packages/ui/src/feedback.css
-var feedback_default = "/* =============================================================================\n   Absences, failures, and the one thing that blinks.\n   ============================================================================= */\n\n/* --------------------------------------------------------------- notice ---- */\n\n.o-notice {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-3) var(--o-space-4);\n  border-radius: var(--o-radius-md);\n  background: var(--bg-subtle);\n  color: var(--fg-primary);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-notice__glyph {\n  margin-block-start: 0.15em;\n  color: var(--fg-secondary);\n}\n\n.o-notice__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n}\n\n.o-notice__detail {\n  margin-block-start: var(--o-space-2);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  color: var(--fg-secondary);\n}\n\n/* The tint is the second carrier, never the first. The glyph differs per tone\n   and the screen-reader word states it outright, so all four survive\n   forced-colors, greyscale print and achromatopsia. */\n/* One column, because an untinted notice renders no glyph. Leaving the `auto`\n   track in place would indent the text past a column that is never filled. */\n.o-notice[data-tone='info'] { grid-template-columns: 1fr; }\n\n.o-notice[data-tone='ok'] { background: var(--risk-low-tint); }\n.o-notice[data-tone='ok'] .o-notice__glyph { color: var(--verified-text); }\n.o-notice[data-tone='warning'] { background: var(--risk-medium-tint); }\n.o-notice[data-tone='warning'] .o-notice__glyph { color: var(--risk-medium-text); }\n.o-notice[data-tone='error'] { background: var(--risk-critical-tint); }\n.o-notice[data-tone='error'] .o-notice__glyph { color: var(--risk-critical-text); }\n\n@media (forced-colors: active) {\n  .o-notice { border: 1px solid CanvasText; }\n}\n\n/* ---------------------------------------------------------------- empty ---- */\n\n.o-empty {\n  display: grid;\n  gap: var(--o-space-2);\n  justify-items: start;\n  padding: var(--o-space-6) var(--o-space-5);\n  border-radius: var(--o-radius-lg);\n  /* Recessed, not raised. An absence is not a result being presented, and\n     giving it the card treatment makes emptiness look like content. */\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n}\n\n.o-empty__title {\n  margin: 0;\n  font: var(--o-text-title-19);\n  letter-spacing: var(--o-tracking-title-19);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n.o-empty__because {\n  margin: 0;\n  max-inline-size: 52ch;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-secondary);\n}\n\n.o-empty__action { margin-block-start: var(--o-space-2); }\n\n/* ---------------------------------------------------------------- error ---- */\n\n.o-error {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-4);\n  border-radius: var(--o-radius-lg);\n  background: var(--risk-critical-tint);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-error__glyph {\n  margin-block-start: 0.15em;\n  color: var(--risk-critical-text);\n}\n\n.o-error__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n/* What still works is set in primary ink, not muted. It is the sentence the\n   reader most needs and the one a design instinct most wants to de-emphasise. */\n.o-error__still {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-primary);\n}\n\n.o-error__detail {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-mono-13);\n  font-family: var(--o-font-mono);\n  color: var(--fg-secondary);\n  overflow-wrap: break-word;\n}\n\n.o-error__action { margin-block-start: var(--o-space-3); }\n\n@media (forced-colors: active) {\n  .o-error { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- loading ---- */\n\n/* Loading is the provenance hatch, and it does not move.\n\n   A loading state and an unverified state are both \"this is not yet a fact\",\n   so they look related (\xA76.2). A shimmer says the opposite \u2014 it says something\n   is happening on a surface whose whole argument is that it shows only what has\n   been established \u2014 and it is the most common source of ambient motion in a\n   product that permits none. */\n.o-loading {\n  display: grid;\n  gap: var(--o-space-2);\n}\n\n.o-loading__line {\n  display: block;\n  block-size: 0.75rem;\n  border-radius: var(--o-radius-sm);\n  background-color: var(--bg-subtle);\n  background-image: var(--provenance-hatch);\n}\n\n.o-loading__line:nth-child(2) { inline-size: 82%; }\n.o-loading__line:nth-child(3) { inline-size: 64%; }\n\n/* ------------------------------------------------------------- progress ---- */\n\n.o-progress { display: grid; gap: var(--o-space-2); }\n\n.o-progress__head {\n  display: flex;\n  justify-content: space-between;\n  gap: var(--o-space-3);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n}\n\n.o-progress__label { color: var(--fg-primary); }\n\n.o-progress__count {\n  color: var(--fg-secondary);\n  font-variant-numeric: tabular-nums;\n  letter-spacing: var(--o-tracking-numeric);\n}\n\n.o-progress__track {\n  block-size: 6px;\n  border-radius: var(--o-radius-pill);\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n  overflow: hidden;\n}\n\n.o-progress__fill {\n  display: block;\n  block-size: 100%;\n  border-radius: inherit;\n  background: linear-gradient(var(--control-solid-top) 0%, var(--control-solid-bottom) 100%);\n  /* The fill transitions when the fraction changes, and does not animate on\n     load. Series and figures draw instantly (\xA76.2); this is a state change,\n     which is one of the four permitted meanings. */\n  transition: inline-size var(--o-dur-considered) var(--o-ease-standard);\n}\n\n@media (forced-colors: active) {\n  .o-progress__track { border: 1px solid CanvasText; }\n  .o-progress__fill { background: CanvasText; }\n}\n\n/* ---------------------------------------------------------------- stale ---- */\n\n/* THE ONLY LOOP IN THE PRODUCT.\n\n   A run whose platform-observed heartbeat has gone quiet while it still reports\n   itself as running. 0.8 Hz at 70% duty is the low-priority flash rate from the\n   NASA display standard, and this is deliberately the only moving thing on any\n   screen, which is precisely why it will be seen.\n\n   The reference's reduced-motion block deletes its equivalent indicator and\n   substitutes nothing (trap 19). Here the glyph carries a hatch and the literal\n   word STALE at all times, so standing the pulse down removes the movement and\n   not the message. */\n.o-stale {\n  display: inline-flex;\n  align-items: center;\n  gap: var(--o-space-2);\n  padding: 2px var(--o-space-2);\n  border-radius: var(--o-radius-sm);\n  background-color: var(--risk-medium-tint);\n  background-image: var(--provenance-hatch);\n  color: var(--fg-primary);\n  font: var(--o-text-micro-11);\n  letter-spacing: 0.06em;\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-stale__glyph { color: var(--risk-medium-text); }\n\n.o-stale__word { font-weight: var(--o-weight-strong); }\n\n.o-stale__since {\n  letter-spacing: var(--o-tracking-badge);\n  color: var(--fg-secondary);\n  text-transform: none;\n}\n\n@media (prefers-reduced-motion: no-preference) {\n  /* Declared INSIDE no-preference, so the reduced path needs no code and\n     therefore cannot be got wrong (\xA76.3). */\n  .o-stale__glyph {\n    animation: o-stale-pulse 1250ms steps(1, end) infinite;\n  }\n}\n\n/* 0.8 Hz = 1250ms. 70% duty: lit for 875ms of every cycle. `steps(1, end)`\n   rather than an eased fade, because a flash rate is defined by its duty cycle\n   and a crossfade has no duty cycle. */\n@keyframes o-stale-pulse {\n  0%, 69.99% { opacity: 1; }\n  70%, 100% { opacity: 0.35; }\n}\n\n@media (forced-colors: active) {\n  .o-stale { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- tooltip ---- */\n\n.o-tooltip { position: relative; display: inline-flex; }\n\n.o-tooltip__bubble {\n  position: absolute;\n  inset-block-end: calc(100% + var(--o-space-2));\n  inset-inline-start: 50%;\n  z-index: var(--o-z-overlay);\n  translate: -50% 0;\n  inline-size: max-content;\n  max-inline-size: 22rem;\n  padding: var(--o-space-2) var(--o-space-3);\n  border-radius: var(--o-radius-sm);\n  background: var(--bg-raised);\n  color: var(--fg-primary);\n  box-shadow: var(--o-bevel-raised);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  opacity: 0;\n  /* Hidden from the pointer AND from paint, but never removed from the DOM: the\n     trigger's aria-describedby has to keep resolving whether or not the bubble\n     is visible, and display:none would break that association. */\n  visibility: hidden;\n  transition:\n    opacity var(--o-dur-exit) var(--o-ease-exit),\n    visibility var(--o-dur-exit);\n  pointer-events: none;\n}\n\n/* Focus as well as hover. A tooltip that only answers to a pointer is invisible\n   to a keyboard reader and absent from a touch device. */\n.o-tooltip:hover .o-tooltip__bubble,\n.o-tooltip:focus-within .o-tooltip__bubble {\n  opacity: 1;\n  visibility: visible;\n  transition:\n    opacity var(--o-dur-enter) var(--o-ease-enter),\n    visibility 0s;\n}\n\n/* Escape dismisses while the trigger keeps focus (WCAG 1.4.13). A tooltip a\n   reader cannot dismiss can cover the content they were trying to read. */\n.o-tooltip[data-dismissed] .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:hover .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:focus-within .o-tooltip__bubble {\n  opacity: 0;\n  visibility: hidden;\n}\n\n@media (forced-colors: active) {\n  .o-tooltip__bubble { border: 1px solid CanvasText; }\n}\n";
+var feedback_default = "/* =============================================================================\n   Absences, failures, and the one thing that blinks.\n   ============================================================================= */\n\n/* --------------------------------------------------------------- notice ---- */\n\n.o-notice {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-3) var(--o-space-4);\n  border-radius: var(--o-radius-md);\n  background: var(--bg-subtle);\n  color: var(--fg-primary);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n/*\n  A LONG UNBREAKABLE TOKEN MUST NOT WIDEN THE PAGE, and by default it does.\n\n  A `1fr` track resolves its minimum to `auto`, which is the content's\n  min-content width, so a grid column holding one long word refuses to shrink\n  and pushes its container past the viewport. `min-inline-size: 0` lets the\n  track shrink; `overflow-wrap: anywhere` then gives the word somewhere to\n  break. Both are needed and neither alone is enough.\n\n  Measured, at 390: a notice naming two deployment variables\n  (`MCP_OAUTH_CLIENT_ID__AUTH_EXAMPLE_COM` and its secret, 38 characters with no\n  space or hyphen to break at) widened its whole panel by 129px and clipped the\n  registration form beside it. \xA712c: wide content scrolls inside its own\n  container, and the page body never scrolls horizontally.\n\n  Fixed on the OWNER rather than at the call site, which is \xA79b's instruction:\n  a notice is the surface things get NAMED on, so an address, an identifier or a\n  variable name lands in one regularly, and every one of them had this.\n*/\n.o-notice > * {\n  min-inline-size: 0;\n}\n\n.o-notice__title,\n.o-notice__detail {\n  overflow-wrap: anywhere;\n}\n\n.o-notice__glyph {\n  margin-block-start: 0.15em;\n  color: var(--fg-secondary);\n}\n\n.o-notice__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n}\n\n.o-notice__detail {\n  margin-block-start: var(--o-space-2);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  color: var(--fg-secondary);\n}\n\n/* The tint is the second carrier, never the first. The glyph differs per tone\n   and the screen-reader word states it outright, so all four survive\n   forced-colors, greyscale print and achromatopsia. */\n/* One column, because an untinted notice renders no glyph. Leaving the `auto`\n   track in place would indent the text past a column that is never filled. */\n.o-notice[data-tone='info'] { grid-template-columns: 1fr; }\n\n.o-notice[data-tone='ok'] { background: var(--risk-low-tint); }\n.o-notice[data-tone='ok'] .o-notice__glyph { color: var(--verified-text); }\n.o-notice[data-tone='warning'] { background: var(--risk-medium-tint); }\n.o-notice[data-tone='warning'] .o-notice__glyph { color: var(--risk-medium-text); }\n.o-notice[data-tone='error'] { background: var(--risk-critical-tint); }\n.o-notice[data-tone='error'] .o-notice__glyph { color: var(--risk-critical-text); }\n\n@media (forced-colors: active) {\n  .o-notice { border: 1px solid CanvasText; }\n}\n\n/* ---------------------------------------------------------------- empty ---- */\n\n.o-empty {\n  display: grid;\n  gap: var(--o-space-2);\n  justify-items: start;\n  padding: var(--o-space-6) var(--o-space-5);\n  border-radius: var(--o-radius-lg);\n  /* Recessed, not raised. An absence is not a result being presented, and\n     giving it the card treatment makes emptiness look like content. */\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n}\n\n.o-empty__title {\n  margin: 0;\n  font: var(--o-text-title-19);\n  letter-spacing: var(--o-tracking-title-19);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n.o-empty__because {\n  margin: 0;\n  max-inline-size: 52ch;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-secondary);\n}\n\n.o-empty__action { margin-block-start: var(--o-space-2); }\n\n/* ---------------------------------------------------------------- error ---- */\n\n.o-error {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-4);\n  border-radius: var(--o-radius-lg);\n  background: var(--risk-critical-tint);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-error__glyph {\n  margin-block-start: 0.15em;\n  color: var(--risk-critical-text);\n}\n\n.o-error__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n/* What still works is set in primary ink, not muted. It is the sentence the\n   reader most needs and the one a design instinct most wants to de-emphasise. */\n.o-error__still {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-primary);\n}\n\n.o-error__detail {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-mono-13);\n  font-family: var(--o-font-mono);\n  color: var(--fg-secondary);\n  overflow-wrap: break-word;\n}\n\n.o-error__action { margin-block-start: var(--o-space-3); }\n\n@media (forced-colors: active) {\n  .o-error { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- loading ---- */\n\n/* Loading is the provenance hatch, and it does not move.\n\n   A loading state and an unverified state are both \"this is not yet a fact\",\n   so they look related (\xA76.2). A shimmer says the opposite \u2014 it says something\n   is happening on a surface whose whole argument is that it shows only what has\n   been established \u2014 and it is the most common source of ambient motion in a\n   product that permits none. */\n.o-loading {\n  display: grid;\n  gap: var(--o-space-2);\n}\n\n.o-loading__line {\n  display: block;\n  block-size: 0.75rem;\n  border-radius: var(--o-radius-sm);\n  background-color: var(--bg-subtle);\n  background-image: var(--provenance-hatch);\n}\n\n.o-loading__line:nth-child(2) { inline-size: 82%; }\n.o-loading__line:nth-child(3) { inline-size: 64%; }\n\n/* ------------------------------------------------------------- progress ---- */\n\n.o-progress { display: grid; gap: var(--o-space-2); }\n\n.o-progress__head {\n  display: flex;\n  justify-content: space-between;\n  gap: var(--o-space-3);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n}\n\n.o-progress__label { color: var(--fg-primary); }\n\n.o-progress__count {\n  color: var(--fg-secondary);\n  font-variant-numeric: tabular-nums;\n  letter-spacing: var(--o-tracking-numeric);\n}\n\n.o-progress__track {\n  block-size: 6px;\n  border-radius: var(--o-radius-pill);\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n  overflow: hidden;\n}\n\n.o-progress__fill {\n  display: block;\n  block-size: 100%;\n  border-radius: inherit;\n  background: linear-gradient(var(--control-solid-top) 0%, var(--control-solid-bottom) 100%);\n  /* The fill transitions when the fraction changes, and does not animate on\n     load. Series and figures draw instantly (\xA76.2); this is a state change,\n     which is one of the four permitted meanings. */\n  transition: inline-size var(--o-dur-considered) var(--o-ease-standard);\n}\n\n@media (forced-colors: active) {\n  .o-progress__track { border: 1px solid CanvasText; }\n  .o-progress__fill { background: CanvasText; }\n}\n\n/* ---------------------------------------------------------------- stale ---- */\n\n/* THE ONLY LOOP IN THE PRODUCT.\n\n   A run whose platform-observed heartbeat has gone quiet while it still reports\n   itself as running. 0.8 Hz at 70% duty is the low-priority flash rate from the\n   NASA display standard, and this is deliberately the only moving thing on any\n   screen, which is precisely why it will be seen.\n\n   The reference's reduced-motion block deletes its equivalent indicator and\n   substitutes nothing (trap 19). Here the glyph carries a hatch and the literal\n   word STALE at all times, so standing the pulse down removes the movement and\n   not the message. */\n.o-stale {\n  display: inline-flex;\n  align-items: center;\n  gap: var(--o-space-2);\n  padding: 2px var(--o-space-2);\n  border-radius: var(--o-radius-sm);\n  background-color: var(--risk-medium-tint);\n  background-image: var(--provenance-hatch);\n  color: var(--fg-primary);\n  font: var(--o-text-micro-11);\n  letter-spacing: 0.06em;\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-stale__glyph { color: var(--risk-medium-text); }\n\n.o-stale__word { font-weight: var(--o-weight-strong); }\n\n.o-stale__since {\n  letter-spacing: var(--o-tracking-badge);\n  color: var(--fg-secondary);\n  text-transform: none;\n}\n\n@media (prefers-reduced-motion: no-preference) {\n  /* Declared INSIDE no-preference, so the reduced path needs no code and\n     therefore cannot be got wrong (\xA76.3). */\n  .o-stale__glyph {\n    animation: o-stale-pulse 1250ms steps(1, end) infinite;\n  }\n}\n\n/* 0.8 Hz = 1250ms. 70% duty: lit for 875ms of every cycle. `steps(1, end)`\n   rather than an eased fade, because a flash rate is defined by its duty cycle\n   and a crossfade has no duty cycle. */\n@keyframes o-stale-pulse {\n  0%, 69.99% { opacity: 1; }\n  70%, 100% { opacity: 0.35; }\n}\n\n@media (forced-colors: active) {\n  .o-stale { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- tooltip ---- */\n\n.o-tooltip { position: relative; display: inline-flex; }\n\n.o-tooltip__bubble {\n  position: absolute;\n  inset-block-end: calc(100% + var(--o-space-2));\n  inset-inline-start: 50%;\n  z-index: var(--o-z-overlay);\n  translate: -50% 0;\n  inline-size: max-content;\n  max-inline-size: 22rem;\n  padding: var(--o-space-2) var(--o-space-3);\n  border-radius: var(--o-radius-sm);\n  background: var(--bg-raised);\n  color: var(--fg-primary);\n  box-shadow: var(--o-bevel-raised);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  opacity: 0;\n  /* Hidden from the pointer AND from paint, but never removed from the DOM: the\n     trigger's aria-describedby has to keep resolving whether or not the bubble\n     is visible, and display:none would break that association. */\n  visibility: hidden;\n  transition:\n    opacity var(--o-dur-exit) var(--o-ease-exit),\n    visibility var(--o-dur-exit);\n  pointer-events: none;\n}\n\n/* Focus as well as hover. A tooltip that only answers to a pointer is invisible\n   to a keyboard reader and absent from a touch device. */\n.o-tooltip:hover .o-tooltip__bubble,\n.o-tooltip:focus-within .o-tooltip__bubble {\n  opacity: 1;\n  visibility: visible;\n  transition:\n    opacity var(--o-dur-enter) var(--o-ease-enter),\n    visibility 0s;\n}\n\n/* Escape dismisses while the trigger keeps focus (WCAG 1.4.13). A tooltip a\n   reader cannot dismiss can cover the content they were trying to read. */\n.o-tooltip[data-dismissed] .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:hover .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:focus-within .o-tooltip__bubble {\n  opacity: 0;\n  visibility: hidden;\n}\n\n@media (forced-colors: active) {\n  .o-tooltip__bubble { border: 1px solid CanvasText; }\n}\n";
 
 // ../../brand/orvay-favicon.svg
 var orvay_favicon_default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Orvay">\n  <!--\n    The Orvay mark on its favicon tile. THE MASTER FOR THE TILED FORM.\n\n    brand/orvay-mark.svg is the master for the bare glyph; this is that glyph\n    placed on the dark tile, which is what a browser tab, an app icon and a\n    masthead actually want. Next.js requires a copy at apps/*/src/app/icon.svg\n    for its file convention, and those two are copies of this, regenerated\n    together rather than edited apart.\n\n    It lives outside apps/ because it is shared: apps/status imports it to write\n    its own favicon, and apps importing apps is a section 5 prohibition that\n    pnpm arch:check enforces. Pulling it from apps/site was the first attempt and\n    the check refused it.\n\n    No double hyphen appears in this comment, and that is load-bearing rather\n    than stylistic. XML forbids it inside a comment, and an earlier version of\n    this drawing used one: the favicon was unparseable, the browser fell back to\n    a default glyph, and it served a 200 with the right content-type the whole\n    time. scripts/check-enforcement.mjs now refuses it.\n\n    Colour literals are unavoidable in an image asset and the constitution ban is\n    scoped to CSS and TypeScript, where tokens.css is the sole owner. These two\n    values are the dark theme neutral-1 and neutral-12 resolved from oklch, held\n    in sync by nothing but this sentence, which is acceptable for a 32px mark\n    that changes approximately never.\n  -->\n  <rect width="32" height="32" rx="8" fill="#0c0d0f" />\n  <g transform="translate(0.2057 0.2057) scale(0.030848)">\n    <path fill="#eef0f3" fill-rule="nonzero" d="M359.5 122.9 L606.0 122.9 L722.7 239.6 L722.7 353.8 L822.0 353.8 L890.4 422.2 L890.4 675.2 L664.5 901.1 L418.0 901.1 L301.3 784.4 L301.3 670.2 L202.0 670.2 L133.6 601.8 L133.6 348.8 Z M284.0 400.7 L284.0 566.3 L466.0 748.3 L610.2 748.3 L737.6 620.9 L737.6 455.3 L555.6 273.3 L411.4 273.3 Z"/>\n  </g>\n</svg>\n';
@@ -136,6 +136,45 @@ var ADMIN = [
   // Filing sits with reading: the same person, the same mailbox, reversible.
   "mailbox:file:company",
   "company.data:export:company",
+  /*
+      HANDING ONE DOCUMENT TO SOMEBODY OUTSIDE, AND WHY IT IS NOT WITH THE OTHER
+      FILE CAPABILITY.
+  
+      `company.files:write:company` is in MEMBER, and the comment there rests the
+      case on one clause: a file is "additive and reversible ... nothing outside
+      the company sees it". A share link is the exact negation of that clause, so
+      inheriting the placement would inherit a justification that no longer holds.
+  
+      ADMIN rather than OWNER, for the reason `company.data:export:company` is
+      here two lines up: this bundle already holds the capability that takes the
+      company's records OUT, and a link to a single document, bounded at ninety
+      days by a database CHECK and revocable, is smaller than that. A person
+      trusted to export everything is trusted to send one file to an accountant.
+    */
+  "company.files:share:company",
+  /*
+      BRINGING A CONTACT LIST IN, AND THE MEMORY DEFECT §6b NAMES, ONE CAPABILITY
+      OVER AGAIN.
+  
+      `consent.record:capture:email` has been in `DEFAULT_GRANTS` at `autonomous`
+      since the notification work and in NO BUNDLE AT ALL, so only an owner
+      holding `*:*:*` could ever reach it. Every other role saw the control and
+      was refused at gate 5 with no explanation, which is precisely the shape this
+      file records twice already for `company.files:write:company` and
+      `company.memory:forget:company`.
+  
+      ADMIN rather than MEMBER, unlike keeping a file. An imported row is a
+      statement about a person who is NOT in the company and did not choose to be
+      in this list, and the burden of demonstrating their agreement (Art. 7(1))
+      falls on the company. That is the same class of authority as
+      `company.data:export:company` two lines up rather than the same class as
+      saving a draft.
+  
+      THE REVOKE HALF IS DELIBERATELY NOT HERE. Nothing in the product revokes an
+      imported agreement yet; the unsubscribe door exists for `product_notice`
+      only. Granting a capability nothing exercises would be §12b in a bundle.
+    */
+  "consent.record:capture:email",
   // Inherited from MEMBER: the ladder is containment, and `isAttenuationOf`
   // proves it rather than trusting this comment.
   "company.files:write:company",
@@ -448,7 +487,7 @@ var COMPONENTS = [
     id: "scheduled-work",
     group: "work",
     label: "Scheduled work",
-    summary: "Background work that runs on a timer rather than when you ask for it. The timer leaves a mark every five minutes, and this row reads how old that mark is. A scheduler that has stopped shows here within fifteen minutes.",
+    summary: "Background work that runs on a timer rather than when you ask for it. Two timers leave a mark: one every five minutes, and one once a day that rechecks every audit trail end to end. This row reads how old each mark is, against its own schedule, so a stopped five-minute timer shows within fifteen minutes and a stopped daily one within a day.",
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
@@ -794,7 +833,7 @@ var PLANS = {
     // money rather than the other way round: 25 x CREDIT_COST_MINOR = 150.
     allowanceMinor: 150n,
     features: [],
-    limits: { members: 3, departments: 1, concurrentRuns: 1 },
+    limits: { members: 3, departments: 1, concurrentRuns: 1, mcpServers: 0 },
     heartbeatSeconds: 86400
   },
   standard: {
@@ -802,8 +841,8 @@ var PLANS = {
     priceMinor: 2000n,
     // 100 credits, $6.00 of model spend, 30% of price.
     allowanceMinor: 600n,
-    features: ["console_propose", "voice", "site_unbranded"],
-    limits: { members: 5, departments: 3, concurrentRuns: 2 },
+    features: ["console_propose", "voice", "site_unbranded", "integration_mcp"],
+    limits: { members: 5, departments: 3, concurrentRuns: 2, mcpServers: 1 },
     heartbeatSeconds: 86400
   },
   pro: {
@@ -811,8 +850,15 @@ var PLANS = {
     priceMinor: 5000n,
     // 300 credits, $18.00, 36% of price.
     allowanceMinor: 1800n,
-    features: ["console_propose", "voice", "audit_export", "site_export", "site_unbranded"],
-    limits: { members: 25, departments: 10, concurrentRuns: 8 },
+    features: [
+      "console_propose",
+      "voice",
+      "audit_export",
+      "site_export",
+      "site_unbranded",
+      "integration_mcp"
+    ],
+    limits: { members: 25, departments: 10, concurrentRuns: 8, mcpServers: 5 },
     heartbeatSeconds: 3600
   },
   max: {
@@ -821,6 +867,7 @@ var PLANS = {
     // 1,500 credits, $90.00, 45% of price.
     allowanceMinor: 9000n,
     features: [
+      "integration_mcp",
       "console_propose",
       "audit_export",
       "site_export",
@@ -829,7 +876,12 @@ var PLANS = {
       "custom_policy",
       "voice"
     ],
-    limits: { members: 100, departments: Number.MAX_SAFE_INTEGER, concurrentRuns: 32 },
+    limits: {
+      members: 100,
+      departments: Number.MAX_SAFE_INTEGER,
+      concurrentRuns: 32,
+      mcpServers: Number.MAX_SAFE_INTEGER
+    },
     heartbeatSeconds: 900
   },
   max2: {
@@ -838,6 +890,7 @@ var PLANS = {
     // 4,000 credits, $240.00, 48% of price.
     allowanceMinor: 24000n,
     features: [
+      "integration_mcp",
       "console_propose",
       "audit_export",
       "site_export",
@@ -846,7 +899,12 @@ var PLANS = {
       "custom_policy",
       "voice"
     ],
-    limits: { members: 250, departments: Number.MAX_SAFE_INTEGER, concurrentRuns: 64 },
+    limits: {
+      members: 250,
+      departments: Number.MAX_SAFE_INTEGER,
+      concurrentRuns: 64,
+      mcpServers: Number.MAX_SAFE_INTEGER
+    },
     heartbeatSeconds: 900
   },
   max3: {
@@ -860,6 +918,7 @@ var PLANS = {
     // before payment processing was modelled at all.
     allowanceMinor: 54000n,
     features: [
+      "integration_mcp",
       "console_propose",
       "sso",
       "scim",
@@ -874,7 +933,8 @@ var PLANS = {
     limits: {
       members: Number.MAX_SAFE_INTEGER,
       departments: Number.MAX_SAFE_INTEGER,
-      concurrentRuns: 128
+      concurrentRuns: 128,
+      mcpServers: Number.MAX_SAFE_INTEGER
     },
     heartbeatSeconds: 900
   }
@@ -1681,6 +1741,7 @@ var PRODUCT_SOURCE = {
   "pricing.ladder.label.members": "Members",
   "pricing.ladder.label.departments": "Departments",
   "pricing.ladder.label.concurrent-runs": "Runs at once",
+  "pricing.ladder.label.tool-servers": "Registered tool servers",
   "pricing.ladder.label.beyond-allowance": "Past the allowance",
   "pricing.ladder.label.features": "Plan features",
   "pricing.ladder.label.no-features": "No plan features. The product itself is not reduced.",
@@ -1778,6 +1839,8 @@ var PRODUCT_SOURCE = {
   "pricing.feature.byo_model_keys.detail": "Bill model usage to your own vendor accounts instead of to your credit allowance.",
   "pricing.feature.voice.name": "In-app voice",
   "pricing.feature.voice.detail": "Answer a call in the browser, with a transcript as the record. Orvay answers calls and never places them, at any plan and by design.",
+  "pricing.feature.integration_mcp.name": "Borrowed tools",
+  "pricing.feature.integration_mcp.detail": "Register the tool servers your company already uses, and let Orvay call their tools under your policy, one approval per tool. How many a plan holds is in the table above.",
   // The free plan, which is the plan most people will read first.
   //
   // §7a: every limit is stated before the customer builds on it. The hard stop is
@@ -1981,10 +2044,10 @@ var PRODUCT_SOURCE = {
   "onboarding.company.error.could-not-create": "The company could not be created. Nothing was saved, so you can try again.",
   // 4 — Purpose. One sentence, and {brand} proposes against it immediately.
   "onboarding.drafted.heading": "{brand} read {host}",
-  "onboarding.drafted.body": "These are drafts, not goals. Nothing has been proposed against them and nothing happens until you accept one. Untick anything that is wrong, and edit it later on the goals page.",
+  "onboarding.drafted.body": "These were drafted after reading your site, and they are yours to accept, change or discard. Nothing has been proposed against them and nothing happens until you accept one. Untick anything that is wrong, and edit it later on the goals page.",
   "onboarding.drafted.own": "Or write your own",
   "onboarding.company.notice.name-kept": "The company kept its existing name. Renaming is not permitted for this company, so setup carried on without the change.",
-  "onboarding.company.working.label": "Reading your site",
+  "onboarding.company.working.label": "Reading your site and drafting goals",
   "onboarding.company.working.title": "{brand} is reading your website",
   "onboarding.company.working.body": "It fetches a few pages of your site and drafts goals from what it finds. This takes a few seconds. You can change or discard every one of them on the next screen.",
   "onboarding.drafted.standing": "Keep reading {host} and turn what changes there into work worth doing.",
@@ -2021,7 +2084,7 @@ var PRODUCT_SOURCE = {
   "onboarding.authority.note": "This records a starting posture. The rules it turns into are set on the policies page, where you can see and change each one.",
   // 6 — Done.
   "onboarding.done.heading": "Your company is set up",
-  "onboarding.done.body": "This is where {brand} starts working. Three things are worth knowing before you go in.",
+  "onboarding.done.body": "This is where {brand} starts working. These are the things worth knowing before you go in.",
   "onboarding.done.next.approvals": "Anything waiting on you appears under Approvals.",
   "onboarding.done.next.activity": "Every action is recorded in Activity, with the evidence that checked it.",
   "onboarding.done.next.halt": "The stop is in the sidebar on every screen, and it halts everything.",
@@ -2031,7 +2094,7 @@ var PRODUCT_SOURCE = {
   // inside the client component, which is how a German customer got a German
   // heading above an English form. §5b.
   "onboarding.company.domain.label": "Company domain",
-  "onboarding.company.domain.hint": "Just the hostname, like acme.com. {brand} reads the site and drafts goals from what it finds there.",
+  "onboarding.company.domain.hint": "Just the hostname, like acme.com. When you continue, {brand} reads a few public pages there and drafts goals from what they say. No account, mailbox or system is connected here.",
   "onboarding.company.created": "This company already exists, so nothing was created a second time. Change the name below if it is not right, then carry on.",
   "onboarding.company.error.could-not-rename": "That name could not be saved. Try again.",
   "shell.user.account": "Account and data",
@@ -2045,8 +2108,30 @@ var PRODUCT_SOURCE = {
   "shell.company.new": "New company",
   "shell.company.organizationSettings": "Organization settings",
   "newCompany.title": "Add a workspace",
-  "newCompany.body": "A workspace is a company Orvay runs. It gets its own goals, its own records and its own team, and nothing crosses between one and another.",
+  "newCompany.body": "A workspace is a company Orvay runs. It gets its own goals, its own records and its own team, and none of those cross between one and another.",
   "newCompany.label": "What is it called",
+  "newCompany.where.legend": "Where it belongs",
+  "newCompany.where.join.label": "In {organization}",
+  "newCompany.where.join.sublabel": "Shares the plan, the credits and the policies this organization already has. What this workspace spends comes out of the same allowance.",
+  "newCompany.where.new.label": "In a new organization",
+  "newCompany.where.new.sublabel": "A separate organization on the Free plan. Its plan, its credits and its bill are its own.",
+  "newCompany.error.taken": "A workspace with that name already exists in this organization. Choose another name.",
+  "newCompany.error.refused": "You are not allowed to add a workspace to this organization. You can still create one in a new organization.",
+  /*
+      THE CAP, WHICH IS NOT THE THROTTLE ABOVE IT.
+  
+      `tooMany` says "today" and is true of a rate limit. This one does not clear
+      by waiting, so it may not borrow that sentence: the remedy is a different
+      organization or a paid plan, and a person told to come back tomorrow would
+      come back tomorrow.
+  
+      NO NUMBER IN THE COPY, DELIBERATELY. Writing "three" puts the cap in two
+      places that must agree, and a count inside a sentence needs a plural rule
+      (§8b) that would be wrong in French the day the cap became one. "As many as
+      one account may hold" is true whatever the constant says.
+    */
+  "newCompany.error.atCap": "You already have as many organizations as one account may hold without a paid plan. You can still add a workspace to an organization you are already in.",
+  "newCompany.error.tooMany": "You have made as many organizations as you can today. You can still add a workspace to an organization you are already in.",
   "newCompany.submit": "Create workspace",
   "newCompany.busy": "Creating the workspace.",
   "newCompany.error.short": "Give the workspace a name of at least two characters.",
@@ -2103,7 +2188,13 @@ var PRODUCT_SOURCE = {
   "org.allowance.heading": "Plan and allowance",
   "org.allowance.body": "A plan is bought by the organization, not per seat, and the organization draws one monthly allowance that every workspace it owns shares. Spending in one workspace spends the same allowance the others draw on, and the figure is on the usage screen of whichever workspace you are in.",
   "org.access.heading": "Who has access",
-  "org.access.body": "Access is granted per workspace today. A person invited to one workspace is not a member of the others, and their role is set in that workspace under Team. Editing access once for the whole organization is not built.",
+  "org.access.body": "Access is granted per workspace today. A person invited to one workspace is not a member of the others, and their role is set in that workspace under Team. The people below are the ones in workspaces you belong to. A workspace you are not in shows only how many people it has, because its records stay inside it. Editing access once for the whole organization is not built.",
+  "org.access.people": "People",
+  "org.waiting.heading": "Outstanding across your workspaces",
+  "org.waiting.body": "Proposals that have not been decided yet, in every workspace you belong to. Open that workspace to act on them. Whether a proposal needs you in particular is decided inside the workspace, not here.",
+  "org.waiting.count": "Outstanding",
+  "org.waiting.none": "Nothing is waiting in any workspace you belong to.",
+  "org.access.elsewhere": "A workspace you are not in",
   // ---------------------------------------------------------------------------
   // The navigation rail.
   //
@@ -2184,6 +2275,29 @@ var PRODUCT_SOURCE = {
     a German title and an English body is worse than either on its own.
   */
   "notification.push.none.title": "Nothing is waiting in {company}",
+  /*
+      WHAT A SLACK CHANNEL IS TOLD.
+  
+      TEXT AND A LINK, NEVER A BUTTON, and the second sentence says so to the
+      reader rather than only to us. A Block Kit button posts back to an endpoint
+      with no Orvay session behind it, so whatever it decided would be recorded
+      against nobody and would sit outside `admit()`. §5c makes the same argument
+      about email; Art. 22 wants a decision to carry the person who made it.
+  
+      NO DECISION VERB IN EITHER STRING, IN ANY LANGUAGE. A message that reads as
+      an instruction to approve is a button drawn in words, and the reader would
+      reasonably reply in the channel instead of deciding where it is recorded.
+  
+      AND NO OBJECTIVE. The first line names the COMPANY and says a decision is
+      late; it does not say what the proposal wants to do. The objective is
+      authored by a model from context that may be untrusted (§10), and a channel
+      is a surface where a sentence carries authority it did not earn: pasted into
+      Slack it would be read as Orvay's own words, addressed to colleagues, with
+      no trust label anywhere near it. The email path made the same choice, and
+      its call site says so. What identifies the proposal is the link.
+    */
+  "notification.slack.escalated": "A decision in {company} has been waiting for a day.",
+  "notification.slack.note": "Nothing is decided in Slack. The link opens {brand}, where a decision is recorded against the person who makes it.",
   "notification.push.none.body": "You are up to date.",
   "notification.push.only": "In {company}.",
   "notification.push.more": {
@@ -3124,16 +3238,16 @@ var PRODUCT_SOURCE = {
   "site.v5.record.mode-a.step3": "03\xA0 review the first contracts",
   "site.v5.record.mode-b.tag": "Mode B \xB7 Connect",
   "site.v5.record.mode-b.title": "Connect an existing company",
-  "site.v5.record.mode-b.desc": "Point it at the tools you already run. It maps them into capabilities and works inside the envelope you grant.",
+  "site.v5.record.mode-b.desc": "Give it your website. It reads the public pages once, drafts goals from what they say, and connects nothing else until you add an integration.",
   // Contains a literal non-breaking space (U+00A0) after the digits; see mode-
   // a.step1.
-  "site.v5.record.mode-b.step1": "01\xA0 connect integrations",
+  "site.v5.record.mode-b.step1": "01\xA0 give it your domain",
   // Contains a literal non-breaking space (U+00A0) after the digits; see mode-
   // a.step1.
-  "site.v5.record.mode-b.step2": "02\xA0 grant capabilities",
+  "site.v5.record.mode-b.step2": "02\xA0 accept or discard the drafted goals",
   // Contains a literal non-breaking space (U+00A0) after the digits; see mode-
   // a.step1.
-  "site.v5.record.mode-b.step3": "03\xA0 widen autonomy as it earns trust",
+  "site.v5.record.mode-b.step3": "03\xA0 connect a mailbox or GitHub when you are ready",
   // Typographic apostrophe (’), not a straight quote. Sits beside a hardcoded
   // '0009' sequence number.
   "site.v5.record.seq-caption": "reserved for your company\u2019s first goal",
@@ -3856,6 +3970,10 @@ var PRODUCT_SOURCE = {
   "inbox.refused": "refused",
   "inbox.checked": "checked by another actor",
   "inbox.notEstablished": "ran, not established",
+  "inbox.inspector.label": "About the selected proposal",
+  "inbox.inspector.empty": "Choose a proposal to see what it would do.",
+  "inbox.inspector.open": "Open the contract",
+  "inbox.openContract": "Open the contract for {objective}",
   "contract.tabs": "Views of this contract",
   "contract.tab.contract": "Contract",
   "contract.tab.output": "Output",
@@ -3967,6 +4085,7 @@ var PRODUCT_SOURCE = {
   "decision.ok.approved": "Approved.",
   "decision.ok.refused": "Refused.",
   "decision.ok.ran": "Ran, and a different actor confirmed the record matches the contract.",
+  "decision.error.alreadyRunning": "This proposal is already running, started a moment ago. Wait for it to finish, then look at the record to see what it did.",
   "decision.error.unverified": "Ran, and verification did NOT establish it: {why}",
   "decision.revise": "Ask for a revision",
   "decision.revise.hint": "To send it back, say what should change. The proposer answers with a revised proposal that replaces this one.",
@@ -4088,7 +4207,7 @@ var PRODUCT_SOURCE = {
   "activity.showing": "Showing the most recent {shown}.",
   "company.created": "Created {date}",
   "company.empty.title": "This company has no departments or agents yet",
-  "company.empty.because": "{brand} creates a department when work needs one, and an agent when a department needs one. Yours has neither because nothing has needed them yet. The same model runs a one-person company and a hundred-thousand-person one; it just has fewer rows here.",
+  "company.empty.because": "{brand} creates a department when work needs one, and an agent when a department needs one. Yours has neither because nothing has needed them yet, and you can add one yourself below. The same model runs a one-person company and a hundred-thousand-person one; it just has fewer rows here.",
   "company.departments": {
     one: "{count} department",
     other: "{count} departments"
@@ -4129,6 +4248,8 @@ var PRODUCT_SOURCE = {
   "shell.halt.reason.header": "Stopped from the header control, no reason given",
   "shell.dialog.close": "Close",
   "shell.theme.label": "Dark mode",
+  "shell.toast.label": "Confirmations",
+  "shell.toast.dismiss": "Dismiss",
   "field.unavailable": "Unavailable:",
   // -------------------------------------------------------------------------
   // The four ways a page can fail to have data
@@ -4292,7 +4413,16 @@ var PRODUCT_SOURCE = {
   "goals.cadence.change": "Change",
   "goals.cadence.saved": "Saved.",
   "goals.schedule.zone": "Scheduled passes run in the morning, {zone}.",
-  "log.title": "Build log",
+  /* CHANGELOG, NOT "BUILD LOG", AND ENGLISH WAS THE ODD ONE OUT.
+     de/fr/it/es/pt already read Änderungsprotokoll, Journal des changements,
+     Registro delle modifiche, Registro de cambios, Registo de alterações:
+     every one of them is "changelog". The file is `changelog.ts`, the type is
+     `ChangelogEntry`, the export is `CHANGELOG`. Only the English label said
+     something else, so this is bringing one string into line with eight
+     rather than renaming a page. "Build log" also has a SECOND meaning in
+     this product, kept deliberately at `verification.evidence.objective`:
+     the output of a CI run, cited there as a kind of evidence. */
+  "log.title": "Changelog",
   "log.lead": "What changed, when, and which half was true. Appended to, never rewritten.",
   "log.english-note.title": "These entries are in English",
   "log.english-note": "Entries are written in English and are not translated. The rest of this page is. We would rather say that than publish six versions of a sentence nobody has read.",
@@ -4300,6 +4430,12 @@ var PRODUCT_SOURCE = {
   "log.kind.shipped": "Shipped",
   "log.kind.fixed": "Fixed",
   "log.kind.said": "Said out loud",
+  /* The marker on an entry written after the fact. §7: provenance belongs to
+     the artifact, so it stands on the entry rather than in a banner above a
+     range of them. It is deliberately a full sentence fragment rather than a
+     word like "backfilled", which means nothing to a reader outside a
+     repository. */
+  "log.reconstructed": "Recorded later, from the repository history",
   "log.meta.description": "Every change to Orvay, in the words a customer would use, appended and never rewritten.",
   "portability.title": "Portability",
   "portability.lead": "What you can take out of Orvay, and what you cannot take out yet. Every line below is read from the same table the pricing page reads, so this page cannot claim more than that one does.",
@@ -4516,7 +4652,7 @@ var PRODUCT_SOURCE = {
   "vs.source.willo.billing": "Willo billing and refund policy",
   "vs.source.willo.terms": "Willo terms of service",
   "vs.source.willo.privacy": "Willo privacy notice",
-  "waitlist.buildLog": "Also send me the monthly build log: what was built, what broke, and what was verified. A separate choice, and you can stop it without leaving the waitlist.",
+  "waitlist.buildLog": "Also send me the monthly changelog: what was built, what broke, and what was verified. A separate choice, and you can stop it without leaving the waitlist.",
   "waitlist.next.heading": "While you wait",
   "waitlist.next.docs": "Read how the eight gates decide",
   "waitlist.next.log": "Read what changed this week",
@@ -4577,7 +4713,7 @@ var PRODUCT_SOURCE = {
   // ---------------------------------------------------------------------------
   // Source JSX used &ldquo;/&rdquo; entities; rendered here as literal curly q
   // uotes, same visual result.
-  "site.footer.links.log": "Build log",
+  "site.footer.links.log": "Changelog",
   "site.hero.icp": "For founders who mean to hand real work to agents, campaigns, refunds, merges, and who want each one approved before it happens and proved afterwards.",
   "site.scope.note": "This is the shape of the system, department by department. Agents cannot run work yet, so read the list as scope rather than as a report.",
   "site.studio.heading": "It also builds the website",
@@ -4712,6 +4848,47 @@ var PRODUCT_SOURCE = {
       the design rather than an inconvenience, so the sentence states the reason
       instead of apologising.
     */
+  /*
+      BRINGING A CONTACT LIST IN, AND THE SENTENCE THAT KEEPS THE SCREEN HONEST.
+  
+      `contacts.nothing-sent.body` is the §12b line: gate 6 reads
+      `GATE_CONSENT_PURPOSE`, which is `launch_notice`, so an imported row
+      satisfies no check this product makes and there is no outbound path that
+      would use one. A screen implying these contacts were reachable would be
+      untrue to a paying customer, so it says so before the upload rather than
+      after it (§7a: every limit is stated before the customer builds on it).
+  
+      NO BASIS IS OFFERED AND THE COPY EXPLAINS WHY IN THE CUSTOMER'S TERMS. The
+      obvious screen has a dropdown; Art. 7(1) makes the customer demonstrate that
+      consent was given, and a dropdown demonstrates nothing. So the wording asks
+      for the four columns that ARE evidence rather than for an assertion.
+  
+      THE FIGURES ARE LABELS BESIDE VALUES, never counts inside sentences. §8b,
+      and French takes the singular below two.
+    */
+  "contacts.nav": "Contacts",
+  "contacts.title": "Contacts",
+  "contacts.lead": "A list you are bringing from somewhere else. Orvay records what your file can show about who agreed, and says plainly where it cannot.",
+  "contacts.nothing-sent.title": "Orvay sends nothing to this list",
+  "contacts.nothing-sent.body": "Importing a contact records who agreed to what, and nothing else. There is no path in Orvay today that writes to an imported contact, whatever your file says.",
+  "contacts.import.heading": "Import a list",
+  "contacts.import.lead": "A CSV. Orvay reads the column named address, and records an agreement only where the same row also carries agreed_at, wording_shown and source. Rows without those three are counted and kept out of the record, because an agreement nobody can show is not one you could rely on later.",
+  "contacts.import.file": "Your file",
+  "contacts.import.hint": "A CSV of at most one megabyte.",
+  "contacts.import.choose": "Choose a CSV",
+  "contacts.import.none-chosen": "No file chosen",
+  "contacts.import.submit": "Import",
+  "contacts.import.pending": "Reading the file",
+  "contacts.summary.title": "The file was read",
+  "contacts.summary.recorded": "Agreements recorded:",
+  "contacts.summary.already-known": "Already on record:",
+  "contacts.summary.without-evidence": "Read, with nothing to show an agreement:",
+  "contacts.summary.rejected": "Not a usable address, or listed twice:",
+  "contacts.error.no-file": "Choose a CSV first.",
+  "contacts.error.too-large": "That file is over one megabyte. Split it and import each part.",
+  "contacts.error.no-rows": "That file has a heading and no rows under it.",
+  "contacts.error.refused": "You do not have permission to record who agreed to be contacted.",
+  "contacts.error.unavailable": "Nothing was imported. Try again in a moment.",
   "settings.keys.title": "API keys",
   "settings.keys.lead": "A key lets a program act as you, and never more than you can do yourself.",
   "settings.keys.create.heading": "Create a key",
@@ -4753,7 +4930,7 @@ var PRODUCT_SOURCE = {
   "site.footer.nav.trust": "Trust",
   // The three pages that already existed and had no line in a panel.
   "blog.nav.blurb": "What we built, and what it cost to learn.",
-  "log.nav.blurb": "Every release, dated, with its commit.",
+  "log.nav.blurb": "What changed, dated, in the words a customer would use.",
   "portability.nav.blurb": "What you can take with you, on every plan.",
   // The mechanism.
   "gates.title": "The eight gates",
@@ -4939,7 +5116,20 @@ var PRODUCT_SOURCE = {
   "gates.honest.lead": "A policy engine that exists and a policy engine that has been hit are different claims, and only one of them is about running software.",
   "gates.honest.consent": "Gate 6 has never refused anything, because no call yet names a person as its subject. The gate is built and tested. It has not been reached.",
   "gates.honest.concurrency": "The limit on how many runs may go at once is written down and not enforced. Members, departments and features are.",
-  "gates.honest.spend": "Money is held around the model call itself rather than trusted to a caller, so the ceiling does not depend on anybody remembering to book it. Two surfaces still check without booking, and those are named in the build log.",
+  /* THE COUNT AND THE POINTER BOTH CAME OUT, 2026-09-06. It said "Two surfaces
+     still check without booking, and those are named in the changelog." The
+     changelog does not name them, so the citation resolved to nothing, which
+     §11a says is how a citation decays into a false statement. The number was
+     not confirmable either: naming the pair means tracing which spend-checking
+     call sites reach a booking call, which is an analysis and not a grep, and
+     counting from memory is how a sentence like this goes wrong to begin with.
+     Five of the six translations were worse than the English, rendering "build
+     log" as Build-Protokoll, journal de construction, log di compilazione,
+     registro de compilación and registo de compilação: all of them the CI sense,
+     none of them this product's page. What survives is the part that is true and
+     checkable. §8a is still the source: every model call site other than forge's
+     generate path is check-only. */
+  "gates.honest.spend": "Money is held around the model call itself rather than trusted to a caller, so the ceiling does not depend on anybody remembering to book it. Some surfaces still check without booking.",
   "gates.unit.heading": "The unit is money, never a count",
   "gates.unit.lead": "Measured across our own routing table, the cost of one action varies about nineteen times over. Anything that bounds work by counting actions is bounding the wrong thing.",
   "gates.unit.credit": "A credit is what you see and what you are billed in. The gate compares money, and the credit is derived from it rather than stored beside it, because two numbers that must agree is how a billing system starts lying.",
@@ -4971,7 +5161,20 @@ var PRODUCT_SOURCE = {
   "verification.today.heading": "Where this is true today",
   "verification.today.lead": "One path, described exactly, because one path is what exists.",
   "verification.today.publish": "When Orvay publishes a site, one actor builds it, a second checks it, and the evidence is an HTTP response fetched by a third. The body hash is computed by the side that received it rather than by the side that sent it.",
-  "verification.today.gap": "No other kind of work is independently verified yet. The routing entry for it exists and nothing calls it. That is a gap in the product, not a subtlety in the wording.",
+  // CORRECTED 2026-09-06. This read "No other kind of work is independently
+  // verified yet. The routing entry for it exists and nothing calls it." Both
+  // clauses conflated two different things and one was already false when the
+  // page shipped: `establishes()`, the function that decides whether a
+  // verification establishes an outcome, gained its first call site on
+  // 2026-09-03 in the social path and a second in the recheck. So a second kind
+  // of work IS judged independently now. What still has no caller is
+  // `verify.independent`, the ROUTING entry for asking a second model, which is
+  // a narrower and different claim.
+  //
+  // An UNDERCLAIM rather than an overclaim, which is the safe direction and
+  // still wrong: §11b says the tense is the claim, and a page telling a reader
+  // we do less than we do is as inaccurate as the reverse.
+  "verification.today.gap": "A second path is judged the same way: when a post is published, a different actor reads it back and one function decides whether that establishes the outcome. What is still missing is asking a second model to check a first: that route exists in the code and nothing calls it. Naming which is which is the point of this page.",
   "verification.today.why": "It is written here because a category claim resting on one path is the exact failure this product exists to refuse, and we would rather say so than be found out.",
   "verification.field.heading": "What everyone else does",
   "verification.field.lead": "Read from vendor documentation in September 2026. Where a product describes its own verification, this is what it describes.",
@@ -4992,17 +5195,25 @@ var PRODUCT_SOURCE = {
   // WHAT IS TRANSLATED HERE AND WHAT IS NOT, decided once so the next connector
   // is a registry entry rather than a content decision.
   //
-  // The registry in `@orvay/integrations` owns each entry's NAME, its SUMMARY,
-  // the capability strings it would grant, and the reason it is in the state it
-  // is in. Those render straight from the register on the landing page already
-  // and they do so here, which is the §11 rule 3 obedience: rendering the
-  // register is the only way to describe what we reach that cannot rot.
+  // The registry in `@orvay/integrations` owns WHICH connectors exist, each
+  // one's NAME, its category, its state, and the capability strings it would
+  // grant. Those render straight from the register, which is the §11 rule 3
+  // obedience: rendering the register is the only way to describe what we reach
+  // that cannot rot. A capability string is an identifier the gates read and
+  // never becomes a message id.
   //
-  // What IS translated is everything that is the same for every connector: what
-  // each STATE means, and what each kind of CREDENTIAL is. Three states and five
-  // credential kinds is a finite set of sentences. Fourteen per-connector
-  // paragraphs would be fourteen near-identical translations, and the one that
-  // fell behind would be the one nobody reads.
+  // Everything a person READS is translated, and that now includes the
+  // per-connector prose. What each STATE means and what each kind of CREDENTIAL
+  // is are here; so are each row's own summary, reason, credential help and
+  // field label, under `integrations.catalogue.<id>.*` at the end of this file.
+  //
+  // THIS PARAGRAPH USED TO SAY THE OPPOSITE, and the argument it made was that
+  // eighteen near-identical per-connector paragraphs would be ninety
+  // translations, one of which would fall behind. What it cost in the meantime
+  // was not hypothetical: every reader of the other five languages met the whole
+  // register in English, including the sentence that says nothing left the
+  // system. §11b, on the page whose design decision is which strings are
+  // translated.
   // -------------------------------------------------------------------------
   "integrations.eyebrow": "Reach",
   "integrations.lead": "What Orvay can act through, what it can only rehearse, and what is not built. Read from the register the product admits against, so this page cannot get ahead of the software.",
@@ -5029,6 +5240,8 @@ var PRODUCT_SOURCE = {
   "integrations.credential.app_password.detail": "What this provider issues instead of a token. Scoped to one application and revocable on its own.",
   "integrations.credential.dns.title": "A record you publish",
   "integrations.credential.dns.detail": "Delegation by CNAME rather than a key pasted into a form, so the keys can be rotated later without you touching DNS again.",
+  "integrations.credential.mcp.title": "Its own tool server",
+  "integrations.credential.mcp.detail": "The vendor runs a server that offers tools. Orvay registers it with one press, authorizes with the vendor, pins the list of tools it offers, and asks for approval before any of them runs.",
   "integrations.credential.none.title": "Nothing yet",
   "integrations.credential.none.detail": "No credential is accepted, because there is nothing behind the form to accept it.",
   "integrations.grants.heading": "What connecting it would allow",
@@ -5295,11 +5508,14 @@ var PRODUCT_SOURCE = {
   // -------------------------------------------------------------------------
   // THE INTEGRATION CATEGORIES.
   //
-  // `CATEGORY_LABEL` in `@orvay/integrations` still holds the English words,
-  // because `apps/app`'s integrations screen is not translated yet and reads it.
-  // The SITE reads these, so a German visitor stops seeing "Development" and
-  // "Communication" as headings on an otherwise German page. When the app is
-  // translated, `CATEGORY_LABEL` is deleted and both surfaces read these.
+  // BOTH SURFACES READ THESE NOW, and `CATEGORY_LABEL` is gone. It was a map in
+  // `@orvay/integrations` holding the English words, kept while the app's
+  // integrations screen was untranslated and read it; the site already read
+  // these, so a German visitor met "Development" and "Communication" as headings
+  // on an otherwise German page only in the product. What was left of that map
+  // when its words moved here is the ORDER of its keys, which is a fact about
+  // the category set rather than about any language, and it stayed in the
+  // package as `CATEGORY_ORDER`.
   //
   // Terms of art follow the department names already in each catalogue, so a
   // reader meets one word per concept across the site.
@@ -5335,17 +5551,40 @@ var PRODUCT_SOURCE = {
   "company.head.agents": { one: "{count} agent", other: "{count} agents" },
   "company.departments.heading": "Departments",
   "company.agents.heading": "Agents",
+  "company.department.legend": "Add a department",
+  "company.department.name": "What it is called",
+  "company.department.submit": "Add the department",
+  "company.department.created": "The department was added.",
+  "company.department.error.short": "A department needs a name of at least two characters.",
+  "company.department.error.long": "A department name is eighty characters at most.",
+  "company.department.error.refused": "A gate refused this. Your policy does not allow adding a department.",
   "company.department.no-envelope": "no capability envelope",
   "company.agent.task-class": "task class {taskClass}",
+  "company.agent.legend": "Add an agent",
+  "company.agent.name": "What to call it",
+  "company.agent.name.hint": "A label for telling agents apart in a list. Orvay has no persona and this is not one.",
+  "company.agent.department": "Which department it belongs to",
+  "company.agent.task-class.label": "The kind of work it does",
+  "company.agent.task-class.hint": "A task class decides which model answers it. You choose the kind of work; Orvay chooses the model.",
+  "company.agent.submit": "Add the agent",
+  // §12b: an agent created here holds no capabilities, because nothing writes
+  // agent grants and nothing runs as an agent-kind actor. A confirmation saying
+  // only "added" would be true about the row and false about the product.
+  "company.agent.created": "The agent was added. It holds no capabilities, so it cannot act yet.",
+  "company.agent.error.short": "An agent needs a name of at least two characters.",
+  "company.agent.error.long": "An agent name is eighty characters at most.",
+  // ONE SENTENCE FOR THREE CAUSES. A malformed id, an id belonging to nobody and
+  // an id belonging to another company must be indistinguishable, or §6's rule
+  // that a wrong-tenant request never confirms existence is broken by a form.
+  "company.agent.error.department": "Choose one of this company's departments.",
+  "company.agent.error.task-class": "Choose one of the task classes offered.",
+  "company.agent.error.refused": "A gate refused this. Your policy does not allow adding an agent.",
+  "company.agent.needs-department": "An agent belongs to a department. Add a department first, below.",
+  "company.agents.no-authority": "An agent acts only with capabilities it has been granted. Granting them to an agent is not built yet, so none of these can act.",
   "company.badge.halted": "halted",
   "company.badge.active": "active",
   "company.badge.inactive": "inactive",
-  "activity.head.empty": "Nothing has been recorded for this company.",
-  "activity.head.count": {
-    one: "{count} entry, newest last.",
-    other: "{count} entries, newest last."
-  },
-  "activity.head.showing": "Showing the most recent {count}.",
+  "activity.trail.label": "What happened, newest first",
   "activity.unread.heading": "Waiting for you to look",
   "activity.unread.kind.message": "Someone emailed your company address",
   "activity.unread.kind.approval": "A contract is waiting on a decision",
@@ -5475,6 +5714,7 @@ var PRODUCT_SOURCE = {
   "account.export.right.title": "Export is a right, not a feature",
   "account.export.right.body": "Your own data is exportable on every plan including the free one, in a machine-readable format. Charging for it would be a violation rather than a pricing decision, so nothing about your plan is consulted when you press this.",
   "account.export.manifest": "The file is NDJSON: one JSON value per line, and the first line is a manifest naming every set of records, counting it, and saying when the export was produced. It covers this company, everyone who holds a seat in it, every invitation sent from it, the consent ledger, and the hash-chained audit trail. Audit payloads are given as the exact stored text, so every entry still hashes to the hash beside it and you can re-verify the chain without us.",
+  "account.export.verify": "How to check this file yourself",
   "account.export.submit": "Export everything",
   "account.export.recorded": "Taking a copy is written to the audit trail, naming how many records went into the file and no addresses. A large audit trail arrives one page at a time, and the manifest carries the position to continue from.",
   "account.site.heading": "Your generated website",
@@ -5519,6 +5759,7 @@ var PRODUCT_SOURCE = {
   "account.erased.title": "Erased",
   "account.erased.lead": "Your personal data has been erased from that company.",
   "account.erased.what.heading": "Exactly what happened",
+  "account.erased.halted": "This workspace has been stopped, because you were the last person in it who could approve anything. Nothing runs in it now. Somebody with access to the account that pays for it can start it again.",
   "account.erased.sealed": "Your address and display name have been overwritten, and the key that made your consent records readable has been destroyed, so those records cannot be read again by anyone including us. Entries already written to the audit log stay as they are: an audit log that could be rewritten would not be one. We keep a record that an interaction happened, when, and under whose authority, because we have to be able to show that we acted lawfully.",
   "account.erased.suppression": "We also keep a one-way keyed digest of your address on our suppression list, so that we can recognise it and refuse to contact you again. That digest is the only thing we retain about you and it is the reason your withdrawal stays honoured.",
   "account.erased.uncovered.label": "What this does not cover",
@@ -5527,6 +5768,32 @@ var PRODUCT_SOURCE = {
   "account.erased.backups.title": "Copies inside routine database backups",
   "account.erased.backups.body": "A backup taken before the key was destroyed still contains it. We have not yet set and published a retention window for those backups, so we cannot give you a date after which no copy exists anywhere. When that window is set it will be stated here.",
   "account.erased.audit": "The audit trail of that company records this erasure, what it destroyed and what it could not reach, under the entry type {entryType}.",
+  /*
+      THE PROOF A PERSON KEEPS AFTER ASKING TO BE ERASED.
+  
+      Art. 17 gives the right; Art. 12(3) obliges us to say what was done about it.
+      A confirmation that exists only as a page somebody was shown once, in a
+      product they have just left, is one they cannot produce later.
+  
+      THE COPY SAYS HOW TO CHECK RATHER THAN ASSERTING THE RECEIPT IS TRUE. These
+      values arrive through the address bar, so a stranger could type them. What
+      makes that survivable is that they name a row in the hash chain: a forged
+      pair fails the verifier against a real export. Telling somebody "this is
+      proof" would be the overclaim; telling them how to test it is the product's
+      own argument applied to itself.
+  
+      NO ADDRESS AND NO NAME IN THE RECEIPT, which is why the block shows three
+      opaque values. A receipt outlives the erasure, so one carrying the thing that
+      was erased would undo it.
+    */
+  "account.erased.receipt.audit": "Entry",
+  "account.erased.receipt.fingerprint": "Fingerprint",
+  "account.erased.receipt.key": "Key destroyed",
+  "account.erased.unknown.title": "We have no record of that",
+  "account.erased.unknown.body": "The address you followed names an erasure we did not perform. If you erased your data and kept the link, check that it was copied whole. If you did not, there is nothing here.",
+  "account.erased.receipt.heading": "Your proof, to keep",
+  "account.erased.receipt.body": "This erasure was written into your company\u2019s record, which is a chain where every entry carries the fingerprint of the one before it. These three values name that entry. Copy them somewhere you keep things.",
+  "account.erased.receipt.check": "Anyone who exports the company\u2019s data later can find this entry and recompute its fingerprint, using the verifier {brand} publishes. If the entry has been altered since, the check fails and says which row. That is what makes these values worth keeping rather than a sentence we wrote.",
   "account.erased.browser.heading": "This browser",
   "account.erased.browser.body": "You are no longer a member of that company. Signing out ends this browser session as well.",
   // TWO WHOLE SENTENCES, each ending in a link, rather than a stem plus a tail.
@@ -5561,6 +5828,7 @@ var PRODUCT_SOURCE = {
   // the source, not the scan output.
   "integrations.authority.body": "Each row lists the capabilities it would grant. {brand} verifies a credential with a real, read-only call before storing it, and stores nothing if that call fails. Disconnecting destroys the encryption key rather than deleting the row, so the credential becomes unreadable and the record that it existed survives.",
   "integrations.grants": "Grants:",
+  "integrations.grants.none": "Connecting this grants agents nothing. Orvay posts a notification; no agent gains a capability.",
   "integrations.connected-as": "Connected as",
   "integrations.mailbox.open": "Open the mailbox",
   "integrations.webhooks.heading": "Webhooks",
@@ -5576,6 +5844,14 @@ var PRODUCT_SOURCE = {
   "tools.result.removed": "Removed",
   "tools.result.not-registered": "Not registered",
   "tools.result.registered": "Registered",
+  // The tool-server panel's buttons, which were English literals until 2026-09-07.
+  "tools.register.submit": "Register tool server",
+  "tools.register.busy": "Checking the address",
+  "tools.remove.submit": "Remove",
+  "tools.remove.busy": "Removing",
+  "tools.mode.busy": "Changing",
+  "tools.mode.hold": "Hold for a person",
+  "tools.mode.release": "Let a model call it on its own",
   "tools.heading": "Tool servers",
   // FOUR OF THIS FILE'S STRINGS ARE INVISIBLE TO THE COVERAGE SCAN, which read 17
   // where there are 21. Three are template literals interpolating a value, and
@@ -5693,6 +5969,49 @@ var PRODUCT_SOURCE = {
   "files.preview.not-found.body": "That file is not in this company, or it has been deleted.",
   "files.preview.back": "Back to files",
   "files.preview.download": "Download",
+  /*
+      A LINK THAT WORKS WITHOUT AN ORVAY ACCOUNT.
+  
+      The copy carries the two facts a person needs before they press anything:
+      that it works with no account, and that it stops. §12b's test is whether a
+      paying customer would find anything on the screen untrue, and a control
+      called "Share" with no sentence under it fails that quietly, because the
+      reader supplies their own idea of who can open it.
+  
+      THE LIST SAYS A WORD FOR EVERY STATE. §7a rule 2: a revoked link and a live
+      one may not differ only in colour, so `live`, `expired` and `revoked` are
+      words rather than tones, and they survive greyscale and forced-colors.
+  
+      NO COUNT ON THE SCREEN, AND THAT IS THE SECOND ATTEMPT. The list first said
+      "3 opens", a number and a bare noun, which needs a plural rule: §5b rule 8
+      measured that `fr`, `it`, `es` and `pt` resolve to `many, one, other`, so
+      French takes the singular below two and "1 ouvertures" is wrong in one of six
+      languages. `fetch_count` is still recorded, because whether a document was
+      opened forty times is a real fact about a document that left the company; it
+      is simply not worth a wrong sentence to show it here, and a screen that does
+      it properly can read the column later.
+    */
+  "files.share.heading": "Share this document",
+  "files.share.lead": "A link that opens without an Orvay account. It stops working on the day you choose, at the latest after ninety days, and you can end it sooner.",
+  "files.share.label": "What is it for",
+  "files.share.days": "Days until it stops",
+  "files.share.submit": "Create link",
+  "files.share.pending": "Creating the link",
+  "files.share.shown-once": "Copy this now. It is the only time it is shown, because only its fingerprint is stored.",
+  "files.share.revoked": "That link no longer opens anything.",
+  "files.share.revoke": "End this link",
+  "files.share.list.heading": "Links to this document",
+  "files.share.list.empty": "No links. This document has not left the company.",
+  "files.share.list.unnamed": "Unnamed link",
+  "files.share.list.live": "works now",
+  "files.share.list.expired": "expired",
+  "files.share.list.revoked": "ended",
+  "files.share.list.never-opened": "never opened",
+  "files.share.list.opened": "opened",
+  "files.share.error.refused": "You do not have permission to share a document out of this company.",
+  "files.share.error.unavailable": "Nothing was created. Try again in a moment.",
+  "files.share.error.not-found": "That document is not here any more.",
+  "files.share.error.window": "Choose a whole number of days, from 1 to 90.",
   "files.preview.image.caption": "Described by its filename only. Nothing has read what is in the picture.",
   "files.preview.pdf-empty.title": "No text could be read from this PDF",
   "files.preview.pdf-empty.body": "The words are shown here when a PDF contains text. This one did not give any up, which usually means the pages are scanned images rather than text, or the file is protected. It can still be downloaded, and the work this company runs is not given anything from it.",
@@ -5974,6 +6293,20 @@ var PRODUCT_SOURCE = {
   "integrations.error.no-credential": "Paste the credential first.",
   "integrations.error.bluesky-needs-handle": "Bluesky needs your handle as well as the app password.",
   "integrations.error.mastodon-needs-host": "Mastodon needs the hostname of your instance.",
+  "integrations.error.slack-needs-channel": "Slack needs the channel ID as well as the token.",
+  /*
+      THE SECOND CREDENTIAL FIELD, PER PROVIDER.
+  
+      These were two hardcoded English strings inside a ternary in
+      `apps/app/src/app/integrations/connect-panel.tsx`, which is §5b debt that a
+      third provider made impossible to extend: a ternary holds two.
+    */
+  "integrations.field.bluesky.label": "Your handle",
+  "integrations.field.bluesky.hint": "For example name.bsky.social",
+  "integrations.field.mastodon.label": "Your instance hostname",
+  "integrations.field.mastodon.hint": "For example mastodon.social, without https",
+  "integrations.field.slack.label": "Channel ID",
+  "integrations.field.slack.hint": "In Slack, open the channel and choose View channel details. The ID is at the bottom and starts with C.",
   "integrations.error.no-adapter": "No adapter exists for that integration.",
   "integrations.error.verify-unreachable": "Nothing was stored: {reason}. Your credential is unchanged and untouched.",
   "integrations.error.gate-refused": "refused at the {gate} gate: {reason}",
@@ -5984,6 +6317,8 @@ var PRODUCT_SOURCE = {
   "integrations.ok.disconnected": "Disconnected. The key and the stored credential were both destroyed, so nothing here can use it again. Revoke the token at the provider too, because it stays valid there until you do.",
   "integrations.error.not-microsoft": "That is not an integration {brand} connects through Microsoft.",
   "integrations.error.no-microsoft-client": "This deployment has no Microsoft sign-in client registered, so a mailbox cannot be connected from it.",
+  "integrations.error.not-google": "That is not an integration {brand} connects through Google.",
+  "integrations.error.no-google-client": "This deployment has no Google sign-in client registered, so a mailbox cannot be connected from it.",
   "integrations.error.mailbox-already-connected": "That mailbox is already connected. Disconnect it before connecting again.",
   "integrations.error.tool-server-fields-required": "A short name, a label and an https URL are all needed.",
   "integrations.error.not-registered": "Not registered. {reason}",
@@ -5998,6 +6333,35 @@ var PRODUCT_SOURCE = {
   "integrations.ok.tool-approval": "{tool} now waits for a person. A model is not offered it.",
   "integrations.error.tool-unnameable": "That tool name cannot be made into a capability, so it cannot be granted.",
   "integrations.error.tool-forbidden": "That tool is forbidden by a migration, which this control may not lift.",
+  "integrations.tool-server.needs-account": "This server asks for a signed-in account before it will list its tools. Nothing is asked of it until you connect one.",
+  "integrations.tool-server.connect.submit": "Connect",
+  "integrations.tool-server.pending": "Sign-in started. Finish it in the window that opened, and this server lists its tools afterwards.",
+  "integrations.tool-server.authorized": "Connected through {issuer}, {when}. The grant is sealed under a key that is destroyed when you remove this server.",
+  "integrations.tool-server.no-account-needed": "This server answers without an account, so there is nothing to connect.",
+  "integrations.tool-server.reauth-required.title": "Needs a new sign-in",
+  "integrations.tool-server.reauth-required": "The grant for this server stopped working, so nothing is asked of it any more. Connect it again to continue.",
+  "integrations.tool-server.client-rejected.title": "No longer recognised",
+  "integrations.tool-server.client-rejected": "{issuer} no longer recognises how {brand} identifies itself, so nothing is asked of this server. Signing in again does not fix this one. Remove the server and add it again to register afresh.",
+  "integrations.tool-server.unconfigured.title": "Not configured",
+  "integrations.tool-server.unconfigured": "This server does not hand out its own client credentials, so {brand} cannot register itself with it. Set {idVariable} and {secretVariable} on this deployment, then connect it.",
+  "integrations.error.tool-server-discovery": "That server could not say where to sign in, so nothing was connected.",
+  "integrations.error.tool-server-pkce": "That server signs in through a service that does not offer the protection which stops an intercepted sign-in being reused, so nothing was connected.",
+  "integrations.error.tool-server-issuer": "The sign-in came back from a different service than the one that server named. Nothing was read and nothing was connected.",
+  "integrations.error.tool-server-redirected": "That server tried to send the request somewhere else. {brand} does not carry a credential across a redirect, so nothing was connected.",
+  "integrations.error.tool-server-points-inward": "That server named a sign-in address inside a private network, so nothing was fetched from it.",
+  "integrations.tool-server.paused.title": "Paused: its tools changed",
+  "integrations.tool-server.paused": "This server now offers a different list of tools than the one that was approved. Nothing is asked of it until somebody reads the change and approves it.",
+  "integrations.tool-server.reapprove.submit": "Approve the new list",
+  "integrations.tool-server.diff.added": "Added",
+  "integrations.tool-server.diff.removed": "Removed",
+  "integrations.tool-server.diff.changed": "Changed",
+  "integrations.tool-server.diff.unchanged": "Unchanged",
+  "integrations.tool-server.diff.parameters": "Its parameters changed. The description did not.",
+  "integrations.ok.tool-server-reapproved": "The new list is approved. {label} is offered again.",
+  "integrations.error.tool-server-not-paused": "That server is not paused, so there is nothing to approve.",
+  "integrations.error.tool-server-stale-approval": "The list changed again since you read it. Read the new one before approving.",
+  "integrations.error.tool-server-plan-excludes": "This plan does not include borrowed tools. Move to a plan that does.",
+  "integrations.error.tool-server-plan-limit": "This plan has no room for another tool server. Remove one, or move to a plan that holds more.",
   // invite
   "invite.accept.error.not-signed-in": "You are not signed in.",
   "invite.accept.error.no-email": "Your account has no email address, so {brand} cannot check that this invitation was addressed to you.",
@@ -6228,8 +6592,19 @@ var PRODUCT_SOURCE = {
   "integrations.oauth.gateSuffix": " Refused at the {gate} gate.",
   "integrations.summary.none": "Nothing is connected. {connectable} can be connected today.",
   "integrations.summary.some": "{connected} connected, {connectable} connectable in total.",
+  // A catalogue row that is the vendor's own tool server: one press registers it.
+  "integrations.mcp.self": "Connects through {vendor}'s own tool server. Orvay registers itself with it; there is nothing to set up first.",
+  "integrations.mcp.unstated": "Connects through {vendor}'s own tool server. Orvay tries to register itself; if {vendor} declines, a key from your {vendor} account works instead.",
+  "integrations.mcp.operator": "Connects through {vendor}'s own tool server, which admits only an app the operator has registered with {vendor}. After registering, the tool server below names the client this deployment still needs.",
+  "integrations.mcp.register.submit": "Register its tool server",
+  "integrations.mcp.authorize.submit": "Authorize with {vendor}",
+  "integrations.mcp.awaiting": "Registered, and not yet authorized: {vendor} still has to let Orvay in. The button takes you there and brings you back.",
+  "integrations.mcp.registered": "Registered as a tool server. Its tools and their modes are listed below.",
   "integrations.badge.connected": "connected",
   "integrations.connection.unknownAccount": "unknown",
+  "integrations.connection.checked": "Checked {when}.",
+  "integrations.connection.checkOverdue": "Last checked {when}. A check is overdue.",
+  "integrations.connection.neverChecked": "Not checked since it was connected.",
   "integrations.connection.lastError": " \xB7 last error: {error}",
   "integrations.fix.heading": "Propose a fix",
   "integrations.fix.goalHeading": "Let a goal propose one",
@@ -6288,6 +6663,7 @@ var PRODUCT_SOURCE = {
   "fix.error.notThreeSteps": "that contract does not have three steps",
   "fix.error.serverUnreachable": "that server could not be reached: {reason}",
   "fix.error.toolRefused": "that tool refused: {reason}",
+  "fix.error.toolListMoved": "The server's tool list is no longer the one that was approved. This will not run until somebody has read the change on the Integrations page and approved it.",
   "fix.error.noModel": "no model was reachable, so there is nothing to propose",
   "fix.pr.writtenBy": "Written by {brand} from the {server} server's {tool} tool, and approved before anything was read.",
   "fix.error.githubNotConnected": "GitHub is not connected here.",
@@ -6337,12 +6713,376 @@ var PRODUCT_SOURCE = {
   "social.post.publishFailed": "The post could not be published.",
   "social.post.notRecorded": "It was published, and the run could not be recorded.",
   "social.post.notVerified": "It was published, and the address could not be read back.",
-  "notification.summary.approval.escalated": "A decision has been waiting for a day"
+  "notification.summary.approval.escalated": "A decision has been waiting for a day",
+  // -------------------------------------------------------------------------
+  // The second factor: the challenge at sign-in, and the enrolment in account
+  // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
+  // -------------------------------------------------------------------------
+  "auth.meta.verify": "Two-step verification",
+  "auth.verify.heading": "Enter your code",
+  "auth.verify.lead": "Open your authenticator app and type the six-digit code it shows for Orvay.",
+  "auth.verify.field.code": "Six-digit code",
+  "auth.verify.submit": "Verify",
+  "auth.verify.recovery.lead": "If you cannot reach your phone, use one of the recovery codes you saved when you set this up.",
+  "auth.verify.recovery.field": "Recovery code",
+  "auth.verify.recovery.submit": "Use a recovery code",
+  "auth.verify.expired.title": "This sign-in has expired",
+  "auth.verify.expired.body": "A sign-in waiting for a code lasts ten minutes. Nothing is wrong with your account. Sign in again and we will ask for a fresh code.",
+  "auth.verify.start-again": "Sign in again",
+  "auth.verify.error.wrong": "That code is not right. Check the app and type the one it shows now.",
+  "auth.verify.error.already-used": "That code has been used. Wait for your app to show the next one.",
+  "auth.verify.error.malformed": "A code is six digits, and a recovery code is ten characters.",
+  "auth.verify.error.no-such-code": "That recovery code is not one of yours, or it has already been used.",
+  "auth.verify.error.throttled": "Too many attempts. Wait a few minutes, then try again.",
+  "auth.verify.error.unavailable": "We could not check that code. Nothing about your account has changed. Try again in a moment.",
+  "account.mfa.heading": "Two-step verification",
+  "account.mfa.off.body": "Add an authenticator app and Orvay will ask for a code from it as well, every time you sign in.",
+  "account.mfa.start": "Set up two-step verification",
+  "account.mfa.enrol.heading": "Add your authenticator",
+  "account.mfa.enrol.lead": "Add this key to your authenticator app, then type the code it shows to prove it worked.",
+  "account.mfa.enrol.key": "Setup key",
+  "account.mfa.enrol.field": "Six-digit code",
+  "account.mfa.enrol.submit": "Turn on two-step verification",
+  "account.mfa.enrol.cancel": "Cancel",
+  "account.mfa.on.body": "Orvay asks for a code from your authenticator every time you sign in. In use since {when}.",
+  "account.mfa.codes.heading": "Recovery codes",
+  "account.mfa.codes.lead": "Save these somewhere you can reach without your phone. Each one works once, and they are the only way back into your account if you lose the authenticator. They are shown now and never again.",
+  "account.mfa.codes.left": "Recovery codes left: {left} of {total}",
+  "account.mfa.disable": "Turn off two-step verification",
+  "account.mfa.unavailable": "We could not read your security settings, so this section is not showing what is on.",
+  "account.mfa.notice.on": "Two-step verification is on.",
+  "account.mfa.disable.lead": "Turning this off asks for a code, so that a stolen session cannot remove it. Use your authenticator, or one of your recovery codes.",
+  "account.mfa.busy": "Working",
+  "account.mfa.notice.off": "Two-step verification is off. Your password is the only thing protecting this account.",
+  // ORG-4: what RAN across the workspaces you belong to, beside what waits.
+  "org.activity.heading": "What ran across your workspaces",
+  "org.activity.body": "The last thirty days, in every workspace you belong to. Never checked and still running carry no window: a run nothing checked does not stop being unchecked after a month.",
+  "org.activity.none": "There is no workspace here besides this one.",
+  "org.activity.running": "Still running",
+  "org.activity.oldest": "Oldest, in days",
+  "org.activity.runs": "Ran",
+  "org.activity.established": "Checked and held",
+  "org.activity.refused": "Checked and did not hold",
+  "org.activity.unverified": "Never checked",
+  // GOV-9c: the last two native selects
+  //
+  // The autonomy picker on /policies drew its own English inline, which is the
+  // §5b break the message id exists to end. It is keyed here because the
+  // control is now drawn twice, once as the product's `Dropdown` and once as a
+  // native `Select` inside a `<noscript>`, and a sentence written twice is a
+  // sentence that drifts. The billing pack picker needed no new key: its label
+  // was already `billing.topup.pack.label` and its options are composed from
+  // the money by the server.
+  "policies.grant.mode.label": "Autonomy for {capability}",
+  "policies.grant.mode.autonomous": "Runs without asking",
+  "policies.grant.mode.approval": "Stops for a person",
+  "policies.grant.mode.restricted": "Runs only within its constraints",
+  "policies.grant.apply": "Apply",
+  "policies.grant.saving": "Saving",
+  // FIRST-9: since you were last here
+  "home.since.summary": "Since you were last here, {when}: {summary}.",
+  "home.since.events": { one: "{count} event recorded", other: "{count} events recorded" },
+  "home.since.proposals": { one: "{count} new proposal", other: "{count} new proposals" },
+  "home.since.nothing": "Nothing new since you were last here, {when}.",
+  // USE-18 and WAY-7: the upload sentence and the history link
+  //
+  // USE-18. The upload outcome was composed in `apps/app/src/app/files/upload.tsx`,
+  // a client component, as `${stored} ${stored === 1 ? 'file' : 'files'} added.`
+  // over a `', '` join of the refused names. That is the one/other plural §5b
+  // rule 8 forbids, because fr, it, es and pt resolve to `many, one, other`,
+  // sitting on top of a list join that is wrong in every locale including
+  // English. The sentence is composed on the server now, by
+  // `apps/app/src/server/upload-said.ts`.
+  //
+  // THE COUNT IS A VARIABLE RATHER THAN `#`, matching `files.count` and
+  // `activity.count`: the caller formats it through `formatNumber`, so the
+  // grouping is the locale's own.
+  "files.upload.said.added": {
+    one: "{count} file added.",
+    other: "{count} files added."
+  },
+  // BOTH HALVES ARE REPORTED. A folder where four files landed and one was
+  // refused is a partial success, and saying only one half of it would be
+  // false. The `one` form spells the number out, as
+  // `policies.history.excluded.count` already does, so the sentence reads as
+  // English rather than as a template.
+  "files.upload.said.partial": {
+    one: "{added} added. One file was not accepted: {names}.",
+    other: "{added} added. {refused} files were not accepted: {names}."
+  },
+  // The tail of the name list, when more were refused than are shown. NO
+  // CONJUNCTION IN THE STRING: it is handed to `formatList` as the last item, so
+  // the language supplies its own joining word and its own separator. Writing
+  // "and" here would hand-roll a list join beside the one that does it
+  // properly, and `format.ts` records four places where this repository has
+  // already made that mistake.
+  "files.upload.said.more": {
+    one: "1 more",
+    other: "{count} more"
+  },
+  // WAY-7: a replayed decision that was about a contract can be opened.
+  //
+  // TWO KEYS RATHER THAN ONE. Rows carrying no contract have no link at all, so
+  // the visible text stays short; the accessible name has to name WHICH
+  // proposal, or every link in the list shares the name "Open the proposal" and
+  // a screen reader reads a column of identical destinations.
+  "policies.history.contract": "Open the proposal",
+  "policies.history.contract.for": "Open the proposal for {intent}",
+  // EDGE-8: the builder says when forge did not answer, and when a build was replaced
+  //
+  // Three states the studio could reach and had no words for, all three of which
+  // arrived wearing `studio.refused.build-service`: "The build service did not
+  // answer. Nothing was published and nothing was spent." That sentence was
+  // false about each of them in a different way. Two of the three come from the
+  // build service answering perfectly, and all three describe a build that
+  // reached the model, so the promise about credits was the worst part of it.
+  //
+  // A TRANSLATOR MUST KEEP THE HEDGES AND MUST NOT ADD A REASSURANCE. None of
+  // these three says nothing was spent, because none of them knows it.
+  // `studio.refused.interrupted` carries the same discipline and its own note
+  // says so. "May still be running" turned into either "is running" or "has
+  // failed" makes the sentence untrue in opposite directions.
+  //
+  // ALL THREE NAME WHAT THE PERSON CAN DO, because a refusal that names no
+  // remedy is a dead end presented as a state. The remedy is the same in each,
+  // and it is the one `studio.watch.stopped` already relies on: the work
+  // outlives this page, so opening the screen again is what finds it.
+  "studio.refused.superseded": "A newer build for this site replaced this one, so this page stopped following it. Nothing was published here. Open this screen again to follow the build that took its place.",
+  "studio.refused.still-running": "This build is still running, and this page stopped waiting for it. Nothing has been published. It carries on without this page, and what it produced is here the next time this screen opens.",
+  // THE TITLE NAMES WHAT HAPPENED, THE BODY SAYS WHAT IS STILL TRUE. A warning
+  // rather than an error: the build was not refused and may be running
+  // perfectly, and what failed is this page's ability to ask about it.
+  "studio.unreachable.title": "The build service did not answer",
+  "studio.unreachable.body": "This page keeps asking. The build may still be running: it carries on without this page either way, and what it produced is here the next time this screen opens.",
+  // GOV-13, WAY-4, WAY-9: seats, memory from the privacy screens, why money is off the rail
+  //
+  // THE SEAT SENTENCE IS COUNTED ON THE LIMIT AND NOT ON THE USE, which is the
+  // half of it that is easy to get backwards. "1 of 5 seats" agrees with the
+  // five: the noun belongs to the cap, so a plural selected from the number of
+  // people in the room would be wrong in every language including this one at
+  // a company of one on a plan of three.
+  "team.head.seats": {
+    one: "{active} of {limit} seat.",
+    other: "{active} of {limit} seats."
+  },
+  // Not "unlimited". The plan carries no member cap; every other limit still
+  // applies, and a sentence that says so about seats only cannot be read as a
+  // promise about anything else.
+  "team.head.seats.none": "No seat limit on this plan.",
+  "team.seats.full.title": "Every seat on this plan is taken",
+  // Ends without a full stop: a link carrying `nav.billing` and the stop follow
+  // it in the markup, the same shape the account footer already uses.
+  "team.seats.full.body": "The next invitation will be refused until a seat is free. Deactivate somebody who has left, or raise the plan on",
+  "account.footer.memory": "Looking for what this company has taught Orvay, and how to make it stop using something? That is",
+  // SET ASIDE, NEVER ERASED, and the wording is load bearing on a privacy
+  // screen. Forgetting a fact marks it unused; the record stays, and the
+  // controls that do erase are elsewhere on this same page.
+  "dataUse.memory": "Facts Orvay has kept from this company's work can be read, and set aside so they are not used in an answer again, on",
+  "usage.scope": "Usage and billing belong to the organization rather than to one workspace: the organization buys the plan, and every workspace it owns draws on the same credits.",
+  // FIRST-5, FIRST-13, FIRST-6: onboarding says what connecting does and does not do
+  //
+  // THE ONLY PLACE THE WIZARD NAMES INTEGRATIONS. Setup reads a website and
+  // drafts goals from it, and nothing in the six screens ever says that a
+  // mailbox, a repository or a social account is connected somewhere else,
+  // later, deliberately. Somebody who came through a page headed "connect an
+  // existing company" finished onboarding having connected nothing and having
+  // been told nothing about where connecting happens.
+  //
+  // IT NAMES THE ROW RATHER THAN THE OUTCOME. "Each row says what connecting it
+  // would allow" is the register's own sentence and is true of every entry;
+  // "connect your mailbox and Orvay answers your mail" is not, because Gmail's
+  // read, triage and reply path is not built and the integrations page says so.
+  // A promise made on the last screen of setup is the worst place to get ahead
+  // of the software.
+  //
+  // THE FOUR NAMED ARE CONNECTABLE TODAY, checked against `INTEGRATIONS` in
+  // `@orvay/integrations` rather than remembered: GitHub, Gmail, Outlook,
+  // Bluesky, Mastodon and Slack carry `state: 'connectable'`. A mailbox stands
+  // in for the two mail providers, because the reader has one mailbox and does
+  // not care which vendor row it lands on.
+  "onboarding.done.next.integrations": "Integrations connects a mailbox, GitHub, Bluesky or Mastodon, and each row says what connecting it would allow.",
+  // WAY-4: the memory page has a nav entry of its own, so the palette and the card title can name it
+  "nav.hint.memory": "What the company has kept from its work, and how to set a fact aside",
+  // MON-8: invoices and the payment method, on Stripe's own page.
+  "billing.portal.heading": "Invoices and payment method",
+  "billing.portal.body": "Your invoices, the card you pay with, and cancelling all live on Stripe's own page. Orvay keeps no second copy of an invoice, so nothing here can disagree with what you were charged.",
+  "billing.portal.open": "Open the billing portal",
+  "billing.portal.none.reason": "There is nothing to show until a subscription exists. This opens once the first payment goes through.",
+  "billing.portal.unavailable": "Unavailable",
+  "billing.portal.no-customer.title": "There is no billing account yet",
+  "billing.portal.no-customer.body": "Nothing has been paid for on this organization, so Stripe holds no invoices and no payment method for it. Subscribe to a plan and the portal opens.",
+  "billing.portal.refused.title": "Not allowed to manage billing",
+  "billing.portal.failed.title": "The billing portal could not be opened",
+  "billing.portal.failed.body": "Nothing about your subscription has changed. Try again in a moment, and write to us if it keeps happening.",
+  // OUT-5: a kept document has a version chain
+  //
+  // THE WORDS ARE ABOUT REPLACEMENT, NEVER ABOUT DELETION, and that distinction
+  // is the whole feature. Uploading a document again, or keeping a second answer
+  // from one console turn, links the new file to the old one. The old file is
+  // still listed, still openable, still shareable and still exportable. A word
+  // like "old" or "archived" would say otherwise, so none of these use one.
+  "files.col.version": "Version",
+  "files.versions.replaces": "Replaces {name}",
+  "files.versions.replaced": "Replaced by a newer version",
+  "files.versions.heading": "Versions",
+  // Both leads end in a colon and the names follow as links. §5a: a colon is
+  // what an em dash was doing in a sentence that expands into a list.
+  "files.versions.replaced.lead": "A newer version replaced this one:",
+  "files.versions.previous.lead": "What this file replaced, most recent first:",
+  // Beside a name that has no page to open. Lowercase because it follows the
+  // name inside one line rather than starting a sentence.
+  "files.versions.deleted": "deleted",
+  // The sentence that stops the chain being read as a tidy-up. Somebody who
+  // believes replacing a document removes the one before it stops keeping their
+  // own copies, which is the expensive way to find out otherwise.
+  "files.versions.note": "Replacing a document does not remove the one before it. Every version above is a file of its own, and deleting one is a separate step.",
+  // ---------------------------------------------------------------------------
+  // USE-20: the integrations page speaks the reader's language
+  //
+  // TWO SURFACES WERE ENGLISH ON A SIX-LANGUAGE PAGE, and neither could be seen
+  // by the mechanism §5b is built on. `tsc` refuses a catalogue that lacks a
+  // key; it has nothing to say about a sentence that never became one. Both were
+  // string literals: the register's per-row prose lived in `@orvay/integrations`
+  // and rendered verbatim, and the connect panel built its button out of
+  // template literals.
+  //
+  // WHAT MOVED, AND WHERE IT IS READ. Each row's summary, its reason, the help
+  // its credential needs and the label above its field are keyed on the ROW ID,
+  // which the catalogue already owns, so no field beside the row carries a key
+  // that could drift from it. Three surfaces read the same ids: the product's
+  // integrations screen, the marketing register, and the entry page under it.
+  // A row added to `INTEGRATIONS` fails to compile until its sentences are here.
+  //
+  // THE REASON IS THE ONE THAT MATTERS MOST ON A SIMULATED OR PLANNED ROW. It is
+  // the sentence that says nothing left the system (§7), and the marketing entry
+  // page gives it the emphasis rather than giving it to the summary. A reason
+  // translated loosely is a provenance claim translated loosely, so §11b applies
+  // in full: keep every negation exactly as blunt as the English.
+  //
+  // THE PROVIDER NAME IS A PLACEHOLDER AND NEVER A TRANSLATION. `{provider}` is
+  // Google or Microsoft, `{name}` is the row's own name from the catalogue, and
+  // both are proper nouns that stay as they are in all six languages.
+  // ---------------------------------------------------------------------------
+  "integrations.catalogue.github.summary": "Repositories, pull requests, checks",
+  "integrations.catalogue.github.because": "A real adapter exists. Actions taken through it reach GitHub and are recorded as live.",
+  "integrations.catalogue.github.label": "Personal access token",
+  "integrations.catalogue.github.help": "A fine-grained token with read access to the repositories you want Orvay to see. Orvay checks it with one read-only call before storing it, and stores nothing if that call fails.",
+  "integrations.catalogue.bluesky.summary": "Posting to your own account",
+  "integrations.catalogue.bluesky.because": "A real adapter exists, and posts made through it genuinely appear on your account.",
+  "integrations.catalogue.bluesky.label": "App password",
+  "integrations.catalogue.bluesky.help": "Generated in Bluesky under Settings, App Passwords. Not your account password. Bluesky has no OAuth worth using for this, so an app password is the credential the platform itself offers.",
+  "integrations.catalogue.mastodon.summary": "Posting to your own instance",
+  "integrations.catalogue.mastodon.because": "A real adapter exists, scoped to the instance your token belongs to.",
+  "integrations.catalogue.mastodon.label": "Access token",
+  "integrations.catalogue.mastodon.help": "Created on your instance under Preferences, Development. Needs the write:statuses scope and nothing more.",
+  // The one row whose name is a sentence rather than a vendor's proper noun, so it is a key.
+  "integrations.catalogue.email.name": "Email from your own domain",
+  "integrations.catalogue.email.summary": "Transactional and marketing mail, sent as you",
+  "integrations.catalogue.email.because": "The DNS delegation flow is not built yet. Orvay will not send your marketing mail from its own domain as a stopgap, because that damage cannot be undone by changing behaviour later.",
+  "integrations.catalogue.email.help": "Sending as your domain means delegating DKIM by CNAME so keys can rotate without you touching DNS again. Orvay never sends tenant mail from an Orvay-owned domain: reputation is shared across a registrable domain and its subdomains, so one tenant crossing a threshold would hit every tenant at once, permanently.",
+  "integrations.catalogue.gmail.summary": "Read, triage and answer your own mailbox",
+  "integrations.catalogue.gmail.because": "The OAuth client is built and tested. This deployment has no Google sign-in client registered, so the row says so rather than offering a button; and Google classes mailbox access as a restricted scope, which needs its annual third-party security assessment before a stranger's mailbox can be reached through it. Reading, triage and reply for Gmail are not built yet.",
+  "integrations.catalogue.gmail.help": "You would connect your own Google account. Orvay never sees your password, hosts none of your mail, and you can revoke the grant from Google without asking us. It answers people who wrote to you and it does not start conversations: that is a different capability and the product refuses it.",
+  "integrations.catalogue.outlook.summary": "Read, triage and answer your own mailbox",
+  "integrations.catalogue.outlook.because": "A real adapter exists, and it reads, files and answers a real mailbox. Microsoft asks for no separate security assessment for reading mail, which is why this came before Gmail. Nothing is read until you ask, and nothing is sent until you press something.",
+  // NOT "personal or work", and the negation is the load-bearing half. A work
+  // account in a Microsoft 365 tenant often cannot use this at all, because
+  // Orvay is not a verified Microsoft publisher yet, and the refusal happens at
+  // the customer's own consent screen where nothing reaches us to be logged.
+  "integrations.catalogue.outlook.help": "You connect your own Microsoft account. A personal account works today; a work account in a company Microsoft 365 tenant may be refused by that tenant, because Orvay is not a verified Microsoft publisher yet. Orvay never sees your password, hosts none of your mail, and you can revoke the grant from Microsoft without asking us. It answers people who wrote to you and it does not start conversations: that is a different capability and the product refuses it.",
+  "integrations.catalogue.stripe.summary": "Subscriptions, invoices, refunds",
+  "integrations.catalogue.stripe.because": "Every tool the server lists waits for approval until you say otherwise. The practice adapter that models money-shaped actions for policy rehearsal is separate, and every artifact it makes is stamped simulated.",
+  "integrations.catalogue.google-ads.summary": "Campaigns and spend",
+  "integrations.catalogue.google-ads.because": "Modelled because publishing a campaign is the clearest example of an irreversible, outward-reaching action. Nothing is published.",
+  "integrations.catalogue.vercel.summary": "Deployments and rollbacks",
+  "integrations.catalogue.vercel.because": "Modelled so a rollback can be proposed and verified. No deployment is touched.",
+  "integrations.catalogue.linear.summary": "Issues and cycles",
+  "integrations.catalogue.linear.because": "Every tool the server lists waits for approval until you say otherwise.",
+  "integrations.catalogue.atlassian.summary": "Jira issues, Confluence pages",
+  "integrations.catalogue.atlassian.because": "One server for Jira and Confluence. Every tool it lists waits for approval until you say otherwise.",
+  "integrations.catalogue.sentry.summary": "Errors, issues, releases",
+  "integrations.catalogue.sentry.because": "Every tool the server lists waits for approval until you say otherwise.",
+  "integrations.catalogue.notion.summary": "Pages and databases",
+  "integrations.catalogue.notion.because": "Every tool the server lists waits for approval until you say otherwise.",
+  "integrations.catalogue.slack.summary": "An escalated approval, posted to one channel",
+  "integrations.catalogue.slack.because": "Orvay posts to the channel you name. It never carries a button: a decision made from a chat client has no session behind it, so the message links to the proposal and the decision happens in Orvay.",
+  "integrations.catalogue.slack.label": "Bot user OAuth token",
+  "integrations.catalogue.slack.help": "Create an app in your own Slack workspace, give it the chat:write and channels:read scopes, install it, then invite it to the channel. Orvay checks the token and the channel with two read-only calls before storing anything.",
+  "integrations.catalogue.hubspot.summary": "Pipeline and contacts",
+  "integrations.catalogue.hubspot.because": "Every tool the server lists waits for approval until you say otherwise.",
+  "integrations.catalogue.intercom.summary": "Conversations and macros",
+  "integrations.catalogue.intercom.because": "Not built. Inbound support text is untrusted context by definition, so this one waits for the quarantine path rather than arriving early.",
+  "integrations.catalogue.zenovay.summary": "Website analytics, goals, funnels, uptime",
+  "integrations.catalogue.zenovay.because": "Every tool the server lists waits for approval until you say otherwise.",
+  "integrations.catalogue.posthog.summary": "Funnels, replays, feature flags",
+  "integrations.catalogue.posthog.because": "Every tool the server lists waits for approval until you say otherwise.",
+  // THE CONNECT PANEL'S OWN WORDS.
+  //
+  // Nine template literals in a client component, which is the shape §5b names
+  // last because it is the one that reads as harmless: `Connect ${name}` looks
+  // like formatting rather than copy. It is the only sentence on that button.
+  //
+  // A BUSY LABEL AND ITS REASON ARE TWO STRINGS, NOT ONE. The label replaces the
+  // button's own words while it works; the reason is what `Button` announces
+  // through `disabledReason`, and a screen reader is its only consumer. They say
+  // different amounts on purpose: "Checking" is what you read, "Checking the
+  // credential with GitHub" is what you hear.
+  "integrations.connect.submit": "Connect {name}",
+  "integrations.connect.busy": "Checking",
+  "integrations.connect.busyReason": "Checking the credential with {name}",
+  "integrations.connect.oauth.submit": "Connect {name} with {provider}",
+  "integrations.connect.oauth.busy": "Opening {provider}",
+  "integrations.connect.oauth.busyReason": "Sending you to {provider}",
+  // §7 rather than a disabled button: the customer can do nothing about a client
+  // this deployment has never registered, so the control is absent and the
+  // reason is prose. The sentence has to say it is about the DEPLOYMENT and not
+  // about their account, or it reads as a refusal aimed at them.
+  "integrations.connect.oauth.noClient": "This deployment has no {provider} sign-in client registered, so there is nothing to press yet.",
+  "integrations.disconnect.submit": "Disconnect",
+  "integrations.disconnect.busy": "Disconnecting",
+  // GOV-10 and USE-16: goals belong to a department, and a statement can be edited
+  //
+  // THE FILTER'S OWN VOCABULARY IS NOT UNDER `goals.`, because it is drawn on three screens.
+  // Goals, Approvals and Activity share one control and therefore share its words; a
+  // `goals.filter.*` key rendered over the approvals queue would be a sentence borrowed from
+  // another screen, which is how a copy edit on one page silently changes another.
+  "department.filter.label": "Show one department",
+  // FIRST IN THE LIST AND THE DEFAULT, so a reader who opens the picker and changes nothing
+  // is back where they started. It is not "no department": a goal with no department belongs
+  // to the whole company, and those two readings must never share a word.
+  "department.filter.all": "Every department",
+  "department.filter.submit": "Show",
+  "department.filter.showing": "Showing only what belongs to {department}.",
+  "department.filter.clear": "Show every department",
+  // §12b. The chain check reads consecutive entries, so a filtered record with gaps in its
+  // sequence would report a break in the words it uses for real tampering. It is absent under
+  // a filter and this says which reading was checked, rather than leaving a reader to believe
+  // a subset was verified.
+  "department.filter.chain": "The record is checked end to end, in sequence, so that check runs on the whole record rather than on one department.",
+  "goals.department.label": "Which department",
+  // THE ABSENCE, NAMED. NULL in the column means the goal is the whole company's, which is a
+  // real answer rather than a missing one, so the option says so in those words instead of
+  // offering "None" for a reader to interpret.
+  "goals.department.company": "The whole company",
+  "goals.department.saved": "Saved.",
+  // ONE SENTENCE FOR BOTH REFUSALS. A department that does not exist and a department
+  // belonging to another company get the same words, deliberately: telling them apart would
+  // make the picker an oracle over other tenants' department ids. §6.
+  "goals.department.error": "That is not a department in this company.",
+  "goals.department.on": "Department: {name}",
+  "goals.form.department.hint": "A goal with no department belongs to the whole company.",
+  // USE-16. A goal is a projection keyed by a uuid and its sentence is the customer's own
+  // words, so it can be corrected. A contract cannot: it is immutable and hash-addressed, so
+  // amendment is a new contract that supersedes the old one, which is what requesting a
+  // revision already does.
+  "goals.statement.label": "What this goal says",
+  "goals.statement.submit": "Save",
+  "goals.statement.saved": "Saved."
 };
 
 // ../../packages/content/src/legal.ts
 var LEGAL_UPDATED = {
-  privacy: "2026-08-27",
+  privacy: "2026-09-06",
   terms: "2026-08-27",
   imprint: "2026-08-20",
   subprocessors: "2026-08-20",
@@ -7820,13 +8560,13 @@ var LEGAL_SOURCE = {
   "legal.subprocessors.supabase.safeguard": "A transfer from the EEA to Switzerland rests on the European Commission adequacy decision for Switzerland and needs no further instrument. Supabase is established in the United States, and its own access is covered by its data processing addendum with the standard contractual clauses.",
   "legal.subprocessors.supabase.statusDetail": "Holds the consent ledger and every domain table. The earlier project in Frankfurt, region eu-central-1, is being retired in favour of the Zurich one.",
   "legal.subprocessors.anthropic.service": "Model inference. Claude is the default for most task classes, including the one that writes a generated website.",
-  "legal.subprocessors.anthropic.data1": "The text of the request you make to an agent, and the context assembled for it",
+  "legal.subprocessors.anthropic.data1": "The text of the request you make to an agent, and the context assembled for it, with text matching a short list of credential patterns removed before it is sent. Personal details in that text, such as names and addresses, are not removed",
   "legal.subprocessors.anthropic.data2": "No waitlist address is ever part of that text",
   "legal.subprocessors.anthropic.location1": "United States. Outside Switzerland and outside the EEA",
   "legal.subprocessors.anthropic.safeguard": "The standard contractual clauses under the vendor data processing addendum. We rely on the clauses rather than on a framework certification.",
   "legal.subprocessors.anthropic.statusDetail": "The website generation Worker calls a model when it has a vendor key. It is the only Worker in the product that invokes a model at all.",
   "legal.subprocessors.openai.service": "Model inference, used where the routing table sends a task class to an OpenAI model. It is the second vendor, which is what lets a verification be run by a different vendor from the one that did the work.",
-  "legal.subprocessors.openai.data1": "The text of the request you make to an agent, and the context assembled for it",
+  "legal.subprocessors.openai.data1": "The text of the request you make to an agent, and the context assembled for it, with text matching a short list of credential patterns removed before it is sent. Personal details in that text, such as names and addresses, are not removed",
   "legal.subprocessors.openai.data2": "No waitlist address is ever part of that text",
   "legal.subprocessors.openai.location1": "United States. Outside Switzerland and outside the EEA",
   "legal.subprocessors.openai.safeguard": "The standard contractual clauses under the vendor data processing addendum. We rely on the clauses rather than on a framework certification.",
@@ -8035,10 +8775,16 @@ var BLOG_SOURCE = {
   "blog.tabs.label": "Categories",
   "blog.empty": "No posts in this category yet.",
   "blog.similar": "Similar articles",
-  "blog.pagination.label": "Pages",
-  "blog.pagination.page": "Page {n}",
-  "blog.pagination.next": "Next page",
-  "blog.pagination.previous": "Previous page",
+  /* NOT `blog.*`, and it lives here anyway. The changelog paginates too, and
+     `SOURCE_CATALOGUE` merges this file into one catalogue, so both surfaces
+     read the same four strings rather than each translating "Next page" into
+     six languages and drifting. The file is the wrong home and moving it to
+     `source.ts` would put four strings every product screen loads into the main
+     catalogue to save nothing. */
+  "pagination.label": "Pages",
+  "pagination.page": "Page {n}",
+  "pagination.next": "Next page",
+  "pagination.previous": "Previous page",
   // ---- done-is-not-proof ------------------------------------------------
   "blog.done-is-not-proof.title": "An agent saying done is not proof",
   "blog.done-is-not-proof.lead": "Why Orvay treats every finished task as a claim, and what it takes to turn a claim into a record a company can trust.",
@@ -8111,6 +8857,7 @@ var de_default = {
   "pricing.ladder.label.members": "Mitglieder",
   "pricing.ladder.label.departments": "Abteilungen",
   "pricing.ladder.label.concurrent-runs": "Durchl\xE4ufe gleichzeitig",
+  "pricing.ladder.label.tool-servers": "Registrierte Tool-Server",
   "pricing.ladder.label.beyond-allowance": "\xDCber das Guthaben hinaus",
   "pricing.ladder.label.features": "Plan-Features",
   "pricing.ladder.label.no-features": "Keine Plan-Features. Das Produkt selbst wird nicht reduziert.",
@@ -8169,6 +8916,8 @@ var de_default = {
   "pricing.feature.byo_model_keys.detail": "Rechnen Sie die Modellnutzung \xFCber Ihre eigenen Anbieterkonten ab statt \xFCber Ihr Credit-Guthaben.",
   "pricing.feature.voice.name": "In-App-Sprache",
   "pricing.feature.voice.detail": "Nehmen Sie einen Anruf im Browser entgegen, mit einem Transkript als Nachweis. Orvay nimmt Anrufe entgegen und t\xE4tigt niemals selbst einen Anruf, in jedem Plan und mit Absicht.",
+  "pricing.feature.integration_mcp.name": "Ausgeliehene Werkzeuge",
+  "pricing.feature.integration_mcp.detail": "Registrieren Sie die Tool-Server, die Ihr Unternehmen bereits nutzt, und lassen Sie Orvay deren Werkzeuge unter Ihrer Richtlinie aufrufen, eine Genehmigung pro Werkzeug. Wie viele ein Plan umfasst, finden Sie in der obigen Tabelle.",
   "pricing.hard-stop.heading": "Der kostenlose Plan stoppt. Er l\xE4sst niemals eine Rechnung auflaufen.",
   "pricing.hard-stop.paragraph.1": "Wenn ein kostenloses Unternehmen sein Guthaben verbraucht hat, wird die n\xE4chste Aktion, die Geld kosten w\xFCrde, abgelehnt, bevor das Modell aufgerufen wird. Es ist keine Karte hinterlegt, es gibt keine M\xF6glichkeit, mehr zu kaufen, und keine M\xF6glichkeit, im kostenlosen Plan versehentlich Geld auszugeben. Arbeit wird abgelehnt, nicht in eine Warteschlange gestellt und sp\xE4ter berechnet.",
   "pricing.hard-stop.paragraph.2": "Ein bezahlter Plan verh\xE4lt sich gleich, wenn alles, was er gekauft hat, verbraucht ist: Die Arbeit wird abgelehnt, anstatt durchgef\xFChrt und in Rechnung gestellt zu werden. Der Unterschied ist, dass ein bezahlter Plan mehr Credits im Voraus kaufen kann, zu dem Satz, der oben auf seiner Plan-Karte steht.",
@@ -8756,8 +9505,17 @@ var de_default = {
   "shell.company.new": "Neues Unternehmen",
   "shell.company.organizationSettings": "Organisationseinstellungen",
   "newCompany.title": "Arbeitsbereich hinzuf\xFCgen",
-  "newCompany.body": "Ein Arbeitsbereich ist ein Unternehmen, das Orvay f\xFChrt. Er hat eigene Ziele, eigene Datens\xE4tze und ein eigenes Team, und zwischen zwei Arbeitsbereichen geht nichts hin\xFCber.",
+  "newCompany.body": "Ein Arbeitsbereich ist ein Unternehmen, das Orvay f\xFChrt. Er hat eigene Ziele, eigene Datens\xE4tze und ein eigenes Team, und nichts davon geht von einem zum anderen hin\xFCber.",
   "newCompany.label": "Wie hei\xDFt er",
+  "newCompany.where.legend": "Wo er hingeh\xF6rt",
+  "newCompany.where.join.label": "In {organization}",
+  "newCompany.where.join.sublabel": "Teilt den Tarif, die Credits und die Richtlinien, die diese Organisation bereits hat. Was dieser Arbeitsbereich verbraucht, geht vom selben Kontingent ab.",
+  "newCompany.where.new.label": "In einer neuen Organisation",
+  "newCompany.where.new.sublabel": "Eine eigene Organisation im Tarif Free. Tarif, Credits und Rechnung geh\xF6ren ihr allein.",
+  "newCompany.error.taken": "Ein Arbeitsbereich mit diesem Namen besteht in dieser Organisation bereits. W\xE4hlen Sie einen anderen Namen.",
+  "newCompany.error.refused": "Sie d\xFCrfen dieser Organisation keinen Arbeitsbereich hinzuf\xFCgen. In einer neuen Organisation k\xF6nnen Sie trotzdem einen anlegen.",
+  "newCompany.error.atCap": "Sie haben bereits so viele Organisationen, wie ein Konto ohne bezahlten Tarif haben kann. Sie k\xF6nnen trotzdem einen Arbeitsbereich zu einer Organisation hinzuf\xFCgen, in der Sie bereits sind.",
+  "newCompany.error.tooMany": "Sie haben heute so viele Organisationen angelegt, wie Sie k\xF6nnen. Sie k\xF6nnen trotzdem einen Arbeitsbereich zu einer Organisation hinzuf\xFCgen, in der Sie bereits sind.",
   "newCompany.submit": "Arbeitsbereich anlegen",
   "newCompany.busy": "Der Arbeitsbereich wird angelegt.",
   "newCompany.error.short": "Geben Sie dem Arbeitsbereich einen Namen mit mindestens zwei Zeichen.",
@@ -8814,7 +9572,13 @@ var de_default = {
   "org.allowance.heading": "Tarif und Kontingent",
   "org.allowance.body": "Ein Tarif wird von der Organisation gekauft, nicht pro Platz, und die Organisation zieht ein monatliches Kontingent, das alle ihre Arbeitsbereiche gemeinsam nutzen. Wer in einem Arbeitsbereich etwas verbraucht, verbraucht dasselbe Kontingent, aus dem die anderen ziehen, und die Zahl steht auf der Nutzungsseite des Arbeitsbereichs, in dem Sie gerade sind.",
   "org.access.heading": "Wer Zugang hat",
-  "org.access.body": "Zugang wird heute pro Arbeitsbereich vergeben. Wer in einen Arbeitsbereich eingeladen wurde, ist kein Mitglied der anderen, und die Rolle wird in diesem Arbeitsbereich unter Team gesetzt. Den Zugang einmal f\xFCr die ganze Organisation zu bearbeiten, ist nicht gebaut.",
+  "org.access.body": "Zugang wird heute pro Arbeitsbereich vergeben. Wer in einen Arbeitsbereich eingeladen wurde, ist kein Mitglied der anderen, Die Personen unten sind die aus Arbeitsbereichen, denen Sie angeh\xF6ren. Ein Arbeitsbereich, in dem Sie nicht sind, zeigt nur, wie viele Personen er hat, denn seine Datens\xE4tze bleiben darin. Und die Rolle wird in diesem Arbeitsbereich unter Team gesetzt. Den Zugang einmal f\xFCr die ganze Organisation zu bearbeiten, ist nicht gebaut.",
+  "org.access.people": "Personen",
+  "org.waiting.heading": "Offen in Ihren Arbeitsbereichen",
+  "org.waiting.body": "Vorschl\xE4ge, \xFCber die noch nicht entschieden wurde, in jedem Arbeitsbereich, dem Sie angeh\xF6ren. \xD6ffnen Sie diesen Arbeitsbereich, um zu handeln. Ob ein Vorschlag gerade Sie braucht, wird im Arbeitsbereich entschieden, nicht hier.",
+  "org.waiting.count": "Offen",
+  "org.waiting.none": "In keinem Arbeitsbereich, dem Sie angeh\xF6ren, wartet etwas.",
+  "org.access.elsewhere": "Ein Arbeitsbereich, in dem Sie nicht sind",
   "home.new": "Es ist noch nichts geschehen. Dies ist ein neues Unternehmen.",
   "home.recorded": {
     one: "{count} aufgezeichnetes Ereignis, seit dieses Unternehmen angelegt wurde.",
@@ -8830,6 +9594,8 @@ var de_default = {
   "notification.headline.comment.mentioned": "Jemand hat namentlich nach Ihnen gefragt",
   "notification.headline.goal.thrashing": "Ein Ziel ist wiederholt fehlgeschlagen und wurde gestoppt",
   "notification.push.none.title": "In {company} wartet nichts",
+  "notification.slack.escalated": "Eine Entscheidung in {company} wartet seit einem Tag.",
+  "notification.slack.note": "In Slack wird nichts entschieden. Der Link \xF6ffnet {brand}, wo die Entscheidung der Person zugeordnet wird, die sie trifft.",
   "notification.push.none.body": "Sie sind auf dem neuesten Stand.",
   "notification.push.only": "In {company}.",
   "notification.push.more": {
@@ -9452,6 +10218,10 @@ var de_default = {
   "inbox.refused": "abgelehnt",
   "inbox.checked": "von einem anderen Akteur gepr\xFCft",
   "inbox.notEstablished": "ausgef\xFChrt, nicht belegt",
+  "inbox.inspector.label": "Zum ausgew\xE4hlten Vorschlag",
+  "inbox.inspector.empty": "W\xE4hlen Sie einen Vorschlag, um zu sehen, was er tun w\xFCrde.",
+  "inbox.inspector.open": "Vertrag \xF6ffnen",
+  "inbox.openContract": "Vertrag zu {objective} \xF6ffnen",
   "contract.tabs": "Ansichten dieses Auftrags",
   "contract.tab.contract": "Auftrag",
   "contract.tab.output": "Ergebnis",
@@ -9555,6 +10325,7 @@ var de_default = {
   "decision.ok.approved": "Genehmigt.",
   "decision.ok.refused": "Abgelehnt.",
   "decision.ok.ran": "Ausgef\xFChrt, und ein anderer Akteur hat best\xE4tigt, dass der Datensatz dem Vertrag entspricht.",
+  "decision.error.alreadyRunning": "Dieser Vorschlag l\xE4uft bereits, vor einem Moment gestartet. Warten Sie, bis er fertig ist, und sehen Sie dann im Protokoll nach, was er getan hat.",
   "decision.error.unverified": "Ausgef\xFChrt, aber die Pr\xFCfung hat es NICHT belegt: {why}",
   "decision.revise": "\xDCberarbeitung anfordern",
   "decision.revise.hint": "Um ihn zur\xFCckzugeben, sagen Sie, was sich \xE4ndern soll. Der Vorschlagende antwortet mit einem \xFCberarbeiteten Vorschlag, der diesen ersetzt.",
@@ -9658,7 +10429,7 @@ var de_default = {
   "activity.showing": "Die neuesten {shown} werden angezeigt.",
   "company.created": "Erstellt {date}",
   "company.empty.title": "Dieses Unternehmen hat noch keine Abteilungen und keine Agenten",
-  "company.empty.because": "{brand} legt eine Abteilung an, wenn Arbeit eine braucht, und einen Agenten, wenn eine Abteilung einen braucht. Ihres hat beides noch nicht, weil bisher nichts davon n\xF6tig war. Dasselbe Modell f\xFChrt ein Unternehmen mit einer Person und eines mit hunderttausend; hier stehen nur weniger Zeilen.",
+  "company.empty.because": "{brand} erstellt eine Abteilung, wenn die Arbeit eine braucht, und einen Agenten, wenn eine Abteilung einen braucht. Ihres hat beides nicht, weil bisher nichts davon n\xF6tig war, und Sie k\xF6nnen unten selbst eine hinzuf\xFCgen. Dasselbe Modell f\xFChrt ein Unternehmen mit einer Person und eines mit hunderttausend; hier gibt es nur weniger Zeilen.",
   "company.departments": {
     one: "{count} Abteilung",
     other: "{count} Abteilungen"
@@ -9699,6 +10470,8 @@ var de_default = {
   "shell.halt.reason.header": "\xDCber die Kopfzeile gestoppt, kein Grund angegeben",
   "shell.dialog.close": "Schlie\xDFen",
   "shell.theme.label": "Dunkelmodus",
+  "shell.toast.label": "Best\xE4tigungen",
+  "shell.toast.dismiss": "Schlie\xDFen",
   "field.unavailable": "Nicht verf\xFCgbar:",
   "outcome.banned.title": "Konto gesperrt",
   "outcome.banned.title.temporary": "Konto vor\xFCbergehend eingeschr\xE4nkt",
@@ -9828,6 +10601,7 @@ var de_default = {
   "log.kind.shipped": "Ausgeliefert",
   "log.kind.fixed": "Behoben",
   "log.kind.said": "Offen gesagt",
+  "log.reconstructed": "Nachtr\xE4glich erfasst, aus der Repository-Historie",
   "log.meta.description": "Jede \xC4nderung an Orvay, in den Worten einer Kundin, erg\xE4nzt und nie umgeschrieben.",
   "portability.title": "Portabilit\xE4t",
   "portability.lead": "Was Sie aus Orvay mitnehmen k\xF6nnen und was noch nicht. Jede Zeile unten wird aus derselben Tabelle gelesen wie die Prei\xDFeite, deshalb kann diese Seite nicht mehr behaupten als jene.",
@@ -10136,6 +10910,29 @@ var de_default = {
   "mcp.tool.orvay_reject_decision": "Einen Vertrag ablehnen. Eine Begr\xFCndung ist erforderlich und wird erfasst.",
   // API keys. A key is a credential a person creates for a program; the token
   // is shown exactly once because only its hash is stored.
+  "contacts.nav": "Kontakte",
+  "contacts.title": "Kontakte",
+  "contacts.lead": "Eine Liste, die Sie von woanders mitbringen. Orvay zeichnet auf, was Ihre Datei dar\xFCber zeigen kann, wer zugestimmt hat, und nennt klar, wo sie das nicht kann.",
+  "contacts.nothing-sent.title": "Orvay sendet nichts an diese Liste",
+  "contacts.nothing-sent.body": "Der Import eines Kontakts zeichnet auf, wer wozu zugestimmt hat, und sonst nichts. Es gibt heute keinen Pfad in Orvay, der in einen importierten Kontakt schreibt, egal was Ihre Datei sagt.",
+  "contacts.import.heading": "Eine Liste importieren",
+  "contacts.import.lead": "Eine CSV-Datei. Orvay liest die Spalte mit dem Namen address und zeichnet eine Zustimmung nur auf, wenn dieselbe Zeile auch agreed_at, wording_shown und source tr\xE4gt. Zeilen ohne diese drei werden gez\xE4hlt und aus dem Datensatz herausgehalten, weil eine Zustimmung, die niemand zeigen kann, keine ist, auf die Sie sich sp\xE4ter verlassen k\xF6nnten.",
+  "contacts.import.file": "Ihre Datei",
+  "contacts.import.hint": "Eine CSV-Datei von h\xF6chstens einem Megabyte.",
+  "contacts.import.choose": "CSV w\xE4hlen",
+  "contacts.import.none-chosen": "Keine Datei ausgew\xE4hlt",
+  "contacts.import.submit": "Importieren",
+  "contacts.import.pending": "Datei wird gelesen",
+  "contacts.summary.title": "Die Datei wurde gelesen",
+  "contacts.summary.recorded": "Vereinbarungen aufgezeichnet:",
+  "contacts.summary.already-known": "Bereits im Datensatz:",
+  "contacts.summary.without-evidence": "Gelesen, ohne Beleg f\xFCr eine Vereinbarung:",
+  "contacts.summary.rejected": "Keine brauchbare Adresse oder zweimal aufgelistet:",
+  "contacts.error.no-file": "W\xE4hlen Sie zuerst eine CSV-Datei.",
+  "contacts.error.too-large": "Diese Datei ist gr\xF6\xDFer als ein Megabyte. Teilen Sie sie auf und importieren Sie jeden Teil.",
+  "contacts.error.no-rows": "Diese Datei hat eine Kopfzeile und keine Zeilen darunter.",
+  "contacts.error.refused": "Sie haben keine Berechtigung, festzuhalten, wer einer Kontaktaufnahme zugestimmt hat.",
+  "contacts.error.unavailable": "Nichts wurde importiert. Versuchen Sie es in einem Moment erneut.",
   "settings.keys.title": "API-Schl\xFCssel",
   "settings.keys.lead": "Mit einem Schl\xFCssel handelt ein Programm in Ihrem Namen, und nie mehr, als Sie selbst d\xFCrfen.",
   "settings.keys.create.heading": "Schl\xFCssel erstellen",
@@ -10163,7 +10960,7 @@ var de_default = {
   "site.footer.nav.solutions": "L\xF6sungen",
   "site.footer.nav.trust": "Vertrauen",
   "blog.nav.blurb": "Was wir gebaut haben und was es kostete zu lernen.",
-  "log.nav.blurb": "Jede Ver\xF6ffentlichung, datiert, mit ihrem Commit.",
+  "log.nav.blurb": "Was sich ge\xE4ndert hat, datiert, in klaren Worten.",
   "portability.nav.blurb": "Was Sie mitnehmen k\xF6nnen, in jedem Plan.",
   "gates.title": "Die acht Gatter",
   "gates.nav.blurb": "Eine Funktion entscheidet, ob etwas geschehen darf.",
@@ -10284,7 +11081,7 @@ var de_default = {
   "gates.honest.lead": "Eine Richtlinien-Engine, die existiert, und eine Richtlinien-Engine, die in der Praxis schon etwas abgelehnt hat, sind unterschiedliche Aussagen. Nur eine davon spricht von tats\xE4chlich laufender Software.",
   "gates.honest.consent": "Gatter 6 hat nie etwas abgelehnt, denn noch kein Aufruf nennt eine Person als Gegenstand. Das Gatter ist gebaut und getestet. Es ist nicht erreicht worden.",
   "gates.honest.concurrency": "Das Limit f\xFCr wie viele L\xE4ufe gleichzeitig laufen k\xF6nnen ist aufgeschrieben und nicht durchgesetzt. Mitglieder, Abteilungen und Funktionen sind.",
-  "gates.honest.spend": "Geld wird um den Modellaufruf selbst gehalten, nicht einem Aufrufer anvertraut. Die Decke h\xE4ngt nicht davon ab, dass jemand sich an die Buchung erinnert. Zwei Oberfl\xE4chen \xFCberpr\xFCfen immer noch ohne Buchung. Diese sind im Build-Protokoll benannt.",
+  "gates.honest.spend": "Geld wird um den Modellaufruf selbst gehalten, nicht einem Aufrufer anvertraut. Die Decke h\xE4ngt nicht davon ab, dass jemand sich an die Buchung erinnert. Einige Oberfl\xE4chen pr\xFCfen weiterhin, ohne zu buchen.",
   "gates.unit.heading": "Die Einheit ist Geld, nie ein Z\xE4hler",
   "gates.unit.lead": "Gemessen \xFCber unsere eigene Routing-Tabelle, variieren die Kosten einer Aktion um etwa das Neunzehnfache. Alles, was die Arbeit durch das Z\xE4hlen von Aktionen begrenzt, begrenzt das Falsche.",
   "gates.unit.credit": "Ein Credit ist das, was Sie sehen, und das, worin Sie bezahlt werden. Das Gatter vergleicht Geld. Der Credit wird daraus abgeleitet, nicht neben ihm gespeichert. Zwei Zahlen, die \xFCbereinstimmen m\xFCssen, sind der Anfang davon, dass ein Abrechnungssystem l\xFCgt.",
@@ -10301,7 +11098,7 @@ var de_default = {
   "verification.today.heading": "Wo das heute wahr ist",
   "verification.today.lead": "Ein Pfad, genau beschrieben, denn ein Pfad ist das, was existiert.",
   "verification.today.publish": "Wenn Orvay eine Seite ver\xF6ffentlicht, baut ein Akteur sie auf. Ein zweiter \xFCberpr\xFCft sie. Der Nachweis ist eine HTTP-Antwort, abgerufen von einem dritten. Der Body-Hash wird von der Seite berechnet, die ihn empfangen hat, nicht von der Seite, die ihn gesendet hat.",
-  "verification.today.gap": "Keine andere Art von Arbeit ist noch unabh\xE4ngig \xFCberpr\xFCft. Der Routing-Eintrag daf\xFCr existiert und nichts ruft ihn auf. Das ist eine L\xFCcke im Produkt, nicht eine Subtilit\xE4t in der Formulierung.",
+  "verification.today.gap": "Ein zweiter Weg wird genauso beurteilt: Wenn ein Beitrag ver\xF6ffentlicht wird, liest ein anderer Akteur ihn zur\xFCck, und eine Funktion entscheidet, ob das den Ausgang belegt. Was noch fehlt, ist ein zweites Modell zu bitten, ein erstes zu pr\xFCfen: dieser Weg steht im Code und nichts ruft ihn auf. Zu benennen, was was ist, ist der Zweck dieser Seite.",
   "verification.today.why": "Es wird hier geschrieben, denn ein Kategorien-Anspruch, der auf einem Pfad ruht, ist genau das Versagen, das dieses Produkt ablehnt. Wir w\xFCrden es lieber sagen, statt entdeckt zu werden.",
   "verification.field.heading": "Was alle anderen tun",
   "verification.field.lead": "Gelesen von Anbieter-Dokumentation im September 2026. Wo ein Produkt seine eigene Verifizierung beschreibt, ist das, was es beschreibt.",
@@ -10341,6 +11138,8 @@ var de_default = {
   "integrations.credential.app_password.detail": "Was dieser Anbieter statt eines Tokens ausgibt. Auf eine Anwendung beschr\xE4nkt und eigenst\xE4ndig widerrufbar.",
   "integrations.credential.dns.title": "Ein Datensatz, den Sie ver\xF6ffentlichen",
   "integrations.credential.dns.detail": "Delegierung nach CNAME statt ein Schl\xFCssel, der in ein Formular eingef\xFCgt wird. So k\xF6nnen Schl\xFCssel sp\xE4ter rotiert werden, ohne dass Sie DNS erneut ber\xFChren.",
+  "integrations.credential.mcp.title": "Eigener Tool-Server",
+  "integrations.credential.mcp.detail": "Der Anbieter betreibt einen Server, der Tools anbietet. Orvay registriert ihn mit einem Klick, autorisiert sich beim Anbieter, h\xE4lt die Liste der angebotenen Tools fest und fordert eine Genehmigung an, bevor eines davon ausgef\xFChrt wird.",
   "integrations.credential.none.title": "Noch nichts",
   "integrations.credential.none.detail": "Kein Berechtigungsnachweis wird akzeptiert, denn dahinter ist nichts, was ihn akzeptiert.",
   "integrations.grants.heading": "Was es erm\xF6glichen w\xFCrde, zu verbinden",
@@ -10560,17 +11359,34 @@ var de_default = {
   "company.head.agents": { one: "{count} Agent", other: "{count} Agenten" },
   "company.departments.heading": "Abteilungen",
   "company.agents.heading": "Agenten",
+  "company.department.legend": "Abteilung hinzuf\xFCgen",
+  "company.department.name": "Wie sie hei\xDFt",
+  "company.department.submit": "Abteilung hinzuf\xFCgen",
+  "company.department.created": "Die Abteilung wurde hinzugef\xFCgt.",
+  "company.department.error.short": "Eine Abteilung braucht einen Namen mit mindestens zwei Zeichen.",
+  "company.department.error.long": "Ein Abteilungsname darf h\xF6chstens achtzig Zeichen haben.",
+  "company.department.error.refused": "Ein Gate hat dies abgelehnt. Ihre Richtlinie erlaubt das Hinzuf\xFCgen einer Abteilung nicht.",
   "company.department.no-envelope": "kein F\xE4higkeits-Rahmen",
   "company.agent.task-class": "Aufgabenklasse {taskClass}",
+  "company.agent.legend": "Einen Agenten hinzuf\xFCgen",
+  "company.agent.name": "Wie man es nennt",
+  "company.agent.name.hint": "Eine Bezeichnung zum Unterscheiden von Agenten in einer Liste. Orvay hat keine Pers\xF6nlichkeit und dies ist auch nicht die Absicht einer Bezeichnung.",
+  "company.agent.department": "Welcher Abteilung es angeh\xF6rt",
+  "company.agent.task-class.label": "Die Art der Arbeit, die es verrichtet",
+  "company.agent.task-class.hint": "Eine Aufgabenklasse entscheidet, welches Modell antwortet. Sie w\xE4hlen die Art der Arbeit; Orvay w\xE4hlt das Modell.",
+  "company.agent.submit": "Den Agenten hinzuf\xFCgen",
+  "company.agent.created": "Der Agent wurde hinzugef\xFCgt. Er verf\xFCgt \xFCber keine F\xE4higkeiten, daher kann er noch nicht handeln.",
+  "company.agent.error.short": "Ein Agent ben\xF6tigt einen Namen mit mindestens zwei Zeichen.",
+  "company.agent.error.long": "Ein Agent-Name darf h\xF6chstens achtzig Zeichen lang sein.",
+  "company.agent.error.department": "W\xE4hlen Sie eine dieser Abteilungen des Unternehmens aus.",
+  "company.agent.error.task-class": "W\xE4hlen Sie eine der angebotenen Aufgabenklassen.",
+  "company.agent.error.refused": "Ein Gate hat dies abgelehnt. Ihre Richtlinie erlaubt das Hinzuf\xFCgen eines Agenten nicht.",
+  "company.agent.needs-department": "Ein Agent geh\xF6rt zu einer Abteilung. F\xFCgen Sie zun\xE4chst unten eine Abteilung hinzu.",
+  "company.agents.no-authority": "Ein Agent handelt nur mit F\xE4higkeiten, die ihm gew\xE4hrt wurden. Das Erteilen von F\xE4higkeiten an einen Agenten ist noch nicht gebaut, sodass keiner dieser Agenten handeln kann.",
   "company.badge.halted": "Angehalten",
   "company.badge.active": "Aktiv",
   "company.badge.inactive": "Inaktiv",
-  "activity.head.empty": "F\xFCr dieses Unternehmen wurde noch nichts aufgezeichnet.",
-  "activity.head.count": {
-    one: "{count} Eintrag, der neueste zuletzt.",
-    other: "{count} Eintr\xE4ge, der neueste zuletzt."
-  },
-  "activity.head.showing": "Es werden die {count} neuesten angezeigt.",
+  "activity.trail.label": "Was passiert ist, Neuestes zuerst",
   "activity.unread.heading": "Wartet darauf, dass Sie hinsehen",
   "activity.unread.kind.message": "Jemand hat eine E-Mail an die Adresse Ihres Unternehmens geschickt",
   "activity.unread.kind.approval": "Ein Vertrag wartet auf eine Entscheidung",
@@ -10761,6 +11577,7 @@ var de_default = {
   "account.export.right.title": "Export ist ein Recht, kein Feature",
   "account.export.right.body": "Ihre eigenen Daten sind auf jedem Plan exportierbar, einschlie\xDFlich des kostenlosen, in maschinenlesbarer Form. Daf\xFCr Geld zu verlangen w\xE4re ein Versto\xDF und keine Preisentscheidung, deshalb wird dabei nichts an Ihrem Plan gepr\xFCft, wenn Sie das ausl\xF6sen.",
   "account.export.manifest": "Die Datei ist NDJSON: ein JSON-Wert pro Zeile, und die erste Zeile ist ein Manifest, das jede Gruppe von Datens\xE4tzen benennt, ihre Anzahl nennt und sagt, wann der Export erstellt wurde. Sie deckt dieses Unternehmen ab, jede Person mit einem Platz darin, jede von ihm versendete Einladung, das Zustimmungsprotokoll und den hash-verketteten Audit-Trail. Audit-Nutzlasten erscheinen als der genaue gespeicherte Text, sodass jeder Eintrag weiterhin auf den daneben stehenden Hash hasht und Sie die Kette ohne uns selbst erneut \xFCberpr\xFCfen k\xF6nnen.",
+  "account.export.verify": "So pr\xFCfen Sie diese Datei selbst",
   "account.export.submit": "Alles exportieren",
   "account.export.recorded": "Eine Kopie zu erstellen wird in den Audit-Trail geschrieben und nennt, wie viele Datens\xE4tze in die Datei eingegangen sind, aber keine Adressen. Ein gro\xDFer Audit-Trail kommt Seite f\xFCr Seite an, und das Manifest tr\xE4gt die Position, ab der weitergemacht wird.",
   "account.site.heading": "Ihre erzeugte Website",
@@ -10805,6 +11622,7 @@ var de_default = {
   "account.erased.title": "Gel\xF6scht",
   "account.erased.lead": "Ihre personenbezogenen Daten wurden aus diesem Unternehmen gel\xF6scht.",
   "account.erased.what.heading": "Was genau passiert ist",
+  "account.erased.halted": "Dieser Arbeitsbereich wurde angehalten, weil Sie die letzte Person darin waren, die etwas genehmigen konnte. Es l\xE4uft jetzt nichts mehr darin. Wer Zugang zu dem Konto hat, das daf\xFCr zahlt, kann ihn wieder starten.",
   "account.erased.sealed": "Ihre Adresse und Ihr Anzeigename wurden \xFCberschrieben, und der Schl\xFCssel, der Ihr Zustimmungsprotokoll lesbar machte, wurde zerst\xF6rt, sodass es von niemandem mehr gelesen werden kann, uns eingeschlossen. Bereits geschriebene Eintr\xE4ge im Audit-Trail bleiben, wie sie sind: Ein Audit-Trail, der umgeschrieben werden k\xF6nnte, w\xE4re keiner. Wir bewahren einen Eintrag dar\xFCber auf, dass eine Interaktion stattfand, wann, und unter wessen Autorit\xE4t, weil wir zeigen k\xF6nnen m\xFCssen, dass wir rechtm\xE4\xDFig gehandelt haben.",
   "account.erased.suppression": "Wir bewahren au\xDFerdem einen geschl\xFCsselten Einweg-Hashwert Ihrer Adresse auf unserer Sperrliste auf, damit wir sie erkennen und uns weigern k\xF6nnen, Sie erneut zu kontaktieren. Dieser Hashwert ist das Einzige, was wir \xFCber Sie behalten, und er ist der Grund, warum Ihr Widerruf weiterhin eingehalten wird.",
   "account.erased.uncovered.label": "Was dies nicht abdeckt",
@@ -10813,6 +11631,14 @@ var de_default = {
   "account.erased.backups.title": "Kopien in routinem\xE4\xDFigen Datenbank-Backups",
   "account.erased.backups.body": "Ein Backup, das vor der Zerst\xF6rung des Schl\xFCssels erstellt wurde, enth\xE4lt ihn noch. Wir haben f\xFCr diese Backups noch kein Aufbewahrungsfenster festgelegt und ver\xF6ffentlicht, deshalb k\xF6nnen wir Ihnen kein Datum nennen, ab dem nirgendwo mehr eine Kopie existiert. Sobald dieses Fenster festgelegt ist, wird es hier genannt.",
   "account.erased.audit": "Der Audit-Trail dieses Unternehmens erfasst diese L\xF6schung, was sie zerst\xF6rt hat und was sie nicht erreichen konnte, unter dem Eintragstyp {entryType}.",
+  "account.erased.receipt.audit": "Eintrag",
+  "account.erased.receipt.fingerprint": "Fingerabdruck",
+  "account.erased.receipt.key": "Zerst\xF6rter Schl\xFCssel",
+  "account.erased.unknown.title": "Dazu haben wir keinen Eintrag",
+  "account.erased.unknown.body": "Die Adresse, der Sie gefolgt sind, nennt eine L\xF6schung, die wir nicht durchgef\xFChrt haben. Wenn Sie Ihre Daten gel\xF6scht und den Link aufbewahrt haben, pr\xFCfen Sie, ob er vollst\xE4ndig kopiert wurde. Falls nicht, gibt es hier nichts.",
+  "account.erased.receipt.heading": "Ihr Nachweis, zum Aufbewahren",
+  "account.erased.receipt.body": "Diese L\xF6schung wurde in den Datensatz Ihres Unternehmens geschrieben, eine Kette, in der jeder Eintrag den Fingerabdruck des vorherigen tr\xE4gt. Diese drei Werte benennen diesen Eintrag. Kopieren Sie sie an einen Ort, an dem Sie Dinge aufbewahren.",
+  "account.erased.receipt.check": "Wer die Daten des Unternehmens sp\xE4ter exportiert, kann diesen Eintrag finden und seinen Fingerabdruck neu berechnen, mit dem Verifier, den {brand} ver\xF6ffentlicht. Wurde der Eintrag seitdem ver\xE4ndert, schl\xE4gt die Pr\xFCfung fehl und nennt die Zeile. Das macht diese Werte aufbewahrenswert, statt eines Satzes, den wir geschrieben haben.",
   "account.erased.browser.heading": "Dieser Browser",
   "account.erased.browser.body": "Sie sind kein Mitglied dieses Unternehmens mehr. Sich abzumelden beendet auch diese Browser-Sitzung.",
   "account.footer.team": "Suchen Sie, wer sonst in diesem Unternehmen ist? Das ist",
@@ -10820,6 +11646,7 @@ var de_default = {
   "integrations.authority.title": "Verbinden bedeutet, Autorit\xE4t zu gew\xE4hren",
   "integrations.authority.body": "Jede Zeile listet die F\xE4higkeiten auf, die sie gew\xE4hren w\xFCrde. {brand} pr\xFCft die Zugangsdaten mit einem echten, nur lesenden Aufruf, bevor sie gespeichert werden, und speichert nichts, wenn dieser Aufruf fehlschl\xE4gt. Das Trennen der Verbindung zerst\xF6rt den Verschl\xFCsselungsschl\xFCssel, statt die Zeile zu l\xF6schen, sodass die Zugangsdaten unlesbar werden und der Datensatz, dass sie existiert haben, erhalten bleibt.",
   "integrations.grants": "Berechtigungen:",
+  "integrations.grants.none": "Diese Verbindung gew\xE4hrt Agenten nichts. Orvay sendet eine Benachrichtigung; kein Agent erh\xE4lt eine Berechtigung.",
   "integrations.connected-as": "Verbunden als",
   "integrations.mailbox.open": "Postfach \xF6ffnen",
   "integrations.webhooks.heading": "Webhooks",
@@ -10835,6 +11662,13 @@ var de_default = {
   "tools.result.removed": "Entfernt",
   "tools.result.not-registered": "Nicht registriert",
   "tools.result.registered": "Registriert",
+  "tools.register.submit": "Tool-Server registrieren",
+  "tools.register.busy": "Adresse wird gepr\xFCft",
+  "tools.remove.submit": "Entfernen",
+  "tools.remove.busy": "Wird entfernt",
+  "tools.mode.busy": "Wird ge\xE4ndert",
+  "tools.mode.hold": "Von einer Person freigeben lassen",
+  "tools.mode.release": "Ein Modell selbst aufrufen lassen",
   "tools.heading": "Werkzeugserver",
   "tools.lead": "Ein Werkzeugserver ist ein Dritter, den {brand} im Namen dieses Unternehmens um Werkzeuge bitten kann. Jedes Werkzeug, das er anbietet, wird zu einer F\xE4higkeit in der Richtlinientabelle, bevor ein Modell es zu sehen bekommt, sodass das, was ein Server \xFCber ein Werkzeug behauptet, niemals entscheiden kann, ob es genutzt werden darf.",
   "tools.refused": "Am Tor {gate} abgelehnt ({reason}).",
@@ -10902,6 +11736,27 @@ var de_default = {
   "files.preview.not-found.body": "Diese Datei ist nicht in diesem Unternehmen, oder sie wurde gel\xF6scht.",
   "files.preview.back": "Zur\xFCck zu den Dateien",
   "files.preview.download": "Herunterladen",
+  "files.share.heading": "Dieses Dokument freigeben",
+  "files.share.lead": "Ein Link, der sich ohne Orvay-Konto \xF6ffnet. Er funktioniert ab dem von Ihnen gew\xE4hlten Tag nicht mehr, sp\xE4testens nach neunzig Tagen. Sie k\xF6nnen ihn jederzeit fr\xFCher beenden.",
+  "files.share.label": "Wof\xFCr ist der Link",
+  "files.share.days": "Tage bis zum Ende",
+  "files.share.submit": "Link erstellen",
+  "files.share.pending": "Link wird erstellt",
+  "files.share.shown-once": "Kopieren Sie dies jetzt. Es ist das einzige Mal, dass es angezeigt wird, da nur sein Fingerabdruck gespeichert ist.",
+  "files.share.revoked": "Dieser Link \xF6ffnet nichts mehr.",
+  "files.share.revoke": "Diesen Link beenden",
+  "files.share.list.heading": "Links zu diesem Dokument",
+  "files.share.list.empty": "Keine Links. Dieses Dokument hat das Unternehmen nicht verlassen.",
+  "files.share.list.unnamed": "Unbenannter Link",
+  "files.share.list.live": "funktioniert jetzt",
+  "files.share.list.expired": "abgelaufen",
+  "files.share.list.revoked": "beendet",
+  "files.share.list.never-opened": "nie ge\xF6ffnet",
+  "files.share.list.opened": "ge\xF6ffnet",
+  "files.share.error.refused": "Sie haben keine Berechtigung, ein Dokument aus diesem Unternehmen freizugeben.",
+  "files.share.error.unavailable": "Nichts wurde erstellt. Versuchen Sie es in einem Moment erneut.",
+  "files.share.error.not-found": "Dieses Dokument ist nicht mehr hier.",
+  "files.share.error.window": "W\xE4hlen Sie eine ganze Zahl von Tagen zwischen 1 und 90.",
   "files.preview.image.caption": "Nur durch den Dateinamen beschrieben. Nichts hat gelesen, was auf dem Bild zu sehen ist.",
   "files.preview.pdf-empty.title": "Aus diesem PDF konnte kein Text gelesen werden",
   "files.preview.pdf-empty.body": "Der Text wird hier angezeigt, wenn ein PDF Text enth\xE4lt. Dieses hat keinen hergegeben, was meist bedeutet, dass die Seiten gescannte Bilder statt Text sind, oder dass die Datei gesch\xFCtzt ist. Sie kann trotzdem heruntergeladen werden, und der Arbeit, die dieses Unternehmen ausf\xFChrt, wird nichts daraus gegeben.",
@@ -10968,6 +11823,13 @@ var de_default = {
   "integrations.error.no-credential": "F\xFCgen Sie zuerst die Zugangsdaten ein.",
   "integrations.error.bluesky-needs-handle": "Bluesky ben\xF6tigt Ihren Handle sowie das App-Passwort.",
   "integrations.error.mastodon-needs-host": "Mastodon ben\xF6tigt den Hostnamen Ihrer Instanz.",
+  "integrations.error.slack-needs-channel": "Slack ben\xF6tigt sowohl die Kanal-ID als auch den Token.",
+  "integrations.field.bluesky.label": "Ihr Handle",
+  "integrations.field.bluesky.hint": "Zum Beispiel name.bsky.social",
+  "integrations.field.mastodon.label": "Hostname Ihrer Instanz",
+  "integrations.field.mastodon.hint": "Zum Beispiel mastodon.social, ohne https",
+  "integrations.field.slack.label": "Kanal-ID",
+  "integrations.field.slack.hint": "\xD6ffnen Sie den Kanal in Slack und w\xE4hlen Sie Kanaldetails anzeigen. Die ID steht unten und beginnt mit C.",
   "integrations.error.no-adapter": "F\xFCr diese Integration existiert kein Adapter.",
   "integrations.error.verify-unreachable": "Es wurde nichts gespeichert: {reason}. Ihre Zugangsdaten sind unver\xE4ndert und unber\xFChrt.",
   "integrations.error.gate-refused": "Am Tor {gate} abgelehnt: {reason}",
@@ -10978,6 +11840,8 @@ var de_default = {
   "integrations.ok.disconnected": "Getrennt. Der Schl\xFCssel und die gespeicherten Zugangsdaten wurden beide zerst\xF6rt, sodass nichts hier sie erneut verwenden kann. Widerrufen Sie auch das Token beim Anbieter, denn dort bleibt es g\xFCltig, bis Sie das tun.",
   "integrations.error.not-microsoft": "Das ist keine Integration, die {brand} \xFCber Microsoft verbindet.",
   "integrations.error.no-microsoft-client": "Diese Bereitstellung hat keinen Microsoft-Anmeldeclient registriert, daher kann von hier aus kein Postfach verbunden werden.",
+  "integrations.error.not-google": "Das ist keine Integration, die {brand} \xFCber Google verbindet.",
+  "integrations.error.no-google-client": "Diese Bereitstellung hat keinen Google-Anmeldeclient registriert, daher kann von hier aus kein Postfach verbunden werden.",
   "integrations.error.mailbox-already-connected": "Dieses Postfach ist bereits verbunden. Trennen Sie die Verbindung, bevor Sie erneut verbinden.",
   "integrations.error.tool-server-fields-required": "Ein Kurzname, eine Bezeichnung und eine https-URL sind alle erforderlich.",
   "integrations.error.not-registered": "Nicht registriert. {reason}",
@@ -10992,6 +11856,35 @@ var de_default = {
   "integrations.ok.tool-approval": "{tool} wartet jetzt auf eine Person. Einem Modell wird es nicht angeboten.",
   "integrations.error.tool-unnameable": "Dieser Werkzeugname l\xE4sst sich nicht in eine F\xE4higkeit umwandeln, daher kann er nicht gew\xE4hrt werden.",
   "integrations.error.tool-forbidden": "Dieses Werkzeug ist durch eine Migration verboten, was dieses Bedienelement nicht aufheben darf.",
+  "integrations.tool-server.needs-account": "Dieser Server erfordert ein angemeldetes Konto, bevor er seine Werkzeuge auflistet. Nichts wird von ihm verlangt, bis Sie es verbinden.",
+  "integrations.tool-server.connect.submit": "Verbinden",
+  "integrations.tool-server.pending": "Anmeldung gestartet. Beenden Sie sie im ge\xF6ffneten Fenster, und dieser Server listet danach seine Werkzeuge auf.",
+  "integrations.tool-server.authorized": "Verbunden \xFCber {issuer}, {when}. Die Berechtigung ist unter einem Schl\xFCssel versiegelt, der zerst\xF6rt wird, wenn Sie diesen Server entfernen.",
+  "integrations.tool-server.no-account-needed": "Dieser Server antwortet ohne Konto, daher gibt es nichts zu verbinden.",
+  "integrations.tool-server.reauth-required.title": "Neue Anmeldung erforderlich",
+  "integrations.tool-server.reauth-required": "Die Berechtigung f\xFCr diesen Server funktioniert nicht mehr, daher wird nichts mehr von ihm verlangt. Verbinden Sie ihn erneut, um fortzufahren.",
+  "integrations.tool-server.client-rejected.title": "Nicht mehr erkannt",
+  "integrations.tool-server.client-rejected": "{issuer} erkennt nicht mehr, wie sich {brand} identifiziert, daher wird nichts von diesem Server verlangt. Erneute Anmeldung behebt dies nicht. Entfernen Sie den Server und f\xFCgen Sie ihn erneut hinzu, um sich neu zu registrieren.",
+  "integrations.tool-server.unconfigured.title": "Nicht konfiguriert",
+  "integrations.tool-server.unconfigured": "Dieser Server gibt keine eigenen Client-Anmeldedaten aus, daher kann sich {brand} nicht bei ihm registrieren. Setzen Sie {idVariable} und {secretVariable} auf dieser Bereitstellung, dann verbinden Sie ihn.",
+  "integrations.error.tool-server-discovery": "Dieser Server konnte nicht angeben, wo die Anmeldung erfolgt, daher wurde nichts verbunden.",
+  "integrations.error.tool-server-pkce": "Dieser Server meldet sich \xFCber einen Dienst an, der nicht den Schutz bietet, der verhindert, dass eine abgefangene Anmeldung wiederverwendet wird, daher wurde nichts verbunden.",
+  "integrations.error.tool-server-issuer": "Die Anmeldung kam von einem anderen Dienst zur\xFCck als dem von diesem Server benannten. Nichts wurde gelesen und nichts wurde verbunden.",
+  "integrations.error.tool-server-redirected": "Dieser Server versuchte, die Anfrage weiterzuleiten. {brand} tr\xE4gt keine Anmeldedaten \xFCber eine Umleitung, daher wurde nichts verbunden.",
+  "integrations.error.tool-server-points-inward": "Dieser Server benannte eine Anmeldungsadresse in einem privaten Netzwerk, daher wurde nichts von ihm abgerufen.",
+  "integrations.tool-server.paused.title": "Pausiert: seine Werkzeuge haben sich ge\xE4ndert",
+  "integrations.tool-server.paused": "Dieser Server bietet nun eine andere Liste von Werkzeugen an als die, die genehmigt wurde. Nichts wird von ihm verlangt, bis jemand die \xC4nderung gelesen und genehmigt hat.",
+  "integrations.tool-server.reapprove.submit": "Neue Liste genehmigen",
+  "integrations.tool-server.diff.added": "Hinzugef\xFCgt",
+  "integrations.tool-server.diff.removed": "Entfernt",
+  "integrations.tool-server.diff.changed": "Ge\xE4ndert",
+  "integrations.tool-server.diff.unchanged": "Unver\xE4ndert",
+  "integrations.tool-server.diff.parameters": "Die Parameter haben sich ge\xE4ndert. Die Beschreibung nicht.",
+  "integrations.ok.tool-server-reapproved": "Die neue Liste ist genehmigt. {label} wird wieder angeboten.",
+  "integrations.error.tool-server-not-paused": "Dieser Server ist nicht pausiert, daher gibt es nichts zu genehmigen.",
+  "integrations.error.tool-server-stale-approval": "Die Liste hat sich erneut ge\xE4ndert, seit Sie sie gelesen haben. Lesen Sie die neue, bevor Sie genehmigen.",
+  "integrations.error.tool-server-plan-excludes": "Dieser Plan enth\xE4lt keine ausgeliehenen Werkzeuge. Wechseln Sie zu einem Plan, der diese enth\xE4lt.",
+  "integrations.error.tool-server-plan-limit": "Dieser Plan hat keinen Platz f\xFCr einen weiteren Tool-Server. Entfernen Sie einen, oder wechseln Sie zu einem Plan mit gr\xF6\xDFerer Kapazit\xE4t.",
   "webhooks.action.gate-refused": "Am Tor {gate} abgelehnt: {reason}",
   "webhooks.action.not-signed-in": "Sie sind nicht angemeldet",
   "webhooks.register.not-https": "Die Adresse muss mit https beginnen. Eine Zustellung wird signiert statt verschl\xFCsselt, daher sind \xFCber einfaches http sowohl der Inhalt als auch die Signatur f\xFCr jeden auf dem Weg lesbar.",
@@ -11222,8 +12115,18 @@ var de_default = {
   "integrations.oauth.gateSuffix": " Am Tor {gate} abgelehnt.",
   "integrations.summary.none": "Nichts ist verbunden. {connectable} k\xF6nnen heute verbunden werden.",
   "integrations.summary.some": "{connected} verbunden, {connectable} insgesamt verbindbar.",
+  "integrations.mcp.self": "Verbindet sich \xFCber den eigenen Tool-Server von {vendor}. Orvay registriert sich dort selbst; es gibt vorher nichts einzurichten.",
+  "integrations.mcp.unstated": "Verbindet sich \xFCber den eigenen Tool-Server von {vendor}. Orvay versucht, sich selbst zu registrieren; lehnt {vendor} das ab, funktioniert stattdessen ein Schl\xFCssel aus Ihrem {vendor}-Konto.",
+  "integrations.mcp.operator": "Verbindet sich \xFCber den eigenen Tool-Server von {vendor}, der nur eine App zul\xE4sst, die der Betreiber bei {vendor} registriert hat. Nach der Registrierung nennt der Tool-Server unten den Client, der dieser Bereitstellung noch fehlt.",
+  "integrations.mcp.authorize.submit": "Mit {vendor} autorisieren",
+  "integrations.mcp.awaiting": "Registriert und noch nicht autorisiert: {vendor} muss Orvay noch zulassen. Die Schaltfl\xE4che bringt Sie dorthin und wieder zur\xFCck.",
+  "integrations.mcp.register.submit": "Tool-Server registrieren",
+  "integrations.mcp.registered": "Als Tool-Server registriert. Seine Tools und ihre Modi sind unten aufgef\xFChrt.",
   "integrations.badge.connected": "verbunden",
   "integrations.connection.unknownAccount": "unbekannt",
+  "integrations.connection.checked": "Gepr\xFCft {when}.",
+  "integrations.connection.checkOverdue": "Zuletzt gepr\xFCft {when}. Eine Pr\xFCfung ist \xFCberf\xE4llig.",
+  "integrations.connection.neverChecked": "Nicht gepr\xFCft seit der Verbindung.",
   "integrations.connection.lastError": " \xB7 letzter Fehler: {error}",
   "integrations.fix.heading": "Eine Korrektur vorschlagen",
   "integrations.fix.goalHeading": "Ein Ziel eine Korrektur vorschlagen lassen",
@@ -11281,6 +12184,7 @@ var de_default = {
   "fix.error.notThreeSteps": "dieser Vertrag hat keine drei Schritte",
   "fix.error.serverUnreachable": "dieser Server konnte nicht erreicht werden: {reason}",
   "fix.error.toolRefused": "dieses Werkzeug hat abgelehnt: {reason}",
+  "fix.error.toolListMoved": "Die Werkzeugliste des Tool-Servers ist nicht mehr diejenige, die genehmigt wurde. Dies wird nicht ausgef\xFChrt, bis jemand die \xC4nderung auf der Seite Integrationen gelesen und genehmigt hat.",
   "fix.error.noModel": "kein Modell war erreichbar, es gibt also nichts vorzuschlagen",
   "fix.pr.writtenBy": "Geschrieben von {brand} aus dem {tool}-Werkzeug des {server}-Servers, und genehmigt, bevor irgendetwas gelesen wurde.",
   "fix.error.githubNotConnected": "GitHub ist hier nicht verbunden.",
@@ -11371,7 +12275,178 @@ var de_default = {
   "social.post.publishFailed": "Der Beitrag konnte nicht ver\xF6ffentlicht werden.",
   "social.post.notRecorded": "Er wurde ver\xF6ffentlicht, und der Lauf konnte nicht aufgezeichnet werden.",
   "social.post.notVerified": "Er wurde ver\xF6ffentlicht, und die Adresse konnte nicht zur\xFCckgelesen werden.",
-  "notification.summary.approval.escalated": "Eine Entscheidung wartet seit einem Tag"
+  "notification.summary.approval.escalated": "Eine Entscheidung wartet seit einem Tag",
+  // -------------------------------------------------------------------------
+  // The second factor: the challenge at sign-in, and the enrolment in account
+  // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
+  // -------------------------------------------------------------------------
+  "auth.meta.verify": "Zweistufige Best\xE4tigung",
+  "auth.verify.heading": "Code eingeben",
+  "auth.verify.lead": "\xD6ffnen Sie Ihre Authenticator-App und geben Sie den sechsstelligen Code f\xFCr Orvay ein.",
+  "auth.verify.field.code": "Sechsstelliger Code",
+  "auth.verify.submit": "Best\xE4tigen",
+  "auth.verify.recovery.lead": "Wenn Sie Ihr Telefon nicht erreichen, verwenden Sie einen der Wiederherstellungscodes, die Sie bei der Einrichtung gespeichert haben.",
+  "auth.verify.recovery.field": "Wiederherstellungscode",
+  "auth.verify.recovery.submit": "Wiederherstellungscode verwenden",
+  "auth.verify.expired.title": "Diese Anmeldung ist abgelaufen",
+  "auth.verify.expired.body": "Eine Anmeldung, die auf einen Code wartet, gilt zehn Minuten. Mit Ihrem Konto ist alles in Ordnung. Melden Sie sich erneut an, dann fragen wir nach einem neuen Code.",
+  "auth.verify.start-again": "Erneut anmelden",
+  "auth.verify.error.wrong": "Dieser Code stimmt nicht. Pr\xFCfen Sie die App und geben Sie den Code ein, der dort jetzt steht.",
+  "auth.verify.error.already-used": "Dieser Code wurde bereits verwendet. Warten Sie, bis Ihre App den n\xE4chsten anzeigt.",
+  "auth.verify.error.malformed": "Ein Code hat sechs Ziffern, ein Wiederherstellungscode zehn Zeichen.",
+  "auth.verify.error.no-such-code": "Dieser Wiederherstellungscode geh\xF6rt nicht zu Ihrem Konto oder wurde bereits verwendet.",
+  "auth.verify.error.throttled": "Zu viele Versuche. Warten Sie einige Minuten und versuchen Sie es dann erneut.",
+  "auth.verify.error.unavailable": "Wir konnten diesen Code nicht pr\xFCfen. An Ihrem Konto hat sich nichts ge\xE4ndert. Versuchen Sie es gleich noch einmal.",
+  "account.mfa.heading": "Zweistufige Best\xE4tigung",
+  "account.mfa.off.body": "F\xFCgen Sie eine Authenticator-App hinzu, dann fragt Orvay bei jeder Anmeldung zus\xE4tzlich nach einem Code daraus.",
+  "account.mfa.start": "Zweistufige Best\xE4tigung einrichten",
+  "account.mfa.enrol.heading": "Authenticator hinzuf\xFCgen",
+  "account.mfa.enrol.lead": "F\xFCgen Sie diesen Schl\xFCssel in Ihre Authenticator-App ein und geben Sie dann den angezeigten Code ein, um zu belegen, dass es funktioniert hat.",
+  "account.mfa.enrol.key": "Einrichtungsschl\xFCssel",
+  "account.mfa.enrol.field": "Sechsstelliger Code",
+  "account.mfa.enrol.submit": "Zweistufige Best\xE4tigung aktivieren",
+  "account.mfa.enrol.cancel": "Abbrechen",
+  "account.mfa.on.body": "Orvay fragt bei jeder Anmeldung nach einem Code aus Ihrem Authenticator. Aktiv seit {when}.",
+  "account.mfa.codes.heading": "Wiederherstellungscodes",
+  "account.mfa.codes.lead": "Bewahren Sie diese an einem Ort auf, den Sie ohne Ihr Telefon erreichen. Jeder funktioniert einmal, und sie sind der einzige Weg zur\xFCck in Ihr Konto, wenn Sie den Authenticator verlieren. Sie werden jetzt angezeigt und danach nie wieder.",
+  "account.mfa.codes.left": "Verbleibende Wiederherstellungscodes: {left} von {total}",
+  "account.mfa.disable": "Zweistufige Best\xE4tigung ausschalten",
+  "account.mfa.unavailable": "Wir konnten Ihre Sicherheitseinstellungen nicht lesen, daher zeigt dieser Abschnitt nicht an, was aktiv ist.",
+  "account.mfa.notice.on": "Die zweistufige Best\xE4tigung ist aktiv.",
+  "account.mfa.disable.lead": "Zum Ausschalten wird ein Code verlangt, damit eine gestohlene Sitzung ihn nicht entfernen kann. Verwenden Sie Ihren Authenticator oder einen Ihrer Wiederherstellungscodes.",
+  "account.mfa.busy": "Wird ausgef\xFChrt",
+  "account.mfa.notice.off": "Die zweistufige Best\xE4tigung ist ausgeschaltet. Ihr Passwort ist das Einzige, was dieses Konto sch\xFCtzt.",
+  // ORG-4: what RAN across the workspaces you belong to, beside what waits.
+  "org.activity.heading": "Was in Ihren Arbeitsbereichen gelaufen ist",
+  "org.activity.body": "Die letzten drei\xDFig Tage, in jedem Arbeitsbereich, dem Sie angeh\xF6ren. Nie gepr\xFCft und L\xE4uft noch gelten ohne Zeitraum: Ein Lauf, den nichts gepr\xFCft hat, ist nach einem Monat nicht pl\xF6tzlich gepr\xFCft.",
+  "org.activity.none": "Au\xDFer diesem gibt es hier keinen weiteren Arbeitsbereich.",
+  "org.activity.running": "L\xE4uft noch",
+  "org.activity.oldest": "\xC4ltester, in Tagen",
+  "org.activity.runs": "Gelaufen",
+  "org.activity.established": "Gepr\xFCft und best\xE4tigt",
+  "org.activity.refused": "Gepr\xFCft und nicht best\xE4tigt",
+  "org.activity.unverified": "Nie gepr\xFCft",
+  "account.footer.memory": "Suchen Sie nach dem, was dieses Unternehmen Orvay beigebracht hat, und wie man es etwas nicht mehr nutzen l\xE4sst? Das ist",
+  "dataUse.memory": "Fakten, die Orvay aus der Arbeit dieses Unternehmens behalten hat, k\xF6nnen gelesen werden und beiseite gelegt werden, damit sie in einer Antwort nicht wieder verwendet werden, auf",
+  "files.upload.said.added": { one: "{count} Datei hinzugef\xFCgt.", other: "{count} Dateien hinzugef\xFCgt." },
+  "files.upload.said.partial": { one: "{added} hinzugef\xFCgt. Eine Datei wurde nicht akzeptiert: {names}.", other: "{added} hinzugef\xFCgt. {refused} Dateien wurden nicht akzeptiert: {names}." },
+  "files.upload.said.more": { one: "1 weitere", other: "{count} weitere" },
+  "home.since.summary": "Seit Sie hier waren, {when}: {summary}.",
+  "home.since.events": { one: "{count} Ereignis aufgezeichnet", other: "{count} Ereignisse aufgezeichnet" },
+  "home.since.proposals": { one: "{count} neuer Vorschlag", other: "{count} neue Vorschl\xE4ge" },
+  "home.since.nothing": "Nichts Neues, seit Sie hier waren, {when}.",
+  "nav.hint.memory": "Was das Unternehmen aus seiner Arbeit behalten hat, und wie man etwas beiseite legt",
+  "onboarding.done.next.integrations": "Integrationen verbinden ein Postfach, GitHub, Bluesky oder Mastodon, und jede Zeile sagt, was das Verbinden erm\xF6glichen w\xFCrde.",
+  "policies.grant.mode.label": "Autonomie f\xFCr {capability}",
+  "policies.grant.mode.autonomous": "L\xE4uft ohne Frage",
+  "policies.grant.mode.approval": "Stoppt f\xFCr einen Menschen",
+  "policies.grant.mode.restricted": "L\xE4uft nur innerhalb ihrer Grenzen",
+  "policies.grant.apply": "Anwenden",
+  "policies.grant.saving": "Wird gespeichert",
+  "policies.history.contract": "Den Vorschlag \xF6ffnen",
+  "policies.history.contract.for": "Den Vorschlag f\xFCr {intent} \xF6ffnen",
+  "studio.refused.superseded": "Ein neuerer Build f\xFCr diese Website hat diesen ersetzt, daher hat diese Seite aufgeh\xF6rt, ihm zu folgen. Nichts wurde hier ver\xF6ffentlicht. \xD6ffnen Sie diesen Bildschirm erneut, um dem Build zu folgen, der an seine Stelle trat.",
+  "studio.refused.still-running": "Dieser Build l\xE4uft noch, und diese Seite hat aufgeh\xF6rt, auf ihn zu warten. Nichts wurde ver\xF6ffentlicht. Er l\xE4uft weiter ohne diese Seite, und das, was er produziert hat, ist hier das n\xE4chste Mal, wenn dieser Bildschirm ge\xF6ffnet wird.",
+  "studio.unreachable.title": "Der Build-Dienst hat nicht geantwortet",
+  "studio.unreachable.body": "Diese Seite fragt weiter. Der Build l\xE4uft m\xF6glicherweise noch: Er l\xE4uft weiter ohne diese Seite in jedem Fall, und das, was er produziert hat, ist hier das n\xE4chste Mal, wenn dieser Bildschirm ge\xF6ffnet wird.",
+  "team.head.seats": { one: "{active} von {limit} Sitz.", other: "{active} von {limit} Sitze." },
+  "team.head.seats.none": "Keine Sitzbegrenzung in diesem Plan.",
+  "team.seats.full.title": "Jeder Sitz in diesem Plan ist besetzt",
+  "team.seats.full.body": "Die n\xE4chste Einladung wird abgelehnt, bis ein Sitz frei ist. Deaktivieren Sie jemanden, der gegangen ist, oder erh\xF6hen Sie den Plan auf",
+  "usage.scope": "Nutzung und Abrechnung geh\xF6ren zur Organisation, nicht zu einem Arbeitsbereich: Die Organisation kauft den Plan, und jeder Arbeitsbereich, den sie besitzt, entnimmt Guthaben aus demselben Kontingent.",
+  // MON-8: invoices and the payment method, on Stripe's own page.
+  "billing.portal.heading": "Rechnungen und Zahlungsmittel",
+  "billing.portal.body": "Ihre Rechnungen, die Karte, mit der Sie zahlen, und das K\xFCndigen liegen auf der eigenen Seite von Stripe. Orvay beh\xE4lt keine zweite Kopie einer Rechnung, also kann hier nichts von dem abweichen, was Ihnen berechnet wurde.",
+  "billing.portal.open": "Abrechnungsportal \xF6ffnen",
+  "billing.portal.none.reason": "Es gibt nichts zu zeigen, solange kein Abonnement besteht. Das \xF6ffnet sich, sobald die erste Zahlung durchgeht.",
+  "billing.portal.unavailable": "Nicht verf\xFCgbar",
+  "billing.portal.no-customer.title": "Es gibt noch kein Abrechnungskonto",
+  "billing.portal.no-customer.body": "F\xFCr diese Organisation wurde nichts bezahlt, also h\xE4lt Stripe weder Rechnungen noch ein Zahlungsmittel daf\xFCr. Schlie\xDFen Sie einen Tarif ab, dann \xF6ffnet sich das Portal.",
+  "billing.portal.refused.title": "Keine Berechtigung f\xFCr die Abrechnung",
+  "billing.portal.failed.title": "Das Abrechnungsportal konnte nicht ge\xF6ffnet werden",
+  "billing.portal.failed.body": "An Ihrem Abonnement hat sich nichts ge\xE4ndert. Versuchen Sie es gleich noch einmal und schreiben Sie uns, wenn es weiterhin auftritt.",
+  // Goal A close-out, batch two: versions, and the integrations page in the reader's language
+  "files.col.version": "Version",
+  "files.versions.replaces": "Ersetzt {name}",
+  "files.versions.replaced": "Durch eine neuere Version ersetzt",
+  "files.versions.heading": "Versionen",
+  "files.versions.replaced.lead": "Eine neuere Version hat diese ersetzt:",
+  "files.versions.previous.lead": "Was diese Datei ersetzt hat, das Neueste zuerst:",
+  "files.versions.deleted": "gel\xF6scht",
+  "files.versions.note": "Ein Dokument zu ersetzen entfernt das vorherige nicht. Jede Version oben ist eine eigene Datei, und eine zu l\xF6schen ist ein eigener Schritt.",
+  "integrations.catalogue.github.summary": "Repositories, Pull Requests, Checks",
+  "integrations.catalogue.github.because": "Ein echter Adapter existiert. Aktionen dar\xFCber erreichen GitHub und werden als live erfasst.",
+  "integrations.catalogue.github.label": "Personal Access Token",
+  "integrations.catalogue.github.help": "Ein fein abgestuftes Token mit Lesezugriff auf die Repositories, die Orvay sehen soll. Orvay pr\xFCft es mit einem einzigen lesenden Aufruf, bevor es gespeichert wird, und speichert nichts, wenn dieser Aufruf scheitert.",
+  "integrations.catalogue.bluesky.summary": "Beitr\xE4ge auf Ihrem eigenen Konto",
+  "integrations.catalogue.bluesky.because": "Ein echter Adapter existiert, und Beitr\xE4ge dar\xFCber erscheinen tats\xE4chlich auf Ihrem Konto.",
+  "integrations.catalogue.bluesky.label": "App-Passwort",
+  "integrations.catalogue.bluesky.help": "Wird in Bluesky unter Einstellungen, App-Passw\xF6rter erzeugt. Nicht Ihr Kontopasswort. Bluesky bietet daf\xFCr kein brauchbares OAuth, also ist ein App-Passwort das Zugangsmittel, das die Plattform selbst vorsieht.",
+  "integrations.catalogue.mastodon.summary": "Beitr\xE4ge auf Ihrer eigenen Instanz",
+  "integrations.catalogue.mastodon.because": "Ein echter Adapter existiert, beschr\xE4nkt auf die Instanz, zu der Ihr Token geh\xF6rt.",
+  "integrations.catalogue.mastodon.label": "Zugriffstoken",
+  "integrations.catalogue.mastodon.help": "Wird auf Ihrer Instanz unter Einstellungen, Entwicklung erstellt. Braucht den Scope write:statuses und nichts weiter.",
+  "integrations.catalogue.email.summary": "Transaktions- und Marketingmail, versendet als Sie",
+  "integrations.catalogue.email.because": "Der Ablauf f\xFCr die DNS-Delegation ist noch nicht gebaut. Orvay versendet Ihre Marketingmail nicht als Notl\xF6sung von der eigenen Domain, weil dieser Schaden sich sp\xE4ter nicht durch ge\xE4ndertes Verhalten beheben l\xE4sst.",
+  "integrations.catalogue.email.help": "Als Ihre Domain zu senden hei\xDFt, DKIM per CNAME zu delegieren, damit Schl\xFCssel rotieren k\xF6nnen, ohne dass Sie das DNS noch einmal anfassen. Orvay versendet Mandantenmail nie von einer Domain, die Orvay geh\xF6rt: Reputation wird \xFCber eine registrierbare Domain und ihre Subdomains geteilt, sodass ein Mandant, der eine Schwelle \xFCberschreitet, alle Mandanten auf einmal treffen w\xFCrde, dauerhaft.",
+  "integrations.catalogue.gmail.summary": "Ihr eigenes Postfach lesen, sichten und beantworten",
+  "integrations.catalogue.gmail.because": "Der OAuth-Client ist gebaut und getestet. Diese Installation hat keinen Google-Anmeldeclient registriert, deshalb sagt die Zeile das, statt einen Knopf anzubieten; und Google stuft Postfachzugriff als eingeschr\xE4nkten Scope ein, der eine j\xE4hrliche Sicherheitspr\xFCfung durch Dritte verlangt, bevor das Postfach einer fremden Person dar\xFCber erreicht werden kann. Lesen, Sichten und Antworten f\xFCr Gmail sind noch nicht gebaut.",
+  "integrations.catalogue.gmail.help": "Sie w\xFCrden Ihr eigenes Google-Konto verbinden. Orvay sieht Ihr Passwort nie, hostet keine Ihrer Mails, und Sie k\xF6nnen die Freigabe bei Google widerrufen, ohne uns zu fragen. Es antwortet Personen, die Ihnen geschrieben haben, und beginnt keine Gespr\xE4che: das ist eine andere F\xE4higkeit, und das Produkt verweigert sie.",
+  "integrations.catalogue.outlook.summary": "Ihr eigenes Postfach lesen, sichten und beantworten",
+  "integrations.catalogue.outlook.because": "Ein echter Adapter existiert, und er liest, sortiert und beantwortet ein echtes Postfach. Microsoft verlangt f\xFCr das Lesen von Mail keine separate Sicherheitspr\xFCfung, deshalb kam dies vor Gmail. Nichts wird gelesen, bis Sie fragen, und nichts wird gesendet, bis Sie etwas dr\xFCcken.",
+  "integrations.catalogue.outlook.help": "Sie verbinden Ihr eigenes Microsoft-Konto. Ein pers\xF6nliches Konto funktioniert heute; ein Arbeitskonto in einem Microsoft-365-Mandanten eines Unternehmens kann von diesem Mandanten abgelehnt werden, weil Orvay noch kein verifizierter Microsoft-Herausgeber ist. Orvay sieht Ihr Passwort nie, hostet keine Ihrer Mails, und Sie k\xF6nnen die Freigabe bei Microsoft widerrufen, ohne uns zu fragen. Es antwortet Personen, die Ihnen geschrieben haben, und beginnt keine Gespr\xE4che: das ist eine andere F\xE4higkeit, und das Produkt verweigert sie.",
+  "integrations.catalogue.stripe.summary": "Abonnements, Rechnungen, Erstattungen",
+  "integrations.catalogue.stripe.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen. Der \xDCbungsadapter, der geldf\xF6rmige Aktionen f\xFCr Richtlinienproben nachbildet, ist davon getrennt, und jedes Artefakt, das er erzeugt, ist als simuliert gestempelt.",
+  "integrations.catalogue.google-ads.summary": "Kampagnen und Ausgaben",
+  "integrations.catalogue.google-ads.because": "Nachgebildet, weil das Ver\xF6ffentlichen einer Kampagne das klarste Beispiel f\xFCr eine unumkehrbare, nach au\xDFen wirkende Aktion ist. Nichts wird ver\xF6ffentlicht.",
+  "integrations.catalogue.vercel.summary": "Deployments und Rollbacks",
+  "integrations.catalogue.vercel.because": "Nachgebildet, damit ein Rollback vorgeschlagen und gepr\xFCft werden kann. Kein Deployment wird angefasst.",
+  "integrations.catalogue.linear.summary": "Issues und Zyklen",
+  "integrations.catalogue.linear.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.catalogue.atlassian.summary": "Jira-Issues, Confluence-Seiten",
+  "integrations.catalogue.atlassian.because": "Ein Server f\xFCr Jira und Confluence. Jedes Werkzeug, das er auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.catalogue.sentry.summary": "Fehler, Issues, Releases",
+  "integrations.catalogue.sentry.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.catalogue.notion.summary": "Seiten und Datenbanken",
+  "integrations.catalogue.notion.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.catalogue.slack.summary": "Eine eskalierte Freigabe, in einen Kanal gepostet",
+  "integrations.catalogue.slack.because": "Orvay postet in den Kanal, den Sie nennen. Die Nachricht tr\xE4gt nie einen Knopf: eine Entscheidung aus einem Chat-Client hat keine Sitzung hinter sich, deshalb verlinkt die Nachricht den Vorschlag, und die Entscheidung f\xE4llt in Orvay.",
+  "integrations.catalogue.slack.label": "Bot-User-OAuth-Token",
+  "integrations.catalogue.slack.help": "Erstellen Sie eine App in Ihrem eigenen Slack-Workspace, geben Sie ihr die Scopes chat:write und channels:read, installieren Sie sie und laden Sie sie dann in den Kanal ein. Orvay pr\xFCft Token und Kanal mit zwei lesenden Aufrufen, bevor etwas gespeichert wird.",
+  "integrations.catalogue.hubspot.summary": "Pipeline und Kontakte",
+  "integrations.catalogue.hubspot.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.catalogue.intercom.summary": "Unterhaltungen und Makros",
+  "integrations.catalogue.intercom.because": "Nicht gebaut. Eingehender Supporttext ist per Definition nicht vertrauensw\xFCrdiger Kontext, deshalb wartet dieser Anschluss auf den Quarant\xE4nepfad, statt fr\xFCh zu kommen.",
+  "integrations.catalogue.zenovay.summary": "Website-Analytik, Ziele, Funnels, Verf\xFCgbarkeit",
+  "integrations.catalogue.zenovay.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.catalogue.posthog.summary": "Funnels, Aufzeichnungen, Feature-Flags",
+  "integrations.catalogue.posthog.because": "Jedes Werkzeug, das der Server auflistet, wartet auf Freigabe, bis Sie es anders bestimmen.",
+  "integrations.connect.submit": "{name} verbinden",
+  "integrations.connect.busy": "Wird gepr\xFCft",
+  "integrations.connect.busyReason": "Das Zugangsmittel wird mit {name} gepr\xFCft",
+  "integrations.connect.oauth.submit": "{name} \xFCber {provider} verbinden",
+  "integrations.connect.oauth.busy": "{provider} wird ge\xF6ffnet",
+  "integrations.connect.oauth.busyReason": "Sie werden zu {provider} weitergeleitet",
+  "integrations.connect.oauth.noClient": "Diese Installation hat keinen Anmeldeclient f\xFCr {provider} registriert, es gibt also noch nichts zu dr\xFCcken.",
+  "integrations.disconnect.submit": "Trennen",
+  "integrations.disconnect.busy": "Wird getrennt",
+  // Goal A close-out, batch two: goals belong to a department, and a statement can be edited
+  "department.filter.label": "Eine Abteilung anzeigen",
+  "department.filter.all": "Alle Abteilungen",
+  "department.filter.submit": "Zeigen",
+  "department.filter.showing": "Es wird nur gezeigt, was zu {department} geh\xF6rt.",
+  "department.filter.clear": "Alle Abteilungen anzeigen",
+  "department.filter.chain": "Das Register wird von Anfang bis Ende in seiner Reihenfolge gepr\xFCft, deshalb l\xE4uft diese Pr\xFCfung \xFCber das ganze Register und nicht \xFCber eine Abteilung.",
+  "goals.department.label": "Welche Abteilung",
+  "goals.department.company": "Das ganze Unternehmen",
+  "goals.department.saved": "Gespeichert.",
+  "goals.department.error": "Das ist keine Abteilung in diesem Unternehmen.",
+  "goals.department.on": "Abteilung: {name}",
+  "goals.form.department.hint": "Ein Ziel ohne Abteilung geh\xF6rt dem ganzen Unternehmen.",
+  "goals.statement.label": "Was dieses Ziel sagt",
+  "goals.statement.submit": "Speichern",
+  "goals.statement.saved": "Gespeichert.",
+  "integrations.catalogue.email.name": "E-Mail von Ihrer eigenen Domain"
 };
 
 // ../../packages/content/src/messages/de.legal.ts
@@ -11604,13 +12679,13 @@ var de_legal_default = {
   "legal.subprocessors.supabase.safeguard": "Eine \xDCbermittlung aus dem EWR in die Schweiz st\xFCtzt sich auf den Angemessenheitsbeschluss der Europ\xE4ischen Kommission f\xFCr die Schweiz und bedarf keines weiteren Instruments. Supabase ist in den Vereinigten Staaten niedergelassen, und dessen eigener Zugriff ist durch seinen Auftragsverarbeitungszusatz mit den Standardvertragsklauseln abgedeckt.",
   "legal.subprocessors.supabase.statusDetail": "Enth\xE4lt das Einwilligungsregister und jede Fachtabelle. Das fr\xFChere Projekt in Frankfurt, Region eu-central-1, wird zugunsten des Z\xFCrcher Projekts stillgelegt.",
   "legal.subprocessors.anthropic.service": "Modellinferenz. Claude ist die Standardwahl f\xFCr die meisten Aufgabenklassen, einschlie\xDFlich derjenigen, die eine generierte Website schreibt.",
-  "legal.subprocessors.anthropic.data1": "Der Text der Anfrage, die Sie an einen Agenten stellen, sowie der daf\xFCr zusammengestellte Kontext",
+  "legal.subprocessors.anthropic.data1": "Der Text Ihrer Anfrage an einen Agenten und der daf\xFCr zusammengestellte Kontext, wobei Text, der auf eine kurze Liste von Mustern f\xFCr Zugangsdaten passt, vor dem Senden entfernt wird. Personenbezogene Angaben in diesem Text, etwa Namen und Adressen, werden nicht entfernt",
   "legal.subprocessors.anthropic.data2": "Eine Wartelisten-Adresse ist niemals Teil dieses Textes",
   "legal.subprocessors.anthropic.location1": "Vereinigte Staaten. Au\xDFerhalb der Schweiz und au\xDFerhalb des EWR",
   "legal.subprocessors.anthropic.safeguard": "Die Standardvertragsklauseln im Rahmen des Auftragsverarbeitungszusatzes des Anbieters. Wir st\xFCtzen uns auf die Klauseln und nicht auf eine Rahmenzertifizierung.",
   "legal.subprocessors.anthropic.statusDetail": "Der Worker zur Website-Generierung ruft ein Modell auf, sobald ihm ein Anbieterschl\xFCssel vorliegt. Er ist der einzige Worker im Produkt, der \xFCberhaupt ein Modell aufruft.",
   "legal.subprocessors.openai.service": "Modellinferenz, eingesetzt dort, wo die Routing-Tabelle eine Aufgabenklasse an ein OpenAI-Modell sendet. Es ist der zweite Anbieter, wodurch eine Verifizierung von einem anderen Anbieter durchgef\xFChrt werden kann als demjenigen, der die Arbeit erledigt hat.",
-  "legal.subprocessors.openai.data1": "Der Text der Anfrage, die Sie an einen Agenten stellen, sowie der daf\xFCr zusammengestellte Kontext",
+  "legal.subprocessors.openai.data1": "Der Text Ihrer Anfrage an einen Agenten und der daf\xFCr zusammengestellte Kontext, wobei Text, der auf eine kurze Liste von Mustern f\xFCr Zugangsdaten passt, vor dem Senden entfernt wird. Personenbezogene Angaben in diesem Text, etwa Namen und Adressen, werden nicht entfernt",
   "legal.subprocessors.openai.data2": "Eine Wartelisten-Adresse ist niemals Teil dieses Textes",
   "legal.subprocessors.openai.location1": "Vereinigte Staaten. Au\xDFerhalb der Schweiz und au\xDFerhalb des EWR",
   "legal.subprocessors.openai.safeguard": "Die Standardvertragsklauseln im Rahmen des Auftragsverarbeitungszusatzes des Anbieters. Wir st\xFCtzen uns auf die Klauseln und nicht auf eine Rahmenzertifizierung.",
@@ -11792,10 +12867,10 @@ var catalogue = {
   "blog.tabs.label": "Kategorien",
   "blog.empty": "In dieser Kategorie gibt es noch keine Beitr\xE4ge.",
   "blog.similar": "\xC4hnliche Artikel",
-  "blog.pagination.label": "Seiten",
-  "blog.pagination.page": "Seite {n}",
-  "blog.pagination.next": "N\xE4chste Seite",
-  "blog.pagination.previous": "Vorherige Seite",
+  "pagination.label": "Seiten",
+  "pagination.page": "Seite {n}",
+  "pagination.next": "N\xE4chste Seite",
+  "pagination.previous": "Vorherige Seite",
   "blog.done-is-not-proof.title": "Wenn ein Agent \u201Efertig\u201C sagt, ist das kein Beweis",
   "blog.done-is-not-proof.lead": "Warum Orvay jede abgeschlossene Aufgabe als Behauptung behandelt, und was n\xF6tig ist, um aus einer Behauptung ein Protokoll zu machen, dem ein Unternehmen vertrauen kann.",
   "blog.done-is-not-proof.description": "Jeder Agent beendet seine Arbeit mit einer Nachricht, die \u201Efertig\u201C sagt. Ein Unternehmen kann mit dieser Nachricht nicht arbeiten. So trennt Orvay die Behauptung vom Beweis.",
@@ -11880,6 +12955,7 @@ var fr_default = {
   "pricing.ladder.label.members": "Membres",
   "pricing.ladder.label.departments": "D\xE9partements",
   "pricing.ladder.label.concurrent-runs": "Ex\xE9cutions simultan\xE9es",
+  "pricing.ladder.label.tool-servers": "Serveurs d'outils enregistr\xE9s",
   "pricing.ladder.label.beyond-allowance": "Au-del\xE0 du budget",
   "pricing.ladder.label.features": "Fonctionnalit\xE9s du plan",
   "pricing.ladder.label.no-features": "Aucune fonctionnalit\xE9 de plan. Le produit lui-m\xEAme n'est pas r\xE9duit.",
@@ -11941,6 +13017,8 @@ var fr_default = {
   "pricing.feature.scim.detail": "Cr\xE9ez et supprimez des comptes depuis votre propre annuaire, au lieu d'inviter chaque personne une par une.",
   "pricing.feature.byo_model_keys.name": "Vos propres cl\xE9s de mod\xE8le",
   "pricing.feature.byo_model_keys.detail": "Facturez l'utilisation des mod\xE8les sur vos propres comptes fournisseurs plut\xF4t que sur votre budget de cr\xE9dits.",
+  "pricing.feature.integration_mcp.name": "Outils emprunt\xE9s",
+  "pricing.feature.integration_mcp.detail": "Enregistrez les serveurs d'outils que votre entreprise utilise d\xE9j\xE0, et laissez Orvay appeler leurs outils selon votre politique, une approbation par outil. Le nombre qu'un plan contient se trouve dans le tableau ci-dessus.",
   "pricing.feature.voice.name": "Voix int\xE9gr\xE9e",
   "pricing.feature.voice.detail": "R\xE9pondez \xE0 un appel dans le navigateur, avec une transcription pour trace. Orvay r\xE9pond aux appels et n'en passe jamais, quel que soit le plan, et c'est d\xE9lib\xE9r\xE9.",
   "pricing.hard-stop.heading": "Le plan gratuit s'arr\xEAte. Il ne g\xE9n\xE8re jamais de facture.",
@@ -12524,8 +13602,17 @@ var fr_default = {
   "shell.company.new": "Nouvelle entreprise",
   "shell.company.organizationSettings": "Param\xE8tres de l\u2019organisation",
   "newCompany.title": "Ajouter un espace de travail",
-  "newCompany.body": "Un espace de travail est une entreprise g\xE9r\xE9e par Orvay. Il a ses propres objectifs, ses propres enregistrements et sa propre \xE9quipe, et rien ne passe de l\u2019un \xE0 l\u2019autre.",
+  "newCompany.body": "Un espace de travail est une entreprise g\xE9r\xE9e par Orvay. Il a ses propres objectifs, ses propres enregistrements et sa propre \xE9quipe, et aucun de ces \xE9l\xE9ments ne passe de l\u2019un \xE0 l\u2019autre.",
   "newCompany.label": "Comment s\u2019appelle-t-il",
+  "newCompany.where.legend": "O\xF9 il doit aller",
+  "newCompany.where.join.label": "Dans {organization}",
+  "newCompany.where.join.sublabel": "Partage le forfait, les cr\xE9dits et les politiques que cette organisation a d\xE9j\xE0. Ce que cet espace de travail consomme est pris sur le m\xEAme quota.",
+  "newCompany.where.new.label": "Dans une nouvelle organisation",
+  "newCompany.where.new.sublabel": "Une organisation distincte sur le forfait Free. Son forfait, ses cr\xE9dits et sa facturation lui sont propres.",
+  "newCompany.error.taken": "Un espace de travail portant ce nom existe d\xE9j\xE0 dans cette organisation. Choisissez un autre nom.",
+  "newCompany.error.refused": "Vous n\u2019\xEAtes pas autoris\xE9 \xE0 ajouter un espace de travail \xE0 cette organisation. Vous pouvez toutefois en cr\xE9er un dans une nouvelle organisation.",
+  "newCompany.error.atCap": "Vous avez d\xE9j\xE0 autant d\u2019organisations qu\u2019un compte peut en avoir sans forfait payant. Vous pouvez toutefois ajouter un espace de travail \xE0 une organisation dont vous faites d\xE9j\xE0 partie.",
+  "newCompany.error.tooMany": "Vous avez cr\xE9\xE9 autant d\u2019organisations que possible aujourd\u2019hui. Vous pouvez toutefois ajouter un espace de travail \xE0 une organisation dont vous faites d\xE9j\xE0 partie.",
   "newCompany.submit": "Cr\xE9er l\u2019espace de travail",
   "newCompany.busy": "Cr\xE9ation de l\u2019espace de travail en cours.",
   "newCompany.error.short": "Donnez \xE0 l\u2019espace de travail un nom d\u2019au moins deux caract\xE8res.",
@@ -12582,7 +13669,13 @@ var fr_default = {
   "org.allowance.heading": "Forfait et quota",
   "org.allowance.body": "Un forfait est achet\xE9 par l\u2019organisation, pas par si\xE8ge, et l\u2019organisation dispose d\u2019un seul quota mensuel que tous ses espaces de travail partagent. Ce qui est consomm\xE9 dans un espace est pris sur le quota o\xF9 puisent les autres, et le chiffre figure sur la page d\u2019utilisation de l\u2019espace o\xF9 vous vous trouvez.",
   "org.access.heading": "Qui a acc\xE8s",
-  "org.access.body": "L\u2019acc\xE8s est accord\xE9 par espace de travail aujourd\u2019hui. Une personne invit\xE9e dans un espace n\u2019est pas membre des autres, et son r\xF4le se d\xE9finit dans cet espace sous \xC9quipe. Modifier l\u2019acc\xE8s une seule fois pour toute l\u2019organisation n\u2019est pas construit.",
+  "org.access.body": "L\u2019acc\xE8s est accord\xE9 par espace de travail aujourd\u2019hui. Une personne invit\xE9e dans un espace n\u2019est pas membre des autres, Les personnes ci-dessous sont celles des espaces de travail dont vous faites partie. Un espace dont vous ne faites pas partie indique seulement combien de personnes il compte, car ses enregistrements y restent. Son r\xF4le se d\xE9finit dans cet espace sous \xC9quipe. Modifier l\u2019acc\xE8s une seule fois pour toute l\u2019organisation n\u2019est pas construit.",
+  "org.access.people": "Personnes",
+  "org.waiting.heading": "En attente dans vos espaces de travail",
+  "org.waiting.body": "Les propositions qui ne sont pas encore tranch\xE9es, dans chaque espace de travail dont vous faites partie. Ouvrez cet espace pour agir. Savoir si une proposition vous concerne personnellement se d\xE9cide dans l\u2019espace, pas ici.",
+  "org.waiting.count": "En attente",
+  "org.waiting.none": "Rien n\u2019attend dans les espaces de travail dont vous faites partie.",
+  "org.access.elsewhere": "Un espace de travail dont vous ne faites pas partie",
   "home.new": "Rien ne s'est encore produit. Cette entreprise est nouvelle.",
   "home.recorded": {
     one: "{count} \xE9v\xE9nement enregistr\xE9 depuis la cr\xE9ation de cette entreprise.",
@@ -12599,6 +13692,8 @@ var fr_default = {
   "notification.headline.comment.mentioned": "Quelqu'un vous a demand\xE9 nomm\xE9ment",
   "notification.headline.goal.thrashing": "Un objectif a \xE9chou\xE9 plusieurs fois de suite et a \xE9t\xE9 arr\xEAt\xE9",
   "notification.push.none.title": "Rien n'attend dans {company}",
+  "notification.slack.escalated": "Une d\xE9cision dans {company} attend depuis un jour.",
+  "notification.slack.note": "Rien n'est d\xE9cid\xE9 dans Slack. Le lien ouvre {brand}, o\xF9 la d\xE9cision est attribu\xE9e \xE0 la personne qui la prend.",
   "notification.push.none.body": "Vous \xEAtes \xE0 jour.",
   "notification.push.only": "Dans {company}.",
   "notification.push.more": {
@@ -13227,6 +14322,10 @@ var fr_default = {
   "inbox.refused": "refus\xE9",
   "inbox.checked": "v\xE9rifi\xE9 par un acteur diff\xE9rent",
   "inbox.notEstablished": "ex\xE9cut\xE9, non \xE9tabli",
+  "inbox.inspector.label": "\xC0 propos de la proposition s\xE9lectionn\xE9e",
+  "inbox.inspector.empty": "Choisissez une proposition pour voir ce qu'elle ferait.",
+  "inbox.inspector.open": "Ouvrir le contrat",
+  "inbox.openContract": "Ouvrir le contrat pour {objective}",
   "contract.tabs": "Vues de ce contrat",
   "contract.tab.contract": "Contrat",
   "contract.tab.output": "R\xE9sultat",
@@ -13334,6 +14433,7 @@ var fr_default = {
   "decision.ok.approved": "Approuv\xE9.",
   "decision.ok.refused": "Refus\xE9.",
   "decision.ok.ran": "Ex\xE9cut\xE9, et un acteur diff\xE9rent a confirm\xE9 que l\u2019enregistrement correspond au contrat.",
+  "decision.error.alreadyRunning": "Cette proposition est d\xE9j\xE0 en cours, lanc\xE9e il y a un instant. Attendez qu\u2019elle se termine, puis consultez le journal pour voir ce qu\u2019elle a fait.",
   "decision.error.unverified": "Ex\xE9cut\xE9, mais la v\xE9rification ne l\u2019a PAS \xE9tabli\xA0: {why}",
   "decision.revise": "Demander une r\xE9vision",
   "decision.revise.hint": "Pour la renvoyer, dites ce qui doit changer. L\u2019auteur r\xE9pond par une proposition r\xE9vis\xE9e qui remplace celle-ci.",
@@ -13440,7 +14540,7 @@ var fr_default = {
   "activity.showing": "Affichage des {shown} plus r\xE9centes.",
   "company.created": "Cr\xE9\xE9e le {date}",
   "company.empty.title": "Cette entreprise n'a encore ni d\xE9partements ni agents",
-  "company.empty.because": "{brand} cr\xE9e un d\xE9partement quand un travail en a besoin, et un agent quand un d\xE9partement en a besoin. La v\xF4tre n'a ni l'un ni l'autre parce que rien n'en a encore eu besoin. Le m\xEAme mod\xE8le fait fonctionner une entreprise d'une personne et une de cent mille\xA0; il y a simplement moins de lignes ici.",
+  "company.empty.because": "{brand} cr\xE9e un service quand le travail en demande un, et un agent quand un service en demande un. Le v\xF4tre n'a ni l'un ni l'autre parce que rien ne l'a encore exig\xE9, et vous pouvez en ajouter un vous-m\xEAme ci-dessous. Le m\xEAme mod\xE8le fait tourner une entreprise d'une personne et une de cent mille; il y a simplement moins de lignes ici.",
   "company.departments": {
     one: "{count} d\xE9partement",
     many: "{count} d\xE9partements",
@@ -13483,6 +14583,8 @@ var fr_default = {
   "shell.halt.reason.header": "Arr\xEAt\xE9 depuis l\u2019en-t\xEAte, sans motif indiqu\xE9",
   "shell.dialog.close": "Fermer",
   "shell.theme.label": "Mode sombre",
+  "shell.toast.label": "Confirmations",
+  "shell.toast.dismiss": "Fermer",
   "field.unavailable": "Indisponible\xA0:",
   "outcome.banned.title": "Compte suspendu",
   "outcome.banned.title.temporary": "Compte temporairement restreint",
@@ -13616,6 +14718,7 @@ var fr_default = {
   "log.kind.shipped": "Livr\xE9",
   "log.kind.fixed": "Corrig\xE9",
   "log.kind.said": "Dit franchement",
+  "log.reconstructed": "Consign\xE9 apr\xE8s coup, \xE0 partir de l'historique du d\xE9p\xF4t",
   "log.meta.description": "Chaque changement apport\xE9 \xE0 Orvay, dans les mots d'un client, ajout\xE9 et jamais r\xE9\xE9crit.",
   "portability.title": "Portabilit\xE9",
   "portability.lead": "Ce que vous pouvez emporter d'Orvay, et ce que vous ne pouvez pas encore emporter. Chaque ligne ci-dessous est lue dans la m\xEAme table que celle de la page des tarifs, de sorte que cette page ne peut pas affirmer davantage qu'elle.",
@@ -13926,6 +15029,29 @@ var fr_default = {
   "mcp.tool.orvay_reject_decision": "Refuser un contrat. Une justification est exig\xE9e et elle est enregistr\xE9e.",
   // API keys. A key is a credential a person creates for a program; the token
   // is shown exactly once because only its hash is stored.
+  "contacts.nav": "Contacts",
+  "contacts.title": "Contacts",
+  "contacts.lead": "Une liste que vous apportez d'ailleurs. Orvay enregistre ce que votre fichier peut montrer sur qui a accept\xE9, et indique clairement o\xF9 il ne le peut pas.",
+  "contacts.nothing-sent.title": "Orvay n'envoie rien \xE0 cette liste",
+  "contacts.nothing-sent.body": "L'import d'un contact enregistre qui a accept\xE9 quoi, et rien d'autre. Il n'existe aujourd'hui aucun chemin dans Orvay qui \xE9crit \xE0 un contact import\xE9, quoi que dise votre fichier.",
+  "contacts.import.heading": "Importer une liste",
+  "contacts.import.lead": "Un CSV. Orvay lit la colonne nomm\xE9e address, et enregistre un accord uniquement lorsque la m\xEAme ligne porte \xE9galement agreed_at, wording_shown et source. Les lignes sans ces trois sont compt\xE9es et tenues \xE0 l'\xE9cart du dossier, car un accord que personne ne peut montrer n'en est pas un sur lequel vous pourriez compter plus tard.",
+  "contacts.import.file": "Votre fichier",
+  "contacts.import.hint": "Un CSV d'au maximum un m\xE9gaoctet.",
+  "contacts.import.choose": "Choisir un CSV",
+  "contacts.import.none-chosen": "Aucun fichier choisi",
+  "contacts.import.submit": "Importer",
+  "contacts.import.pending": "Lecture du fichier",
+  "contacts.summary.title": "Le fichier a \xE9t\xE9 lu",
+  "contacts.summary.recorded": "Accords enregistr\xE9s\xA0:",
+  "contacts.summary.already-known": "D\xE9j\xE0 enregistr\xE9\xA0:",
+  "contacts.summary.without-evidence": "Lu, sans rien qui montre un accord\xA0:",
+  "contacts.summary.rejected": "Adresse inutilisable, ou r\xE9pertori\xE9e deux fois\xA0:",
+  "contacts.error.no-file": "Choisissez d'abord un CSV.",
+  "contacts.error.too-large": "Ce fichier d\xE9passe un m\xE9gaoctet. Divisez-le et importez chaque partie.",
+  "contacts.error.no-rows": "Ce fichier a un en-t\xEAte et aucune ligne en dessous.",
+  "contacts.error.refused": "Vous n'avez pas la permission d'enregistrer qui a accept\xE9 d'\xEAtre contact\xE9.",
+  "contacts.error.unavailable": "Rien n'a \xE9t\xE9 import\xE9. R\xE9essayez dans un instant.",
   "settings.keys.title": "Cl\xE9s API",
   "settings.keys.lead": "Une cl\xE9 permet \xE0 un programme d'agir en votre nom, et jamais plus que ce que vous pouvez faire vous-m\xEAme.",
   "settings.keys.create.heading": "Cr\xE9er une cl\xE9",
@@ -13954,7 +15080,7 @@ var fr_default = {
   "site.footer.nav.trust": "Confiance",
   // Les trois pages qui existaient déjà et n'avaient pas de ligne dans un panneau.
   "blog.nav.blurb": "Ce que nous avons construit et ce qu'il en a co\xFBt\xE9 pour l'apprendre.",
-  "log.nav.blurb": "Chaque version, dat\xE9e, avec son commit.",
+  "log.nav.blurb": "Ce qui a chang\xE9, dat\xE9, en mots clairs.",
   "portability.nav.blurb": "Ce que vous pouvez emporter avec vous, sur tous les plans.",
   // Le mécanisme.
   "gates.title": "Les huit portes",
@@ -14125,7 +15251,7 @@ var fr_default = {
   "gates.honest.lead": "Un moteur de politique qui existe et un moteur de politique qui a \xE9t\xE9 atteint sont des affirmations diff\xE9rentes, et une seule d'elles concerne l'ex\xE9cution d'un logiciel.",
   "gates.honest.consent": "La porte 6 n'a jamais rien refus\xE9, parce qu'aucun appel ne nomme encore une personne comme son sujet. La porte est construite et test\xE9e. Elle n'a pas \xE9t\xE9 atteinte.",
   "gates.honest.concurrency": "La limite du nombre d'ex\xE9cutions pouvant s'ex\xE9cuter \xE0 la fois est \xE9crite et pas appliqu\xE9e. Les membres, les d\xE9partements et les fonctionnalit\xE9s le sont.",
-  "gates.honest.spend": "L'argent est d\xE9tenu autour de l'appel du mod\xE8le lui-m\xEAme plut\xF4t que d'\xEAtre confi\xE9 \xE0 un appelant, donc le plafond ne d\xE9pend pas de quelqu'un se souvenant de le r\xE9server. Deux surfaces v\xE9rifient toujours sans r\xE9server, et celles-ci sont nomm\xE9es dans le journal de construction.",
+  "gates.honest.spend": "L'argent est d\xE9tenu autour de l'appel du mod\xE8le lui-m\xEAme plut\xF4t que d'\xEAtre confi\xE9 \xE0 un appelant, donc le plafond ne d\xE9pend pas de quelqu'un se souvenant de le r\xE9server. Certaines surfaces v\xE9rifient encore sans r\xE9server.",
   "gates.unit.heading": "L'unit\xE9 est l'argent, jamais un compte",
   "gates.unit.lead": "Mesur\xE9e sur notre propre tableau de routage, le co\xFBt d'une action varie environ dix-neuf fois. Tout ce qui limite le travail en comptant les actions limite la mauvaise chose.",
   "gates.unit.credit": "Un cr\xE9dit est ce que vous voyez et ce pour quoi vous \xEAtes factur\xE9. La porte compare l'argent, et le cr\xE9dit en d\xE9coule plut\xF4t que d'\xEAtre stock\xE9 \xE0 c\xF4t\xE9, parce que deux nombres qui doivent s'accorder est comment un syst\xE8me de facturation commence \xE0 mentir.",
@@ -14156,7 +15282,7 @@ var fr_default = {
   "verification.today.heading": "O\xF9 c'est vrai aujourd'hui",
   "verification.today.lead": "Un chemin, d\xE9crit exactement, parce qu'un chemin est ce qui existe.",
   "verification.today.publish": "Quand Orvay publie un site, un acteur le construit, un deuxi\xE8me le v\xE9rifie, et la preuve est une r\xE9ponse HTTP r\xE9cup\xE9r\xE9e par un tiers. Le hachage du corps est calcul\xE9 par le c\xF4t\xE9 qui l'a re\xE7u plut\xF4t que par le c\xF4t\xE9 qui l'a envoy\xE9.",
-  "verification.today.gap": "Aucun autre type de travail n'est encore ind\xE9pendamment v\xE9rifi\xE9. L'entr\xE9e de routage pour cela existe et rien ne l'appelle. C'est un \xE9cart dans le produit, pas une subtilit\xE9 dans la formulation.",
+  "verification.today.gap": "Un deuxi\xE8me chemin est jug\xE9 de la m\xEAme mani\xE8re\xA0: quand une publication para\xEEt, un acteur diff\xE9rent la relit et une fonction d\xE9cide si cela \xE9tablit le r\xE9sultat. Ce qui manque encore, c'est de demander \xE0 un second mod\xE8le de v\xE9rifier un premier\xA0: cette voie existe dans le code et rien ne l'appelle. Nommer ce qui est quoi est l'objet de cette page.",
   "verification.today.why": "C'est \xE9crit ici parce qu'une affirmation de cat\xE9gorie reposant sur un chemin est l'exact \xE9chec que ce produit existe pour refuser, et nous pr\xE9f\xE9rerions le dire plut\xF4t que d'\xEAtre d\xE9couvert.",
   "verification.field.heading": "Ce que tout le monde fait d'autre",
   "verification.field.lead": "Lire \xE0 partir de la documentation des fournisseurs en septembre 2026. O\xF9 un produit d\xE9crit sa propre v\xE9rification, c'est ce qu'il d\xE9crit.",
@@ -14215,6 +15341,8 @@ var fr_default = {
   "integrations.credential.app_password.detail": "Ce que ce fournisseur \xE9met \xE0 la place d'un jeton. Limit\xE9 \xE0 une application et r\xE9vocable par lui-m\xEAme.",
   "integrations.credential.dns.title": "Un enregistrement que vous publiez",
   "integrations.credential.dns.detail": "D\xE9l\xE9gation par CNAME plut\xF4t qu'une cl\xE9 coll\xE9e dans un formulaire, de sorte que les cl\xE9s peuvent \xEAtre tourn\xE9es plus tard sans vous toucher DNS \xE0 nouveau.",
+  "integrations.credential.mcp.title": "Son propre serveur d'outils",
+  "integrations.credential.mcp.detail": "Le fournisseur exploite un serveur qui offre des outils. Orvay l'enregistre en un clic, s'autorise aupr\xE8s du fournisseur, fixe la liste des outils qu'il propose et demande une approbation avant que l'un d'eux ne s'ex\xE9cute.",
   "integrations.credential.none.title": "Rien encore",
   "integrations.credential.none.detail": "Aucun identifiant n'est accept\xE9, parce qu'il n'y a rien derri\xE8re le formulaire pour l'accepter.",
   "integrations.grants.heading": "Ce que le connecter permettrait",
@@ -14491,18 +15619,34 @@ var fr_default = {
   },
   "company.departments.heading": "D\xE9partements",
   "company.agents.heading": "Agents",
+  "company.department.legend": "Ajouter un service",
+  "company.department.name": "Son nom",
+  "company.department.submit": "Ajouter le service",
+  "company.department.created": "Le service a \xE9t\xE9 ajout\xE9.",
+  "company.department.error.short": "Un service a besoin d'un nom d'au moins deux caract\xE8res.",
+  "company.department.error.long": "Un nom de service compte quatre-vingts caract\xE8res au maximum.",
+  "company.department.error.refused": "Une porte a refus\xE9 cette action. Votre politique n'autorise pas l'ajout d'un service.",
   "company.department.no-envelope": "aucune enveloppe de capacit\xE9s",
   "company.agent.task-class": "classe de t\xE2che {taskClass}",
+  "company.agent.legend": "Ajouter un agent",
+  "company.agent.name": "Comment l'appeler",
+  "company.agent.name.hint": "Un libell\xE9 pour distinguer les agents dans une liste. Orvay n'a pas de personnalit\xE9 et ce n'en est pas une.",
+  "company.agent.department": "Quel service il appartient \xE0",
+  "company.agent.task-class.label": "Le type de travail qu'il effectue",
+  "company.agent.task-class.hint": "Une classe de t\xE2che d\xE9termine quel mod\xE8le r\xE9pond. Vous choisissez le type de travail; Orvay choisit le mod\xE8le.",
+  "company.agent.submit": "Ajouter l'agent",
+  "company.agent.created": "L'agent a \xE9t\xE9 ajout\xE9. Il ne dispose d'aucune capacit\xE9, il ne peut donc pas agir pour l'instant.",
+  "company.agent.error.short": "Un agent a besoin d'un nom d'au moins deux caract\xE8res.",
+  "company.agent.error.long": "Un nom d'agent compte quatre-vingts caract\xE8res au maximum.",
+  "company.agent.error.department": "Choisissez l'un des services de cette entreprise.",
+  "company.agent.error.task-class": "Choisissez l'une des classes de t\xE2che propos\xE9es.",
+  "company.agent.error.refused": "Une porte a refus\xE9 cette action. Votre politique n'autorise pas l'ajout d'un agent.",
+  "company.agent.needs-department": "Un agent appartient \xE0 un service. Commencez par ajouter un service ci-dessous.",
+  "company.agents.no-authority": "Un agent n'agit que avec les capacit\xE9s qui lui ont \xE9t\xE9 accord\xE9es. L'octroi de capacit\xE9s \xE0 un agent n'est pas encore construit, aucun d'entre eux ne peut donc agir.",
   "company.badge.halted": "arr\xEAt\xE9",
   "company.badge.active": "actif",
   "company.badge.inactive": "inactif",
-  "activity.head.empty": "Rien n'a \xE9t\xE9 enregistr\xE9 pour cette entreprise.",
-  "activity.head.count": {
-    one: "{count} entr\xE9e, la plus r\xE9cente \xE0 la fin.",
-    many: "{count} entr\xE9es, la plus r\xE9cente \xE0 la fin.",
-    other: "{count} entr\xE9es, la plus r\xE9cente \xE0 la fin."
-  },
-  "activity.head.showing": "Affiche les {count} plus r\xE9centes.",
+  "activity.trail.label": "Ce qui s'est pass\xE9, du plus r\xE9cent au plus ancien",
   "activity.unread.heading": "En attente que vous regardiez",
   "activity.unread.kind.message": "Quelqu'un a envoy\xE9 un e-mail \xE0 l'adresse de votre entreprise",
   "activity.unread.kind.approval": "Un contrat attend une d\xE9cision",
@@ -14523,6 +15667,7 @@ var fr_default = {
   "integrations.authority.title": "Se connecter, c'est accorder une autorit\xE9",
   "integrations.authority.body": "Chaque ligne \xE9num\xE8re les capacit\xE9s qu'elle accorderait. {brand} v\xE9rifie un identifiant par un appel r\xE9el, en lecture seule, avant de le stocker, et ne stocke rien si cet appel \xE9choue. Se d\xE9connecter d\xE9truit la cl\xE9 de chiffrement plut\xF4t que de supprimer la ligne, si bien que l'identifiant devient illisible et que la trace de son existence survit.",
   "integrations.grants": "Accorde\xA0:",
+  "integrations.grants.none": "Cette connexion n'accorde rien aux agents. Orvay publie une notification; aucun agent ne re\xE7oit de permission.",
   "integrations.connected-as": "Connect\xE9 en tant que",
   "integrations.mailbox.open": "Ouvrir la bo\xEEte mail",
   "integrations.webhooks.heading": "Webhooks",
@@ -14538,6 +15683,13 @@ var fr_default = {
   "tools.result.removed": "Supprim\xE9",
   "tools.result.not-registered": "Non enregistr\xE9",
   "tools.result.registered": "Enregistr\xE9",
+  "tools.register.submit": "Enregistrer le serveur d'outils",
+  "tools.register.busy": "V\xE9rification de l'adresse",
+  "tools.remove.submit": "Supprimer",
+  "tools.remove.busy": "Suppression en cours",
+  "tools.mode.busy": "Modification en cours",
+  "tools.mode.hold": "Faire approuver par une personne",
+  "tools.mode.release": "Laisser un mod\xE8le l'appeler seul",
   "tools.heading": "Serveurs d'outils",
   "tools.lead": "Un serveur d'outils est un tiers auquel {brand} peut demander des outils pour le compte de cette entreprise. Chaque outil qu'il propose devient une capacit\xE9 dans la table de politique avant qu'aucun mod\xE8le ne le voie, si bien que ce qu'un serveur DIT qu'un outil fait ne peut jamais d\xE9cider s'il peut \xEAtre utilis\xE9.",
   "tools.refused": "Refus\xE9 \xE0 la porte {gate} ({reason}).",
@@ -14605,6 +15757,27 @@ var fr_default = {
   "files.preview.not-found.body": "Ce fichier n'est pas dans cette entreprise, ou il a \xE9t\xE9 supprim\xE9.",
   "files.preview.back": "Retour aux fichiers",
   "files.preview.download": "T\xE9l\xE9charger",
+  "files.share.heading": "Partager ce document",
+  "files.share.lead": "Un lien qui s'ouvre sans compte Orvay. Il cesse de fonctionner le jour que vous choisissez, au plus tard apr\xE8s quatre-vingt-dix jours, et vous pouvez y mettre fin plus t\xF4t.",
+  "files.share.label": "\xC0 quoi sert ce lien",
+  "files.share.days": "Jours avant l'arr\xEAt",
+  "files.share.submit": "Cr\xE9er le lien",
+  "files.share.pending": "Cr\xE9ation du lien en cours",
+  "files.share.shown-once": "Copiez ceci maintenant. C'est la seule fois qu'il est affich\xE9, car seule son empreinte est stock\xE9e.",
+  "files.share.revoked": "Ce lien n'ouvre plus rien.",
+  "files.share.revoke": "Terminer ce lien",
+  "files.share.list.heading": "Liens vers ce document",
+  "files.share.list.empty": "Pas de liens. Ce document n'a pas quitt\xE9 l'entreprise.",
+  "files.share.list.unnamed": "Lien sans nom",
+  "files.share.list.live": "fonctionne maintenant",
+  "files.share.list.expired": "expir\xE9",
+  "files.share.list.revoked": "termin\xE9",
+  "files.share.list.never-opened": "jamais ouvert",
+  "files.share.list.opened": "ouvert",
+  "files.share.error.refused": "Vous n'avez pas la permission de partager un document en dehors de cette entreprise.",
+  "files.share.error.unavailable": "Rien n'a \xE9t\xE9 cr\xE9\xE9. R\xE9essayez dans un instant.",
+  "files.share.error.not-found": "Ce document n'existe plus ici.",
+  "files.share.error.window": "Choisissez un nombre entier de jours, de 1 \xE0 90.",
   "files.preview.image.caption": "D\xE9crit uniquement par son nom de fichier. Rien n'a lu ce que contient l'image.",
   "files.preview.pdf-empty.title": "Aucun texte n'a pu \xEAtre extrait de ce PDF",
   "files.preview.pdf-empty.body": "Le texte s'affiche ici quand un PDF en contient. Celui-ci n'en a livr\xE9 aucun, ce qui signifie g\xE9n\xE9ralement que les pages sont des images num\xE9ris\xE9es plut\xF4t que du texte, ou que le fichier est prot\xE9g\xE9. Il peut toujours \xEAtre t\xE9l\xE9charg\xE9, et le travail que cette entreprise ex\xE9cute n'en re\xE7oit rien.",
@@ -14848,6 +16021,7 @@ var fr_default = {
   "account.export.right.title": "L'export est un droit et non une fonctionnalit\xE9",
   "account.export.right.body": "Vos propres donn\xE9es sont exportables sur tous les plans, y compris le plan gratuit, dans un format lisible par machine. Facturer cet export serait une infraction plut\xF4t qu'une d\xE9cision tarifaire, si bien que rien concernant votre plan n'est consult\xE9 quand vous appuyez sur ce bouton.",
   "account.export.manifest": "Le fichier est au format NDJSON\xA0: une valeur JSON par ligne, et la premi\xE8re ligne est un manifeste qui nomme chaque ensemble d'enregistrements, en indique le nombre, et pr\xE9cise quand l'export a \xE9t\xE9 produit. Il couvre cette entreprise, quiconque y d\xE9tient un si\xE8ge, chaque invitation qu'elle a envoy\xE9e, le registre de consentement, et le journal d'audit cha\xEEn\xE9 par hachage. Le contenu de chaque entr\xE9e d'audit est fourni tel qu'il a \xE9t\xE9 stock\xE9, si bien que chaque entr\xE9e continue de se hacher vers le hachage inscrit \xE0 c\xF4t\xE9 d'elle, et vous pouvez rev\xE9rifier la cha\xEEne sans nous.",
+  "account.export.verify": "Comment v\xE9rifier ce fichier vous-m\xEAme",
   "account.export.submit": "Exporter tout",
   "account.export.recorded": "Emporter une copie est inscrit au journal d'audit, en nommant le nombre d'enregistrements entr\xE9s dans le fichier et aucune adresse. Un journal d'audit volumineux arrive une page \xE0 la fois, et le manifeste indique la position \xE0 partir de laquelle reprendre.",
   "account.site.heading": "Votre site web g\xE9n\xE9r\xE9",
@@ -14892,6 +16066,7 @@ var fr_default = {
   "account.erased.title": "Effac\xE9",
   "account.erased.lead": "Vos donn\xE9es personnelles ont \xE9t\xE9 effac\xE9es de cette entreprise.",
   "account.erased.what.heading": "Exactement ce qui s'est pass\xE9",
+  "account.erased.halted": "Cet espace de travail a \xE9t\xE9 arr\xEAt\xE9, car vous \xE9tiez la derni\xE8re personne \xE0 pouvoir y approuver quoi que ce soit. Plus rien ne s\u2019y ex\xE9cute. Une personne ayant acc\xE8s au compte qui le paie peut le relancer.",
   "account.erased.sealed": "Votre adresse et votre nom affich\xE9 ont \xE9t\xE9 \xE9cras\xE9s, et la cl\xE9 qui rendait vos enregistrements de consentement lisibles a \xE9t\xE9 d\xE9truite, si bien que ces enregistrements ne peuvent plus \xEAtre lus par personne, nous y compris. Les entr\xE9es d\xE9j\xE0 \xE9crites dans le journal d'audit restent telles quelles\xA0: un journal d'audit qui pourrait \xEAtre r\xE9\xE9crit n'en serait pas un. Nous conservons la trace qu'une interaction a eu lieu, quand, et sous quelle autorit\xE9, parce que nous devons pouvoir d\xE9montrer que nous avons agi de fa\xE7on licite.",
   "account.erased.suppression": "Nous conservons aussi un condens\xE9 \xE0 sens unique et \xE0 cl\xE9 de votre adresse sur notre liste de suppression, afin de pouvoir la reconna\xEEtre et de refuser de vous recontacter. Ce condens\xE9 est la seule chose que nous retenons \xE0 votre sujet, et c'est la raison pour laquelle votre retrait continue d'\xEAtre honor\xE9.",
   "account.erased.uncovered.label": "Ce que cela ne couvre pas",
@@ -14900,6 +16075,14 @@ var fr_default = {
   "account.erased.backups.title": "Copies dans les sauvegardes courantes de la base de donn\xE9es",
   "account.erased.backups.body": "Une sauvegarde effectu\xE9e avant que la cl\xE9 ne soit d\xE9truite la contient encore. Nous n'avons pas encore d\xE9fini ni publi\xE9 de fen\xEAtre de conservation pour ces sauvegardes, donc nous ne pouvons pas vous donner de date apr\xE8s laquelle plus aucune copie n'existerait nulle part. Quand cette fen\xEAtre sera d\xE9finie, elle sera indiqu\xE9e ici.",
   "account.erased.audit": "Le journal d'audit de cette entreprise enregistre cet effacement, ce qu'il a d\xE9truit et ce qu'il n'a pas pu atteindre, sous le type d'entr\xE9e {entryType}.",
+  "account.erased.receipt.audit": "Entr\xE9e",
+  "account.erased.receipt.fingerprint": "Empreinte",
+  "account.erased.receipt.key": "Cl\xE9 d\xE9truite",
+  "account.erased.unknown.title": "Nous n'avons aucune trace de cela",
+  "account.erased.unknown.body": "L'adresse que vous avez suivie d\xE9signe un effacement que nous n'avons pas effectu\xE9. Si vous avez effac\xE9 vos donn\xE9es et conserv\xE9 le lien, v\xE9rifiez qu'il a \xE9t\xE9 copi\xE9 en entier. Sinon, il n'y a rien ici.",
+  "account.erased.receipt.heading": "Votre preuve, \xE0 conserver",
+  "account.erased.receipt.body": "Cet effacement a \xE9t\xE9 inscrit dans le registre de votre entreprise, une cha\xEEne o\xF9 chaque entr\xE9e porte l\u2019empreinte de la pr\xE9c\xE9dente. Ces trois valeurs d\xE9signent cette entr\xE9e. Copiez-les quelque part o\xF9 vous gardez vos documents.",
+  "account.erased.receipt.check": "Quiconque exporte plus tard les donn\xE9es de l\u2019entreprise peut retrouver cette entr\xE9e et recalculer son empreinte, avec le v\xE9rificateur que {brand} publie. Si l\u2019entr\xE9e a \xE9t\xE9 modifi\xE9e depuis, la v\xE9rification \xE9choue et indique la ligne. C\u2019est ce qui rend ces valeurs dignes d\u2019\xEAtre conserv\xE9es, plut\xF4t qu\u2019une phrase que nous avons \xE9crite.",
   "account.erased.browser.heading": "Ce navigateur",
   "account.erased.browser.body": "Vous n'\xEAtes plus membre de cette entreprise. Se d\xE9connecter met \xE9galement fin \xE0 cette session de navigateur.",
   "account.footer.team": "Vous cherchez qui d'autre se trouve dans cette entreprise\xA0? C'est",
@@ -14910,6 +16093,13 @@ var fr_default = {
   "integrations.error.no-credential": "Collez d'abord l'identifiant.",
   "integrations.error.bluesky-needs-handle": "Bluesky a besoin de votre identifiant, en plus du mot de passe d'application.",
   "integrations.error.mastodon-needs-host": "Mastodon a besoin du nom d'h\xF4te de votre instance.",
+  "integrations.error.slack-needs-channel": "Slack a besoin de l'ID du canal ainsi que du jeton.",
+  "integrations.field.bluesky.label": "Votre identifiant",
+  "integrations.field.bluesky.hint": "Par exemple name.bsky.social",
+  "integrations.field.mastodon.label": "Votre nom d'h\xF4te d'instance",
+  "integrations.field.mastodon.hint": "Par exemple mastodon.social, sans https",
+  "integrations.field.slack.label": "ID du canal",
+  "integrations.field.slack.hint": "Ouvrez le canal dans Slack et choisissez Voir les d\xE9tails du canal. L'ID se trouve en bas et commence par C.",
   "integrations.error.no-adapter": "Aucun adaptateur n'existe pour cette int\xE9gration.",
   "integrations.error.verify-unreachable": "Rien n'a \xE9t\xE9 stock\xE9\xA0: {reason}. Votre identifiant reste inchang\xE9 et intact.",
   "integrations.error.gate-refused": "refus\xE9 \xE0 la porte {gate}\xA0: {reason}",
@@ -14919,6 +16109,8 @@ var fr_default = {
   "integrations.error.not-connected": "Cela n'a pas \xE9t\xE9 connect\xE9.",
   "integrations.ok.disconnected": "D\xE9connect\xE9. La cl\xE9 et l'identifiant stock\xE9 ont tous deux \xE9t\xE9 d\xE9truits, si bien que rien ici ne peut plus s'en servir. R\xE9voquez aussi le jeton chez le fournisseur, car il y reste valide jusqu'\xE0 ce que vous le fassiez.",
   "integrations.error.not-microsoft": "Ce n'est pas une int\xE9gration que {brand} connecte via Microsoft.",
+  "integrations.error.not-google": "Ce n'est pas une int\xE9gration que {brand} connecte via Google.",
+  "integrations.error.no-google-client": "Ce d\xE9ploiement n'a pas de client de connexion Google enregistr\xE9, donc une bo\xEEte aux lettres ne peut pas \xEAtre connect\xE9e \xE0 partir de celui-ci.",
   "integrations.error.no-microsoft-client": "Ce d\xE9ploiement n'a pas de client de connexion Microsoft enregistr\xE9, donc aucune bo\xEEte mail ne peut y \xEAtre connect\xE9e.",
   "integrations.error.mailbox-already-connected": "Cette bo\xEEte mail est d\xE9j\xE0 connect\xE9e. D\xE9connectez-la avant de la reconnecter.",
   "integrations.error.tool-server-fields-required": "Un nom court, un libell\xE9 et une URL en https sont tous n\xE9cessaires.",
@@ -14934,6 +16126,35 @@ var fr_default = {
   "integrations.ok.tool-approval": "{tool} attend d\xE9sormais une personne. Il n'est pas propos\xE9 \xE0 un mod\xE8le.",
   "integrations.error.tool-unnameable": "Ce nom d'outil ne peut pas \xEAtre transform\xE9 en capacit\xE9, si bien qu'il ne peut pas \xEAtre accord\xE9.",
   "integrations.error.tool-forbidden": "Cet outil est interdit par une migration, et ce contr\xF4le ne peut pas lever l'interdiction.",
+  "integrations.tool-server.needs-account": "Ce serveur demande un compte connect\xE9 avant de lister ses outils. Rien ne lui est demand\xE9 tant que vous n'en connectez pas un.",
+  "integrations.tool-server.connect.submit": "Connecter",
+  "integrations.tool-server.pending": "Connexion lanc\xE9e. Terminez-la dans la fen\xEAtre qui s'est ouverte, et ce serveur listera ses outils apr\xE8s.",
+  "integrations.tool-server.authorized": "Connect\xE9 via {issuer}, {when}. L'autorisation est scell\xE9e sous une cl\xE9 qui est d\xE9truite quand vous supprimez ce serveur.",
+  "integrations.tool-server.no-account-needed": "Ce serveur r\xE9pond sans compte, donc il n'y a rien \xE0 connecter.",
+  "integrations.tool-server.reauth-required.title": "N\xE9cessite une nouvelle connexion",
+  "integrations.tool-server.reauth-required": "L'autorisation pour ce serveur a cess\xE9 de fonctionner, donc rien ne lui est plus demand\xE9. Reconnectez-le pour continuer.",
+  "integrations.tool-server.client-rejected.title": "Plus reconnu",
+  "integrations.tool-server.client-rejected": "{issuer} ne reconna\xEEt plus comment {brand} s'identifie, donc rien n'est demand\xE9 \xE0 ce serveur. Se reconnecter ne r\xE9sout pas celui-ci. Supprimez le serveur et ajoutez-le \xE0 nouveau pour vous r\xE9enregistrer.",
+  "integrations.tool-server.unconfigured.title": "Non configur\xE9",
+  "integrations.tool-server.unconfigured": "Ce serveur ne distribue pas ses propres identifiants clients, donc {brand} ne peut pas s'enregistrer aupr\xE8s de lui. D\xE9finissez {idVariable} et {secretVariable} sur ce d\xE9ploiement, puis connectez-le.",
+  "integrations.error.tool-server-discovery": "Ce serveur n'a pas pu dire o\xF9 se connecter, donc rien n'a \xE9t\xE9 connect\xE9.",
+  "integrations.error.tool-server-pkce": "Ce serveur se connecte via un service qui n'offre pas la protection qui emp\xEAche une connexion intercept\xE9e d'\xEAtre r\xE9utilis\xE9e, donc rien n'a \xE9t\xE9 connect\xE9.",
+  "integrations.error.tool-server-issuer": "La connexion est venue d'un service diff\xE9rent de celui nomm\xE9 par ce serveur. Rien n'a \xE9t\xE9 lu et rien n'a \xE9t\xE9 connect\xE9.",
+  "integrations.error.tool-server-redirected": "Ce serveur a tent\xE9 d'envoyer la demande ailleurs. {brand} ne porte pas d'identifiant sur une redirection, donc rien n'a \xE9t\xE9 connect\xE9.",
+  "integrations.error.tool-server-points-inward": "Ce serveur a nomm\xE9 une adresse de connexion \xE0 l'int\xE9rieur d'un r\xE9seau priv\xE9, donc rien n'a \xE9t\xE9 cherch\xE9 aupr\xE8s de lui.",
+  "integrations.tool-server.paused.title": "En pause\xA0: ses outils ont chang\xE9",
+  "integrations.tool-server.paused": "Ce serveur propose maintenant une liste d'outils diff\xE9rente de celle qui a \xE9t\xE9 approuv\xE9e. Rien ne lui est demand\xE9 tant que personne n'a lu la modification et ne l'a approuv\xE9e.",
+  "integrations.tool-server.reapprove.submit": "Approuver la nouvelle liste",
+  "integrations.tool-server.diff.added": "Ajout\xE9",
+  "integrations.tool-server.diff.removed": "Supprim\xE9",
+  "integrations.tool-server.diff.changed": "Modifi\xE9",
+  "integrations.tool-server.diff.unchanged": "Inchang\xE9",
+  "integrations.tool-server.diff.parameters": "Les param\xE8tres ont chang\xE9. La description non.",
+  "integrations.ok.tool-server-reapproved": "La nouvelle liste est approuv\xE9e. {label} est \xE0 nouveau propos\xE9.",
+  "integrations.error.tool-server-not-paused": "Ce serveur n'est pas en pause, donc il n'y a rien \xE0 approuver.",
+  "integrations.error.tool-server-plan-excludes": "Ce plan n'inclut pas les outils emprunt\xE9s. Passez \xE0 un plan qui les inclut.",
+  "integrations.error.tool-server-plan-limit": "Ce plan n'a pas assez de place pour un autre serveur d'outils. Supprimez-en un, ou passez \xE0 un plan qui en contient davantage.",
+  "integrations.error.tool-server-stale-approval": "La liste a chang\xE9 \xE0 nouveau depuis que vous l'avez lue. Lisez la nouvelle avant d'approuver.",
   "webhooks.action.gate-refused": "refus\xE9 \xE0 la porte {gate}\xA0: {reason}",
   "webhooks.action.not-signed-in": "vous n'\xEAtes pas connect\xE9",
   "webhooks.register.not-https": "L'adresse doit commencer par https. Une livraison est sign\xE9e plut\xF4t que chiffr\xE9e, donc en http, le corps et la signature sont tous deux lisibles par n'importe qui sur le trajet.",
@@ -15167,8 +16388,18 @@ var fr_default = {
   "integrations.oauth.gateSuffix": " Refus\xE9 \xE0 la porte {gate}.",
   "integrations.summary.none": "Rien n'est connect\xE9. {connectable} peuvent \xEAtre connect\xE9s aujourd'hui.",
   "integrations.summary.some": "{connected} connect\xE9s, {connectable} connectables au total.",
+  "integrations.mcp.self": "Se connecte via le serveur d'outils propre \xE0 {vendor}. Orvay s'y enregistre lui-m\xEAme. Il n'y a rien \xE0 configurer au pr\xE9alable.",
+  "integrations.mcp.unstated": "Se connecte via le serveur d'outils propre \xE0 {vendor}. Orvay tente de s'enregistrer lui-m\xEAme. Si {vendor} refuse, une cl\xE9 de votre compte {vendor} fonctionne \xE0 la place.",
+  "integrations.mcp.operator": "Se connecte via le serveur d'outils propre \xE0 {vendor}, qui n'admet qu'une application enregistr\xE9e par l'op\xE9rateur aupr\xE8s de {vendor}. Apr\xE8s l'enregistrement, le serveur d'outils ci-dessous nomme le client qui manque encore \xE0 ce d\xE9ploiement.",
+  "integrations.mcp.authorize.submit": "Autoriser avec {vendor}",
+  "integrations.mcp.awaiting": "Enregistr\xE9 et pas encore autoris\xE9\u202F: {vendor} doit encore laisser entrer Orvay. Le bouton vous y am\xE8ne et vous ram\xE8ne.",
+  "integrations.mcp.register.submit": "Enregistrer son serveur d'outils",
+  "integrations.mcp.registered": "Enregistr\xE9 comme serveur d'outils. Ses outils et leurs modes sont list\xE9s ci-dessous.",
   "integrations.badge.connected": "connect\xE9",
   "integrations.connection.unknownAccount": "inconnu",
+  "integrations.connection.checked": "V\xE9rifi\xE9 {when}.",
+  "integrations.connection.checkOverdue": "Derni\xE8re v\xE9rification {when}. Une v\xE9rification est en retard.",
+  "integrations.connection.neverChecked": "Non v\xE9rifi\xE9 depuis sa connexion.",
   "integrations.connection.lastError": " \xB7 derni\xE8re erreur\xA0: {error}",
   "integrations.fix.heading": "Proposer un correctif",
   "integrations.fix.goalHeading": "Laisser un objectif en proposer un",
@@ -15226,6 +16457,7 @@ var fr_default = {
   "fix.error.notThreeSteps": "ce contrat n'a pas trois \xE9tapes",
   "fix.error.serverUnreachable": "ce serveur n'a pas pu \xEAtre atteint\xA0: {reason}",
   "fix.error.toolRefused": "cet outil a refus\xE9\xA0: {reason}",
+  "fix.error.toolListMoved": "La liste d'outils du serveur d'outils n'est plus celle qui a \xE9t\xE9 approuv\xE9e. Cela ne s'ex\xE9cutera pas tant que quelqu'un n'aura pas lu la modification sur la page Int\xE9grations et l'aura approuv\xE9e.",
   "fix.error.noModel": "aucun mod\xE8le n'\xE9tait joignable, il n'y a donc rien \xE0 proposer",
   "fix.pr.writtenBy": "\xC9crit par {brand} depuis l'outil {tool} du serveur {server}, et approuv\xE9 avant que quoi que ce soit ne soit lu.",
   "fix.error.githubNotConnected": "GitHub n'est pas connect\xE9 ici.",
@@ -15316,7 +16548,203 @@ var fr_default = {
   "social.post.publishFailed": "La publication n\u2019a pas pu \xEAtre publi\xE9e.",
   "social.post.notRecorded": "Cela a \xE9t\xE9 publi\xE9, et l\u2019ex\xE9cution n\u2019a pas pu \xEAtre enregistr\xE9e.",
   "social.post.notVerified": "Cela a \xE9t\xE9 publi\xE9, et l\u2019adresse n\u2019a pas pu \xEAtre relue.",
-  "notification.summary.approval.escalated": "Une d\xE9cision attend depuis un jour"
+  "notification.summary.approval.escalated": "Une d\xE9cision attend depuis un jour",
+  // -------------------------------------------------------------------------
+  // The second factor: the challenge at sign-in, and the enrolment in account
+  // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
+  // -------------------------------------------------------------------------
+  "auth.meta.verify": "V\xE9rification en deux \xE9tapes",
+  "auth.verify.heading": "Saisissez votre code",
+  "auth.verify.lead": "Ouvrez votre application d'authentification et saisissez le code \xE0 six chiffres affich\xE9 pour Orvay.",
+  "auth.verify.field.code": "Code \xE0 six chiffres",
+  "auth.verify.submit": "V\xE9rifier",
+  "auth.verify.recovery.lead": "Si vous n'avez pas votre t\xE9l\xE9phone, utilisez l'un des codes de r\xE9cup\xE9ration que vous avez enregistr\xE9s lors de la configuration.",
+  "auth.verify.recovery.field": "Code de r\xE9cup\xE9ration",
+  "auth.verify.recovery.submit": "Utiliser un code de r\xE9cup\xE9ration",
+  "auth.verify.expired.title": "Cette connexion a expir\xE9",
+  "auth.verify.expired.body": "Une connexion en attente de code dure dix minutes. Votre compte n'a aucun probl\xE8me. Reconnectez-vous et nous demanderons un nouveau code.",
+  "auth.verify.start-again": "Se reconnecter",
+  "auth.verify.error.wrong": "Ce code n'est pas le bon. V\xE9rifiez l'application et saisissez celui qui s'affiche maintenant.",
+  "auth.verify.error.already-used": "Ce code a d\xE9j\xE0 \xE9t\xE9 utilis\xE9. Attendez que votre application affiche le suivant.",
+  "auth.verify.error.malformed": "Un code comporte six chiffres, un code de r\xE9cup\xE9ration dix caract\xE8res.",
+  "auth.verify.error.no-such-code": "Ce code de r\xE9cup\xE9ration n'est pas l'un des v\xF4tres, ou il a d\xE9j\xE0 \xE9t\xE9 utilis\xE9.",
+  "auth.verify.error.throttled": "Trop de tentatives. Attendez quelques minutes, puis r\xE9essayez.",
+  "auth.verify.error.unavailable": "Nous n'avons pas pu v\xE9rifier ce code. Rien n'a chang\xE9 sur votre compte. R\xE9essayez dans un instant.",
+  "account.mfa.heading": "V\xE9rification en deux \xE9tapes",
+  "account.mfa.off.body": "Ajoutez une application d'authentification et Orvay demandera aussi un code \xE0 chaque connexion.",
+  "account.mfa.start": "Configurer la v\xE9rification en deux \xE9tapes",
+  "account.mfa.enrol.heading": "Ajoutez votre authentificateur",
+  "account.mfa.enrol.lead": "Ajoutez cette cl\xE9 \xE0 votre application d'authentification, puis saisissez le code affich\xE9 pour prouver que cela a fonctionn\xE9.",
+  "account.mfa.enrol.key": "Cl\xE9 de configuration",
+  "account.mfa.enrol.field": "Code \xE0 six chiffres",
+  "account.mfa.enrol.submit": "Activer la v\xE9rification en deux \xE9tapes",
+  "account.mfa.enrol.cancel": "Annuler",
+  "account.mfa.on.body": "Orvay demande un code de votre authentificateur \xE0 chaque connexion. Actif depuis le {when}.",
+  "account.mfa.codes.heading": "Codes de r\xE9cup\xE9ration",
+  "account.mfa.codes.lead": "Conservez-les dans un endroit accessible sans votre t\xE9l\xE9phone. Chacun fonctionne une seule fois, et ils sont le seul moyen de revenir dans votre compte si vous perdez l'authentificateur. Ils sont affich\xE9s maintenant et plus jamais ensuite.",
+  "account.mfa.codes.left": "Codes de r\xE9cup\xE9ration restants\xA0: {left} sur {total}",
+  "account.mfa.disable": "D\xE9sactiver la v\xE9rification en deux \xE9tapes",
+  "account.mfa.unavailable": "Nous n'avons pas pu lire vos param\xE8tres de s\xE9curit\xE9, donc cette section n'indique pas ce qui est actif.",
+  "account.mfa.notice.on": "La v\xE9rification en deux \xE9tapes est activ\xE9e.",
+  "account.mfa.disable.lead": "La d\xE9sactivation demande un code, pour qu'une session vol\xE9e ne puisse pas le retirer. Utilisez votre authentificateur ou l'un de vos codes de r\xE9cup\xE9ration.",
+  "account.mfa.busy": "En cours",
+  "account.mfa.notice.off": "La v\xE9rification en deux \xE9tapes est d\xE9sactiv\xE9e. Votre mot de passe est la seule chose qui prot\xE8ge ce compte.",
+  // ORG-4: what RAN across the workspaces you belong to, beside what waits.
+  "org.activity.heading": "Ce qui a tourn\xE9 dans vos espaces de travail",
+  "org.activity.body": "Les trente derniers jours, dans chaque espace de travail dont vous faites partie. Jamais v\xE9rifi\xE9e et En cours ne portent aucune p\xE9riode\xA0: une ex\xE9cution que rien n'a v\xE9rifi\xE9e ne devient pas v\xE9rifi\xE9e au bout d'un mois.",
+  "org.activity.none": "Il n'y a pas d'autre espace de travail ici que celui-ci.",
+  "org.activity.running": "En cours",
+  "org.activity.oldest": "La plus ancienne, en jours",
+  "org.activity.runs": "Ex\xE9cutions",
+  "org.activity.established": "V\xE9rifi\xE9es et confirm\xE9es",
+  "org.activity.refused": "V\xE9rifi\xE9es et non confirm\xE9es",
+  "org.activity.unverified": "Jamais v\xE9rifi\xE9e",
+  // Goal A close-out, batch one: seats, memory, the upload sentence, the studio branches, since you were last here
+  "account.footer.memory": "Vous cherchez ce que cette entreprise a appris \xE0 Orvay, et comment l'emp\xEAcher d'utiliser une information\xA0? C'est",
+  "dataUse.memory": "Les faits qu'Orvay a retenus du travail de cette entreprise peuvent \xEAtre lus, et mis de c\xF4t\xE9 pour ne plus servir dans une r\xE9ponse, sur",
+  "files.upload.said.added": {
+    one: "{count} fichier ajout\xE9.",
+    many: "{count} fichiers ajout\xE9s.",
+    other: "{count} fichiers ajout\xE9s."
+  },
+  "files.upload.said.more": {
+    one: "1 de plus",
+    many: "{count} de plus",
+    other: "{count} de plus"
+  },
+  "files.upload.said.partial": {
+    one: "{added} ajout\xE9s. Un fichier n'a pas \xE9t\xE9 accept\xE9\xA0: {names}.",
+    many: "{added} ajout\xE9s. {refused} fichiers n'ont pas \xE9t\xE9 accept\xE9s\xA0: {names}.",
+    other: "{added} ajout\xE9s. {refused} fichiers n'ont pas \xE9t\xE9 accept\xE9s\xA0: {names}."
+  },
+  "home.since.events": {
+    one: "{count} \xE9v\xE9nement enregistr\xE9",
+    many: "{count} \xE9v\xE9nements enregistr\xE9s",
+    other: "{count} \xE9v\xE9nements enregistr\xE9s"
+  },
+  "home.since.nothing": "Rien de nouveau depuis votre derni\xE8re visite, {when}.",
+  "home.since.proposals": {
+    one: "{count} nouvelle proposition",
+    many: "{count} nouvelles propositions",
+    other: "{count} nouvelles propositions"
+  },
+  "home.since.summary": "Depuis votre derni\xE8re visite, {when}\xA0: {summary}.",
+  "nav.hint.memory": "Ce que l'entreprise a retenu de son travail, et comment \xE9carter un fait",
+  "onboarding.done.next.integrations": "Int\xE9grations relie une bo\xEEte mail, GitHub, Bluesky ou Mastodon, et chaque ligne dit ce que la connexion permettrait.",
+  "policies.grant.apply": "Appliquer",
+  "policies.grant.mode.approval": "S'arr\xEAte pour une personne",
+  "policies.grant.mode.autonomous": "Agit sans demander",
+  "policies.grant.mode.label": "Autonomie pour {capability}",
+  "policies.grant.mode.restricted": "Agit seulement dans ses limites",
+  "policies.grant.saving": "Enregistrement",
+  "policies.history.contract": "Ouvrir la proposition",
+  "policies.history.contract.for": "Ouvrir la proposition pour {intent}",
+  "studio.refused.still-running": "Cette construction est encore en cours, et cette page a cess\xE9 de l'attendre. Rien n'a \xE9t\xE9 publi\xE9. Elle continue sans cette page, et ce qu'elle a produit sera l\xE0 \xE0 la prochaine ouverture de cet \xE9cran.",
+  "studio.refused.superseded": "Une construction plus r\xE9cente de ce site a remplac\xE9 celle-ci, et cette page a cess\xE9 de la suivre. Rien n'a \xE9t\xE9 publi\xE9 ici. Rouvrez cet \xE9cran pour suivre la construction qui a pris sa place.",
+  "studio.unreachable.body": "Cette page continue de demander. La construction est peut-\xEAtre encore en cours\xA0: elle continue sans cette page dans tous les cas, et ce qu'elle a produit sera l\xE0 \xE0 la prochaine ouverture de cet \xE9cran.",
+  "studio.unreachable.title": "Le service de construction n'a pas r\xE9pondu",
+  "team.head.seats": {
+    one: "{active} sur {limit} si\xE8ge.",
+    many: "{active} sur {limit} si\xE8ges.",
+    other: "{active} sur {limit} si\xE8ges."
+  },
+  "team.head.seats.none": "Aucune limite de si\xE8ges sur ce plan.",
+  "team.seats.full.body": "La prochaine invitation sera refus\xE9e tant qu'aucun si\xE8ge ne se lib\xE8re. D\xE9sactivez une personne qui est partie, ou passez \xE0 un plan sup\xE9rieur sur",
+  "team.seats.full.title": "Tous les si\xE8ges de ce plan sont pris",
+  "usage.scope": "L'utilisation et la facturation appartiennent \xE0 l'organisation plut\xF4t qu'\xE0 un seul espace de travail\xA0: c'est l'organisation qui ach\xE8te le plan, et chaque espace de travail qu'elle poss\xE8de puise dans les m\xEAmes cr\xE9dits.",
+  // MON-8: invoices and the payment method, on Stripe's own page.
+  "billing.portal.heading": "Factures et moyen de paiement",
+  "billing.portal.body": "Vos factures, la carte avec laquelle vous payez et la r\xE9siliation se trouvent sur la page de Stripe. Orvay ne garde aucune deuxi\xE8me copie d'une facture, donc rien ici ne peut diverger de ce qui vous a \xE9t\xE9 factur\xE9.",
+  "billing.portal.open": "Ouvrir le portail de facturation",
+  "billing.portal.none.reason": "Il n'y a rien \xE0 montrer tant qu'aucun abonnement n'existe. Cela s'ouvre d\xE8s que le premier paiement est pass\xE9.",
+  "billing.portal.unavailable": "Indisponible",
+  "billing.portal.no-customer.title": "Il n'y a pas encore de compte de facturation",
+  "billing.portal.no-customer.body": "Rien n'a \xE9t\xE9 pay\xE9 pour cette organisation, donc Stripe ne d\xE9tient ni facture ni moyen de paiement pour elle. Souscrivez un forfait et le portail s'ouvre.",
+  "billing.portal.refused.title": "Pas le droit de g\xE9rer la facturation",
+  "billing.portal.failed.title": "Le portail de facturation n'a pas pu \xEAtre ouvert",
+  "billing.portal.failed.body": "Rien n'a chang\xE9 dans votre abonnement. R\xE9essayez dans un instant et \xE9crivez-nous si cela persiste.",
+  // Goal A close-out, batch two: versions, and the integrations page in the reader's language
+  "files.col.version": "Version",
+  "files.versions.replaces": "Remplace {name}",
+  "files.versions.replaced": "Remplac\xE9 par une version plus r\xE9cente",
+  "files.versions.heading": "Versions",
+  "files.versions.replaced.lead": "Une version plus r\xE9cente a remplac\xE9 celle-ci\xA0:",
+  "files.versions.previous.lead": "Ce que ce fichier a remplac\xE9, du plus r\xE9cent au plus ancien\xA0:",
+  "files.versions.deleted": "supprim\xE9",
+  "files.versions.note": "Remplacer un document ne retire pas le pr\xE9c\xE9dent. Chaque version ci-dessus est un fichier \xE0 part enti\xE8re, et en supprimer une est une \xE9tape distincte.",
+  "integrations.catalogue.github.summary": "D\xE9p\xF4ts, pull requests, v\xE9rifications",
+  "integrations.catalogue.github.because": "Un v\xE9ritable adaptateur existe. Les actions men\xE9es par son interm\xE9diaire atteignent GitHub et sont enregistr\xE9es comme r\xE9elles.",
+  "integrations.catalogue.github.label": "Jeton d'acc\xE8s personnel",
+  "integrations.catalogue.github.help": "Un jeton \xE0 granularit\xE9 fine avec un acc\xE8s en lecture aux d\xE9p\xF4ts qu'Orvay doit voir. Orvay le v\xE9rifie par un seul appel en lecture avant de le conserver, et ne conserve rien si cet appel \xE9choue.",
+  "integrations.catalogue.bluesky.summary": "Publication sur votre propre compte",
+  "integrations.catalogue.bluesky.because": "Un v\xE9ritable adaptateur existe, et les publications faites par son interm\xE9diaire apparaissent r\xE9ellement sur votre compte.",
+  "integrations.catalogue.bluesky.label": "Mot de passe d'app",
+  "integrations.catalogue.bluesky.help": "G\xE9n\xE9r\xE9 dans Bluesky sous Param\xE8tres, Mots de passe d'application. Ce n'est pas le mot de passe de votre compte. Bluesky n'offre pas d'OAuth utilisable pour cela, donc un mot de passe d'application est l'identifiant que la plateforme elle-m\xEAme propose.",
+  "integrations.catalogue.mastodon.summary": "Publication sur votre propre instance",
+  "integrations.catalogue.mastodon.because": "Un v\xE9ritable adaptateur existe, limit\xE9 \xE0 l'instance \xE0 laquelle appartient votre jeton.",
+  "integrations.catalogue.mastodon.label": "Jeton d'acc\xE8s",
+  "integrations.catalogue.mastodon.help": "Cr\xE9\xE9 sur votre instance sous Pr\xE9f\xE9rences, D\xE9veloppement. Il lui faut la port\xE9e write:statuses et rien de plus.",
+  "integrations.catalogue.email.summary": "Courrier transactionnel et marketing, envoy\xE9 en votre nom",
+  "integrations.catalogue.email.because": "Le parcours de d\xE9l\xE9gation DNS n'est pas encore construit. Orvay n'enverra pas votre courrier marketing depuis son propre domaine en attendant, car ce dommage ne se r\xE9pare pas en changeant de comportement plus tard.",
+  "integrations.catalogue.email.help": "Envoyer en tant que votre domaine, c'est d\xE9l\xE9guer DKIM par CNAME afin que les cl\xE9s puissent tourner sans que vous touchiez \xE0 nouveau au DNS. Orvay n'envoie jamais le courrier d'un client depuis un domaine qui lui appartient\xA0: la r\xE9putation se partage entre un domaine enregistrable et ses sous-domaines, si bien qu'un client franchissant un seuil toucherait tous les clients \xE0 la fois, d\xE9finitivement.",
+  "integrations.catalogue.gmail.summary": "Lire, trier et r\xE9pondre \xE0 votre propre bo\xEEte mail",
+  "integrations.catalogue.gmail.because": "Le client OAuth est construit et test\xE9. Ce d\xE9ploiement n'a aucun client de connexion Google enregistr\xE9, donc la ligne le dit au lieu de proposer un bouton\xA0; et Google classe l'acc\xE8s \xE0 la bo\xEEte mail comme une port\xE9e restreinte, qui exige son \xE9valuation de s\xE9curit\xE9 annuelle par un tiers avant que la bo\xEEte d'une personne inconnue puisse \xEAtre atteinte. La lecture, le tri et la r\xE9ponse pour Gmail ne sont pas encore construits.",
+  "integrations.catalogue.gmail.help": "Vous connecteriez votre propre compte Google. Orvay ne voit jamais votre mot de passe, n'h\xE9berge aucun de vos messages, et vous pouvez r\xE9voquer l'autorisation depuis Google sans nous demander. Il r\xE9pond aux personnes qui vous ont \xE9crit et n'engage pas de conversation\xA0: c'est une capacit\xE9 diff\xE9rente, et le produit la refuse.",
+  "integrations.catalogue.outlook.summary": "Lire, trier et r\xE9pondre \xE0 votre propre bo\xEEte mail",
+  "integrations.catalogue.outlook.because": "Un v\xE9ritable adaptateur existe, et il lit, classe et r\xE9pond \xE0 une vraie bo\xEEte mail. Microsoft n'exige pas d'\xE9valuation de s\xE9curit\xE9 distincte pour lire le courrier, c'est pourquoi ceci est arriv\xE9 avant Gmail. Rien n'est lu tant que vous ne le demandez pas, et rien n'est envoy\xE9 tant que vous n'appuyez sur rien.",
+  "integrations.catalogue.outlook.help": "Vous connectez votre propre compte Microsoft. Un compte personnel fonctionne aujourd'hui\xA0; un compte professionnel dans le tenant Microsoft 365 d'une entreprise peut \xEAtre refus\xE9 par ce tenant, car Orvay n'est pas encore un \xE9diteur Microsoft v\xE9rifi\xE9. Orvay ne voit jamais votre mot de passe, n'h\xE9berge aucun de vos messages, et vous pouvez r\xE9voquer l'autorisation depuis Microsoft sans nous demander. Il r\xE9pond aux personnes qui vous ont \xE9crit et n'engage pas de conversation\xA0: c'est une capacit\xE9 diff\xE9rente, et le produit la refuse.",
+  "integrations.catalogue.stripe.summary": "Abonnements, factures, remboursements",
+  "integrations.catalogue.stripe.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement. L'adaptateur d'exercice qui mod\xE9lise des actions li\xE9es \xE0 l'argent pour r\xE9p\xE9ter les r\xE8gles est distinct, et chaque artefact qu'il produit est marqu\xE9 simul\xE9.",
+  "integrations.catalogue.google-ads.summary": "Campagnes et d\xE9penses",
+  "integrations.catalogue.google-ads.because": "Mod\xE9lis\xE9 parce que publier une campagne est l'exemple le plus clair d'une action irr\xE9versible tourn\xE9e vers l'ext\xE9rieur. Rien n'est publi\xE9.",
+  "integrations.catalogue.vercel.summary": "D\xE9ploiements et retours en arri\xE8re",
+  "integrations.catalogue.vercel.because": "Mod\xE9lis\xE9 pour qu'un retour en arri\xE8re puisse \xEAtre propos\xE9 et v\xE9rifi\xE9. Aucun d\xE9ploiement n'est touch\xE9.",
+  "integrations.catalogue.linear.summary": "Tickets et cycles",
+  "integrations.catalogue.linear.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.catalogue.atlassian.summary": "Tickets Jira, pages Confluence",
+  "integrations.catalogue.atlassian.because": "Un seul serveur pour Jira et Confluence. Chaque outil qu'il liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.catalogue.sentry.summary": "Erreurs, tickets, versions",
+  "integrations.catalogue.sentry.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.catalogue.notion.summary": "Pages et bases de donn\xE9es",
+  "integrations.catalogue.notion.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.catalogue.slack.summary": "Une approbation escalad\xE9e, publi\xE9e dans un canal",
+  "integrations.catalogue.slack.because": "Orvay publie dans le canal que vous nommez. Le message ne porte jamais de bouton\xA0: une d\xE9cision prise depuis un client de chat n'a pas de session derri\xE8re elle, donc le message renvoie \xE0 la proposition et la d\xE9cision se prend dans Orvay.",
+  "integrations.catalogue.slack.label": "Jeton OAuth de l'utilisateur bot",
+  "integrations.catalogue.slack.help": "Cr\xE9ez une application dans votre propre espace Slack, donnez-lui les port\xE9es chat:write et channels:read, installez-la, puis invitez-la dans le canal. Orvay v\xE9rifie le jeton et le canal par deux appels en lecture avant de conserver quoi que ce soit.",
+  "integrations.catalogue.hubspot.summary": "Pipeline et contacts",
+  "integrations.catalogue.hubspot.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.catalogue.intercom.summary": "Conversations et macros",
+  "integrations.catalogue.intercom.because": "Pas construit. Le texte de support entrant est par d\xE9finition un contexte non fiable, donc celui-ci attend le parcours de quarantaine plut\xF4t que d'arriver t\xF4t.",
+  "integrations.catalogue.zenovay.summary": "Analyse du site, objectifs, entonnoirs, disponibilit\xE9",
+  "integrations.catalogue.zenovay.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.catalogue.posthog.summary": "Entonnoirs, replays, feature flags",
+  "integrations.catalogue.posthog.because": "Chaque outil que le serveur liste attend une approbation tant que vous n'en d\xE9cidez pas autrement.",
+  "integrations.connect.submit": "Connecter {name}",
+  "integrations.connect.busy": "V\xE9rification",
+  "integrations.connect.busyReason": "V\xE9rification de l'identifiant aupr\xE8s de {name}",
+  "integrations.connect.oauth.submit": "Connecter {name} via {provider}",
+  "integrations.connect.oauth.busy": "Ouverture de {provider}",
+  "integrations.connect.oauth.busyReason": "Vous \xEAtes envoy\xE9 vers {provider}",
+  "integrations.connect.oauth.noClient": "Ce d\xE9ploiement n'a aucun client de connexion {provider} enregistr\xE9, il n'y a donc encore rien \xE0 presser.",
+  "integrations.disconnect.submit": "D\xE9connecter",
+  "integrations.disconnect.busy": "D\xE9connexion",
+  // Goal A close-out, batch two: goals belong to a department, and a statement can be edited
+  "department.filter.label": "Afficher un seul d\xE9partement",
+  "department.filter.all": "Tous les d\xE9partements",
+  "department.filter.submit": "Afficher",
+  "department.filter.showing": "N'affiche que ce qui appartient \xE0 {department}.",
+  "department.filter.clear": "Afficher tous les d\xE9partements",
+  "department.filter.chain": "Le registre est v\xE9rifi\xE9 de bout en bout, dans l'ordre, donc cette v\xE9rification porte sur le registre entier et non sur un seul d\xE9partement.",
+  "goals.department.label": "Quel d\xE9partement",
+  "goals.department.company": "Toute l'entreprise",
+  "goals.department.saved": "Enregistr\xE9.",
+  "goals.department.error": "Ce n'est pas un d\xE9partement de cette entreprise.",
+  "goals.department.on": "D\xE9partement\xA0: {name}",
+  "goals.form.department.hint": "Un objectif sans d\xE9partement appartient \xE0 toute l'entreprise.",
+  "goals.statement.label": "Ce que dit cet objectif",
+  "goals.statement.submit": "Enregistrer",
+  "goals.statement.saved": "Enregistr\xE9.",
+  "integrations.catalogue.email.name": "Courrier depuis votre propre domaine"
 };
 
 // ../../packages/content/src/messages/fr.legal.ts
@@ -15549,13 +16977,13 @@ var fr_legal_default = {
   "legal.subprocessors.supabase.safeguard": "Un transfert de l'EEE vers la Suisse repose sur la d\xE9cision d'ad\xE9quation de la Commission europ\xE9enne pour la Suisse et ne n\xE9cessite aucun instrument suppl\xE9mentaire. Supabase est \xE9tabli aux \xC9tats-Unis, et son propre acc\xE8s est couvert par son avenant de traitement des donn\xE9es assorti des clauses contractuelles types.",
   "legal.subprocessors.supabase.statusDetail": "D\xE9tient le registre des consentements et chaque table m\xE9tier. Le projet ant\xE9rieur situ\xE9 \xE0 Francfort, r\xE9gion eu-central-1, est en cours de retrait au profit de celui de Zurich.",
   "legal.subprocessors.anthropic.service": "Inf\xE9rence de mod\xE8le. Claude est le choix par d\xE9faut pour la plupart des classes de t\xE2ches, y compris celle qui g\xE9n\xE8re un site web.",
-  "legal.subprocessors.anthropic.data1": "Le texte de la demande que vous adressez \xE0 un agent, et le contexte assembl\xE9 pour celle-ci",
+  "legal.subprocessors.anthropic.data1": "Le texte de la demande que vous adressez \xE0 un agent et le contexte assembl\xE9 pour elle, le texte correspondant \xE0 une courte liste de motifs d\u2019identifiants \xE9tant retir\xE9 avant l\u2019envoi. Les donn\xE9es personnelles pr\xE9sentes dans ce texte, comme les noms et les adresses, ne sont pas retir\xE9es",
   "legal.subprocessors.anthropic.data2": "Aucune adresse de liste d'attente ne fait jamais partie de ce texte",
   "legal.subprocessors.anthropic.location1": "\xC9tats-Unis. Hors de Suisse et hors de l'EEE",
   "legal.subprocessors.anthropic.safeguard": "Les clauses contractuelles types pr\xE9vues par l'avenant de traitement des donn\xE9es du fournisseur. Nous nous appuyons sur ces clauses plut\xF4t que sur une certification de cadre.",
   "legal.subprocessors.anthropic.statusDetail": "Le Worker de g\xE9n\xE9ration de site web appelle un mod\xE8le lorsqu'il dispose d'une cl\xE9 fournisseur. C'est le seul Worker du produit qui invoque un mod\xE8le.",
   "legal.subprocessors.openai.service": "Inf\xE9rence de mod\xE8le, utilis\xE9e lorsque la table de routage dirige une classe de t\xE2ches vers un mod\xE8le OpenAI. C'est le second fournisseur, ce qui permet \xE0 une v\xE9rification d'\xEAtre effectu\xE9e par un fournisseur diff\xE9rent de celui qui a r\xE9alis\xE9 le travail.",
-  "legal.subprocessors.openai.data1": "Le texte de la demande que vous adressez \xE0 un agent, et le contexte assembl\xE9 pour celle-ci",
+  "legal.subprocessors.openai.data1": "Le texte de la demande que vous adressez \xE0 un agent et le contexte assembl\xE9 pour elle, le texte correspondant \xE0 une courte liste de motifs d\u2019identifiants \xE9tant retir\xE9 avant l\u2019envoi. Les donn\xE9es personnelles pr\xE9sentes dans ce texte, comme les noms et les adresses, ne sont pas retir\xE9es",
   "legal.subprocessors.openai.data2": "Aucune adresse de liste d'attente ne fait jamais partie de ce texte",
   "legal.subprocessors.openai.location1": "\xC9tats-Unis. Hors de Suisse et hors de l'EEE",
   "legal.subprocessors.openai.safeguard": "Les clauses contractuelles types pr\xE9vues par l'avenant de traitement des donn\xE9es du fournisseur. Nous nous appuyons sur ces clauses plut\xF4t que sur une certification de cadre.",
@@ -15718,10 +17146,10 @@ var catalogue2 = {
   "blog.tabs.label": "Cat\xE9gories",
   "blog.empty": "Aucun article dans cette cat\xE9gorie pour l\u2019instant.",
   "blog.similar": "Articles similaires",
-  "blog.pagination.label": "Pages",
-  "blog.pagination.page": "Page {n}",
-  "blog.pagination.next": "Page suivante",
-  "blog.pagination.previous": "Page pr\xE9c\xE9dente",
+  "pagination.label": "Pages",
+  "pagination.page": "Page {n}",
+  "pagination.next": "Page suivante",
+  "pagination.previous": "Page pr\xE9c\xE9dente",
   "blog.done-is-not-proof.title": "Qu\u2019un agent dise \xAB\xA0termin\xE9\xA0\xBB n\u2019est pas une preuve",
   "blog.done-is-not-proof.lead": "Pourquoi Orvay traite chaque t\xE2che achev\xE9e comme une affirmation, et ce qu\u2019il faut pour transformer une affirmation en un registre auquel une entreprise peut se fier.",
   "blog.done-is-not-proof.description": "Chaque agent termine son travail par un message qui dit \xAB\xA0termin\xE9\xA0\xBB. Une entreprise ne peut pas fonctionner sur ce message. Voici comment Orvay s\xE9pare l\u2019affirmation de la preuve.",
@@ -15813,6 +17241,7 @@ var it_default = {
   "pricing.ladder.label.members": "Membri",
   "pricing.ladder.label.departments": "Reparti",
   "pricing.ladder.label.concurrent-runs": "Esecuzioni contemporanee",
+  "pricing.ladder.label.tool-servers": "Server di strumenti registrati",
   "pricing.ladder.label.beyond-allowance": "Oltre la dotazione",
   "pricing.ladder.label.features": "Funzioni del piano",
   "pricing.ladder.label.no-features": "Nessuna funzione del piano. Il prodotto stesso non viene ridotto.",
@@ -15870,6 +17299,8 @@ var it_default = {
   "pricing.feature.scim.detail": "Creare e rimuovere le persone a partire dalla Sua directory, invece di invitarle una alla volta.",
   "pricing.feature.byo_model_keys.name": "Le Sue chiavi di modello",
   "pricing.feature.byo_model_keys.detail": "Addebitare l'utilizzo dei modelli ai Suoi account presso i fornitori, anzich\xE9 alla Sua dotazione di crediti.",
+  "pricing.feature.integration_mcp.name": "Strumenti in prestito",
+  "pricing.feature.integration_mcp.detail": "Registri i server di strumenti che la sua azienda utilizza gi\xE0, e consenta a Orvay di chiamare i loro strumenti secondo la sua politica, un'approvazione per strumento. Quanti ne contiene un piano \xE8 indicato nella tabella precedente.",
   "pricing.feature.voice.name": "Voce in-app",
   "pricing.feature.voice.detail": "Rispondere a una chiamata nel browser, con una trascrizione come registrazione. Orvay risponde alle chiamate e non le effettua mai, con qualsiasi piano e per scelta progettuale.",
   "pricing.hard-stop.heading": "Il piano gratuito si ferma. Non accumula mai spese da fatturare.",
@@ -16449,8 +17880,17 @@ var it_default = {
   "shell.company.new": "Nuova azienda",
   "shell.company.organizationSettings": "Impostazioni dell\u2019organizzazione",
   "newCompany.title": "Aggiungere uno spazio di lavoro",
-  "newCompany.body": "Uno spazio di lavoro \xE8 un\u2019azienda gestita da Orvay. Ha obiettivi propri, dati propri e un team proprio, e fra uno spazio e l\u2019altro non passa nulla.",
+  "newCompany.body": "Uno spazio di lavoro \xE8 un\u2019azienda gestita da Orvay. Ha obiettivi propri, dati propri e un team proprio, e nulla di tutto ci\xF2 passa da uno spazio all\u2019altro.",
   "newCompany.label": "Come si chiama",
+  "newCompany.where.legend": "Dove va collocato",
+  "newCompany.where.join.label": "In {organization}",
+  "newCompany.where.join.sublabel": "Condivide il piano, i crediti e i criteri che questa organizzazione ha gi\xE0. Quanto questo spazio di lavoro consuma viene tolto dalla stessa quota.",
+  "newCompany.where.new.label": "In una nuova organizzazione",
+  "newCompany.where.new.sublabel": "Un\u2019organizzazione separata sul piano Free. Piano, crediti e fatturazione sono suoi.",
+  "newCompany.error.taken": "Uno spazio di lavoro con questo nome esiste gi\xE0 in questa organizzazione. Scelga un altro nome.",
+  "newCompany.error.refused": "Non ha il permesso di aggiungere uno spazio di lavoro a questa organizzazione. Pu\xF2 comunque crearne uno in una nuova organizzazione.",
+  "newCompany.error.atCap": "Ha gi\xE0 tutte le organizzazioni che un account pu\xF2 avere senza un piano a pagamento. Pu\xF2 comunque aggiungere uno spazio di lavoro a un\u2019organizzazione di cui fa gi\xE0 parte.",
+  "newCompany.error.tooMany": "Ha creato tutte le organizzazioni che pu\xF2 per oggi. Pu\xF2 comunque aggiungere uno spazio di lavoro a un\u2019organizzazione di cui fa gi\xE0 parte.",
   "newCompany.submit": "Creare lo spazio di lavoro",
   "newCompany.busy": "Creazione dello spazio di lavoro in corso.",
   "newCompany.error.short": "Dia allo spazio di lavoro un nome di almeno due caratteri.",
@@ -16507,7 +17947,13 @@ var it_default = {
   "org.allowance.heading": "Piano e quota",
   "org.allowance.body": "Un piano viene acquistato dall\u2019organizzazione, non per postazione, e l\u2019organizzazione dispone di una sola quota mensile condivisa da tutti i suoi spazi di lavoro. Quanto viene consumato in uno spazio viene tolto alla stessa quota da cui attingono gli altri, e la cifra si trova nella pagina di utilizzo dello spazio in cui si trova.",
   "org.access.heading": "Chi ha accesso",
-  "org.access.body": "Oggi l\u2019accesso viene concesso per singolo spazio di lavoro. Chi \xE8 invitato in uno spazio non \xE8 membro degli altri, e il suo ruolo si imposta in quello spazio sotto Team. Modificare l\u2019accesso una sola volta per tutta l\u2019organizzazione non \xE8 costruito.",
+  "org.access.body": "Oggi l\u2019accesso viene concesso per singolo spazio di lavoro. Chi \xE8 invitato in uno spazio non \xE8 membro degli altri, Le persone qui sotto sono quelle degli spazi di lavoro di cui fa parte. Uno spazio di cui non fa parte mostra solo quante persone ha, perch\xE9 i suoi dati restano al suo interno. Il suo ruolo si imposta in quello spazio sotto Team. Modificare l\u2019accesso una sola volta per tutta l\u2019organizzazione non \xE8 costruito.",
+  "org.access.people": "Persone",
+  "org.waiting.heading": "In sospeso nei suoi spazi di lavoro",
+  "org.waiting.body": "Proposte non ancora decise, in ogni spazio di lavoro di cui fa parte. Apra quello spazio per intervenire. Se una proposta riguardi proprio lei si decide nello spazio, non qui.",
+  "org.waiting.count": "In sospeso",
+  "org.waiting.none": "Non c\u2019\xE8 nulla in attesa negli spazi di lavoro di cui fa parte.",
+  "org.access.elsewhere": "Uno spazio di lavoro di cui non fa parte",
   "home.new": "Non \xE8 ancora successo nulla. Questa azienda \xE8 nuova.",
   "home.recorded": {
     one: "{count} evento registrato da quando questa azienda \xE8 stata creata.",
@@ -16524,6 +17970,8 @@ var it_default = {
   "notification.headline.comment.mentioned": "Qualcuno ha chiesto di Lei per nome",
   "notification.headline.goal.thrashing": "Un obiettivo ha continuato a fallire ed \xE8 stato fermato",
   "notification.push.none.title": "Nulla aspetta in {company}",
+  "notification.slack.escalated": "Una decisione in {company} attende da un giorno.",
+  "notification.slack.note": "Nulla \xE8 deciso in Slack. Il link apre {brand}, dove la decisione \xE8 attribuita alla persona che la prende.",
   "notification.push.none.body": "Tutto \xE8 aggiornato.",
   "notification.push.only": "In {company}.",
   "notification.push.more": {
@@ -17150,6 +18598,10 @@ var it_default = {
   "inbox.refused": "rifiutato",
   "inbox.checked": "verificato da un attore diverso",
   "inbox.notEstablished": "eseguito, non stabilito",
+  "inbox.inspector.label": "Informazioni sulla proposta selezionata",
+  "inbox.inspector.empty": "Scelga una proposta per vedere che cosa farebbe.",
+  "inbox.inspector.open": "Apra il contratto",
+  "inbox.openContract": "Apra il contratto per {objective}",
   "contract.tabs": "Viste di questo contratto",
   "contract.tab.contract": "Contratto",
   "contract.tab.output": "Risultato",
@@ -17256,6 +18708,7 @@ var it_default = {
   "decision.ok.approved": "Approvato.",
   "decision.ok.refused": "Rifiutato.",
   "decision.ok.ran": "Eseguito, e un attore diverso ha confermato che il record corrisponde al contratto.",
+  "decision.error.alreadyRunning": "Questa proposta \xE8 gi\xE0 in corso, avviata un momento fa. Attenda che finisca, poi guardi nel registro che cosa ha fatto.",
   "decision.error.unverified": "Eseguito, ma la verifica NON lo ha stabilito: {why}",
   "decision.revise": "Chieda una revisione",
   "decision.revise.hint": "Per rimandarla indietro, dica che cosa dovrebbe cambiare. Chi l\u2019ha proposta risponde con una proposta rivista che sostituisce questa.",
@@ -17363,7 +18816,7 @@ var it_default = {
   "activity.showing": "Vengono mostrate le {shown} pi\xF9 recenti.",
   "company.created": "Creata il {date}",
   "company.empty.title": "Questa azienda non ha ancora reparti n\xE9 agenti",
-  "company.empty.because": "{brand} crea un reparto quando un lavoro ne ha bisogno, e un agente quando un reparto ne ha bisogno. La Sua non ha n\xE9 gli uni n\xE9 gli altri perch\xE9 finora non \xE8 servito. Lo stesso modello gestisce un'azienda di una persona e una da centomila; qui ci sono solo meno righe.",
+  "company.empty.because": "{brand} crea un reparto quando il lavoro ne richiede uno, e un agente quando un reparto ne richiede uno. Il suo non ha n\xE9 l'uno n\xE9 l'altro perch\xE9 finora non \xE8 servito, e pu\xF2 aggiungerne uno lei stessa qui sotto. Lo stesso modello gestisce un'azienda di una persona e una di centomila; qui ci sono solo meno righe.",
   "company.departments": {
     one: "{count} dipartimento",
     many: "{count} dipartimenti",
@@ -17406,6 +18859,8 @@ var it_default = {
   "shell.halt.reason.header": "Fermato dall\u2019intestazione, senza motivo indicato",
   "shell.dialog.close": "Chiudere",
   "shell.theme.label": "Modalit\xE0 scura",
+  "shell.toast.label": "Conferme",
+  "shell.toast.dismiss": "Chiudi",
   "field.unavailable": "Non disponibile:",
   "outcome.banned.title": "Account sospeso",
   "outcome.banned.title.temporary": "Account temporaneamente limitato",
@@ -17536,6 +18991,7 @@ var it_default = {
   "log.kind.shipped": "Rilasciato",
   "log.kind.fixed": "Corretto",
   "log.kind.said": "Detto apertamente",
+  "log.reconstructed": "Registrato in seguito, dalla cronologia del repository",
   "log.meta.description": "Ogni modifica a Orvay, nelle parole di un cliente, aggiunta e mai riscritta.",
   "portability.title": "Portabilit\xE0",
   "portability.lead": "Che cosa pu\xF2 portare via da Orvay e che cosa non pu\xF2 ancora portare via. Ogni riga qui sotto \xE8 letta dalla stessa tabella che legge la pagina dei prezzi, quindi questa pagina non pu\xF2 affermare pi\xF9 di quella.",
@@ -17844,6 +19300,29 @@ var it_default = {
   "mcp.tool.orvay_reject_decision": "Rifiuta un contratto. Una motivazione \xE8 obbligatoria e viene registrata.",
   // API keys. A key is a credential a person creates for a program; the token
   // is shown exactly once because only its hash is stored.
+  "contacts.nav": "Contatti",
+  "contacts.title": "Contatti",
+  "contacts.lead": "Un elenco che Lei sta portando da altrove. Orvay registra ci\xF2 che il Suo file pu\xF2 mostrare su chi ha acconsentito, e indica chiaramente dove non pu\xF2 farlo.",
+  "contacts.nothing-sent.title": "Orvay non invia nulla a questo elenco",
+  "contacts.nothing-sent.body": "L'importazione di un contatto registra chi ha acconsentito a cosa, e nient'altro. Non esiste oggi alcun percorso in Orvay che scriva a un contatto importato, qualunque cosa dica il Suo file.",
+  "contacts.import.heading": "Importare un elenco",
+  "contacts.import.lead": "Un CSV. Orvay legge la colonna denominata address, e registra un accordo solo dove la stessa riga contiene anche agreed_at, wording_shown e source. Le righe senza questi tre sono contate e tenute fuori dal record, perch\xE9 un accordo che nessuno pu\xF2 mostrare non \xE8 uno su cui potrebbe contare in seguito.",
+  "contacts.import.file": "Il Suo file",
+  "contacts.import.hint": "Un CSV di massimo un megabyte.",
+  "contacts.import.choose": "Scelga un CSV",
+  "contacts.import.none-chosen": "Nessun file scelto",
+  "contacts.import.submit": "Importi",
+  "contacts.import.pending": "Lettura del file",
+  "contacts.summary.title": "Il file \xE8 stato letto",
+  "contacts.summary.recorded": "Accordi registrati:",
+  "contacts.summary.already-known": "Gi\xE0 nel record:",
+  "contacts.summary.without-evidence": "Letto, senza nulla che mostri un accordo:",
+  "contacts.summary.rejected": "Non un indirizzo utilizzabile, o elencato due volte:",
+  "contacts.error.no-file": "Scelga prima un CSV.",
+  "contacts.error.too-large": "Quel file supera un megabyte. Lo divida e importi ogni parte.",
+  "contacts.error.no-rows": "Questo file ha un'intestazione e nessuna riga sotto di essa.",
+  "contacts.error.refused": "Lei non ha il permesso di registrare chi ha acconsentito a essere contattato.",
+  "contacts.error.unavailable": "Niente \xE8 stato importato. Riprovi tra un momento.",
   "settings.keys.title": "Chiavi API",
   "settings.keys.lead": "Una chiave permette a un programma di agire per Suo conto, e mai pi\xF9 di quanto Lei stesso possa fare.",
   "settings.keys.create.heading": "Crea una chiave",
@@ -17871,7 +19350,7 @@ var it_default = {
   "site.footer.nav.solutions": "Soluzioni",
   "site.footer.nav.trust": "Fiducia",
   "blog.nav.blurb": "Quello che abbiamo costruito, e che cosa ci \xE8 costato imparare.",
-  "log.nav.blurb": "Ogni rilascio, datato, con il suo commit.",
+  "log.nav.blurb": "Che cosa \xE8 cambiato, datato, in parole chiare.",
   "portability.nav.blurb": "Quello che pu\xF2 portarsi dietro, con ogni piano.",
   "gates.title": "Gli otto cancelli",
   "gates.nav.blurb": "Una funzione decide se qualsiasi cosa possa accadere.",
@@ -17992,7 +19471,7 @@ var it_default = {
   "gates.honest.lead": "Un motore delle regole che esiste e un motore delle regole che \xE8 stato invocato sono affermazioni diverse, e solo una riguarda un software in esecuzione.",
   "gates.honest.consent": "Il cancello 6 non ha mai rifiutato nulla, perch\xE9 nessuna chiamata nomina ancora una persona come soggetto. Il cancello \xE8 costruito e testato. Non \xE8 stato raggiunto.",
   "gates.honest.concurrency": "Il limite su quante esecuzioni possono procedere contemporaneamente \xE8 scritto e non imposto. Membri, reparti e funzioni lo sono.",
-  "gates.honest.spend": "Il denaro viene mantenuto intorno alla chiamata del modello stesso piuttosto che fidarsi di un chiamante, quindi il soffitto non dipende da nessuno ricordandosi di prenotarlo. Due superfici ancora controllano senza prenotare, e quelle sono nominate nel log di compilazione.",
+  "gates.honest.spend": "Il denaro viene mantenuto intorno alla chiamata del modello stesso piuttosto che fidarsi di un chiamante, quindi il soffitto non dipende da nessuno ricordandosi di prenotarlo. Alcune superfici controllano ancora senza prenotare.",
   "gates.unit.heading": "L'unit\xE0 \xE8 denaro, mai un conteggio",
   "gates.unit.lead": "Misurato sulla nostra stessa tabella di routing, il costo di un'azione varia circa diciannove volte. Qualsiasi cosa che vincoli il lavoro contando le azioni vincola la cosa sbagliata.",
   "gates.unit.credit": "Un credito \xE8 quello che vede e quello che viene fatturato. Il cancello confronta il denaro, e il credito ne \xE8 derivato piuttosto che conservato accanto, perch\xE9 due numeri che devono coincidere \xE8 il modo in cui un sistema di fatturazione inizia a mentire.",
@@ -18009,7 +19488,7 @@ var it_default = {
   "verification.today.heading": "Dove \xE8 vero oggi",
   "verification.today.lead": "Un percorso, descritto esattamente, perch\xE9 un percorso \xE8 quello che esiste.",
   "verification.today.publish": "Quando Orvay pubblica un sito, un attore lo costruisce, un secondo lo controlla, e la prova \xE8 una risposta HTTP recuperata da un terzo. L'hash del corpo viene calcolato dal lato che lo ha ricevuto piuttosto che dal lato che lo ha inviato.",
-  "verification.today.gap": "Nessun altro tipo di lavoro \xE8 indipendentemente verificato ancora. La voce di routing per essa esiste e nulla la chiama. Questo \xE8 un vuoto nel prodotto, non una sottigliezza nella formulazione.",
+  "verification.today.gap": "Un secondo percorso \xE8 giudicato allo stesso modo: quando un post viene pubblicato, un attore diverso lo rilegge e una funzione decide se questo stabilisce l'esito. Quello che manca ancora \xE8 chiedere a un secondo modello di verificare un primo: quella via esiste nel codice e nulla la chiama. Dire quale \xE8 quale \xE8 lo scopo di questa pagina.",
   "verification.today.why": "\xC8 scritto qui perch\xE9 un'affermazione di categoria che riposa su un percorso \xE8 l'esatto errore che questo prodotto esiste per rifiutare, e preferiremmo dirlo piuttosto che essere scoperti.",
   "verification.field.heading": "Quello che tutti gli altri fanno",
   "verification.field.lead": "Legga dalla documentazione del fornitore a settembre 2026. Dove un prodotto descrive la propria verifica, \xE8 quello che descrive.",
@@ -18050,6 +19529,8 @@ var it_default = {
   "integrations.credential.app_password.detail": "Quello che questo provider emette invece di un token. Limitato a un'applicazione e revocabile da solo.",
   "integrations.credential.dns.title": "Un record che pubblica",
   "integrations.credential.dns.detail": "Delega da CNAME piuttosto che una chiave incollata in un modulo, quindi le chiavi possono essere ruotate in seguito senza Lei toccare il DNS di nuovo.",
+  "integrations.credential.mcp.title": "Il suo server di strumenti",
+  "integrations.credential.mcp.detail": "Il fornitore gestisce un server che offre strumenti. Orvay lo registra con un clic, si autorizza presso il fornitore, fissa l'elenco degli strumenti che offre e richiede l'approvazione prima che uno di essi venga eseguito.",
   "integrations.credential.none.title": "Nulla ancora",
   "integrations.credential.none.detail": "Nessuna credenziale viene accettata, perch\xE9 non c'\xE8 nulla dietro il modulo per accettarla.",
   "integrations.grants.heading": "Quello che connetterla consentirebbe",
@@ -18339,18 +19820,34 @@ var it_default = {
   },
   "company.departments.heading": "Reparti",
   "company.agents.heading": "Agenti",
+  "company.department.legend": "Aggiunga un reparto",
+  "company.department.name": "Come si chiama",
+  "company.department.submit": "Aggiunga il reparto",
+  "company.department.created": "Il reparto \xE8 stato aggiunto.",
+  "company.department.error.short": "Un reparto ha bisogno di un nome di almeno due caratteri.",
+  "company.department.error.long": "Il nome di un reparto ha al massimo ottanta caratteri.",
+  "company.department.error.refused": "Un gate ha rifiutato questa azione. La sua politica non consente di aggiungere un reparto.",
   "company.department.no-envelope": "nessun perimetro di capacit\xE0",
   "company.agent.task-class": "classe di compito {taskClass}",
+  "company.agent.legend": "Aggiunga un agente",
+  "company.agent.name": "Come chiamarlo",
+  "company.agent.name.hint": "Un'etichetta per distinguere gli agenti in un elenco. Orvay non ha una personalit\xE0 e neanche questa lo \xE8.",
+  "company.agent.department": "A quale reparto appartiene",
+  "company.agent.task-class.label": "Il tipo di lavoro che svolge",
+  "company.agent.task-class.hint": "Una classe di compito decide quale modello risponde. Lei sceglie il tipo di lavoro; Orvay sceglie il modello.",
+  "company.agent.submit": "Aggiunga l'agente",
+  "company.agent.created": "L'agente \xE8 stato aggiunto. Non dispone di capacit\xE0, quindi non pu\xF2 ancora agire.",
+  "company.agent.error.short": "Un agente ha bisogno di un nome di almeno due caratteri.",
+  "company.agent.error.long": "Il nome di un agente ha al massimo ottanta caratteri.",
+  "company.agent.error.department": "Scelga uno dei reparti di questa azienda.",
+  "company.agent.error.task-class": "Scelga una delle classi di compito offerte.",
+  "company.agent.error.refused": "Un gate ha rifiutato questa azione. La Sua politica non consente di aggiungere un agente.",
+  "company.agent.needs-department": "Un agente appartiene a un reparto. Aggiunga prima un reparto, qui di seguito.",
+  "company.agents.no-authority": "Un agente agisce solo con le capacit\xE0 che gli sono state concesse. L'assegnazione di capacit\xE0 a un agente non \xE8 ancora stata realizzata, quindi nessuno di questi pu\xF2 agire.",
   "company.badge.halted": "fermato",
   "company.badge.active": "attivo",
   "company.badge.inactive": "inattivo",
-  "activity.head.empty": "Non \xE8 stato registrato nulla per questa azienda.",
-  "activity.head.count": {
-    one: "{count} voce, la pi\xF9 recente in fondo.",
-    many: "{count} voci, la pi\xF9 recente in fondo.",
-    other: "{count} voci, la pi\xF9 recente in fondo."
-  },
-  "activity.head.showing": "Vengono mostrate le {count} pi\xF9 recenti.",
+  "activity.trail.label": "Che cosa \xE8 successo, dal pi\xF9 recente",
   "activity.unread.heading": "In attesa che Lei guardi",
   "activity.unread.kind.message": "Qualcuno ha scritto un'email all'indirizzo della Sua azienda",
   "activity.unread.kind.approval": "Un contratto \xE8 in attesa di una decisione",
@@ -18461,6 +19958,7 @@ var it_default = {
   "account.export.right.title": "L'esportazione \xE8 un diritto, non una funzione",
   "account.export.right.body": "I Suoi dati sono esportabili su ogni piano, compreso quello gratuito, in un formato leggibile da una macchina. Farlo pagare non sarebbe una decisione di prezzo ma una violazione, quindi il Suo piano non viene consultato quando preme questo pulsante.",
   "account.export.manifest": "Il file \xE8 in formato NDJSON: un valore JSON per riga, e la prima riga \xE8 un manifesto che nomina ogni insieme di record, ne conta il numero, e indica quando l'esportazione \xE8 stata prodotta. Copre questa azienda, chiunque vi detenga un posto, ogni invito che ne \xE8 stato inviato, il registro dei consensi, e la traccia di audit concatenata con hash. I contenuti delle voci di audit sono forniti come il testo esatto memorizzato, cos\xEC ricalcolando l'hash di ogni voce si ottiene ancora l'hash che le sta accanto, e Lei pu\xF2 riverificare la catena senza di noi.",
+  "account.export.verify": "Come verificare questo file da s\xE9",
   "account.export.submit": "Esporti tutto",
   "account.export.recorded": "Prendere una copia scrive una voce nella traccia di audit, indicando quanti record sono finiti nel file e nessun indirizzo. Una traccia di audit corposa arriva una pagina alla volta, e il manifesto porta con s\xE9 la posizione da cui continuare.",
   "account.site.heading": "Il Suo sito generato",
@@ -18505,6 +20003,7 @@ var it_default = {
   "account.erased.title": "Cancellato",
   "account.erased.lead": "I Suoi dati personali sono stati cancellati da quell'azienda.",
   "account.erased.what.heading": "Esattamente che cosa \xE8 successo",
+  "account.erased.halted": "Questo spazio di lavoro \xE8 stato fermato, perch\xE9 lei era l\u2019ultima persona che poteva approvare qualcosa al suo interno. Ora non vi funziona pi\xF9 nulla. Chi ha accesso all\u2019account che lo paga pu\xF2 riavviarlo.",
   "account.erased.sealed": "Il Suo indirizzo e il nome visualizzato sono stati sovrascritti, e la chiave che rendeva leggibili i Suoi record di consenso \xE8 stata distrutta, cos\xEC quei record non possono pi\xF9 essere letti da nessuno, noi compresi. Le voci gi\xE0 scritte nella traccia di audit restano come sono: una traccia di audit che potesse essere riscritta non lo sarebbe. Conserviamo un record che un'interazione \xE8 avvenuta, quando, e sotto quale autorit\xE0, perch\xE9 dobbiamo poter dimostrare di aver agito in modo lecito.",
   "account.erased.suppression": "Conserviamo anche un digest a senso unico e con chiave del Suo indirizzo nel nostro elenco di soppressione, in modo da poterlo riconoscere e rifiutarci di contattarLa di nuovo. Quel digest \xE8 l'unica cosa che conserviamo su di Lei, ed \xE8 il motivo per cui la Sua revoca resta rispettata.",
   "account.erased.uncovered.label": "Ci\xF2 che questo non copre",
@@ -18513,6 +20012,14 @@ var it_default = {
   "account.erased.backups.title": "Copie contenute nei backup ordinari del database",
   "account.erased.backups.body": "Un backup effettuato prima che la chiave fosse distrutta la contiene ancora. Non abbiamo ancora stabilito e pubblicato una finestra di conservazione per quei backup, quindi non possiamo darLe una data dopo la quale non esista pi\xF9 alcuna copia da nessuna parte. Quando quella finestra sar\xE0 stabilita, sar\xE0 indicata qui.",
   "account.erased.audit": "La traccia di audit di quell'azienda registra questa cancellazione, che cosa ha distrutto e che cosa non ha potuto raggiungere, sotto il tipo di voce {entryType}.",
+  "account.erased.receipt.audit": "Voce",
+  "account.erased.receipt.fingerprint": "Impronta",
+  "account.erased.receipt.key": "Chiave distrutta",
+  "account.erased.unknown.title": "Non abbiamo alcun riscontro",
+  "account.erased.unknown.body": "L'indirizzo che ha seguito indica una cancellazione che non abbiamo eseguito. Se ha cancellato i Suoi dati e ha conservato il collegamento, controlli che sia stato copiato per intero. In caso contrario, qui non c'\xE8 nulla.",
+  "account.erased.receipt.heading": "La Sua prova, da conservare",
+  "account.erased.receipt.body": "Questa cancellazione \xE8 stata scritta nel registro della Sua azienda, una catena in cui ogni voce porta l\u2019impronta di quella precedente. Questi tre valori indicano quella voce. Li copi in un posto dove conserva le Sue cose.",
+  "account.erased.receipt.check": "Chi esporta in seguito i dati dell\u2019azienda pu\xF2 trovare questa voce e ricalcolarne l\u2019impronta, con il verificatore che {brand} pubblica. Se la voce \xE8 stata modificata da allora, la verifica fallisce e indica la riga. \xC8 questo che rende questi valori degni di essere conservati, invece di una frase scritta da noi.",
   "account.erased.browser.heading": "Questo browser",
   "account.erased.browser.body": "Lei non \xE8 pi\xF9 membro di quell'azienda. Uscire termina anche questa sessione del browser.",
   "account.footer.team": "In cerca di chi altro fa parte di questa azienda? Ecco",
@@ -18520,6 +20027,7 @@ var it_default = {
   "integrations.authority.title": "Collegare \xE8 concedere autorit\xE0",
   "integrations.authority.body": "Ogni riga elenca le capacit\xE0 che concederebbe. {brand} verifica una credenziale con una chiamata reale e di sola lettura prima di memorizzarla, e non memorizza nulla se quella chiamata fallisce. Scollegare distrugge la chiave di cifratura anzich\xE9 eliminare la riga, cos\xEC la credenziale diventa illeggibile e resta la prova che sia esistita.",
   "integrations.grants": "Concessioni:",
+  "integrations.grants.none": "Questa connessione non concede nulla agli agenti. Orvay pubblica una notifica; nessun agente ottiene un permesso.",
   "integrations.connected-as": "Connesso come",
   "integrations.mailbox.open": "Apra la casella di posta",
   "integrations.webhooks.heading": "Webhook",
@@ -18535,6 +20043,13 @@ var it_default = {
   "tools.result.removed": "Rimosso",
   "tools.result.not-registered": "Non registrato",
   "tools.result.registered": "Registrato",
+  "tools.register.submit": "Registrare il server di strumenti",
+  "tools.register.busy": "Verifica dell'indirizzo",
+  "tools.remove.submit": "Rimuovere",
+  "tools.remove.busy": "Rimozione in corso",
+  "tools.mode.busy": "Modifica in corso",
+  "tools.mode.hold": "Far approvare da una persona",
+  "tools.mode.release": "Lasciare che un modello lo chiami da solo",
   "tools.heading": "Server di strumenti",
   "tools.lead": "Un server di strumenti \xE8 una terza parte a cui {brand} pu\xF2 chiedere strumenti per conto di questa azienda. Ogni strumento che offre diventa una capacit\xE0 nella tabella delle regole prima che qualsiasi modello lo veda, quindi ci\xF2 che un server dice che uno strumento fa non pu\xF2 mai decidere se possa essere usato.",
   "tools.refused": "Rifiutato al cancello {gate} ({reason}).",
@@ -18611,6 +20126,27 @@ var it_default = {
   "files.preview.not-found.body": "Quel file non \xE8 in questa azienda, oppure \xE8 stato cancellato.",
   "files.preview.back": "Torni ai file",
   "files.preview.download": "Scarichi",
+  "files.share.heading": "Condividere questo documento",
+  "files.share.lead": "Un collegamento che si apre senza un account Orvay. Cessa di funzionare nel giorno da Lei scelto, al massimo dopo novanta giorni, e Lei pu\xF2 terminarlo prima.",
+  "files.share.label": "A cosa serve",
+  "files.share.days": "Giorni fino alla scadenza",
+  "files.share.submit": "Crei il collegamento",
+  "files.share.pending": "Creazione del collegamento in corso",
+  "files.share.shown-once": "Lo copi ora. Questo \xE8 l'unico momento in cui viene mostrato, poich\xE9 solo la sua impronta viene memorizzata.",
+  "files.share.revoked": "Questo collegamento non apre pi\xF9 nulla.",
+  "files.share.revoke": "Termini questo collegamento",
+  "files.share.list.heading": "Collegamenti a questo documento",
+  "files.share.list.empty": "Nessun collegamento. Questo documento non ha lasciato l'azienda.",
+  "files.share.list.unnamed": "Collegamento senza nome",
+  "files.share.list.live": "funziona ora",
+  "files.share.list.expired": "scaduto",
+  "files.share.list.revoked": "terminato",
+  "files.share.list.never-opened": "mai aperto",
+  "files.share.list.opened": "aperto",
+  "files.share.error.refused": "Lei non ha il permesso di condividere un documento fuori da questa azienda.",
+  "files.share.error.unavailable": "Niente \xE8 stato creato. Riprovi tra un momento.",
+  "files.share.error.not-found": "Questo documento non \xE8 pi\xF9 qui.",
+  "files.share.error.window": "Scelga un numero intero di giorni, da 1 a 90.",
   "files.preview.image.caption": "Descritta solo dal nome del file. Nulla ha letto ci\xF2 che si trova nell'immagine.",
   "files.preview.pdf-empty.title": "Non \xE8 stato possibile leggere alcun testo da questo PDF",
   "files.preview.pdf-empty.body": "Le parole vengono mostrate qui quando un PDF contiene testo. Questo non ne ha ceduta alcuna, il che di solito significa che le pagine sono immagini scansionate anzich\xE9 testo, oppure che il file \xE8 protetto. Pu\xF2 comunque essere scaricato, e il lavoro che questa azienda gestisce non riceve nulla da esso.",
@@ -18714,6 +20250,13 @@ var it_default = {
   "integrations.error.no-credential": "Incolli prima la credenziale.",
   "integrations.error.bluesky-needs-handle": "Bluesky richiede sia il Suo handle sia la password per l'app.",
   "integrations.error.mastodon-needs-host": "Mastodon richiede il nome host della Sua istanza.",
+  "integrations.error.slack-needs-channel": "Slack ha bisogno dell'ID del canale e del token.",
+  "integrations.field.bluesky.label": "Il suo nome utente",
+  "integrations.field.bluesky.hint": "Ad esempio name.bsky.social",
+  "integrations.field.mastodon.label": "Il nome host della sua istanza",
+  "integrations.field.mastodon.hint": "Ad esempio mastodon.social, senza https",
+  "integrations.field.slack.label": "ID del canale",
+  "integrations.field.slack.hint": "Apra il canale in Slack e scelga Visualizza i dettagli del canale. L'ID si trova in basso e inizia con C.",
   "integrations.error.no-adapter": "Non esiste alcun adattatore per quell'integrazione.",
   "integrations.error.verify-unreachable": "Nulla \xE8 stato memorizzato: {reason}. La Sua credenziale resta invariata e intatta.",
   "integrations.error.gate-refused": "rifiutato al cancello {gate}: {reason}",
@@ -18723,6 +20266,8 @@ var it_default = {
   "integrations.error.not-connected": "Non \xE8 stato connesso.",
   "integrations.ok.disconnected": "Disconnesso. La chiave e la credenziale memorizzata sono state entrambe distrutte, quindi qui nulla pu\xF2 pi\xF9 usarla. Revochi anche il token presso il fornitore, perch\xE9 l\xEC resta valido finch\xE9 non lo fa.",
   "integrations.error.not-microsoft": "Non \xE8 un'integrazione che {brand} connette tramite Microsoft.",
+  "integrations.error.not-google": "Non \xE8 un'integrazione che {brand} connette tramite Google.",
+  "integrations.error.no-google-client": "Questa implementazione non ha un client di accesso Google registrato, quindi una casella di posta non pu\xF2 essere connessa da qui.",
   "integrations.error.no-microsoft-client": "Questa installazione non ha alcun client di accesso Microsoft registrato, quindi da qui non \xE8 possibile connettere una casella di posta.",
   "integrations.error.mailbox-already-connected": "Quella casella di posta \xE8 gi\xE0 connessa. La scolleghi prima di connetterla di nuovo.",
   "integrations.error.tool-server-fields-required": "Servono un nome breve, un'etichetta e un URL https.",
@@ -18738,6 +20283,35 @@ var it_default = {
   "integrations.ok.tool-approval": "Ora {tool} attende una persona. Non viene offerto a un modello.",
   "integrations.error.tool-unnameable": "Quel nome di strumento non pu\xF2 essere trasformato in una capacit\xE0, quindi non pu\xF2 essere concessa.",
   "integrations.error.tool-forbidden": "Quello strumento \xE8 vietato da una migrazione, che questo controllo non pu\xF2 annullare.",
+  "integrations.tool-server.needs-account": "Questo server richiede un account connesso prima di elencare i suoi strumenti. Nulla gli viene chiesto fino a quando non ne collega uno.",
+  "integrations.tool-server.connect.submit": "Connetti",
+  "integrations.tool-server.pending": "Accesso avviato. Completi l'operazione nella finestra aperta e questo server elencher\xE0 i suoi strumenti dopo.",
+  "integrations.tool-server.authorized": "Connesso tramite {issuer}, {when}. L'autorizzazione \xE8 sigillata sotto una chiave che viene distrutta quando si rimuove questo server.",
+  "integrations.tool-server.no-account-needed": "Questo server risponde senza account, quindi non c'\xE8 nulla da connettere.",
+  "integrations.tool-server.reauth-required.title": "Richiede un nuovo accesso",
+  "integrations.tool-server.reauth-required": "L'autorizzazione per questo server ha smesso di funzionare, quindi nulla gli viene pi\xF9 chiesto. Ricolleghi per continuare.",
+  "integrations.tool-server.client-rejected.title": "Non pi\xF9 riconosciuto",
+  "integrations.tool-server.client-rejected": "{issuer} non riconosce pi\xF9 come {brand} si identifica, quindi nulla viene chiesto a questo server. Accedere di nuovo non risolve questo. Rimuova il server e lo aggiunga di nuovo per registrarsi di nuovo.",
+  "integrations.tool-server.unconfigured.title": "Non configurato",
+  "integrations.tool-server.unconfigured": "Questo server non distribuisce le sue credenziali client proprie, quindi {brand} non pu\xF2 registrarsi con esso. Imposti {idVariable} e {secretVariable} su questa installazione, quindi lo colleghi.",
+  "integrations.error.tool-server-discovery": "Quel server non ha potuto dire dove accedere, quindi nulla \xE8 stato connesso.",
+  "integrations.error.tool-server-pkce": "Quel server accede tramite un servizio che non offre la protezione che impedisce a un accesso intercettato di essere riutilizzato, quindi nulla \xE8 stato connesso.",
+  "integrations.error.tool-server-issuer": "L'accesso \xE8 tornato da un servizio diverso da quello indicato da quel server. Nulla \xE8 stato letto e nulla \xE8 stato connesso.",
+  "integrations.error.tool-server-redirected": "Quel server ha tentato di inviare la richiesta altrove. {brand} non trasporta una credenziale attraverso un reindirizzamento, quindi nulla \xE8 stato connesso.",
+  "integrations.error.tool-server-points-inward": "Quel server ha indicato un indirizzo di accesso all'interno di una rete privata, quindi nulla \xE8 stato recuperato da esso.",
+  "integrations.tool-server.paused.title": "In pausa: i suoi strumenti sono cambiati",
+  "integrations.tool-server.paused": "Questo server ora offre un elenco diverso di strumenti rispetto a quello che \xE8 stato approvato. Nulla gli viene chiesto finch\xE9 qualcuno non legge la modifica e l'approva.",
+  "integrations.tool-server.reapprove.submit": "Approva il nuovo elenco",
+  "integrations.tool-server.diff.added": "Aggiunto",
+  "integrations.tool-server.diff.removed": "Rimosso",
+  "integrations.tool-server.diff.changed": "Modificato",
+  "integrations.tool-server.diff.unchanged": "Invariato",
+  "integrations.tool-server.diff.parameters": "I parametri sono cambiati. La descrizione no.",
+  "integrations.ok.tool-server-reapproved": "Il nuovo elenco \xE8 approvato. {label} \xE8 offerto di nuovo.",
+  "integrations.error.tool-server-not-paused": "Quel server non \xE8 in pausa, quindi non c'\xE8 nulla da approvare.",
+  "integrations.error.tool-server-plan-excludes": "Questo piano non include strumenti in prestito. Passi a un piano che li include.",
+  "integrations.error.tool-server-plan-limit": "Questo piano non ha spazio per un altro server di strumenti. Ne rimuova uno, o passi a un piano con maggiore capacit\xE0.",
+  "integrations.error.tool-server-stale-approval": "L'elenco \xE8 cambiato di nuovo da quando l'ha letto. Legga il nuovo prima di approvare.",
   "webhooks.action.gate-refused": "rifiutato al cancello {gate}: {reason}",
   "webhooks.action.not-signed-in": "non ha eseguito l'accesso",
   "webhooks.register.not-https": "L'indirizzo deve iniziare con https. Una consegna \xE8 firmata anzich\xE9 cifrata, quindi in http in chiaro sia il corpo sia la firma sono leggibili da chiunque si trovi sul percorso.",
@@ -18971,8 +20545,18 @@ var it_default = {
   "integrations.oauth.gateSuffix": " Rifiutato al cancello {gate}.",
   "integrations.summary.none": "Nulla \xE8 connesso. Oggi {connectable} possono essere connesse.",
   "integrations.summary.some": "{connected} connesse, {connectable} connettibili in totale.",
+  "integrations.mcp.self": "Si collega tramite il server di strumenti di {vendor}. Orvay vi si registra da solo. Non c'\xE8 nulla da configurare prima.",
+  "integrations.mcp.unstated": "Si collega tramite il server di strumenti di {vendor}. Orvay prova a registrarsi da solo. Se {vendor} rifiuta, funziona invece una chiave del suo account {vendor}.",
+  "integrations.mcp.operator": "Si collega tramite il server di strumenti di {vendor}, che ammette solo un'applicazione registrata dall'operatore presso {vendor}. Dopo la registrazione, il server di strumenti qui sotto indica il client che manca ancora a questa installazione.",
+  "integrations.mcp.authorize.submit": "Autorizzare con {vendor}",
+  "integrations.mcp.awaiting": "Registrato e non ancora autorizzato: {vendor} deve ancora lasciare entrare Orvay. Il pulsante La porta l\xEC e La riporta indietro.",
+  "integrations.mcp.register.submit": "Registra il suo server di strumenti",
+  "integrations.mcp.registered": "Registrato come server di strumenti. I suoi strumenti e le loro modalit\xE0 sono elencati qui sotto.",
   "integrations.badge.connected": "connesso",
   "integrations.connection.unknownAccount": "sconosciuto",
+  "integrations.connection.checked": "Verificato {when}.",
+  "integrations.connection.checkOverdue": "Ultima verifica {when}. Una verifica \xE8 in ritardo.",
+  "integrations.connection.neverChecked": "Non verificato da quando \xE8 stato collegato.",
   "integrations.connection.lastError": " \xB7 ultimo errore: {error}",
   "integrations.fix.heading": "Proporre una correzione",
   "integrations.fix.goalHeading": "Lasciare che un obiettivo ne proponga una",
@@ -19030,6 +20614,7 @@ var it_default = {
   "fix.error.notThreeSteps": "quel contratto non ha tre passaggi",
   "fix.error.serverUnreachable": "quel server non \xE8 stato raggiungibile: {reason}",
   "fix.error.toolRefused": "quello strumento ha rifiutato: {reason}",
+  "fix.error.toolListMoved": "L'elenco degli strumenti del server di strumenti non \xE8 pi\xF9 quello che \xE8 stato approvato. Questo non verr\xE0 eseguito finch\xE9 qualcuno non avr\xE0 letto la modifica nella pagina Integrazioni e l'avr\xE0 approvata.",
   "fix.error.noModel": "non \xE8 stato raggiungibile alcun modello, quindi non c'\xE8 nulla da proporre",
   "fix.pr.writtenBy": "Scritto da {brand} dallo strumento {tool} del server {server}, e approvato prima che qualcosa venisse letto.",
   "fix.error.githubNotConnected": "GitHub non \xE8 collegato qui.",
@@ -19120,7 +20705,203 @@ var it_default = {
   "social.post.publishFailed": "Non \xE8 stato possibile pubblicare il post.",
   "social.post.notRecorded": "\xC8 stato pubblicato, e l'esecuzione non ha potuto essere registrata.",
   "social.post.notVerified": "\xC8 stato pubblicato, e l'indirizzo non ha potuto essere riletto.",
-  "notification.summary.approval.escalated": "Una decisione aspetta da un giorno"
+  "notification.summary.approval.escalated": "Una decisione aspetta da un giorno",
+  // -------------------------------------------------------------------------
+  // The second factor: the challenge at sign-in, and the enrolment in account
+  // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
+  // -------------------------------------------------------------------------
+  "auth.meta.verify": "Verifica in due passaggi",
+  "auth.verify.heading": "Inserisca il codice",
+  "auth.verify.lead": "Apra l'app di autenticazione e inserisca il codice a sei cifre che mostra per Orvay.",
+  "auth.verify.field.code": "Codice a sei cifre",
+  "auth.verify.submit": "Verifica",
+  "auth.verify.recovery.lead": "Se non ha il telefono a portata di mano, usi uno dei codici di recupero che ha salvato durante la configurazione.",
+  "auth.verify.recovery.field": "Codice di recupero",
+  "auth.verify.recovery.submit": "Usi un codice di recupero",
+  "auth.verify.expired.title": "Questo accesso \xE8 scaduto",
+  "auth.verify.expired.body": "Un accesso in attesa di un codice dura dieci minuti. Il suo account non ha alcun problema. Acceda di nuovo e le chiederemo un codice nuovo.",
+  "auth.verify.start-again": "Acceda di nuovo",
+  "auth.verify.error.wrong": "Questo codice non \xE8 corretto. Controlli l'app e inserisca quello che mostra adesso.",
+  "auth.verify.error.already-used": "Questo codice \xE8 gi\xE0 stato usato. Attenda che l'app mostri il successivo.",
+  "auth.verify.error.malformed": "Un codice ha sei cifre, un codice di recupero dieci caratteri.",
+  "auth.verify.error.no-such-code": "Questo codice di recupero non \xE8 uno dei suoi, oppure \xE8 gi\xE0 stato usato.",
+  "auth.verify.error.throttled": "Troppi tentativi. Attenda qualche minuto e riprovi.",
+  "auth.verify.error.unavailable": "Non siamo riusciti a verificare questo codice. Nel suo account non \xE8 cambiato nulla. Riprovi tra un momento.",
+  "account.mfa.heading": "Verifica in due passaggi",
+  "account.mfa.off.body": "Aggiunga un'app di autenticazione e Orvay chieder\xE0 anche un codice a ogni accesso.",
+  "account.mfa.start": "Configura la verifica in due passaggi",
+  "account.mfa.enrol.heading": "Aggiunga il suo autenticatore",
+  "account.mfa.enrol.lead": "Aggiunga questa chiave alla sua app di autenticazione, poi inserisca il codice che mostra per dimostrare che ha funzionato.",
+  "account.mfa.enrol.key": "Chiave di configurazione",
+  "account.mfa.enrol.field": "Codice a sei cifre",
+  "account.mfa.enrol.submit": "Attiva la verifica in due passaggi",
+  "account.mfa.enrol.cancel": "Annulla",
+  "account.mfa.on.body": "Orvay chiede un codice dal suo autenticatore a ogni accesso. Attiva dal {when}.",
+  "account.mfa.codes.heading": "Codici di recupero",
+  "account.mfa.codes.lead": "Li conservi in un posto raggiungibile senza il telefono. Ognuno funziona una volta sola e sono l'unico modo per rientrare nel suo account se perde l'autenticatore. Vengono mostrati adesso e mai pi\xF9.",
+  "account.mfa.codes.left": "Codici di recupero rimasti: {left} su {total}",
+  "account.mfa.disable": "Disattiva la verifica in due passaggi",
+  "account.mfa.unavailable": "Non siamo riusciti a leggere le sue impostazioni di sicurezza, quindi questa sezione non mostra che cosa \xE8 attivo.",
+  "account.mfa.notice.on": "La verifica in due passaggi \xE8 attiva.",
+  "account.mfa.disable.lead": "Per disattivarla viene chiesto un codice, cos\xEC una sessione rubata non pu\xF2 rimuoverla. Usi il suo autenticatore o uno dei suoi codici di recupero.",
+  "account.mfa.busy": "In corso",
+  "account.mfa.notice.off": "La verifica in due passaggi \xE8 disattivata. La password \xE8 l'unica cosa che protegge questo account.",
+  // ORG-4: what RAN across the workspaces you belong to, beside what waits.
+  "org.activity.heading": "Che cosa \xE8 stato eseguito nei suoi spazi di lavoro",
+  "org.activity.body": "Gli ultimi trenta giorni, in ogni spazio di lavoro a cui appartiene. Mai verificate e Ancora in corso non hanno alcun periodo: un'esecuzione che nulla ha verificato non diventa verificata dopo un mese.",
+  "org.activity.none": "Oltre a questo non c'\xE8 nessun altro spazio di lavoro.",
+  "org.activity.running": "Ancora in corso",
+  "org.activity.oldest": "La pi\xF9 vecchia, in giorni",
+  "org.activity.runs": "Eseguite",
+  "org.activity.established": "Verificate e confermate",
+  "org.activity.refused": "Verificate e non confermate",
+  "org.activity.unverified": "Mai verificate",
+  // Goal A close-out, batch one: seats, memory, the upload sentence, the studio branches, since you were last here
+  "account.footer.memory": "Cerca ci\xF2 che questa azienda ha insegnato a Orvay, e come impedirgli di usare un'informazione? \xC8",
+  "dataUse.memory": "I fatti che Orvay ha conservato dal lavoro di questa azienda si possono leggere, e mettere da parte perch\xE9 non vengano pi\xF9 usati in una risposta, su",
+  "files.upload.said.added": {
+    one: "{count} file aggiunto.",
+    many: "{count} file aggiunti.",
+    other: "{count} file aggiunti."
+  },
+  "files.upload.said.more": {
+    one: "1 in pi\xF9",
+    many: "{count} in pi\xF9",
+    other: "{count} in pi\xF9"
+  },
+  "files.upload.said.partial": {
+    one: "{added} aggiunti. Un file non \xE8 stato accettato: {names}.",
+    many: "{added} aggiunti. {refused} file non sono stati accettati: {names}.",
+    other: "{added} aggiunti. {refused} file non sono stati accettati: {names}."
+  },
+  "home.since.events": {
+    one: "{count} evento registrato",
+    many: "{count} eventi registrati",
+    other: "{count} eventi registrati"
+  },
+  "home.since.nothing": "Niente di nuovo dalla Sua ultima visita, {when}.",
+  "home.since.proposals": {
+    one: "{count} nuova proposta",
+    many: "{count} nuove proposte",
+    other: "{count} nuove proposte"
+  },
+  "home.since.summary": "Dalla Sua ultima visita, {when}: {summary}.",
+  "nav.hint.memory": "Che cosa l'azienda ha conservato dal proprio lavoro, e come mettere da parte un fatto",
+  "onboarding.done.next.integrations": "Integrazioni collega una casella di posta, GitHub, Bluesky o Mastodon, e ogni riga dice che cosa permetterebbe il collegamento.",
+  "policies.grant.apply": "Applica",
+  "policies.grant.mode.approval": "Si ferma per una persona",
+  "policies.grant.mode.autonomous": "Agisce senza chiedere",
+  "policies.grant.mode.label": "Autonomia per {capability}",
+  "policies.grant.mode.restricted": "Agisce solo entro i suoi limiti",
+  "policies.grant.saving": "Salvataggio",
+  "policies.history.contract": "Apri la proposta",
+  "policies.history.contract.for": "Apri la proposta per {intent}",
+  "studio.refused.still-running": "Questa creazione \xE8 ancora in corso, e questa pagina ha smesso di aspettarla. Non \xE8 stato pubblicato nulla. Prosegue senza questa pagina, e ci\xF2 che ha prodotto sar\xE0 qui alla prossima apertura di questa schermata.",
+  "studio.refused.superseded": "Una creazione pi\xF9 recente di questo sito ha sostituito questa, e questa pagina ha smesso di seguirla. Qui non \xE8 stato pubblicato nulla. Riapra questa schermata per seguire la creazione che ne ha preso il posto.",
+  "studio.unreachable.body": "Questa pagina continua a chiedere. La creazione potrebbe essere ancora in corso: prosegue comunque senza questa pagina, e ci\xF2 che ha prodotto sar\xE0 qui alla prossima apertura di questa schermata.",
+  "studio.unreachable.title": "Il servizio di creazione non ha risposto",
+  "team.head.seats": {
+    one: "{active} su {limit} posto.",
+    many: "{active} su {limit} posti.",
+    other: "{active} su {limit} posti."
+  },
+  "team.head.seats.none": "Nessun limite di posti in questo piano.",
+  "team.seats.full.body": "Il prossimo invito sar\xE0 rifiutato finch\xE9 un posto non si libera. Disattivi chi se n'\xE8 andato, oppure passi a un piano superiore su",
+  "team.seats.full.title": "Tutti i posti di questo piano sono occupati",
+  "usage.scope": "Utilizzo e fatturazione appartengono all'organizzazione e non a un singolo spazio di lavoro: \xE8 l'organizzazione ad acquistare il piano, e ogni spazio di lavoro che possiede attinge agli stessi crediti.",
+  // MON-8: invoices and the payment method, on Stripe's own page.
+  "billing.portal.heading": "Fatture e metodo di pagamento",
+  "billing.portal.body": "Le sue fatture, la carta con cui paga e la disdetta si trovano sulla pagina di Stripe. Orvay non conserva una seconda copia di una fattura, quindi nulla qui pu\xF2 discostarsi da ci\xF2 che le \xE8 stato addebitato.",
+  "billing.portal.open": "Apri il portale di fatturazione",
+  "billing.portal.none.reason": "Non c'\xE8 nulla da mostrare finch\xE9 non esiste un abbonamento. Si apre non appena il primo pagamento va a buon fine.",
+  "billing.portal.unavailable": "Non disponibile",
+  "billing.portal.no-customer.title": "Non esiste ancora un conto di fatturazione",
+  "billing.portal.no-customer.body": "Per questa organizzazione non \xE8 stato pagato nulla, quindi Stripe non detiene n\xE9 fatture n\xE9 un metodo di pagamento. Sottoscriva un piano e il portale si apre.",
+  "billing.portal.refused.title": "Nessuna autorizzazione per la fatturazione",
+  "billing.portal.failed.title": "Non \xE8 stato possibile aprire il portale di fatturazione",
+  "billing.portal.failed.body": "Nel suo abbonamento non \xE8 cambiato nulla. Riprovi tra un momento e ci scriva se continua a succedere.",
+  // Goal A close-out, batch two: versions, and the integrations page in the reader's language
+  "files.col.version": "Versione",
+  "files.versions.replaces": "Sostituisce {name}",
+  "files.versions.replaced": "Sostituito da una versione pi\xF9 recente",
+  "files.versions.heading": "Versioni",
+  "files.versions.replaced.lead": "Una versione pi\xF9 recente ha sostituito questa:",
+  "files.versions.previous.lead": "Ci\xF2 che questo file ha sostituito, dal pi\xF9 recente:",
+  "files.versions.deleted": "eliminato",
+  "files.versions.note": "Sostituire un documento non rimuove quello precedente. Ogni versione qui sopra \xE8 un file a s\xE9, ed eliminarne una \xE8 un passo separato.",
+  "integrations.catalogue.github.summary": "Repository, pull request, controlli",
+  "integrations.catalogue.github.because": "Esiste un adattatore reale. Le azioni compiute tramite esso raggiungono GitHub e vengono registrate come reali.",
+  "integrations.catalogue.github.label": "Token di accesso personale",
+  "integrations.catalogue.github.help": "Un token a grana fine con accesso in lettura ai repository che Orvay deve vedere. Orvay lo verifica con una sola chiamata in lettura prima di conservarlo, e non conserva nulla se quella chiamata fallisce.",
+  "integrations.catalogue.bluesky.summary": "Pubblicazione sul Suo account",
+  "integrations.catalogue.bluesky.because": "Esiste un adattatore reale, e i post pubblicati tramite esso compaiono davvero sul Suo account.",
+  "integrations.catalogue.bluesky.label": "Password per app",
+  "integrations.catalogue.bluesky.help": "Generata in Bluesky sotto Impostazioni, Password per app. Non \xE8 la password del Suo account. Bluesky non offre un OAuth utilizzabile per questo, quindi una password per app \xE8 la credenziale che la piattaforma stessa propone.",
+  "integrations.catalogue.mastodon.summary": "Pubblicazione sulla Sua istanza",
+  "integrations.catalogue.mastodon.because": "Esiste un adattatore reale, limitato all'istanza a cui appartiene il Suo token.",
+  "integrations.catalogue.mastodon.label": "Token di accesso",
+  "integrations.catalogue.mastodon.help": "Creato sulla Sua istanza sotto Preferenze, Sviluppo. Richiede l'ambito write:statuses e nient'altro.",
+  "integrations.catalogue.email.summary": "Posta transazionale e di marketing, inviata a Suo nome",
+  "integrations.catalogue.email.because": "Il flusso di delega DNS non \xE8 ancora costruito. Orvay non invier\xE0 la Sua posta di marketing dal proprio dominio come ripiego, perch\xE9 quel danno non si pu\xF2 annullare cambiando comportamento in seguito.",
+  "integrations.catalogue.email.help": "Inviare come il Suo dominio significa delegare DKIM tramite CNAME, cos\xEC le chiavi possono ruotare senza che Lei tocchi di nuovo il DNS. Orvay non invia mai la posta di un cliente da un dominio di propriet\xE0 di Orvay: la reputazione \xE8 condivisa tra un dominio registrabile e i suoi sottodomini, quindi un cliente che superasse una soglia colpirebbe tutti i clienti insieme, in modo permanente.",
+  "integrations.catalogue.gmail.summary": "Leggere, smistare e rispondere alla Sua casella di posta",
+  "integrations.catalogue.gmail.because": "Il client OAuth \xE8 costruito e testato. Questa installazione non ha alcun client di accesso Google registrato, perci\xF2 la riga lo dice invece di offrire un pulsante; e Google classifica l'accesso alla casella di posta come ambito riservato, che richiede la sua valutazione di sicurezza annuale da parte di terzi prima che la casella di un estraneo possa essere raggiunta. Lettura, smistamento e risposta per Gmail non sono ancora costruiti.",
+  "integrations.catalogue.gmail.help": "Collegherebbe il Suo account Google. Orvay non vede mai la Sua password, non ospita la Sua posta, e Lei pu\xF2 revocare l'autorizzazione da Google senza chiederlo a noi. Risponde alle persone che Le hanno scritto e non avvia conversazioni: \xE8 una capacit\xE0 diversa, e il prodotto la rifiuta.",
+  "integrations.catalogue.outlook.summary": "Leggere, smistare e rispondere alla Sua casella di posta",
+  "integrations.catalogue.outlook.because": "Esiste un adattatore reale, e legge, archivia e risponde a una casella di posta reale. Microsoft non richiede una valutazione di sicurezza separata per la lettura della posta, ed \xE8 per questo che \xE8 arrivato prima di Gmail. Nulla viene letto finch\xE9 Lei non lo chiede, e nulla viene inviato finch\xE9 Lei non preme qualcosa.",
+  "integrations.catalogue.outlook.help": "Collega il Suo account Microsoft. Un account personale funziona oggi; un account di lavoro nel tenant Microsoft 365 di un'azienda pu\xF2 essere rifiutato da quel tenant, perch\xE9 Orvay non \xE8 ancora un editore Microsoft verificato. Orvay non vede mai la Sua password, non ospita la Sua posta, e Lei pu\xF2 revocare l'autorizzazione da Microsoft senza chiederlo a noi. Risponde alle persone che Le hanno scritto e non avvia conversazioni: \xE8 una capacit\xE0 diversa, e il prodotto la rifiuta.",
+  "integrations.catalogue.stripe.summary": "Abbonamenti, fatture, rimborsi",
+  "integrations.catalogue.stripe.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti. L'adattatore di prova che modella azioni di tipo monetario per le prove delle regole \xE8 separato, e ogni artefatto che produce \xE8 marcato come simulato.",
+  "integrations.catalogue.google-ads.summary": "Campagne e spesa",
+  "integrations.catalogue.google-ads.because": "Modellato perch\xE9 pubblicare una campagna \xE8 l'esempio pi\xF9 chiaro di un'azione irreversibile rivolta all'esterno. Non viene pubblicato nulla.",
+  "integrations.catalogue.vercel.summary": "Deployment e rollback",
+  "integrations.catalogue.vercel.because": "Modellato perch\xE9 un rollback possa essere proposto e verificato. Nessun deployment viene toccato.",
+  "integrations.catalogue.linear.summary": "Issue e cicli",
+  "integrations.catalogue.linear.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.catalogue.atlassian.summary": "Issue Jira, pagine Confluence",
+  "integrations.catalogue.atlassian.because": "Un solo server per Jira e Confluence. Ogni strumento che elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.catalogue.sentry.summary": "Errori, issue, release",
+  "integrations.catalogue.sentry.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.catalogue.notion.summary": "Pagine e database",
+  "integrations.catalogue.notion.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.catalogue.slack.summary": "Un'approvazione inoltrata, pubblicata in un canale",
+  "integrations.catalogue.slack.because": "Orvay pubblica nel canale che Lei indica. Il messaggio non porta mai un pulsante: una decisione presa da un client di chat non ha una sessione alle spalle, quindi il messaggio rimanda alla proposta e la decisione avviene in Orvay.",
+  "integrations.catalogue.slack.label": "Token OAuth dell'utente bot",
+  "integrations.catalogue.slack.help": "Crei un'app nel Suo spazio di lavoro Slack, le assegni gli ambiti chat:write e channels:read, la installi e poi la inviti nel canale. Orvay verifica il token e il canale con due chiamate in lettura prima di conservare qualsiasi cosa.",
+  "integrations.catalogue.hubspot.summary": "Pipeline e contatti",
+  "integrations.catalogue.hubspot.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.catalogue.intercom.summary": "Conversazioni e macro",
+  "integrations.catalogue.intercom.because": "Non costruito. Il testo di supporto in entrata \xE8 per definizione contesto non affidabile, quindi questo attende il percorso di quarantena invece di arrivare presto.",
+  "integrations.catalogue.zenovay.summary": "Analisi del sito, obiettivi, funnel, disponibilit\xE0",
+  "integrations.catalogue.zenovay.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.catalogue.posthog.summary": "Funnel, replay, feature flag",
+  "integrations.catalogue.posthog.because": "Ogni strumento che il server elenca attende approvazione finch\xE9 Lei non decide altrimenti.",
+  "integrations.connect.submit": "Collega {name}",
+  "integrations.connect.busy": "Verifica in corso",
+  "integrations.connect.busyReason": "Verifica della credenziale presso {name}",
+  "integrations.connect.oauth.submit": "Collega {name} tramite {provider}",
+  "integrations.connect.oauth.busy": "Apertura di {provider}",
+  "integrations.connect.oauth.busyReason": "La stiamo inviando a {provider}",
+  "integrations.connect.oauth.noClient": "Questa installazione non ha alcun client di accesso {provider} registrato, quindi non c'\xE8 ancora nulla da premere.",
+  "integrations.disconnect.submit": "Scollega",
+  "integrations.disconnect.busy": "Scollegamento in corso",
+  // Goal A close-out, batch two: goals belong to a department, and a statement can be edited
+  "department.filter.label": "Mostra un solo reparto",
+  "department.filter.all": "Tutti i reparti",
+  "department.filter.submit": "Mostra",
+  "department.filter.showing": "Mostra solo ci\xF2 che appartiene a {department}.",
+  "department.filter.clear": "Mostra tutti i reparti",
+  "department.filter.chain": "Il registro viene verificato da un capo all'altro, in sequenza, quindi quel controllo riguarda l'intero registro e non un solo reparto.",
+  "goals.department.label": "Quale reparto",
+  "goals.department.company": "Tutta l'azienda",
+  "goals.department.saved": "Salvato.",
+  "goals.department.error": "Questo non \xE8 un reparto di questa azienda.",
+  "goals.department.on": "Reparto: {name}",
+  "goals.form.department.hint": "Un obiettivo senza reparto appartiene a tutta l'azienda.",
+  "goals.statement.label": "Che cosa dice questo obiettivo",
+  "goals.statement.submit": "Salva",
+  "goals.statement.saved": "Salvato.",
+  "integrations.catalogue.email.name": "Email dal Suo dominio"
 };
 
 // ../../packages/content/src/messages/it.legal.ts
@@ -19353,13 +21134,13 @@ var it_legal_default = {
   "legal.subprocessors.supabase.safeguard": "Un trasferimento dallo SEE alla Svizzera si fonda sulla decisione di adeguatezza della Commissione europea per la Svizzera e non necessita di ulteriori strumenti. Supabase \xE8 stabilita negli Stati Uniti, e il suo stesso accesso \xE8 coperto dal suo addendum sul trattamento dei dati con le clausole contrattuali standard.",
   "legal.subprocessors.supabase.statusDetail": "Contiene il registro dei consensi e ogni tabella di dominio. Il progetto precedente a Francoforte, regione eu-central-1, \xE8 in fase di dismissione a favore di quello di Zurigo.",
   "legal.subprocessors.anthropic.service": "Inferenza dei modelli. Claude \xE8 l'impostazione predefinita per la maggior parte delle classi di attivit\xE0, inclusa quella che scrive un sito web generato.",
-  "legal.subprocessors.anthropic.data1": "Il testo della richiesta che fate a un agente, e il contesto assemblato per essa",
+  "legal.subprocessors.anthropic.data1": "Il testo della richiesta che rivolge a un agente e il contesto assemblato per essa, con il testo che corrisponde a un breve elenco di schemi di credenziali rimosso prima dell\u2019invio. I dati personali presenti in quel testo, come nomi e indirizzi, non vengono rimossi",
   "legal.subprocessors.anthropic.data2": "Nessun indirizzo della lista d'attesa fa mai parte di quel testo",
   "legal.subprocessors.anthropic.location1": "Stati Uniti. Fuori dalla Svizzera e fuori dallo SEE",
   "legal.subprocessors.anthropic.safeguard": "Le clausole contrattuali standard ai sensi dell'addendum sul trattamento dei dati del fornitore. Ci basiamo sulle clausole anzich\xE9 su una certificazione di framework.",
   "legal.subprocessors.anthropic.statusDetail": "Il Worker di generazione dei siti web chiama un modello quando dispone di una chiave del fornitore. \xC8 l'unico Worker del prodotto che invoca un modello.",
   "legal.subprocessors.openai.service": "Inferenza dei modelli, utilizzata dove la tabella di instradamento invia una classe di attivit\xE0 a un modello OpenAI. \xC8 il secondo fornitore, che \xE8 ci\xF2 che permette a una verifica di essere eseguita da un fornitore diverso da quello che ha svolto il lavoro.",
-  "legal.subprocessors.openai.data1": "Il testo della richiesta che fate a un agente, e il contesto assemblato per essa",
+  "legal.subprocessors.openai.data1": "Il testo della richiesta che rivolge a un agente e il contesto assemblato per essa, con il testo che corrisponde a un breve elenco di schemi di credenziali rimosso prima dell\u2019invio. I dati personali presenti in quel testo, come nomi e indirizzi, non vengono rimossi",
   "legal.subprocessors.openai.data2": "Nessun indirizzo della lista d'attesa fa mai parte di quel testo",
   "legal.subprocessors.openai.location1": "Stati Uniti. Fuori dalla Svizzera e fuori dallo SEE",
   "legal.subprocessors.openai.safeguard": "Le clausole contrattuali standard ai sensi dell'addendum sul trattamento dei dati del fornitore. Ci basiamo sulle clausole anzich\xE9 su una certificazione di framework.",
@@ -19531,10 +21312,10 @@ var catalogue3 = {
   "blog.tabs.label": "Categorie",
   "blog.empty": "Ancora nessun articolo in questa categoria.",
   "blog.similar": "Articoli simili",
-  "blog.pagination.label": "Pagine",
-  "blog.pagination.page": "Pagina {n}",
-  "blog.pagination.next": "Pagina successiva",
-  "blog.pagination.previous": "Pagina precedente",
+  "pagination.label": "Pagine",
+  "pagination.page": "Pagina {n}",
+  "pagination.next": "Pagina successiva",
+  "pagination.previous": "Pagina precedente",
   "blog.done-is-not-proof.title": "Che un agente dica \xABfatto\xBB non \xE8 una prova",
   "blog.done-is-not-proof.lead": "Perch\xE9 Orvay tratta ogni compito concluso come un\u2019affermazione, e cosa serve per trasformare un\u2019affermazione in un registro di cui un\u2019azienda possa fidarsi.",
   "blog.done-is-not-proof.description": "Ogni agente conclude il suo lavoro con un messaggio che dice \xABfatto\xBB. Un\u2019azienda non pu\xF2 funzionare su quel messaggio. Ecco come Orvay separa l\u2019affermazione dalla prova.",
@@ -19619,6 +21400,7 @@ var es_default = {
   "pricing.ladder.label.members": "Miembros",
   "pricing.ladder.label.departments": "Departamentos",
   "pricing.ladder.label.concurrent-runs": "Ejecuciones a la vez",
+  "pricing.ladder.label.tool-servers": "Servidores de herramientas registrados",
   "pricing.ladder.label.beyond-allowance": "M\xE1s all\xE1 de la asignaci\xF3n",
   "pricing.ladder.label.features": "Caracter\xEDsticas del plan",
   "pricing.ladder.label.no-features": "Sin caracter\xEDsticas del plan. El producto en s\xED no se reduce.",
@@ -19676,6 +21458,8 @@ var es_default = {
   "pricing.feature.scim.detail": "Aprovisione y elimine personas desde su propio directorio en lugar de invitarlas una por una.",
   "pricing.feature.byo_model_keys.name": "Sus propias claves de modelo",
   "pricing.feature.byo_model_keys.detail": "Facture el uso del modelo a sus propias cuentas de proveedores en lugar de a su asignaci\xF3n de cr\xE9ditos.",
+  "pricing.feature.integration_mcp.name": "Herramientas prestadas",
+  "pricing.feature.integration_mcp.detail": "Registre los servidores de herramientas que su empresa ya utiliza, y permita que Orvay llame a sus herramientas conforme a su pol\xEDtica, una aprobaci\xF3n por herramienta. La tabla anterior muestra cu\xE1ntos contiene cada plan.",
   "pricing.feature.voice.name": "Voz en la aplicaci\xF3n",
   "pricing.feature.voice.detail": "Responda una llamada en el navegador, con una transcripci\xF3n como registro. Orvay responde llamadas y nunca las realiza, en cualquier plan y por dise\xF1o.",
   "pricing.hard-stop.heading": "El plan gratuito se detiene. Nunca genera una factura.",
@@ -20254,8 +22038,17 @@ var es_default = {
   "shell.company.new": "Nueva empresa",
   "shell.company.organizationSettings": "Ajustes de la organizaci\xF3n",
   "newCompany.title": "A\xF1adir un espacio de trabajo",
-  "newCompany.body": "Un espacio de trabajo es una empresa que Orvay dirige. Tiene sus propios objetivos, sus propios registros y su propio equipo, y entre uno y otro no pasa nada.",
+  "newCompany.body": "Un espacio de trabajo es una empresa que Orvay dirige. Tiene sus propios objetivos, sus propios registros y su propio equipo, y nada de eso pasa de uno a otro.",
   "newCompany.label": "C\xF3mo se llama",
+  "newCompany.where.legend": "D\xF3nde va",
+  "newCompany.where.join.label": "En {organization}",
+  "newCompany.where.join.sublabel": "Comparte el plan, los cr\xE9ditos y las pol\xEDticas que esta organizaci\xF3n ya tiene. Lo que consume este espacio de trabajo sale de la misma asignaci\xF3n.",
+  "newCompany.where.new.label": "En una organizaci\xF3n nueva",
+  "newCompany.where.new.sublabel": "Una organizaci\xF3n aparte en el plan Free. Su plan, sus cr\xE9ditos y su facturaci\xF3n son propios.",
+  "newCompany.error.taken": "Ya existe un espacio de trabajo con ese nombre en esta organizaci\xF3n. Elija otro nombre.",
+  "newCompany.error.refused": "No tiene permiso para a\xF1adir un espacio de trabajo a esta organizaci\xF3n. A\xFAn puede crear uno en una organizaci\xF3n nueva.",
+  "newCompany.error.atCap": "Ya tiene tantas organizaciones como puede tener una cuenta sin un plan de pago. A\xFAn puede a\xF1adir un espacio de trabajo a una organizaci\xF3n a la que ya pertenece.",
+  "newCompany.error.tooMany": "Ha creado tantas organizaciones como puede por hoy. A\xFAn puede a\xF1adir un espacio de trabajo a una organizaci\xF3n a la que ya pertenece.",
   "newCompany.submit": "Crear el espacio de trabajo",
   "newCompany.busy": "Creando el espacio de trabajo.",
   "newCompany.error.short": "D\xE9 al espacio de trabajo un nombre de al menos dos caracteres.",
@@ -20312,7 +22105,13 @@ var es_default = {
   "org.allowance.heading": "Plan y asignaci\xF3n",
   "org.allowance.body": "El plan lo compra la organizaci\xF3n, no se paga por puesto, y la organizaci\xF3n dispone de una sola asignaci\xF3n mensual que comparten todos sus espacios de trabajo. Lo que se consume en un espacio sale de la misma asignaci\xF3n de la que tiran los dem\xE1s, y la cifra est\xE1 en la p\xE1gina de uso del espacio en el que est\xE9.",
   "org.access.heading": "Qui\xE9n tiene acceso",
-  "org.access.body": "Hoy el acceso se concede por espacio de trabajo. Quien es invitado a un espacio no es miembro de los dem\xE1s, y su rol se define en ese espacio dentro de Equipo. Editar el acceso una sola vez para toda la organizaci\xF3n no est\xE1 construido.",
+  "org.access.body": "Hoy el acceso se concede por espacio de trabajo. Quien es invitado a un espacio no es miembro de los dem\xE1s, Las personas de abajo son las de los espacios de trabajo a los que pertenece. Un espacio del que no forma parte solo muestra cu\xE1ntas personas tiene, porque sus registros se quedan dentro. Su rol se define en ese espacio dentro de Equipo. Editar el acceso una sola vez para toda la organizaci\xF3n no est\xE1 construido.",
+  "org.access.people": "Personas",
+  "org.waiting.heading": "Pendiente en sus espacios de trabajo",
+  "org.waiting.body": "Propuestas que a\xFAn no se han decidido, en cada espacio de trabajo al que pertenece. Abra ese espacio para actuar. Si una propuesta le corresponde a usted se decide dentro del espacio, no aqu\xED.",
+  "org.waiting.count": "Pendiente",
+  "org.waiting.none": "No hay nada esperando en los espacios de trabajo a los que pertenece.",
+  "org.access.elsewhere": "Un espacio de trabajo del que no forma parte",
   "home.new": "Todavia no ha ocurrido nada. Esta empresa es nueva.",
   "home.recorded": {
     one: "{count} evento registrado desde que se cre\xF3 esta empresa.",
@@ -20329,6 +22128,8 @@ var es_default = {
   "notification.headline.comment.mentioned": "Alguien pregunt\xF3 por usted, usando su nombre",
   "notification.headline.goal.thrashing": "Un objetivo fall\xF3 repetidamente y fue detenido",
   "notification.push.none.title": "Nada espera en {company}",
+  "notification.slack.escalated": "Una decisi\xF3n en {company} lleva un d\xEDa esperando.",
+  "notification.slack.note": "Nada se decide en Slack. El enlace abre {brand}, donde la decisi\xF3n se atribuye a la persona que la toma.",
   "notification.push.none.body": "Est\xE1 al d\xEDa.",
   "notification.push.only": "En {company}.",
   "notification.push.more": {
@@ -20955,6 +22756,10 @@ var es_default = {
   "inbox.refused": "rechazado",
   "inbox.checked": "verificado por un actor distinto",
   "inbox.notEstablished": "ejecutado, no establecido",
+  "inbox.inspector.label": "Sobre la propuesta seleccionada",
+  "inbox.inspector.empty": "Elija una propuesta para ver qu\xE9 har\xEDa.",
+  "inbox.inspector.open": "Abra el contrato",
+  "inbox.openContract": "Abra el contrato de {objective}",
   "contract.tabs": "Vistas de este contrato",
   "contract.tab.contract": "Contrato",
   "contract.tab.output": "Resultado",
@@ -21061,6 +22866,7 @@ var es_default = {
   "decision.ok.approved": "Aprobado.",
   "decision.ok.refused": "Rechazado.",
   "decision.ok.ran": "Ejecutado, y un actor distinto confirm\xF3 que el registro coincide con el contrato.",
+  "decision.error.alreadyRunning": "Esta propuesta ya se est\xE1 ejecutando, iniciada hace un momento. Espere a que termine y luego consulte el registro para ver qu\xE9 hizo.",
   "decision.error.unverified": "Ejecutado, pero la verificaci\xF3n NO lo estableci\xF3: {why}",
   "decision.revise": "Pedir una revisi\xF3n",
   "decision.revise.hint": "Para devolverla, diga qu\xE9 deber\xEDa cambiar. Quien la propuso responde con una propuesta revisada que sustituye a esta.",
@@ -21168,7 +22974,7 @@ var es_default = {
   "activity.showing": "Se muestran las {shown} m\xE1s recientes.",
   "company.created": "Creada el {date}",
   "company.empty.title": "Esta empresa todav\xEDa no tiene departamentos ni agentes",
-  "company.empty.because": "{brand} crea un departamento cuando el trabajo lo necesita, y un agente cuando un departamento lo necesita. La suya no tiene ninguno de los dos porque todav\xEDa no ha hecho falta ninguno. El mismo modelo dirige una empresa de una sola persona y una de cien mil personas: aqu\xED solo hay menos filas.",
+  "company.empty.because": "{brand} crea un departamento cuando el trabajo lo necesita, y un agente cuando un departamento lo necesita. El suyo no tiene ninguno porque hasta ahora no ha hecho falta, y puede a\xF1adir uno usted mismo abajo. El mismo modelo gobierna una empresa de una persona y una de cien mil; aqu\xED solo hay menos filas.",
   "company.departments": {
     one: "{count} departamento",
     many: "{count} departamentos",
@@ -21211,6 +23017,8 @@ var es_default = {
   "shell.halt.reason.header": "Detenido desde la cabecera, sin motivo indicado",
   "shell.dialog.close": "Cerrar",
   "shell.theme.label": "Modo oscuro",
+  "shell.toast.label": "Confirmaciones",
+  "shell.toast.dismiss": "Cerrar",
   "field.unavailable": "No disponible:",
   "outcome.banned.title": "Cuenta suspendida",
   "outcome.banned.title.temporary": "Cuenta restringida temporalmente",
@@ -21341,6 +23149,7 @@ var es_default = {
   "log.kind.shipped": "Publicado",
   "log.kind.fixed": "Corregido",
   "log.kind.said": "Dicho claramente",
+  "log.reconstructed": "Registrado despu\xE9s, a partir del historial del repositorio",
   "log.meta.description": "Cada cambio en Orvay, en las palabras de un cliente, a\xF1adido y nunca reescrito.",
   "portability.title": "Portabilidad",
   "portability.lead": "Qu\xE9 puede llevarse de Orvay y qu\xE9 no puede llevarse todav\xEDa. Cada l\xEDnea de abajo se lee de la misma tabla que lee la p\xE1gina de precios, as\xED que esta p\xE1gina no puede afirmar m\xE1s que aquella.",
@@ -21649,6 +23458,29 @@ var es_default = {
   "mcp.tool.orvay_reject_decision": "Rechaza un contrato. Se exige un motivo y queda registrado.",
   // API keys. A key is a credential a person creates for a program; the token
   // is shown exactly once because only its hash is stored.
+  "contacts.nav": "Contactos",
+  "contacts.title": "Contactos",
+  "contacts.lead": "Una lista que est\xE1 trayendo de otro lugar. Orvay registra lo que su archivo puede mostrar sobre qui\xE9n acept\xF3, e indica claramente d\xF3nde no puede hacerlo.",
+  "contacts.nothing-sent.title": "Orvay no env\xEDa nada a esta lista",
+  "contacts.nothing-sent.body": "La importaci\xF3n de un contacto registra qui\xE9n acept\xF3 qu\xE9, y nada m\xE1s. Hoy no existe en Orvay ning\xFAn camino que escriba a un contacto importado, sea lo que sea que diga su archivo.",
+  "contacts.import.heading": "Importar una lista",
+  "contacts.import.lead": "Un CSV. Orvay lee la columna denominada address, y registra un acuerdo solo donde la misma fila tambi\xE9n lleva agreed_at, wording_shown y source. Las filas sin estos tres se cuentan y se mantienen fuera del registro, porque un acuerdo que nadie puede mostrar no es uno en el que pueda confiar m\xE1s tarde.",
+  "contacts.import.file": "Su archivo",
+  "contacts.import.hint": "Un CSV de como m\xE1ximo un megabyte.",
+  "contacts.import.choose": "Elija un CSV",
+  "contacts.import.none-chosen": "Ning\xFAn archivo elegido",
+  "contacts.import.submit": "Importe",
+  "contacts.import.pending": "Leyendo el archivo",
+  "contacts.summary.title": "El archivo fue le\xEDdo",
+  "contacts.summary.recorded": "Acuerdos registrados:",
+  "contacts.summary.already-known": "Ya en el registro:",
+  "contacts.summary.without-evidence": "Le\xEDdo, sin nada que muestre un acuerdo:",
+  "contacts.summary.rejected": "No es una direcci\xF3n utilizable, o aparece dos veces:",
+  "contacts.error.no-file": "Elija primero un CSV.",
+  "contacts.error.too-large": "Ese archivo supera un megabyte. Div\xEDdalo e importe cada parte.",
+  "contacts.error.no-rows": "Este archivo tiene un encabezado y ninguna fila debajo.",
+  "contacts.error.refused": "Usted no tiene permiso para registrar qui\xE9n ha aceptado ser contactado.",
+  "contacts.error.unavailable": "No se import\xF3 nada. Int\xE9ntelo de nuevo en un momento.",
   "settings.keys.title": "Claves de API",
   "settings.keys.lead": "Una clave permite que un programa act\xFAe en su nombre, y nunca m\xE1s de lo que usted mismo puede hacer.",
   "settings.keys.create.heading": "Crear una clave",
@@ -21676,7 +23508,7 @@ var es_default = {
   "site.footer.nav.solutions": "Soluciones",
   "site.footer.nav.trust": "Confianza",
   "blog.nav.blurb": "Lo que construimos, y lo que cost\xF3 aprender.",
-  "log.nav.blurb": "Cada lanzamiento, fechado, con su commit.",
+  "log.nav.blurb": "Qu\xE9 cambi\xF3, con fecha, en palabras claras.",
   "portability.nav.blurb": "Lo que puede llevarse con usted, en cualquier plan.",
   "gates.title": "Las ocho puertas",
   "gates.nav.blurb": "Una funci\xF3n decide si algo puede suceder.",
@@ -21797,7 +23629,7 @@ var es_default = {
   "gates.honest.lead": "Un motor de pol\xEDticas que existe y un motor de pol\xEDticas que ha sido invocado son afirmaciones diferentes, y solo una de ellas es sobre ejecutar software.",
   "gates.honest.consent": "La puerta 6 nunca ha rechazado nada, porque ninguna llamada a\xFAn nombra a una persona como su tema. La puerta est\xE1 construida y probada. No ha sido alcanzada.",
   "gates.honest.concurrency": "El l\xEDmite en cu\xE1ntas ejecuciones pueden ir a la vez est\xE1 escrito y no se aplica. Los miembros, departamentos y caracter\xEDsticas s\xED.",
-  "gates.honest.spend": "El dinero se retiene alrededor de la llamada del modelo en lugar de confiarse a una persona, as\xED que el techo no depende de que alguien recuerde reservarlo. Dos superficies todav\xEDa comprueban sin reservar, y esas se nombran en el registro de compilaci\xF3n.",
+  "gates.honest.spend": "El dinero se retiene alrededor de la llamada del modelo en lugar de confiarse a una persona, as\xED que el techo no depende de que alguien recuerde reservarlo. Algunas superficies todav\xEDa comprueban sin reservar.",
   "gates.unit.heading": "La unidad es dinero, nunca un recuento",
   "gates.unit.lead": "Medido en nuestra propia tabla de enrutamiento, el costo de una acci\xF3n var\xEDa alrededor de diecinueve veces. Cualquier cosa que limite el trabajo contando acciones est\xE1 limitando la cosa equivocada.",
   "gates.unit.credit": "Un cr\xE9dito es lo que ve y lo que se le cobra. La puerta compara dinero, y el cr\xE9dito se deriva de \xE9l en lugar de almacenarse junto a \xE9l, porque dos n\xFAmeros que deben coincidir es c\xF3mo un sistema de facturaci\xF3n empieza a mentir.",
@@ -21814,7 +23646,7 @@ var es_default = {
   "verification.today.heading": "Donde esto es cierto hoy",
   "verification.today.lead": "Una ruta, descrita exactamente, porque una ruta es lo que existe.",
   "verification.today.publish": "Cuando Orvay publica un sitio, un actor lo construye, un segundo lo comprueba, y la evidencia es una respuesta HTTP obtenida por un tercero. El hash de cuerpo se calcula del lado que lo recibi\xF3 en lugar del lado que lo envi\xF3.",
-  "verification.today.gap": "Ning\xFAn otro tipo de trabajo se verifica de forma independiente a\xFAn. La entrada de enrutamiento para ello existe y nada la llama. Eso es una brecha en el producto, no una sutileza en el lenguaje.",
+  "verification.today.gap": "Una segunda v\xEDa se juzga igual: cuando se publica una entrada, un actor distinto la vuelve a leer y una funci\xF3n decide si eso establece el resultado. Lo que sigue faltando es pedir a un segundo modelo que verifique a un primero: esa ruta existe en el c\xF3digo y nada la llama. Decir cu\xE1l es cu\xE1l es el objeto de esta p\xE1gina.",
   "verification.today.why": "Est\xE1 escrito aqu\xED porque una afirmaci\xF3n de categor\xEDa que descansa en una ruta es el fracaso exacto que este producto existe para rechazar, y preferimos decirlo que ser descubiertos.",
   "verification.field.heading": "Lo que todos los dem\xE1s hacen",
   "verification.field.lead": "L\xE9ase de la documentaci\xF3n del proveedor en septiembre de 2026. Donde un producto describe su propia verificaci\xF3n, esto es lo que describe.",
@@ -21855,6 +23687,8 @@ var es_default = {
   "integrations.credential.app_password.detail": "Lo que este proveedor emite en lugar de un token. Limitado a una aplicaci\xF3n y revocable por su cuenta.",
   "integrations.credential.dns.title": "Un registro que publica",
   "integrations.credential.dns.detail": "Delegaci\xF3n por CNAME en lugar de una clave pegada en un formulario, as\xED que las claves se pueden rotar despu\xE9s sin que usted toque DNS nuevamente.",
+  "integrations.credential.mcp.title": "Su propio servidor de herramientas",
+  "integrations.credential.mcp.detail": "El proveedor gestiona un servidor que ofrece herramientas. Orvay lo registra con un clic, se autoriza con el proveedor, fija la lista de herramientas que ofrece y solicita aprobaci\xF3n antes de que se ejecute cualquiera de ellas.",
   "integrations.credential.none.title": "Nada a\xFAn",
   "integrations.credential.none.detail": "Ninguna credencial se acepta, porque no hay nada detr\xE1s del formulario para aceptarla.",
   "integrations.grants.heading": "Lo que conectarlo permitir\xEDa",
@@ -22107,18 +23941,34 @@ var es_default = {
   },
   "company.departments.heading": "Departamentos",
   "company.agents.heading": "Agentes",
+  "company.department.legend": "A\xF1ada un departamento",
+  "company.department.name": "C\xF3mo se llama",
+  "company.department.submit": "A\xF1ada el departamento",
+  "company.department.created": "El departamento se ha a\xF1adido.",
+  "company.department.error.short": "Un departamento necesita un nombre de al menos dos caracteres.",
+  "company.department.error.long": "El nombre de un departamento tiene ochenta caracteres como m\xE1ximo.",
+  "company.department.error.refused": "Una puerta ha rechazado esto. Su pol\xEDtica no permite a\xF1adir un departamento.",
   "company.department.no-envelope": "sin margen de capacidades",
   "company.agent.task-class": "clase de tarea {taskClass}",
+  "company.agent.legend": "A\xF1ada un agente",
+  "company.agent.name": "C\xF3mo llamarlo",
+  "company.agent.name.hint": "Una etiqueta para distinguir agentes en una lista. Orvay no tiene una personalidad y esto tampoco es una.",
+  "company.agent.department": "A qu\xE9 departamento pertenece",
+  "company.agent.task-class.label": "El tipo de trabajo que realiza",
+  "company.agent.task-class.hint": "Una clase de tarea decide qu\xE9 modelo responde. Usted elige el tipo de trabajo; Orvay elige el modelo.",
+  "company.agent.submit": "A\xF1ada el agente",
+  "company.agent.created": "El agente se ha a\xF1adido. No tiene capacidades, as\xED que a\xFAn no puede actuar.",
+  "company.agent.error.short": "Un agente necesita un nombre de al menos dos caracteres.",
+  "company.agent.error.long": "El nombre de un agente tiene ochenta caracteres como m\xE1ximo.",
+  "company.agent.error.department": "Elija uno de los departamentos de esta empresa.",
+  "company.agent.error.task-class": "Elija una de las clases de tarea ofrecidas.",
+  "company.agent.error.refused": "Una puerta ha rechazado esto. Su pol\xEDtica no permite a\xF1adir un agente.",
+  "company.agent.needs-department": "Un agente pertenece a un departamento. Primero, a\xF1ada un departamento m\xE1s abajo.",
+  "company.agents.no-authority": "Un agente act\xFAa solo con las capacidades que se le han otorgado. Otorgar capacidades a un agente a\xFAn no est\xE1 construido, as\xED que ninguno de estos puede actuar.",
   "company.badge.halted": "detenido",
   "company.badge.active": "activo",
   "company.badge.inactive": "inactivo",
-  "activity.head.empty": "No se ha registrado nada para esta empresa.",
-  "activity.head.count": {
-    one: "{count} entrada, la m\xE1s reciente al final.",
-    many: "{count} entradas, la m\xE1s reciente al final.",
-    other: "{count} entradas, la m\xE1s reciente al final."
-  },
-  "activity.head.showing": "Mostrando las {count} m\xE1s recientes.",
+  "activity.trail.label": "Lo que ha pasado, lo m\xE1s reciente primero",
   "activity.unread.heading": "Esperando su revisi\xF3n",
   "activity.unread.kind.message": "Alguien envi\xF3 un correo a la direcci\xF3n de su empresa",
   "activity.unread.kind.approval": "Un contrato espera una decisi\xF3n",
@@ -22298,6 +24148,7 @@ var es_default = {
   "account.export.right.title": "La exportaci\xF3n es un derecho, no una caracter\xEDstica",
   "account.export.right.body": "Sus propios datos se pueden exportar en todos los planes, incluido el gratuito, en un formato legible por m\xE1quina. Cobrar por ello no ser\xEDa una decisi\xF3n de precio, sino una infracci\xF3n, as\xED que su plan no se consulta para nada cuando pulsa esto.",
   "account.export.manifest": "El archivo es NDJSON: un valor JSON por l\xEDnea, y la primera l\xEDnea es un manifiesto que nombra cada conjunto de registros, lo cuenta, y dice cu\xE1ndo se produjo la exportaci\xF3n. Cubre esta empresa, a todos los que ocupan un puesto en ella, cada invitaci\xF3n enviada desde ella, el registro de consentimiento, y la pista de auditor\xEDa encadenada por hash. Las cargas de auditor\xEDa se entregan como el texto exacto almacenado, de modo que cada entrada sigue generando el mismo hash que aparece junto a ella y usted puede volver a verificar la cadena sin nosotros.",
+  "account.export.verify": "C\xF3mo comprobar este archivo usted mismo",
   "account.export.submit": "Extraiga todo",
   "account.export.recorded": "Tomar una copia se escribe en la pista de auditor\xEDa, con el n\xFAmero de registros que fueron al archivo y sin direcciones. Una pista de auditor\xEDa extensa llega p\xE1gina por p\xE1gina, y el manifiesto lleva la posici\xF3n desde la que continuar.",
   "account.site.heading": "Su sitio web generado",
@@ -22342,6 +24193,7 @@ var es_default = {
   "account.erased.title": "Suprimido",
   "account.erased.lead": "Sus datos personales han sido suprimidos de esa empresa.",
   "account.erased.what.heading": "Exactamente qu\xE9 ocurri\xF3",
+  "account.erased.halted": "Este espacio de trabajo se ha detenido, porque usted era la \xFAltima persona que pod\xEDa aprobar algo en \xE9l. Ahora no se ejecuta nada dentro. Quien tenga acceso a la cuenta que lo paga puede volver a iniciarlo.",
   "account.erased.sealed": "Su direcci\xF3n y su nombre visible han sido sobrescritos, y la clave que hac\xEDa legibles sus registros de consentimiento ha sido destruida, de modo que esos registros no pueden volver a leerse por nadie, ni siquiera por nosotros. Las entradas ya escritas en la pista de auditor\xEDa permanecen como est\xE1n: una pista de auditor\xEDa que se pudiera reescribir no ser\xEDa tal cosa. Conservamos un registro de que ocurri\xF3 una interacci\xF3n, cu\xE1ndo, y bajo la autoridad de qui\xE9n, porque tenemos que poder demostrar que actuamos conforme a la ley.",
   "account.erased.suppression": "Tambi\xE9n conservamos una huella con clave, de un solo sentido, de su direcci\xF3n, en nuestra lista de supresi\xF3n, para poder reconocerla y negarnos a volver a contactar con usted. Esa huella es lo \xFAnico que conservamos sobre usted, y es la raz\xF3n por la que su retirada se sigue respetando.",
   "account.erased.uncovered.label": "Lo que esto no cubre",
@@ -22350,6 +24202,14 @@ var es_default = {
   "account.erased.backups.title": "Copias dentro de las copias de seguridad rutinarias de la base de datos",
   "account.erased.backups.body": "Una copia de seguridad tomada antes de que la clave fuera destruida todav\xEDa la contiene. A\xFAn no hemos establecido ni publicado una ventana de retenci\xF3n para esas copias de seguridad, as\xED que no podemos darle una fecha a partir de la cual no exista ninguna copia en ning\xFAn sitio. Cuando esa ventana quede establecida, se indicar\xE1 aqu\xED.",
   "account.erased.audit": "La pista de auditor\xEDa de esa empresa registra esta supresi\xF3n, lo que destruy\xF3 y lo que no pudo alcanzar, bajo el tipo de entrada {entryType}.",
+  "account.erased.receipt.audit": "Entrada",
+  "account.erased.receipt.fingerprint": "Huella",
+  "account.erased.receipt.key": "Clave destruida",
+  "account.erased.unknown.title": "No tenemos constancia de eso",
+  "account.erased.unknown.body": "La direcci\xF3n que ha seguido nombra un borrado que no realizamos. Si borr\xF3 sus datos y guard\xF3 el enlace, compruebe que se copi\xF3 entero. Si no fue as\xED, aqu\xED no hay nada.",
+  "account.erased.receipt.heading": "Su prueba, para conservar",
+  "account.erased.receipt.body": "Este borrado se escribi\xF3 en el registro de su empresa, una cadena en la que cada entrada lleva la huella de la anterior. Estos tres valores nombran esa entrada. C\xF3pielos en alg\xFAn lugar donde guarde sus cosas.",
+  "account.erased.receipt.check": "Cualquiera que exporte m\xE1s tarde los datos de la empresa puede encontrar esta entrada y recalcular su huella, con el verificador que {brand} publica. Si la entrada ha sido alterada desde entonces, la comprobaci\xF3n falla e indica la fila. Eso es lo que hace que estos valores merezcan conservarse, en lugar de una frase que escribimos nosotros.",
   "account.erased.browser.heading": "Este navegador",
   "account.erased.browser.body": "Ya no es miembro de esa empresa. Cerrar sesi\xF3n tambi\xE9n termina esta sesi\xF3n del navegador.",
   "account.footer.team": "\xBFBusca qui\xE9n m\xE1s est\xE1 en esta empresa? Eso es",
@@ -22360,6 +24220,7 @@ var es_default = {
   "integrations.authority.title": "Conectar es conceder autoridad",
   "integrations.authority.body": "Cada fila indica las capacidades que conceder\xEDa. {brand} verifica una credencial con una llamada real, de solo lectura, antes de guardarla, y no guarda nada si esa llamada falla. Desconectar destruye la clave de cifrado en lugar de eliminar la fila, de modo que la credencial se vuelve ilegible y el registro de su existencia sobrevive.",
   "integrations.grants": "Concesiones:",
+  "integrations.grants.none": "Esta conexi\xF3n no concede nada a los agentes. Orvay publica una notificaci\xF3n; ning\xFAn agente obtiene un permiso.",
   "integrations.connected-as": "Conectado como",
   "integrations.mailbox.open": "Abrir el buz\xF3n",
   "integrations.webhooks.heading": "Webhooks",
@@ -22375,6 +24236,13 @@ var es_default = {
   "tools.result.removed": "Eliminado",
   "tools.result.not-registered": "Sin registrar",
   "tools.result.registered": "Registrado",
+  "tools.register.submit": "Registrar el servidor de herramientas",
+  "tools.register.busy": "Comprobando la direcci\xF3n",
+  "tools.remove.submit": "Eliminar",
+  "tools.remove.busy": "Eliminando",
+  "tools.mode.busy": "Cambiando",
+  "tools.mode.hold": "Que lo apruebe una persona",
+  "tools.mode.release": "Dejar que un modelo lo llame solo",
   "tools.heading": "Servidores de herramientas",
   "tools.lead": "Un servidor de herramientas es un tercero al que {brand} puede pedir herramientas en nombre de esta empresa. Cada herramienta que ofrece se convierte en una capacidad en la tabla de pol\xEDticas antes de que ning\xFAn modelo la vea, de modo que lo que un servidor dice que hace una herramienta nunca puede decidir si se puede usar.",
   "tools.refused": "Rechazado en la puerta {gate} ({reason}).",
@@ -22446,6 +24314,27 @@ var es_default = {
   "files.preview.not-found.body": "Ese archivo no est\xE1 en esta empresa, o se ha eliminado.",
   "files.preview.back": "Volver a los archivos",
   "files.preview.download": "Descargar",
+  "files.share.heading": "Compartir este documento",
+  "files.share.lead": "Un enlace que se abre sin una cuenta de Orvay. Deja de funcionar en el d\xEDa que usted elige, como m\xE1ximo despu\xE9s de noventa d\xEDas, y usted puede terminarlo antes.",
+  "files.share.label": "Para qu\xE9 sirve",
+  "files.share.days": "D\xEDas hasta que finaliza",
+  "files.share.submit": "Cree el enlace",
+  "files.share.pending": "Creando el enlace",
+  "files.share.shown-once": "C\xF3pielo ahora. Esta es la \xFAnica vez que se muestra, porque solo se almacena su huella digital.",
+  "files.share.revoked": "Este enlace ya no abre nada.",
+  "files.share.revoke": "Termine este enlace",
+  "files.share.list.heading": "Enlaces a este documento",
+  "files.share.list.empty": "Sin enlaces. Este documento no ha salido de la empresa.",
+  "files.share.list.unnamed": "Enlace sin nombre",
+  "files.share.list.live": "funciona ahora",
+  "files.share.list.expired": "expirado",
+  "files.share.list.revoked": "terminado",
+  "files.share.list.never-opened": "nunca abierto",
+  "files.share.list.opened": "abierto",
+  "files.share.error.refused": "Usted no tiene permiso para compartir un documento fuera de esta empresa.",
+  "files.share.error.unavailable": "No se cre\xF3 nada. Int\xE9ntelo de nuevo en un momento.",
+  "files.share.error.not-found": "Este documento ya no est\xE1 aqu\xED.",
+  "files.share.error.window": "Elija un n\xFAmero entero de d\xEDas, de 1 a 90.",
   "files.preview.image.caption": "Solo se describe mediante su nombre de archivo. Nada ha le\xEDdo lo que hay en la imagen.",
   "files.preview.pdf-empty.title": "No se pudo leer texto de este PDF",
   "files.preview.pdf-empty.body": "Aqu\xED se muestran las palabras cuando un PDF contiene texto. Este no entreg\xF3 ninguna, lo que normalmente significa que las p\xE1ginas son im\xE1genes escaneadas en lugar de texto, o que el archivo est\xE1 protegido. A\xFAn se puede descargar, y el trabajo que esta empresa ejecuta no recibe nada de \xE9l.",
@@ -22512,6 +24401,13 @@ var es_default = {
   "integrations.error.no-credential": "Pegue la credencial primero.",
   "integrations.error.bluesky-needs-handle": "Bluesky necesita su identificador, adem\xE1s de la contrase\xF1a de aplicaci\xF3n.",
   "integrations.error.mastodon-needs-host": "Mastodon necesita el nombre de host de su instancia.",
+  "integrations.error.slack-needs-channel": "Slack necesita el ID del canal y el token.",
+  "integrations.field.bluesky.label": "Su nombre de usuario",
+  "integrations.field.bluesky.hint": "Por ejemplo name.bsky.social",
+  "integrations.field.mastodon.label": "Su nombre de host de la instancia",
+  "integrations.field.mastodon.hint": "Por ejemplo mastodon.social, sin https",
+  "integrations.field.slack.label": "ID del canal",
+  "integrations.field.slack.hint": "Abra el canal en Slack y elija Ver detalles del canal. El ID se encuentra en la parte inferior y comienza con C.",
   "integrations.error.no-adapter": "No existe ning\xFAn adaptador para esa integraci\xF3n.",
   "integrations.error.verify-unreachable": "No se guard\xF3 nada: {reason}. Su credencial sigue intacta, sin tocar.",
   "integrations.error.gate-refused": "rechazado en la puerta {gate}: {reason}",
@@ -22521,6 +24417,8 @@ var es_default = {
   "integrations.error.not-connected": "Eso no estaba conectado.",
   "integrations.ok.disconnected": "Desconectado. Se destruyeron tanto la clave como la credencial guardada, as\xED que nada aqu\xED puede volver a usarla. Revoque tambi\xE9n el token en el proveedor, porque all\xED sigue siendo v\xE1lido hasta que lo haga.",
   "integrations.error.not-microsoft": "Eso no es una integraci\xF3n que {brand} conecte a trav\xE9s de Microsoft.",
+  "integrations.error.not-google": "Esta no es una integraci\xF3n que {brand} conecta a trav\xE9s de Google.",
+  "integrations.error.no-google-client": "Esta implementaci\xF3n no tiene un cliente de inicio de sesi\xF3n de Google registrado, por lo que no se puede conectar un buz\xF3n desde aqu\xED.",
   "integrations.error.no-microsoft-client": "Este despliegue no tiene ning\xFAn cliente de inicio de sesi\xF3n de Microsoft registrado, as\xED que no se puede conectar ning\xFAn buz\xF3n desde aqu\xED.",
   "integrations.error.mailbox-already-connected": "Ese buz\xF3n ya est\xE1 conectado. Descon\xE9ctelo antes de volver a conectarlo.",
   "integrations.error.tool-server-fields-required": "Hacen falta un nombre corto, una etiqueta y una URL https.",
@@ -22536,6 +24434,35 @@ var es_default = {
   "integrations.ok.tool-approval": "{tool} ahora espera a una persona. No se ofrece a ning\xFAn modelo.",
   "integrations.error.tool-unnameable": "Ese nombre de herramienta no se puede convertir en una capacidad, as\xED que no se puede conceder.",
   "integrations.error.tool-forbidden": "Esa herramienta est\xE1 prohibida por una migraci\xF3n, y este control no puede levantar esa prohibici\xF3n.",
+  "integrations.tool-server.needs-account": "Este servidor pide una cuenta conectada antes de listar sus herramientas. Nada se le pide hasta que conecte una.",
+  "integrations.tool-server.connect.submit": "Conectar",
+  "integrations.tool-server.pending": "Conexi\xF3n iniciada. Compl\xE9tela en la ventana que se abri\xF3 y este servidor listar\xE1 sus herramientas despu\xE9s.",
+  "integrations.tool-server.authorized": "Conectado a trav\xE9s de {issuer}, {when}. La autorizaci\xF3n est\xE1 sellada bajo una clave que se destruye cuando quita este servidor.",
+  "integrations.tool-server.no-account-needed": "Este servidor responde sin cuenta, as\xED que no hay nada que conectar.",
+  "integrations.tool-server.reauth-required.title": "Necesita un nuevo inicio de sesi\xF3n",
+  "integrations.tool-server.reauth-required": "La autorizaci\xF3n para este servidor dej\xF3 de funcionar, as\xED que ya nada se le pide. Con\xE9ctelo de nuevo para continuar.",
+  "integrations.tool-server.client-rejected.title": "Ya no reconocido",
+  "integrations.tool-server.client-rejected": "{issuer} ya no reconoce c\xF3mo se identifica {brand}, as\xED que nada se pide a este servidor. Iniciar sesi\xF3n de nuevo no lo soluciona. Quite el servidor y vuelva a a\xF1adirlo para registrarse de nuevo.",
+  "integrations.tool-server.unconfigured.title": "No configurado",
+  "integrations.tool-server.unconfigured": "Este servidor no proporciona sus propias credenciales de cliente, as\xED que {brand} no puede registrarse en \xE9l. Establezca {idVariable} y {secretVariable} en este despliegue, luego con\xE9ctelo.",
+  "integrations.error.tool-server-discovery": "Ese servidor no pudo decir d\xF3nde conectarse, as\xED que nada fue conectado.",
+  "integrations.error.tool-server-pkce": "Ese servidor inicia sesi\xF3n a trav\xE9s de un servicio que no ofrece la protecci\xF3n que impide que una conexi\xF3n interceptada se reutilice, as\xED que nada fue conectado.",
+  "integrations.error.tool-server-issuer": "El inicio de sesi\xF3n volvi\xF3 de un servicio diferente al que nombr\xF3 ese servidor. Nada fue le\xEDdo y nada fue conectado.",
+  "integrations.error.tool-server-redirected": "Ese servidor intent\xF3 enviar la solicitud a otro lado. {brand} no lleva una credencial en una redirecci\xF3n, as\xED que nada fue conectado.",
+  "integrations.error.tool-server-points-inward": "Ese servidor nombr\xF3 una direcci\xF3n de conexi\xF3n dentro de una red privada, as\xED que nada fue buscado de \xE9l.",
+  "integrations.tool-server.paused.title": "En pausa: sus herramientas han cambiado",
+  "integrations.tool-server.paused": "Este servidor ahora ofrece una lista diferente de herramientas que la que fue aprobada. Nada se le pide hasta que alguien lea el cambio y lo apruebe.",
+  "integrations.tool-server.reapprove.submit": "Apruebe la nueva lista",
+  "integrations.tool-server.diff.added": "A\xF1adido",
+  "integrations.tool-server.diff.removed": "Eliminado",
+  "integrations.tool-server.diff.changed": "Modificado",
+  "integrations.tool-server.diff.unchanged": "Sin cambios",
+  "integrations.tool-server.diff.parameters": "Sus par\xE1metros cambiaron. La descripci\xF3n no.",
+  "integrations.ok.tool-server-reapproved": "La nueva lista est\xE1 aprobada. {label} se ofrece de nuevo.",
+  "integrations.error.tool-server-not-paused": "Ese servidor no est\xE1 en pausa, as\xED que no hay nada que aprobar.",
+  "integrations.error.tool-server-plan-excludes": "Este plan no incluye herramientas prestadas. Cambie a un plan que s\xED las incluya.",
+  "integrations.error.tool-server-plan-limit": "Este plan no tiene espacio para otro servidor de herramientas. Quite uno, o cambie a un plan con mayor capacidad.",
+  "integrations.error.tool-server-stale-approval": "La lista ha cambiado de nuevo desde que la ley\xF3. Lea la nueva antes de aprobar.",
   "webhooks.action.gate-refused": "rechazado en la puerta {gate}: {reason}",
   "webhooks.action.not-signed-in": "no ha iniciado sesi\xF3n",
   "webhooks.register.not-https": "La direcci\xF3n tiene que empezar por https. Una entrega se firma en lugar de cifrarse, as\xED que por http sin cifrar, tanto el cuerpo como la firma son legibles para cualquiera que est\xE9 en el camino.",
@@ -22769,8 +24696,18 @@ var es_default = {
   "integrations.oauth.gateSuffix": " Rechazado en la puerta {gate}.",
   "integrations.summary.none": "Nada est\xE1 conectado. {connectable} se pueden conectar hoy.",
   "integrations.summary.some": "{connected} conectadas, {connectable} conectables en total.",
+  "integrations.mcp.self": "Se conecta a trav\xE9s del servidor de herramientas propio de {vendor}. Orvay se registra en \xE9l por s\xED mismo. No hay nada que configurar antes.",
+  "integrations.mcp.unstated": "Se conecta a trav\xE9s del servidor de herramientas propio de {vendor}. Orvay intenta registrarse por s\xED mismo. Si {vendor} lo rechaza, funciona en su lugar una clave de su cuenta de {vendor}.",
+  "integrations.mcp.operator": "Se conecta a trav\xE9s del servidor de herramientas propio de {vendor}, que solo admite una aplicaci\xF3n registrada por el operador en {vendor}. Tras el registro, el servidor de herramientas de abajo indica el cliente que a esta instalaci\xF3n a\xFAn le falta.",
+  "integrations.mcp.authorize.submit": "Autorizar con {vendor}",
+  "integrations.mcp.awaiting": "Registrado y a\xFAn no autorizado: {vendor} a\xFAn tiene que dejar entrar a Orvay. El bot\xF3n le lleva all\xED y le trae de vuelta.",
+  "integrations.mcp.register.submit": "Registrar su servidor de herramientas",
+  "integrations.mcp.registered": "Registrado como servidor de herramientas. Sus herramientas y sus modos aparecen abajo.",
   "integrations.badge.connected": "conectado",
   "integrations.connection.unknownAccount": "desconocido",
+  "integrations.connection.checked": "Comprobado {when}.",
+  "integrations.connection.checkOverdue": "\xDAltima comprobaci\xF3n {when}. Una comprobaci\xF3n est\xE1 atrasada.",
+  "integrations.connection.neverChecked": "No comprobado desde la conexi\xF3n.",
   "integrations.connection.lastError": " \xB7 \xFAltimo error: {error}",
   "integrations.fix.heading": "Proponer una correcci\xF3n",
   "integrations.fix.goalHeading": "Deje que un objetivo proponga una",
@@ -22828,6 +24765,7 @@ var es_default = {
   "fix.error.notThreeSteps": "ese contrato no tiene tres pasos",
   "fix.error.serverUnreachable": "no se pudo contactar con ese servidor: {reason}",
   "fix.error.toolRefused": "esa herramienta rechaz\xF3: {reason}",
+  "fix.error.toolListMoved": "La lista de herramientas del servidor de herramientas ya no es la que fue aprobada. Esto no se ejecutar\xE1 hasta que alguien haya le\xEDdo el cambio en la p\xE1gina Integraciones y lo haya aprobado.",
   "fix.error.noModel": "no se pudo alcanzar ning\xFAn modelo, as\xED que no hay nada que proponer",
   "fix.pr.writtenBy": "Escrito por {brand} desde la herramienta {tool} del servidor {server}, y aprobado antes de que se leyera nada.",
   "fix.error.githubNotConnected": "GitHub no est\xE1 conectado aqu\xED.",
@@ -22918,7 +24856,203 @@ var es_default = {
   "social.post.publishFailed": "La publicaci\xF3n no se pudo publicar.",
   "social.post.notRecorded": "Se public\xF3, y la ejecuci\xF3n no se pudo registrar.",
   "social.post.notVerified": "Se public\xF3, y la direcci\xF3n no se pudo volver a leer.",
-  "notification.summary.approval.escalated": "Una decisi\xF3n lleva un d\xEDa esperando."
+  "notification.summary.approval.escalated": "Una decisi\xF3n lleva un d\xEDa esperando.",
+  // -------------------------------------------------------------------------
+  // The second factor: the challenge at sign-in, and the enrolment in account
+  // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
+  // -------------------------------------------------------------------------
+  "auth.meta.verify": "Verificaci\xF3n en dos pasos",
+  "auth.verify.heading": "Introduzca su c\xF3digo",
+  "auth.verify.lead": "Abra su aplicaci\xF3n de autenticaci\xF3n e introduzca el c\xF3digo de seis d\xEDgitos que muestra para Orvay.",
+  "auth.verify.field.code": "C\xF3digo de seis d\xEDgitos",
+  "auth.verify.submit": "Verificar",
+  "auth.verify.recovery.lead": "Si no tiene el tel\xE9fono a mano, use uno de los c\xF3digos de recuperaci\xF3n que guard\xF3 al configurarlo.",
+  "auth.verify.recovery.field": "C\xF3digo de recuperaci\xF3n",
+  "auth.verify.recovery.submit": "Usar un c\xF3digo de recuperaci\xF3n",
+  "auth.verify.expired.title": "Este inicio de sesi\xF3n ha caducado",
+  "auth.verify.expired.body": "Un inicio de sesi\xF3n a la espera de un c\xF3digo dura diez minutos. Su cuenta no tiene ning\xFAn problema. Inicie sesi\xF3n otra vez y le pediremos un c\xF3digo nuevo.",
+  "auth.verify.start-again": "Iniciar sesi\xF3n otra vez",
+  "auth.verify.error.wrong": "Ese c\xF3digo no es correcto. Revise la aplicaci\xF3n e introduzca el que muestra ahora.",
+  "auth.verify.error.already-used": "Ese c\xF3digo ya se ha usado. Espere a que su aplicaci\xF3n muestre el siguiente.",
+  "auth.verify.error.malformed": "Un c\xF3digo tiene seis d\xEDgitos y un c\xF3digo de recuperaci\xF3n diez caracteres.",
+  "auth.verify.error.no-such-code": "Ese c\xF3digo de recuperaci\xF3n no es uno de los suyos, o ya se ha usado.",
+  "auth.verify.error.throttled": "Demasiados intentos. Espere unos minutos y vuelva a intentarlo.",
+  "auth.verify.error.unavailable": "No pudimos comprobar ese c\xF3digo. En su cuenta no ha cambiado nada. Vuelva a intentarlo en un momento.",
+  "account.mfa.heading": "Verificaci\xF3n en dos pasos",
+  "account.mfa.off.body": "A\xF1ada una aplicaci\xF3n de autenticaci\xF3n y Orvay pedir\xE1 tambi\xE9n un c\xF3digo cada vez que inicie sesi\xF3n.",
+  "account.mfa.start": "Configurar la verificaci\xF3n en dos pasos",
+  "account.mfa.enrol.heading": "A\xF1ada su autenticador",
+  "account.mfa.enrol.lead": "A\xF1ada esta clave a su aplicaci\xF3n de autenticaci\xF3n y luego introduzca el c\xF3digo que muestra para demostrar que ha funcionado.",
+  "account.mfa.enrol.key": "Clave de configuraci\xF3n",
+  "account.mfa.enrol.field": "C\xF3digo de seis d\xEDgitos",
+  "account.mfa.enrol.submit": "Activar la verificaci\xF3n en dos pasos",
+  "account.mfa.enrol.cancel": "Cancelar",
+  "account.mfa.on.body": "Orvay pide un c\xF3digo de su autenticador cada vez que inicia sesi\xF3n. Activa desde el {when}.",
+  "account.mfa.codes.heading": "C\xF3digos de recuperaci\xF3n",
+  "account.mfa.codes.lead": "Gu\xE1rdelos en un sitio al que pueda llegar sin el tel\xE9fono. Cada uno funciona una vez y son la \xFAnica forma de volver a entrar en su cuenta si pierde el autenticador. Se muestran ahora y nunca m\xE1s.",
+  "account.mfa.codes.left": "C\xF3digos de recuperaci\xF3n restantes: {left} de {total}",
+  "account.mfa.disable": "Desactivar la verificaci\xF3n en dos pasos",
+  "account.mfa.unavailable": "No pudimos leer sus ajustes de seguridad, as\xED que esta secci\xF3n no indica qu\xE9 est\xE1 activo.",
+  "account.mfa.notice.on": "La verificaci\xF3n en dos pasos est\xE1 activada.",
+  "account.mfa.disable.lead": "Desactivarla pide un c\xF3digo, para que una sesi\xF3n robada no pueda quitarla. Use su autenticador o uno de sus c\xF3digos de recuperaci\xF3n.",
+  "account.mfa.busy": "En curso",
+  "account.mfa.notice.off": "La verificaci\xF3n en dos pasos est\xE1 desactivada. Su contrase\xF1a es lo \xFAnico que protege esta cuenta.",
+  // ORG-4: what RAN across the workspaces you belong to, beside what waits.
+  "org.activity.heading": "Qu\xE9 se ha ejecutado en sus espacios de trabajo",
+  "org.activity.body": "Los \xFAltimos treinta d\xEDas, en cada espacio de trabajo al que pertenece. Nunca verificadas y A\xFAn en curso no llevan periodo: una ejecuci\xF3n que nada ha verificado no pasa a estar verificada al cabo de un mes.",
+  "org.activity.none": "Aqu\xED no hay otro espacio de trabajo aparte de este.",
+  "org.activity.running": "A\xFAn en curso",
+  "org.activity.oldest": "La m\xE1s antigua, en d\xEDas",
+  "org.activity.runs": "Ejecuciones",
+  "org.activity.established": "Verificadas y confirmadas",
+  "org.activity.refused": "Verificadas y no confirmadas",
+  "org.activity.unverified": "Nunca verificadas",
+  // Goal A close-out, batch one: seats, memory, the upload sentence, the studio branches, since you were last here
+  "account.footer.memory": "\xBFBusca lo que esta empresa ha ense\xF1ado a Orvay, y c\xF3mo impedir que use algo? Eso es",
+  "dataUse.memory": "Los hechos que Orvay ha guardado del trabajo de esta empresa se pueden leer, y apartar para que no se usen m\xE1s en una respuesta, en",
+  "files.upload.said.added": {
+    one: "{count} archivo a\xF1adido.",
+    many: "{count} archivos a\xF1adidos.",
+    other: "{count} archivos a\xF1adidos."
+  },
+  "files.upload.said.more": {
+    one: "1 m\xE1s",
+    many: "{count} m\xE1s",
+    other: "{count} m\xE1s"
+  },
+  "files.upload.said.partial": {
+    one: "{added} a\xF1adidos. Un archivo no fue aceptado: {names}.",
+    many: "{added} a\xF1adidos. {refused} archivos no fueron aceptados: {names}.",
+    other: "{added} a\xF1adidos. {refused} archivos no fueron aceptados: {names}."
+  },
+  "home.since.events": {
+    one: "{count} evento registrado",
+    many: "{count} eventos registrados",
+    other: "{count} eventos registrados"
+  },
+  "home.since.nothing": "Nada nuevo desde su \xFAltima visita, {when}.",
+  "home.since.proposals": {
+    one: "{count} propuesta nueva",
+    many: "{count} propuestas nuevas",
+    other: "{count} propuestas nuevas"
+  },
+  "home.since.summary": "Desde su \xFAltima visita, {when}: {summary}.",
+  "nav.hint.memory": "Lo que la empresa ha guardado de su trabajo, y c\xF3mo apartar un hecho",
+  "onboarding.done.next.integrations": "Integraciones conecta un buz\xF3n, GitHub, Bluesky o Mastodon, y cada fila dice qu\xE9 permitir\xEDa conectarlo.",
+  "policies.grant.apply": "Aplicar",
+  "policies.grant.mode.approval": "Se detiene ante una persona",
+  "policies.grant.mode.autonomous": "Act\xFAa sin preguntar",
+  "policies.grant.mode.label": "Autonom\xEDa para {capability}",
+  "policies.grant.mode.restricted": "Act\xFAa solo dentro de sus l\xEDmites",
+  "policies.grant.saving": "Guardando",
+  "policies.history.contract": "Abrir la propuesta",
+  "policies.history.contract.for": "Abrir la propuesta de {intent}",
+  "studio.refused.still-running": "Esta creaci\xF3n sigue en marcha, y esta p\xE1gina dej\xF3 de esperarla. No se ha publicado nada. Contin\xFAa sin esta p\xE1gina, y lo que produzca estar\xE1 aqu\xED la pr\xF3xima vez que se abra esta pantalla.",
+  "studio.refused.superseded": "Una creaci\xF3n m\xE1s reciente de este sitio sustituy\xF3 a esta, y esta p\xE1gina dej\xF3 de seguirla. Aqu\xED no se ha publicado nada. Vuelva a abrir esta pantalla para seguir la creaci\xF3n que ocup\xF3 su lugar.",
+  "studio.unreachable.body": "Esta p\xE1gina sigue preguntando. Puede que la creaci\xF3n siga en marcha: contin\xFAa sin esta p\xE1gina en cualquier caso, y lo que produzca estar\xE1 aqu\xED la pr\xF3xima vez que se abra esta pantalla.",
+  "studio.unreachable.title": "El servicio de creaci\xF3n no respondi\xF3",
+  "team.head.seats": {
+    one: "{active} de {limit} asiento.",
+    many: "{active} de {limit} asientos.",
+    other: "{active} de {limit} asientos."
+  },
+  "team.head.seats.none": "Sin l\xEDmite de asientos en este plan.",
+  "team.seats.full.body": "La pr\xF3xima invitaci\xF3n ser\xE1 rechazada hasta que quede un asiento libre. Desactive a alguien que se haya ido, o suba de plan en",
+  "team.seats.full.title": "Todos los asientos de este plan est\xE1n ocupados",
+  "usage.scope": "El uso y la facturaci\xF3n pertenecen a la organizaci\xF3n y no a un solo espacio de trabajo: la organizaci\xF3n compra el plan, y cada espacio de trabajo que posee consume los mismos cr\xE9ditos.",
+  // MON-8: invoices and the payment method, on Stripe's own page.
+  "billing.portal.heading": "Facturas y m\xE9todo de pago",
+  "billing.portal.body": "Sus facturas, la tarjeta con la que paga y la cancelaci\xF3n est\xE1n en la propia p\xE1gina de Stripe. Orvay no guarda una segunda copia de una factura, as\xED que nada de aqu\xED puede discrepar de lo que se le cobr\xF3.",
+  "billing.portal.open": "Abrir el portal de facturaci\xF3n",
+  "billing.portal.none.reason": "No hay nada que mostrar mientras no exista una suscripci\xF3n. Se abre en cuanto se realice el primer pago.",
+  "billing.portal.unavailable": "No disponible",
+  "billing.portal.no-customer.title": "Todav\xEDa no hay cuenta de facturaci\xF3n",
+  "billing.portal.no-customer.body": "No se ha pagado nada por esta organizaci\xF3n, as\xED que Stripe no tiene facturas ni m\xE9todo de pago para ella. Contrate un plan y el portal se abre.",
+  "billing.portal.refused.title": "Sin permiso para gestionar la facturaci\xF3n",
+  "billing.portal.failed.title": "No se pudo abrir el portal de facturaci\xF3n",
+  "billing.portal.failed.body": "En su suscripci\xF3n no ha cambiado nada. Vuelva a intentarlo en un momento y escr\xEDbanos si sigue ocurriendo.",
+  // Goal A close-out, batch two: versions, and the integrations page in the reader's language
+  "files.col.version": "Versi\xF3n",
+  "files.versions.replaces": "Sustituye a {name}",
+  "files.versions.replaced": "Sustituido por una versi\xF3n m\xE1s reciente",
+  "files.versions.heading": "Versiones",
+  "files.versions.replaced.lead": "Una versi\xF3n m\xE1s reciente sustituy\xF3 a esta:",
+  "files.versions.previous.lead": "Lo que este archivo sustituy\xF3, de m\xE1s reciente a m\xE1s antiguo:",
+  "files.versions.deleted": "eliminado",
+  "files.versions.note": "Sustituir un documento no elimina el anterior. Cada versi\xF3n de arriba es un archivo por s\xED mismo, y eliminar una es un paso aparte.",
+  "integrations.catalogue.github.summary": "Repositorios, pull requests, comprobaciones",
+  "integrations.catalogue.github.because": "Existe un adaptador real. Las acciones realizadas a trav\xE9s de \xE9l llegan a GitHub y se registran como reales.",
+  "integrations.catalogue.github.label": "Token de acceso personal",
+  "integrations.catalogue.github.help": "Un token de grano fino con acceso de lectura a los repositorios que Orvay debe ver. Orvay lo comprueba con una sola llamada de solo lectura antes de guardarlo, y no guarda nada si esa llamada falla.",
+  "integrations.catalogue.bluesky.summary": "Publicar en su propia cuenta",
+  "integrations.catalogue.bluesky.because": "Existe un adaptador real, y las publicaciones hechas a trav\xE9s de \xE9l aparecen de verdad en su cuenta.",
+  "integrations.catalogue.bluesky.label": "Contrase\xF1a de aplicaci\xF3n",
+  "integrations.catalogue.bluesky.help": "Se genera en Bluesky en Ajustes, Contrase\xF1as de aplicaci\xF3n. No es la contrase\xF1a de su cuenta. Bluesky no ofrece un OAuth que sirva para esto, as\xED que una contrase\xF1a de aplicaci\xF3n es la credencial que la propia plataforma propone.",
+  "integrations.catalogue.mastodon.summary": "Publicar en su propia instancia",
+  "integrations.catalogue.mastodon.because": "Existe un adaptador real, limitado a la instancia a la que pertenece su token.",
+  "integrations.catalogue.mastodon.label": "Token de acceso",
+  "integrations.catalogue.mastodon.help": "Se crea en su instancia en Preferencias, Desarrollo. Necesita el \xE1mbito write:statuses y nada m\xE1s.",
+  "integrations.catalogue.email.summary": "Correo transaccional y de marketing, enviado en su nombre",
+  "integrations.catalogue.email.because": "El flujo de delegaci\xF3n DNS a\xFAn no est\xE1 construido. Orvay no enviar\xE1 su correo de marketing desde su propio dominio como apa\xF1o, porque ese da\xF1o no se deshace cambiando el comportamiento m\xE1s tarde.",
+  "integrations.catalogue.email.help": "Enviar como su dominio significa delegar DKIM por CNAME para que las claves puedan rotar sin que usted vuelva a tocar el DNS. Orvay nunca env\xEDa el correo de un cliente desde un dominio propiedad de Orvay: la reputaci\xF3n se comparte entre un dominio registrable y sus subdominios, de modo que un cliente que cruzara un umbral afectar\xEDa a todos los clientes a la vez, de forma permanente.",
+  "integrations.catalogue.gmail.summary": "Leer, clasificar y responder su propio buz\xF3n",
+  "integrations.catalogue.gmail.because": "El cliente OAuth est\xE1 construido y probado. Esta instalaci\xF3n no tiene registrado ning\xFAn cliente de inicio de sesi\xF3n de Google, as\xED que la fila lo dice en lugar de ofrecer un bot\xF3n; y Google clasifica el acceso al buz\xF3n como \xE1mbito restringido, que exige su evaluaci\xF3n de seguridad anual por un tercero antes de poder llegar al buz\xF3n de un desconocido. Leer, clasificar y responder en Gmail a\xFAn no est\xE1 construido.",
+  "integrations.catalogue.gmail.help": "Conectar\xEDa su propia cuenta de Google. Orvay nunca ve su contrase\xF1a, no aloja ninguno de sus correos, y puede revocar el permiso desde Google sin ped\xEDrnoslo. Responde a las personas que le escribieron y no inicia conversaciones: eso es una capacidad distinta, y el producto la rechaza.",
+  "integrations.catalogue.outlook.summary": "Leer, clasificar y responder su propio buz\xF3n",
+  "integrations.catalogue.outlook.because": "Existe un adaptador real, y lee, archiva y responde un buz\xF3n real. Microsoft no pide una evaluaci\xF3n de seguridad aparte para leer correo, por eso esto lleg\xF3 antes que Gmail. No se lee nada hasta que usted lo pide, y no se env\xEDa nada hasta que usted pulsa algo.",
+  "integrations.catalogue.outlook.help": "Conecta su propia cuenta de Microsoft. Una cuenta personal funciona hoy; una cuenta de trabajo en el tenant de Microsoft 365 de una empresa puede ser rechazada por ese tenant, porque Orvay a\xFAn no es un editor verificado de Microsoft. Orvay nunca ve su contrase\xF1a, no aloja ninguno de sus correos, y puede revocar el permiso desde Microsoft sin ped\xEDrnoslo. Responde a las personas que le escribieron y no inicia conversaciones: eso es una capacidad distinta, y el producto la rechaza.",
+  "integrations.catalogue.stripe.summary": "Suscripciones, facturas, reembolsos",
+  "integrations.catalogue.stripe.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario. El adaptador de pr\xE1ctica que modela acciones con forma de dinero para ensayar las reglas es aparte, y cada artefacto que produce lleva el sello de simulado.",
+  "integrations.catalogue.google-ads.summary": "Campa\xF1as y gasto",
+  "integrations.catalogue.google-ads.because": "Modelado porque publicar una campa\xF1a es el ejemplo m\xE1s claro de una acci\xF3n irreversible hacia fuera. No se publica nada.",
+  "integrations.catalogue.vercel.summary": "Despliegues y reversiones",
+  "integrations.catalogue.vercel.because": "Modelado para que una reversi\xF3n pueda proponerse y verificarse. No se toca ning\xFAn despliegue.",
+  "integrations.catalogue.linear.summary": "Incidencias y ciclos",
+  "integrations.catalogue.linear.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.catalogue.atlassian.summary": "Incidencias de Jira, p\xE1ginas de Confluence",
+  "integrations.catalogue.atlassian.because": "Un solo servidor para Jira y Confluence. Cada herramienta que lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.catalogue.sentry.summary": "Errores, incidencias, versiones",
+  "integrations.catalogue.sentry.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.catalogue.notion.summary": "P\xE1ginas y bases de datos",
+  "integrations.catalogue.notion.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.catalogue.slack.summary": "Una aprobaci\xF3n escalada, publicada en un canal",
+  "integrations.catalogue.slack.because": "Orvay publica en el canal que usted indique. El mensaje nunca lleva un bot\xF3n: una decisi\xF3n tomada desde un cliente de chat no tiene una sesi\xF3n detr\xE1s, as\xED que el mensaje enlaza a la propuesta y la decisi\xF3n se toma en Orvay.",
+  "integrations.catalogue.slack.label": "Token OAuth del usuario bot",
+  "integrations.catalogue.slack.help": "Cree una aplicaci\xF3n en su propio espacio de trabajo de Slack, dele los \xE1mbitos chat:write y channels:read, inst\xE1lela y luego inv\xEDtela al canal. Orvay comprueba el token y el canal con dos llamadas de solo lectura antes de guardar nada.",
+  "integrations.catalogue.hubspot.summary": "Pipeline y contactos",
+  "integrations.catalogue.hubspot.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.catalogue.intercom.summary": "Conversaciones y macros",
+  "integrations.catalogue.intercom.because": "No construido. El texto de soporte entrante es contexto no fiable por definici\xF3n, as\xED que este espera a la ruta de cuarentena en lugar de llegar antes.",
+  "integrations.catalogue.zenovay.summary": "Anal\xEDtica web, objetivos, embudos, disponibilidad",
+  "integrations.catalogue.zenovay.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.catalogue.posthog.summary": "Embudos, grabaciones, feature flags",
+  "integrations.catalogue.posthog.because": "Cada herramienta que el servidor lista espera aprobaci\xF3n hasta que usted diga lo contrario.",
+  "integrations.connect.submit": "Conectar {name}",
+  "integrations.connect.busy": "Comprobando",
+  "integrations.connect.busyReason": "Comprobando la credencial con {name}",
+  "integrations.connect.oauth.submit": "Conectar {name} con {provider}",
+  "integrations.connect.oauth.busy": "Abriendo {provider}",
+  "integrations.connect.oauth.busyReason": "Le enviamos a {provider}",
+  "integrations.connect.oauth.noClient": "Esta instalaci\xF3n no tiene registrado ning\xFAn cliente de inicio de sesi\xF3n de {provider}, as\xED que todav\xEDa no hay nada que pulsar.",
+  "integrations.disconnect.submit": "Desconectar",
+  "integrations.disconnect.busy": "Desconectando",
+  // Goal A close-out, batch two: goals belong to a department, and a statement can be edited
+  "department.filter.label": "Mostrar un solo departamento",
+  "department.filter.all": "Todos los departamentos",
+  "department.filter.submit": "Mostrar",
+  "department.filter.showing": "Se muestra solo lo que pertenece a {department}.",
+  "department.filter.clear": "Mostrar todos los departamentos",
+  "department.filter.chain": "El registro se comprueba de principio a fin, en orden, as\xED que esa comprobaci\xF3n se hace sobre el registro entero y no sobre un departamento.",
+  "goals.department.label": "Qu\xE9 departamento",
+  "goals.department.company": "Toda la empresa",
+  "goals.department.saved": "Guardado.",
+  "goals.department.error": "Eso no es un departamento de esta empresa.",
+  "goals.department.on": "Departamento: {name}",
+  "goals.form.department.hint": "Un objetivo sin departamento pertenece a toda la empresa.",
+  "goals.statement.label": "Qu\xE9 dice este objetivo",
+  "goals.statement.submit": "Guardar",
+  "goals.statement.saved": "Guardado.",
+  "integrations.catalogue.email.name": "Correo desde su propio dominio"
 };
 
 // ../../packages/content/src/messages/es.legal.ts
@@ -23151,13 +25285,13 @@ var es_legal_default = {
   "legal.subprocessors.supabase.safeguard": "Una transferencia desde el EEE hacia Suiza se basa en la decisi\xF3n de adecuaci\xF3n de la Comisi\xF3n Europea para Suiza y no necesita ning\xFAn instrumento adicional. Supabase est\xE1 establecida en Estados Unidos, y su propio acceso est\xE1 cubierto por su adenda de tratamiento de datos con las cl\xE1usulas contractuales tipo.",
   "legal.subprocessors.supabase.statusDetail": "Contiene el libro de consentimientos y todas las tablas de dominio. El proyecto anterior en Frankfurt, regi\xF3n eu-central-1, se est\xE1 retirando en favor del de Zurich.",
   "legal.subprocessors.anthropic.service": "Inferencia de modelos. Claude es el modelo predeterminado para la mayor\xEDa de las clases de tarea, incluida la que redacta un sitio web generado.",
-  "legal.subprocessors.anthropic.data1": "El texto de la solicitud que hace a un agente, y el contexto ensamblado para ella",
+  "legal.subprocessors.anthropic.data1": "El texto de la solicitud que hace a un agente y el contexto reunido para ella, con el texto que coincide con una lista breve de patrones de credenciales retirado antes del env\xEDo. Los datos personales de ese texto, como nombres y direcciones, no se retiran",
   "legal.subprocessors.anthropic.data2": "Ninguna direcci\xF3n de la lista de espera forma nunca parte de ese texto",
   "legal.subprocessors.anthropic.location1": "Estados Unidos. Fuera de Suiza y fuera del EEE",
   "legal.subprocessors.anthropic.safeguard": "Las cl\xE1usulas contractuales tipo conforme a la adenda de tratamiento de datos del proveedor. Nos basamos en las cl\xE1usulas y no en una certificaci\xF3n de un marco de referencia.",
   "legal.subprocessors.anthropic.statusDetail": "El Worker de generaci\xF3n de sitios web llama a un modelo cuando dispone de una clave del proveedor. Es el \xFAnico Worker del producto que invoca un modelo.",
   "legal.subprocessors.openai.service": "Inferencia de modelos, utilizada cuando la tabla de enrutamiento dirige una clase de tarea a un modelo de OpenAI. Es el segundo proveedor, lo que permite que una verificaci\xF3n la realice un proveedor distinto de aquel que hizo el trabajo.",
-  "legal.subprocessors.openai.data1": "El texto de la solicitud que hace a un agente, y el contexto ensamblado para ella",
+  "legal.subprocessors.openai.data1": "El texto de la solicitud que hace a un agente y el contexto reunido para ella, con el texto que coincide con una lista breve de patrones de credenciales retirado antes del env\xEDo. Los datos personales de ese texto, como nombres y direcciones, no se retiran",
   "legal.subprocessors.openai.data2": "Ninguna direcci\xF3n de la lista de espera forma nunca parte de ese texto",
   "legal.subprocessors.openai.location1": "Estados Unidos. Fuera de Suiza y fuera del EEE",
   "legal.subprocessors.openai.safeguard": "Las cl\xE1usulas contractuales tipo conforme a la adenda de tratamiento de datos del proveedor. Nos basamos en las cl\xE1usulas y no en una certificaci\xF3n de un marco de referencia.",
@@ -23328,10 +25462,10 @@ var catalogue4 = {
   "blog.tabs.label": "Categor\xEDas",
   "blog.empty": "Todav\xEDa no hay art\xEDculos en esta categor\xEDa.",
   "blog.similar": "Art\xEDculos similares",
-  "blog.pagination.label": "P\xE1ginas",
-  "blog.pagination.page": "P\xE1gina {n}",
-  "blog.pagination.next": "P\xE1gina siguiente",
-  "blog.pagination.previous": "P\xE1gina anterior",
+  "pagination.label": "P\xE1ginas",
+  "pagination.page": "P\xE1gina {n}",
+  "pagination.next": "P\xE1gina siguiente",
+  "pagination.previous": "P\xE1gina anterior",
   "blog.done-is-not-proof.title": "Que un agente diga \xABhecho\xBB no es una prueba",
   "blog.done-is-not-proof.lead": "Por qu\xE9 Orvay trata cada tarea terminada como una afirmaci\xF3n, y qu\xE9 hace falta para convertir una afirmaci\xF3n en un registro en el que una empresa pueda confiar.",
   "blog.done-is-not-proof.description": "Todo agente termina su trabajo con un mensaje que dice \xABhecho\xBB. Una empresa no puede funcionar con ese mensaje. As\xED separa Orvay la afirmaci\xF3n de la prueba.",
@@ -23413,6 +25547,7 @@ var pt_default = {
   "pricing.ladder.label.members": "Membros",
   "pricing.ladder.label.departments": "Departamentos",
   "pricing.ladder.label.concurrent-runs": "Execu\xE7\xF5es simult\xE2neas",
+  "pricing.ladder.label.tool-servers": "Servidores de ferramentas registados",
   "pricing.ladder.label.beyond-allowance": "Al\xE9m da cota",
   "pricing.ladder.label.features": "Recursos do plano",
   "pricing.ladder.label.no-features": "Sem recursos de plano. O produto em si n\xE3o \xE9 reduzido.",
@@ -23479,6 +25614,8 @@ var pt_default = {
   "pricing.feature.scim.detail": "Provisione e remova pessoas a partir do seu pr\xF3prio diret\xF3rio, em vez de convid\xE1-las uma a uma.",
   "pricing.feature.byo_model_keys.name": "Suas pr\xF3prias chaves de modelo",
   "pricing.feature.byo_model_keys.detail": "Cobre o uso de modelo nas suas pr\xF3prias contas de fornecedor, em vez de na sua cota de cr\xE9ditos.",
+  "pricing.feature.integration_mcp.name": "Ferramentas emprestadas",
+  "pricing.feature.integration_mcp.detail": "Registe os servidores de ferramentas que a sua empresa j\xE1 utiliza, e permita que Orvay chame as suas ferramentas conforme a sua pol\xEDtica, uma aprova\xE7\xE3o por ferramenta. Quantos cada plano comporta est\xE1 na tabela anterior.",
   "pricing.feature.voice.name": "Voz dentro da aplica\xE7\xE3o",
   "pricing.feature.voice.detail": "Atenda uma chamada no navegador, com uma transcri\xE7\xE3o como registo. O Orvay atende chamadas e nunca as faz, em qualquer plano e por design.",
   // ---------------------------------------------------------------------------
@@ -23509,7 +25646,7 @@ var pt_default = {
   // What every plan includes, and what is enforced today
   // ---------------------------------------------------------------------------
   "pricing.included.heading": "O que todo plano inclui",
-  "pricing.included.paragraph.1": "Hospedagem. Um site que o Orvay constr\xF3i \xE9 servido a partir da nossa infraestrutura, num subdom\xEDnio que fornecemos, de modo que n\xE3o precisa de servidor, implanta\xE7\xE3o nem dom\xEDnio pr\xF3prio para ter um site que responde. Ligar um dom\xEDnio pr\xF3prio ainda n\xE3o foi constru\xEDdo, e esta p\xE1gina muda no dia em que for.",
+  "pricing.included.paragraph.1": "Hospedagem. Um site que o Orvay constr\xF3i \xE9 servido a partir da nossa infraestrutura, num subdom\xEDnio que fornecemos, de modo que n\xE3o precisa de servidor, instala\xE7\xE3o nem dom\xEDnio pr\xF3prio para ter um site que responde. Ligar um dom\xEDnio pr\xF3prio ainda n\xE3o foi constru\xEDdo, e esta p\xE1gina muda no dia em que for.",
   "pricing.included.paragraph.2": "O mecanismo de governan\xE7a, por completo. Oito port\xF5es de admiss\xE3o em ordem fixa, uma aprova\xE7\xE3o que \xE9 um registo com escopo e limites definidos, n\xE3o uma caixa de sele\xE7\xE3o, verifica\xE7\xE3o feita por um agente que n\xE3o realizou o trabalho, e um registo encadeado por hash de tudo isso. Nada disso \xE9 reduzido no plano gratuito.",
   "pricing.included.paragraph.3": "Medi\xE7\xE3o de custo. O que uma a\xE7\xE3o vai custar \xE9 medido em rela\xE7\xE3o \xE0 sua cota antes de a a\xE7\xE3o ser executada, de modo que uma recusa chega antes do gasto, e n\xE3o numa fatura.",
   "pricing.enforcement.heading": "O que \xE9 aplicado hoje",
@@ -24082,8 +26219,17 @@ var pt_default = {
   "shell.company.new": "Nova empresa",
   "shell.company.organizationSettings": "Defini\xE7\xF5es da organiza\xE7\xE3o",
   "newCompany.title": "Adicionar um espa\xE7o de trabalho",
-  "newCompany.body": "Um espa\xE7o de trabalho \xE9 uma empresa que a Orvay gere. Tem objetivos pr\xF3prios, registos pr\xF3prios e uma equipa pr\xF3pria, e entre um e outro n\xE3o passa nada.",
+  "newCompany.body": "Um espa\xE7o de trabalho \xE9 uma empresa que a Orvay gere. Tem objetivos pr\xF3prios, registos pr\xF3prios e uma equipa pr\xF3pria, e nada disso passa de um para o outro.",
   "newCompany.label": "Como se chama",
+  "newCompany.where.legend": "Onde fica",
+  "newCompany.where.join.label": "Em {organization}",
+  "newCompany.where.join.sublabel": "Partilha o plano, os cr\xE9ditos e as pol\xEDticas que esta organiza\xE7\xE3o j\xE1 tem. O que este espa\xE7o de trabalho consome sai do mesmo limite.",
+  "newCompany.where.new.label": "Numa nova organiza\xE7\xE3o",
+  "newCompany.where.new.sublabel": "Uma organiza\xE7\xE3o separada no plano Free. O plano, os cr\xE9ditos e a fatura\xE7\xE3o s\xE3o seus.",
+  "newCompany.error.taken": "J\xE1 existe um espa\xE7o de trabalho com esse nome nesta organiza\xE7\xE3o. Escolha outro nome.",
+  "newCompany.error.refused": "N\xE3o tem permiss\xE3o para adicionar um espa\xE7o de trabalho a esta organiza\xE7\xE3o. Pode ainda criar um numa nova organiza\xE7\xE3o.",
+  "newCompany.error.atCap": "J\xE1 tem tantas organiza\xE7\xF5es quantas uma conta pode ter sem um plano pago. Pode ainda adicionar um espa\xE7o de trabalho a uma organiza\xE7\xE3o a que j\xE1 pertence.",
+  "newCompany.error.tooMany": "J\xE1 criou hoje tantas organiza\xE7\xF5es quantas pode. Pode ainda adicionar um espa\xE7o de trabalho a uma organiza\xE7\xE3o a que j\xE1 pertence.",
   "newCompany.submit": "Criar o espa\xE7o de trabalho",
   "newCompany.busy": "A criar o espa\xE7o de trabalho.",
   "newCompany.error.short": "D\xEA ao espa\xE7o de trabalho um nome com pelo menos dois caracteres.",
@@ -24140,7 +26286,13 @@ var pt_default = {
   "org.allowance.heading": "Plano e limite mensal",
   "org.allowance.body": "O plano \xE9 comprado pela organiza\xE7\xE3o, n\xE3o por lugar, e a organiza\xE7\xE3o disp\xF5e de um \xFAnico limite mensal partilhado por todos os seus espa\xE7os de trabalho. O que \xE9 consumido num espa\xE7o sai do mesmo limite de que os outros dependem, e o valor est\xE1 na p\xE1gina de utiliza\xE7\xE3o do espa\xE7o em que se encontra.",
   "org.access.heading": "Quem tem acesso",
-  "org.access.body": "Hoje o acesso \xE9 concedido por espa\xE7o de trabalho. Quem \xE9 convidado para um espa\xE7o n\xE3o \xE9 membro dos restantes, e a sua fun\xE7\xE3o define-se nesse espa\xE7o em Equipa. Editar o acesso uma \xFAnica vez para toda a organiza\xE7\xE3o n\xE3o est\xE1 constru\xEDdo.",
+  "org.access.body": "Hoje o acesso \xE9 concedido por espa\xE7o de trabalho. Quem \xE9 convidado para um espa\xE7o n\xE3o \xE9 membro dos restantes, As pessoas abaixo s\xE3o as dos espa\xE7os de trabalho a que pertence. Um espa\xE7o de que n\xE3o faz parte mostra apenas quantas pessoas tem, porque os seus registos ficam l\xE1 dentro. A sua fun\xE7\xE3o define-se nesse espa\xE7o em Equipa. Editar o acesso uma \xFAnica vez para toda a organiza\xE7\xE3o n\xE3o est\xE1 constru\xEDdo.",
+  "org.access.people": "Pessoas",
+  "org.waiting.heading": "Pendente nos seus espa\xE7os de trabalho",
+  "org.waiting.body": "Propostas ainda n\xE3o decididas, em cada espa\xE7o de trabalho a que pertence. Abra esse espa\xE7o para agir. Se uma proposta lhe diz respeito decide-se dentro do espa\xE7o, n\xE3o aqui.",
+  "org.waiting.count": "Pendente",
+  "org.waiting.none": "N\xE3o h\xE1 nada \xE0 espera nos espa\xE7os de trabalho a que pertence.",
+  "org.access.elsewhere": "Um espa\xE7o de trabalho de que n\xE3o faz parte",
   "home.new": "Ainda n\xE3o aconteceu nada. Esta empresa \xE9 nova.",
   "home.recorded": {
     one: "{count} evento registado desde que esta empresa foi criada.",
@@ -24157,6 +26309,8 @@ var pt_default = {
   "notification.headline.comment.mentioned": "Algu\xE9m perguntou por si, pelo nome",
   "notification.headline.goal.thrashing": "Um objetivo falhou repetidamente e foi parado",
   "notification.push.none.title": "Nada aguarda em {company}",
+  "notification.slack.escalated": "Uma decis\xE3o em {company} est\xE1 esperando h\xE1 um dia.",
+  "notification.slack.note": "Nada \xE9 decidido no Slack. O link abre {brand}, onde a decis\xE3o \xE9 atribu\xEDda \xE0 pessoa que a toma.",
   "notification.push.none.body": "Est\xE1 tudo em dia.",
   "notification.push.only": "Em {company}.",
   "notification.push.more": {
@@ -24783,6 +26937,10 @@ var pt_default = {
   "inbox.refused": "recusado",
   "inbox.checked": "verificado por um ator diferente",
   "inbox.notEstablished": "executado, n\xE3o estabelecido",
+  "inbox.inspector.label": "Sobre a proposta selecionada",
+  "inbox.inspector.empty": "Escolha uma proposta para ver o que faria.",
+  "inbox.inspector.open": "Abrir o contrato",
+  "inbox.openContract": "Abrir o contrato de {objective}",
   "contract.tabs": "Vistas deste contrato",
   "contract.tab.contract": "Contrato",
   "contract.tab.output": "Resultado",
@@ -24889,6 +27047,7 @@ var pt_default = {
   "decision.ok.approved": "Aprovado.",
   "decision.ok.refused": "Recusado.",
   "decision.ok.ran": "Executado, e um ator diferente confirmou que o registo corresponde ao contrato.",
+  "decision.error.alreadyRunning": "Esta proposta j\xE1 est\xE1 a decorrer, iniciada h\xE1 momentos. Aguarde que termine e depois consulte o registo para ver o que fez.",
   "decision.error.unverified": "Executado, mas a verifica\xE7\xE3o N\xC3O o estabeleceu: {why}",
   "decision.revise": "Pedir uma revis\xE3o",
   "decision.revise.hint": "Para a devolver, diga o que deve mudar. Quem a prop\xF4s responde com uma proposta revista que substitui esta.",
@@ -24953,32 +27112,32 @@ var pt_default = {
   "files.delete.keep": "Manter",
   "files.delete.busy": "Eliminando",
   "files.delete.failed": "N\xE3o eliminado",
-  "files.add.files": "Adicionar arquivos",
+  "files.add.files": "Adicionar ficheiros",
   "files.add.folder": "Adicionar uma pasta",
   "files.add.busy": "Adicionando",
-  "files.add.failed.title": "Esse arquivo n\xE3o foi adicionado",
+  "files.add.failed.title": "Esse ficheiro n\xE3o foi adicionado",
   "files.add.done.title": "Conclu\xEDdo",
-  "files.refusal.type": "{brand} mant\xE9m texto, Markdown, CSV, JSON, PDF, Word, PowerPoint e imagens. Um .zip \xE9 desempacotado e os arquivos dentro dele s\xE3o mantidos. Uma planilha n\xE3o \xE9 aceita: exporte a planilha como CSV, que \xE9 lida completamente.",
-  "files.refusal.too_large": "Esse arquivo tem mais de 10 MB, que \xE9 o limite por enquanto.",
-  "files.refusal.empty": "Esse arquivo est\xE1 vazio.",
-  "files.refusal.name": "Esse arquivo precisa de um nome.",
-  "files.refusal.prohibited": "O NOME do arquivo corresponde a um termo que {brand} n\xE3o aceita. Nada leu o conte\xFAdo. Renomear o arquivo \xE9 suficiente.",
+  "files.refusal.type": "{brand} mant\xE9m texto, Markdown, CSV, JSON, PDF, Word, PowerPoint e imagens. Um .zip \xE9 desempacotado e os ficheiros dentro dele s\xE3o mantidos. Uma planilha n\xE3o \xE9 aceita: exporte a planilha como CSV, que \xE9 lida completamente.",
+  "files.refusal.too_large": "Esse ficheiro tem mais de 10 MB, que \xE9 o limite por enquanto.",
+  "files.refusal.empty": "Esse ficheiro est\xE1 vazio.",
+  "files.refusal.name": "Esse ficheiro precisa de um nome.",
+  "files.refusal.prohibited": "O NOME do ficheiro corresponde a um termo que {brand} n\xE3o aceita. Nada leu o conte\xFAdo. Renomear o ficheiro \xE9 suficiente.",
   "files.refusal.refused": "Um gate recusou isso. Se a autonomia est\xE1 parada, libere a pausa primeiro.",
-  "files.refusal.too_many": "S\xE3o mais de 200 arquivos por vez. Adicione a pasta em partes.",
+  "files.refusal.too_many": "S\xE3o mais de 200 ficheiros por vez. Adicione a pasta em partes.",
   "files.refusal.archive_ratio": "Esse .zip desempacota muito mais do que parece, ent\xE3o n\xE3o foi aberto.",
-  "files.refusal.archive_nested": "Esse .zip cont\xE9m outro .zip. Desempacote-o uma vez e adicione os arquivos.",
+  "files.refusal.archive_nested": "Esse .zip cont\xE9m outro .zip. Desempacote-o uma vez e adicione os ficheiros.",
   "files.refusal.archive_encrypted": "Esse .zip \xE9 protegido por senha, ent\xE3o nada dentro dele p\xF4de ser lido.",
-  "files.refusal.archive_not_a_zip": "Esse arquivo termina em .zip e n\xE3o \xE9 um que {brand} pode ler.",
-  "files.refusal.unavailable": "O armazenamento de arquivos n\xE3o est\xE1 acess\xEDvel nesta implanta\xE7\xE3o.",
+  "files.refusal.archive_not_a_zip": "Esse ficheiro termina em .zip e n\xE3o \xE9 um que {brand} pode ler.",
+  "files.refusal.unavailable": "O armazenamento de ficheiros n\xE3o est\xE1 acess\xEDvel nesta instala\xE7\xE3o.",
   "files.add.unreachable": "Isso n\xE3o chegou at\xE9 {brand}. Tente novamente.",
   "queue.key.next": "Pr\xF3ximo na lista",
   "queue.key.previous": "Anterior na lista",
   "home.empty.site": "Ou construa o site da empresa",
   "files.none": "Nada guardado ainda.",
   "files.count": {
-    one: "{count} arquivo.",
-    many: "{count} arquivos.",
-    other: "{count} arquivos."
+    one: "{count} ficheiro.",
+    many: "{count} ficheiros.",
+    other: "{count} ficheiros."
   },
   "files.showing": "Exibindo {shown} de {total}.",
   "home.trail.events": {
@@ -24996,7 +27155,7 @@ var pt_default = {
   "activity.showing": "Exibindo as {shown} mais recentes.",
   "company.created": "Criada em {date}",
   "company.empty.title": "Esta empresa ainda n\xE3o tem departamentos nem agentes",
-  "company.empty.because": "{brand} cria um departamento quando um trabalho precisa de um, e um agente quando um departamento precisa de um. A sua n\xE3o tem nenhum dos dois porque at\xE9 agora nada precisou. O mesmo modelo gere uma empresa de uma pessoa e uma de cem mil; aqui h\xE1 apenas menos linhas.",
+  "company.empty.because": "{brand} cria um departamento quando o trabalho precisa de um, e um agente quando um departamento precisa de um. O seu n\xE3o tem nenhum porque at\xE9 agora nada foi necess\xE1rio, e pode adicionar um voc\xEA mesmo abaixo. O mesmo modelo gere uma empresa de uma pessoa e uma de cem mil; aqui apenas h\xE1 menos linhas.",
   "company.departments": {
     one: "{count} departamento",
     many: "{count} departamentos",
@@ -25039,6 +27198,8 @@ var pt_default = {
   "shell.halt.reason.header": "Parado a partir do cabe\xE7alho, sem motivo indicado",
   "shell.dialog.close": "Fechar",
   "shell.theme.label": "Modo escuro",
+  "shell.toast.label": "Confirma\xE7\xF5es",
+  "shell.toast.dismiss": "Fechar",
   "field.unavailable": "Indispon\xEDvel:",
   "outcome.banned.title": "Conta suspensa",
   "outcome.banned.title.temporary": "Conta temporariamente restringida",
@@ -25169,6 +27330,7 @@ var pt_default = {
   "log.kind.shipped": "Lan\xE7ado",
   "log.kind.fixed": "Corrigido",
   "log.kind.said": "Dito abertamente",
+  "log.reconstructed": "Registado mais tarde, a partir do hist\xF3rico do reposit\xF3rio",
   "log.meta.description": "Cada altera\xE7\xE3o no Orvay, nas palavras de um cliente, acrescentada e nunca reescrita.",
   "portability.title": "Portabilidade",
   "portability.lead": "O que pode levar do Orvay e o que ainda n\xE3o pode levar. Cada linha abaixo \xE9 lida da mesma tabela que a p\xE1gina de pre\xE7os l\xEA, por isso esta p\xE1gina n\xE3o pode afirmar mais do que aquela.",
@@ -25478,6 +27640,29 @@ var pt_default = {
   "mcp.tool.orvay_reject_decision": "Recusar um contrato. \xC9 exigido um motivo e fica registado.",
   // API keys. A key is a credential a person creates for a program; the token
   // is shown exactly once because only its hash is stored.
+  "contacts.nav": "Contatos",
+  "contacts.title": "Contatos",
+  "contacts.lead": "Uma lista que voc\xEA est\xE1 trazendo de outro lugar. Orvay regista o que o seu ficheiro pode mostrar sobre quem concordou, e diz claramente onde n\xE3o consegue.",
+  "contacts.nothing-sent.title": "Orvay n\xE3o envia nada para esta lista",
+  "contacts.nothing-sent.body": "Importar um contato registra quem concordou com o qu\xEA, e nada mais. N\xE3o existe hoje em Orvay nenhum caminho que escreva para um contato importado, seja o que for que o seu ficheiro diga.",
+  "contacts.import.heading": "Importar uma lista",
+  "contacts.import.lead": "Um CSV. Orvay l\xEA a coluna denominada address, e registra um acordo apenas onde a mesma linha tamb\xE9m cont\xE9m agreed_at, wording_shown e source. Linhas sem esses tr\xEAs s\xE3o contadas e mantidas fora do registro, porque um acordo que ningu\xE9m pode mostrar n\xE3o \xE9 um em que voc\xEA possa confiar mais tarde.",
+  "contacts.import.file": "O seu ficheiro",
+  "contacts.import.hint": "Um CSV de no m\xE1ximo um megabyte.",
+  "contacts.import.choose": "Escolher um CSV",
+  "contacts.import.none-chosen": "Nenhum ficheiro escolhido",
+  "contacts.import.submit": "Importar",
+  "contacts.import.pending": "A ler o ficheiro",
+  "contacts.summary.title": "O ficheiro foi lido",
+  "contacts.summary.recorded": "Acordos registrados:",
+  "contacts.summary.already-known": "J\xE1 no registro:",
+  "contacts.summary.without-evidence": "Lido, sem nada que mostre um acordo:",
+  "contacts.summary.rejected": "N\xE3o \xE9 um endere\xE7o utiliz\xE1vel, ou listado duas vezes:",
+  "contacts.error.no-file": "Escolha um CSV primeiro.",
+  "contacts.error.too-large": "Esse ficheiro excede um megabyte. Divida-o e importe cada parte.",
+  "contacts.error.no-rows": "Este ficheiro tem um cabe\xE7alho e nenhuma linha abaixo dele.",
+  "contacts.error.refused": "Voc\xEA n\xE3o tem permiss\xE3o para registrar quem aceitou ser contatado.",
+  "contacts.error.unavailable": "Nada foi importado. Tente novamente em um momento.",
   "settings.keys.title": "Chaves de API",
   "settings.keys.lead": "Uma chave permite que um programa aja em seu nome, e nunca mais do que voc\xEA pr\xF3prio pode fazer.",
   "settings.keys.create.heading": "Criar uma chave",
@@ -25508,7 +27693,7 @@ var pt_default = {
   "site.footer.nav.solutions": "Solu\xE7\xF5es",
   "site.footer.nav.trust": "Confian\xE7a",
   "blog.nav.blurb": "O que constru\xEDmos e quanto custou aprender.",
-  "log.nav.blurb": "Cada lan\xE7amento, datado, com o seu commit.",
+  "log.nav.blurb": "O que mudou, datado, em palavras claras.",
   "portability.nav.blurb": "O que pode levar consigo, em qualquer plano.",
   "gates.title": "As oito portas",
   "gates.nav.blurb": "Uma fun\xE7\xE3o decide se qualquer coisa pode acontecer.",
@@ -25629,7 +27814,7 @@ var pt_default = {
   "gates.honest.lead": "Um motor de pol\xEDtica que existe e um motor de pol\xEDtica que foi atingido s\xE3o afirma\xE7\xF5es diferentes, e apenas uma delas \xE9 sobre executar software.",
   "gates.honest.consent": "A porta 6 nunca recusou nada, porque nenhuma chamada ainda nomeia uma pessoa como seu assunto. A porta \xE9 constru\xEDda e testada. N\xE3o foi alcan\xE7ada.",
   "gates.honest.concurrency": "O limite de quantas execu\xE7\xF5es conseguem ir de uma vez est\xE1 documentado e n\xE3o \xE9 refor\xE7ado. Membros, departamentos e funcionalidades s\xE3o.",
-  "gates.honest.spend": "O dinheiro \xE9 mantido em volta da chamada de modelo ela mesma em vez de confiado a um chamador, portanto o teto n\xE3o depende de ningu\xE9m lembrar de o reservar. Duas superf\xEDcies ainda verificam sem reservar, e essas s\xE3o nomeadas no registo de compila\xE7\xE3o.",
+  "gates.honest.spend": "O dinheiro \xE9 mantido em volta da chamada de modelo ela mesma em vez de confiado a um chamador, portanto o teto n\xE3o depende de ningu\xE9m lembrar de o reservar. Algumas superf\xEDcies ainda verificam sem reservar.",
   "gates.unit.heading": "A unidade \xE9 dinheiro, nunca uma contagem",
   "gates.unit.lead": "Medido em toda a tabela de encaminhamento nossa, o custo de uma a\xE7\xE3o varia cerca de dezenove vezes. Qualquer coisa que limita o trabalho contando a\xE7\xF5es est\xE1 a limitar a coisa errada.",
   "gates.unit.credit": "Um cr\xE9dito \xE9 o que v\xEA e no que \xE9 faturado. A porta compara dinheiro, e o cr\xE9dito \xE9 derivado dele em vez de guardado ao lado dele, porque dois n\xFAmeros que devem concordar \xE9 como um sistema de fatura\xE7\xE3o come\xE7a a mentir.",
@@ -25646,7 +27831,7 @@ var pt_default = {
   "verification.today.heading": "Onde isto \xE9 verdadeiro hoje",
   "verification.today.lead": "Um caminho, descrito exatamente, porque um caminho \xE9 o que existe.",
   "verification.today.publish": "Quando Orvay publica um site, um ator o constr\xF3i, um segundo verifica-o, e as provas s\xE3o uma resposta HTTP obtida por um terceiro. O hash do corpo \xE9 calculado pelo lado que o recebeu em vez de pelo lado que o enviou.",
-  "verification.today.gap": "Nenhum outro tipo de trabalho \xE9 verificado de forma independente ainda. A entrada de encaminhamento para ela existe e nada a chama. Isto \xE9 um intervalo no produto, n\xE3o uma subtileza na reda\xE7\xE3o.",
+  "verification.today.gap": "Um segundo caminho \xE9 julgado da mesma forma: quando uma publica\xE7\xE3o sai, um ator diferente volta a l\xEA-la e uma fun\xE7\xE3o decide se isso estabelece o resultado. O que ainda falta \xE9 pedir a um segundo modelo que verifique um primeiro: essa via existe no c\xF3digo e nada a chama. Dizer qual \xE9 qual \xE9 o objetivo desta p\xE1gina.",
   "verification.today.why": "Est\xE1 escrito aqui porque uma afirma\xE7\xE3o de categoria apoiando-se num caminho \xE9 a falha exata que este produto existe para recusar, e preferir\xEDamos diz\xEA-lo a ser descobertos.",
   "verification.field.heading": "O que todos os outros fazem",
   "verification.field.lead": "Leia a partir da documenta\xE7\xE3o do fornecedor em setembro de 2026. Onde um produto descreve a sua pr\xF3pria verifica\xE7\xE3o, isto \xE9 o que descreve.",
@@ -25660,7 +27845,7 @@ var pt_default = {
   "verification.evidence.attested": "Atestado",
   "verification.evidence.attested.detail": "Uma captura de ecr\xE3, uma transcri\xE7\xE3o de modelo. Algu\xE9m diz que \xE9 assim. \xDAtil, registado, e nunca suficiente por si s\xF3.",
   "verification.evidence.provenance": "Simulado ou real",
-  "verification.evidence.provenance.detail": "Afirmado no artefato e nunca na p\xE1gina, porque um ecr\xE3 rotineiramente carrega ambos: uma execu\xE7\xE3o simulada cuja verifica\xE7\xE3o \xE9 uma leitura de base de dados real.",
+  "verification.evidence.provenance.detail": "Afirmado no artefacto e nunca na p\xE1gina, porque um ecr\xE3 rotineiramente carrega ambos: uma execu\xE7\xE3o simulada cuja verifica\xE7\xE3o \xE9 uma leitura de base de dados real.",
   "integrations.eyebrow": "Alcance",
   "integrations.lead": "Aquilo atrav\xE9s do qual Orvay consegue agir, o que consegue apenas ensaiar, e o que n\xE3o est\xE1 constru\xEDdo. Leia a partir do registo que o produto admite, portanto esta p\xE1gina n\xE3o consegue ficar \xE0 frente do software.",
   "integrations.meta.description": "As integra\xE7\xF5es que Orvay se conecta hoje, as que apenas simula, e as que n\xE3o est\xE3o constru\xEDdas. Cada uma afirma qual \xE9.",
@@ -25687,6 +27872,8 @@ var pt_default = {
   "integrations.credential.app_password.detail": "O que este fornecedor emite em vez de um token. Definido para uma aplica\xE7\xE3o e revog\xE1vel por si s\xF3.",
   "integrations.credential.dns.title": "Um registo que publica",
   "integrations.credential.dns.detail": "Delega\xE7\xE3o por CNAME em vez de uma chave colada num formul\xE1rio, portanto as chaves conseguem ser giradas mais tarde sem si tocar em DNS de novo.",
+  "integrations.credential.mcp.title": "O seu pr\xF3prio servidor de ferramentas",
+  "integrations.credential.mcp.detail": "O fornecedor gere um servidor que oferece ferramentas. O Orvay regista-o com um clique, autoriza-se junto do fornecedor, fixa a lista de ferramentas que oferece e pede aprova\xE7\xE3o antes que qualquer uma delas seja executada.",
   "integrations.credential.none.title": "Nada ainda",
   "integrations.credential.none.detail": "Nenhuma credencial \xE9 aceita, porque n\xE3o existe nada por tr\xE1s do formul\xE1rio para aceit\xE1-la.",
   "integrations.grants.heading": "O que conectar isto permitiria",
@@ -25765,7 +27952,7 @@ var pt_default = {
   "glossary.capability.term": "Capability",
   "glossary.capability.def": "Uma permiss\xE3o escrita como recurso, a\xE7\xE3o e \xE2mbito. \xC9 a unidade que as portas avaliam, e \xE9 a mesma string em cada idioma.",
   "glossary.provenance.term": "Provenance",
-  "glossary.provenance.def": "Se um artefato veio de um efeito real ou simulado. Obrigat\xF3rio em provas, sem padr\xE3o, e pertence ao artefato em vez de \xE0 p\xE1gina em que aparece.",
+  "glossary.provenance.def": "Se um artefacto veio de um efeito real ou simulado. Obrigat\xF3rio em provas, sem padr\xE3o, e pertence ao artefacto em vez de \xE0 p\xE1gina em que aparece.",
   "glossary.trust.term": "Trust label",
   "glossary.trust.def": "Se um peda\xE7o de contexto \xE9 confi\xE1vel ou n\xE3o confi\xE1vel. Contexto n\xE3o confi\xE1vel nunca consegue aumentar um n\xEDvel de capacidade, e uma proposta que o cita perde a sua elegibilidade para aprova\xE7\xE3o autom\xE1tica.",
   "glossary.admission.term": "Admiss\xE3o",
@@ -25911,6 +28098,27 @@ var pt_default = {
   "files.preview.not-found.body": "Esse ficheiro n\xE3o est\xE1 nesta empresa, ou foi apagado.",
   "files.preview.back": "Voltar aos ficheiros",
   "files.preview.download": "Descarregar",
+  "files.share.heading": "Compartilhar este documento",
+  "files.share.lead": "Um link que se abre sem uma conta Orvay. Para de funcionar no dia que voc\xEA escolher, no m\xE1ximo ap\xF3s noventa dias, e voc\xEA pode encerr\xE1-lo antes.",
+  "files.share.label": "Para que serve",
+  "files.share.days": "Dias at\xE9 o t\xE9rmino",
+  "files.share.submit": "Criar link",
+  "files.share.pending": "Criando o link",
+  "files.share.shown-once": "Copie agora. Esta \xE9 a \xFAnica vez que \xE9 mostrado, pois apenas sua impress\xE3o digital \xE9 armazenada.",
+  "files.share.revoked": "Este link n\xE3o abre mais nada.",
+  "files.share.revoke": "Encerrar este link",
+  "files.share.list.heading": "Links para este documento",
+  "files.share.list.empty": "Sem links. Este documento n\xE3o saiu da empresa.",
+  "files.share.list.unnamed": "Link sem nome",
+  "files.share.list.live": "funciona agora",
+  "files.share.list.expired": "expirado",
+  "files.share.list.revoked": "encerrado",
+  "files.share.list.never-opened": "nunca aberto",
+  "files.share.list.opened": "aberto",
+  "files.share.error.refused": "Voc\xEA n\xE3o tem permiss\xE3o para compartilhar um documento fora desta empresa.",
+  "files.share.error.unavailable": "Nada foi criado. Tente novamente em um momento.",
+  "files.share.error.not-found": "Este documento n\xE3o est\xE1 mais aqui.",
+  "files.share.error.window": "Escolha um n\xFAmero inteiro de dias, de 1 a 90.",
   "files.preview.image.caption": "Descrita apenas pelo nome do ficheiro. Nada leu o que est\xE1 na imagem.",
   "files.preview.pdf-empty.title": "N\xE3o foi poss\xEDvel ler texto neste PDF",
   "files.preview.pdf-empty.body": "As palavras s\xE3o mostradas aqui quando um PDF cont\xE9m texto. Este n\xE3o revelou nenhum, o que normalmente significa que as p\xE1ginas s\xE3o imagens digitalizadas em vez de texto, ou que o ficheiro est\xE1 protegido. Ainda pode ser descarregado, e o trabalho que esta empresa executa n\xE3o recebe nada dele.",
@@ -25950,18 +28158,34 @@ var pt_default = {
   },
   "company.departments.heading": "Departamentos",
   "company.agents.heading": "Agentes",
+  "company.department.legend": "Adicionar um departamento",
+  "company.department.name": "Como se chama",
+  "company.department.submit": "Adicionar o departamento",
+  "company.department.created": "O departamento foi adicionado.",
+  "company.department.error.short": "Um departamento precisa de um nome com pelo menos dois caracteres.",
+  "company.department.error.long": "O nome de um departamento tem no m\xE1ximo oitenta caracteres.",
+  "company.department.error.refused": "Uma porta recusou esta a\xE7\xE3o. A sua pol\xEDtica n\xE3o permite adicionar um departamento.",
   "company.department.no-envelope": "sem envelope de capacidades",
   "company.agent.task-class": "classe de tarefa {taskClass}",
+  "company.agent.legend": "Adicionar um agente",
+  "company.agent.name": "Como cham\xE1-lo",
+  "company.agent.name.hint": "Uma etiqueta para distinguir agentes numa lista. Orvay n\xE3o tem personalidade e isto tamb\xE9m n\xE3o \xE9 uma.",
+  "company.agent.department": "A que departamento pertence",
+  "company.agent.task-class.label": "O tipo de trabalho que realiza",
+  "company.agent.task-class.hint": "Uma classe de tarefa decide qual modelo responde. O utilizador escolhe o tipo de trabalho; Orvay escolhe o modelo.",
+  "company.agent.submit": "Adicionar o agente",
+  "company.agent.created": "O agente foi adicionado. N\xE3o possui capacidades, portanto ainda n\xE3o pode agir.",
+  "company.agent.error.short": "Um agente precisa de um nome com pelo menos dois caracteres.",
+  "company.agent.error.long": "O nome de um agente tem no m\xE1ximo oitenta caracteres.",
+  "company.agent.error.department": "Escolha um dos departamentos da empresa.",
+  "company.agent.error.task-class": "Escolha uma das classes de tarefa oferecidas.",
+  "company.agent.error.refused": "Uma porta recusou esta a\xE7\xE3o. A sua pol\xEDtica n\xE3o permite adicionar um agente.",
+  "company.agent.needs-department": "Um agente pertence a um departamento. Comece por adicionar um departamento abaixo.",
+  "company.agents.no-authority": "Um agente actua apenas com as capacidades que lhe foram atribu\xEDdas. Atribuir capacidades a um agente ainda n\xE3o est\xE1 constru\xEDdo, portanto nenhum destes pode agir.",
   "company.badge.halted": "parado",
   "company.badge.active": "ativo",
   "company.badge.inactive": "inativo",
-  "activity.head.empty": "Nada foi registado para esta empresa.",
-  "activity.head.count": {
-    one: "{count} entrada, a mais recente por \xFAltimo.",
-    many: "{count} entradas, a mais recente por \xFAltimo.",
-    other: "{count} entradas, a mais recente por \xFAltimo."
-  },
-  "activity.head.showing": "A mostrar as {count} mais recentes.",
+  "activity.trail.label": "O que aconteceu, do mais recente para o mais antigo",
   "activity.unread.heading": "A aguardar que veja",
   "activity.unread.kind.message": "Algu\xE9m enviou um email para o endere\xE7o da empresa",
   "activity.unread.kind.approval": "Um contrato aguarda uma decis\xE3o",
@@ -26075,6 +28299,7 @@ var pt_default = {
   "account.export.right.title": "A exporta\xE7\xE3o \xE9 um direito, n\xE3o um recurso",
   "account.export.right.body": "Os seus pr\xF3prios dados s\xE3o export\xE1veis em todos os planos, incluindo o gratuito, num formato leg\xEDvel por m\xE1quina. Cobrar por isso seria uma infra\xE7\xE3o e n\xE3o uma decis\xE3o de pre\xE7o, por isso nada relativo ao seu plano \xE9 consultado quando carrega aqui.",
   "account.export.manifest": "O ficheiro \xE9 NDJSON: um valor JSON por linha, e a primeira linha \xE9 um manifesto que nomeia cada conjunto de registos, conta-o, e diz quando a exporta\xE7\xE3o foi produzida. Cobre esta empresa, todos os que det\xEAm um lugar nela, todos os convites enviados a partir dela, o registo de consentimento, e a trilha de auditoria encadeada por hash. Os conte\xFAdos de auditoria s\xE3o fornecidos como o texto exato tal como foi guardado, por isso cada entrada continua a corresponder ao hash junto dela e pode voltar a verificar a cadeia sem n\xF3s.",
+  "account.export.verify": "Como verificar este ficheiro voc\xEA mesmo",
   "account.export.submit": "Exportar tudo",
   "account.export.recorded": "Fazer uma c\xF3pia \xE9 escrito na trilha de auditoria, indicando quantos registos entraram no ficheiro e nenhum endere\xE7o. Uma trilha de auditoria grande chega uma p\xE1gina de cada vez, e o manifesto transporta a posi\xE7\xE3o a partir da qual continuar.",
   "account.site.heading": "O seu site gerado",
@@ -26119,6 +28344,7 @@ var pt_default = {
   "account.erased.title": "Apagado",
   "account.erased.lead": "Os seus dados pessoais foram apagados dessa empresa.",
   "account.erased.what.heading": "Exatamente o que aconteceu",
+  "account.erased.halted": "Este espa\xE7o de trabalho foi parado, porque era a \xFAltima pessoa que podia aprovar seja o que for dentro dele. J\xE1 n\xE3o corre nada l\xE1 dentro. Quem tiver acesso \xE0 conta que o paga pode voltar a inici\xE1-lo.",
   "account.erased.sealed": "O seu endere\xE7o e o nome apresentado foram substitu\xEDdos, e a chave que tornava os seus registos de consentimento leg\xEDveis foi destru\xEDda, por isso esses registos n\xE3o podem voltar a ser lidos por ningu\xE9m, incluindo n\xF3s. As entradas j\xE1 escritas na trilha de auditoria ficam como est\xE3o: uma trilha de auditoria que pudesse ser reescrita n\xE3o seria uma. Mantemos um registo de que uma intera\xE7\xE3o aconteceu, quando, e sob que autoridade, porque temos de poder mostrar que agimos de forma l\xEDcita.",
   "account.erased.suppression": "Tamb\xE9m mantemos um resumo unidirecional e com chave do seu endere\xE7o na nossa lista de supress\xE3o, para que possamos reconhec\xEA-lo e recusar voltar a contact\xE1-lo. Esse resumo \xE9 a \xFAnica coisa que retemos sobre si, e \xE9 a raz\xE3o pela qual a sua revoga\xE7\xE3o continua a ser respeitada.",
   "account.erased.uncovered.label": "O que isto n\xE3o cobre",
@@ -26127,6 +28353,14 @@ var pt_default = {
   "account.erased.backups.title": "Duplicados dentro de c\xF3pias de seguran\xE7a de rotina da base de dados",
   "account.erased.backups.body": "Uma c\xF3pia de seguran\xE7a feita antes de a chave ser destru\xEDda ainda a cont\xE9m. Ainda n\xE3o definimos nem public\xE1mos uma janela de reten\xE7\xE3o para essas c\xF3pias de seguran\xE7a, por isso n\xE3o podemos dar-lhe uma data a partir da qual nenhuma c\xF3pia exista em lado nenhum. Quando essa janela for definida, ser\xE1 indicada aqui.",
   "account.erased.audit": "A trilha de auditoria dessa empresa regista este apagamento, o que destruiu e o que n\xE3o conseguiu alcan\xE7ar, sob o tipo de entrada {entryType}.",
+  "account.erased.receipt.audit": "Entrada",
+  "account.erased.receipt.fingerprint": "Impress\xE3o",
+  "account.erased.receipt.key": "Chave destru\xEDda",
+  "account.erased.unknown.title": "N\xE3o temos registo disso",
+  "account.erased.unknown.body": "O endere\xE7o que seguiu indica um apagamento que n\xE3o realiz\xE1mos. Se apagou os seus dados e guardou a liga\xE7\xE3o, verifique se foi copiada por inteiro. Caso contr\xE1rio, n\xE3o h\xE1 nada aqui.",
+  "account.erased.receipt.heading": "A sua prova, para guardar",
+  "account.erased.receipt.body": "Este apagamento foi escrito no registo da sua empresa, uma cadeia em que cada entrada carrega a impress\xE3o da anterior. Estes tr\xEAs valores identificam essa entrada. Copie-os para um s\xEDtio onde guarde as suas coisas.",
+  "account.erased.receipt.check": "Quem exportar mais tarde os dados da empresa pode encontrar esta entrada e recalcular a sua impress\xE3o, com o verificador que a {brand} publica. Se a entrada tiver sido alterada desde ent\xE3o, a verifica\xE7\xE3o falha e indica a linha. \xC9 isso que torna estes valores dignos de serem guardados, em vez de uma frase que n\xF3s escrevemos.",
   "account.erased.browser.heading": "Este navegador",
   "account.erased.browser.body": "J\xE1 n\xE3o \xE9 membro dessa empresa. Terminar a sess\xE3o encerra tamb\xE9m esta sess\xE3o do navegador.",
   "account.footer.team": "Procura quem mais est\xE1 nesta empresa? Isso \xE9",
@@ -26166,6 +28400,7 @@ var pt_default = {
   "integrations.authority.title": "Ligar \xE9 conceder autoridade",
   "integrations.authority.body": "Cada linha lista as capacidades que concederia. O {brand} verifica uma credencial com uma chamada real e apenas de leitura antes de a guardar, e n\xE3o guarda nada se essa chamada falhar. Desligar destr\xF3i a chave de encripta\xE7\xE3o em vez de apagar a linha, pelo que a credencial se torna ileg\xEDvel e o registo de que existiu permanece.",
   "integrations.grants": "Concede:",
+  "integrations.grants.none": "Esta conex\xE3o n\xE3o concede nada aos agentes. O Orvay publica uma notifica\xE7\xE3o; nenhum agente recebe uma permiss\xE3o.",
   "integrations.connected-as": "Ligado como",
   "integrations.mailbox.open": "Abrir a caixa de correio",
   "integrations.webhooks.heading": "Webhooks",
@@ -26181,6 +28416,13 @@ var pt_default = {
   "tools.result.removed": "Removido",
   "tools.result.not-registered": "N\xE3o registado",
   "tools.result.registered": "Registado",
+  "tools.register.submit": "Registar o servidor de ferramentas",
+  "tools.register.busy": "A verificar o endere\xE7o",
+  "tools.remove.submit": "Remover",
+  "tools.remove.busy": "A remover",
+  "tools.mode.busy": "A alterar",
+  "tools.mode.hold": "Fazer aprovar por uma pessoa",
+  "tools.mode.release": "Deixar que um modelo a chame sozinho",
   "tools.heading": "Servidores de ferramentas",
   "tools.lead": "Um servidor de ferramentas \xE9 um terceiro a quem o {brand} pode pedir ferramentas em nome desta empresa. Cada ferramenta que oferece torna-se uma capacidade na tabela de pol\xEDtica antes de ser vista por qualquer modelo, pelo que aquilo que um servidor DIZ que uma ferramenta faz nunca pode decidir se pode ser usada.",
   "tools.refused": "Recusado no port\xE3o {gate}: {reason}.",
@@ -26305,7 +28547,7 @@ var pt_default = {
   "approvals.open.heading": "\xC0 espera de si",
   "approvals.settled.heading": "J\xE1 decidido",
   "files.add-note.title": "O que acontece a um ficheiro depois de o adicionar",
-  "files.add-note.body": "{brand} verifica o tipo e o tamanho, e mais nada. N\xE3o \xE9 um antiv\xEDrus e nada l\xEA o conte\xFAdo \xE0 procura de nada. Uma pasta mant\xE9m a sua estrutura, e um .zip \xE9 desempacotado para que os ficheiros l\xE1 dentro sejam mantidos em vez do arquivo. Os ficheiros s\xE3o guardados em armazenamento de objetos na UE e s\xE3o usados como contexto pelo trabalho que esta empresa executa.",
+  "files.add-note.body": "{brand} verifica o tipo e o tamanho, e mais nada. N\xE3o \xE9 um antiv\xEDrus e nada l\xEA o conte\xFAdo \xE0 procura de nada. Uma pasta mant\xE9m a sua estrutura, e um .zip \xE9 desempacotado para que os ficheiros l\xE1 dentro sejam mantidos em vez do ficheiro. Os ficheiros s\xE3o guardados em armazenamento de objetos na UE e s\xE3o usados como contexto pelo trabalho que esta empresa executa.",
   "files.row.not-deleted": "N\xE3o eliminado",
   "files.row.keep": "Manter",
   "files.row.delete": "Eliminar",
@@ -26342,6 +28584,13 @@ var pt_default = {
   "integrations.error.no-credential": "Cole primeiro a credencial.",
   "integrations.error.bluesky-needs-handle": "O Bluesky precisa do seu nome de utilizador, al\xE9m da palavra-passe da aplica\xE7\xE3o.",
   "integrations.error.mastodon-needs-host": "O Mastodon precisa do nome de anfitri\xE3o da sua inst\xE2ncia.",
+  "integrations.error.slack-needs-channel": "O Slack precisa do ID do canal e do token.",
+  "integrations.field.bluesky.label": "Seu identificador",
+  "integrations.field.bluesky.hint": "Por exemplo name.bsky.social",
+  "integrations.field.mastodon.label": "Seu nome de host da inst\xE2ncia",
+  "integrations.field.mastodon.hint": "Por exemplo mastodon.social, sem https",
+  "integrations.field.slack.label": "ID do canal",
+  "integrations.field.slack.hint": "Abra o canal no Slack e escolha Visualizar detalhes do canal. O ID fica na parte inferior e come\xE7a com C.",
   "integrations.error.no-adapter": "N\xE3o existe nenhum adaptador para essa integra\xE7\xE3o.",
   "integrations.error.verify-unreachable": "Nada foi guardado: {reason}. A sua credencial permanece inalterada e intocada.",
   "integrations.error.gate-refused": "recusado no port\xE3o {gate}: {reason}",
@@ -26351,6 +28600,8 @@ var pt_default = {
   "integrations.error.not-connected": "Isso n\xE3o foi ligado.",
   "integrations.ok.disconnected": "Desligado. A chave e a credencial guardada foram ambas destru\xEDdas, por isso nada aqui pode voltar a us\xE1-la. Revogue tamb\xE9m o token junto do fornecedor, porque continua v\xE1lido l\xE1 at\xE9 o fazer.",
   "integrations.error.not-microsoft": "Essa n\xE3o \xE9 uma integra\xE7\xE3o que o {brand} ligue atrav\xE9s da Microsoft.",
+  "integrations.error.not-google": "Isto n\xE3o \xE9 uma integra\xE7\xE3o que {brand} conecta atrav\xE9s do Google.",
+  "integrations.error.no-google-client": "Esta implementa\xE7\xE3o n\xE3o tem um cliente de in\xEDcio de sess\xE3o do Google registado, portanto uma caixa de correio n\xE3o pode ser ligada a partir daqui.",
   "integrations.error.no-microsoft-client": "Esta instala\xE7\xE3o n\xE3o tem nenhum cliente de in\xEDcio de sess\xE3o da Microsoft registado, por isso n\xE3o \xE9 poss\xEDvel ligar uma caixa de correio a partir daqui.",
   "integrations.error.mailbox-already-connected": "Essa caixa de correio j\xE1 est\xE1 ligada. Desligue-a antes de a voltar a ligar.",
   "integrations.error.tool-server-fields-required": "S\xE3o precisos um nome curto, uma etiqueta e um URL https.",
@@ -26366,6 +28617,35 @@ var pt_default = {
   "integrations.ok.tool-approval": "{tool} agora aguarda uma pessoa. N\xE3o \xE9 oferecida a um modelo.",
   "integrations.error.tool-unnameable": "Esse nome de ferramenta n\xE3o pode ser transformado numa capacidade, por isso n\xE3o pode ser concedida.",
   "integrations.error.tool-forbidden": "Essa ferramenta \xE9 proibida por uma migra\xE7\xE3o, que este controlo n\xE3o pode levantar.",
+  "integrations.tool-server.needs-account": "Este servidor pede uma conta ligada antes de listar as suas ferramentas. Nada lhe \xE9 pedido at\xE9 conectar uma.",
+  "integrations.tool-server.connect.submit": "Ligar",
+  "integrations.tool-server.pending": "Liga\xE7\xE3o iniciada. Conclua-a na janela que se abriu e este servidor listar\xE1 as suas ferramentas depois.",
+  "integrations.tool-server.authorized": "Ligado via {issuer}, {when}. A autoriza\xE7\xE3o est\xE1 selada sob uma chave que \xE9 destru\xEDda quando remove este servidor.",
+  "integrations.tool-server.no-account-needed": "Este servidor responde sem conta, portanto n\xE3o h\xE1 nada para ligar.",
+  "integrations.tool-server.reauth-required.title": "Requer uma nova liga\xE7\xE3o",
+  "integrations.tool-server.reauth-required": "A autoriza\xE7\xE3o para este servidor deixou de funcionar, portanto nada lhe \xE9 mais pedido. Ligue-o novamente para continuar.",
+  "integrations.tool-server.client-rejected.title": "J\xE1 n\xE3o reconhecido",
+  "integrations.tool-server.client-rejected": "{issuer} j\xE1 n\xE3o reconhece como {brand} se identifica, portanto nada \xE9 pedido a este servidor. Ligar-se de novo n\xE3o corrige este. Remova o servidor e adicione-o novamente para se registar de novo.",
+  "integrations.tool-server.unconfigured.title": "N\xE3o configurado",
+  "integrations.tool-server.unconfigured": "Este servidor n\xE3o fornece as suas pr\xF3prias credenciais de cliente, portanto {brand} n\xE3o pode registar-se nele. Defina {idVariable} e {secretVariable} nesta implementa\xE7\xE3o, depois ligue-o.",
+  "integrations.error.tool-server-discovery": "Esse servidor n\xE3o p\xF4de dizer onde ligar, portanto nada foi ligado.",
+  "integrations.error.tool-server-pkce": "Esse servidor liga-se atrav\xE9s de um servi\xE7o que n\xE3o oferece a prote\xE7\xE3o que impede que um acesso intercetado seja reutilizado, portanto nada foi ligado.",
+  "integrations.error.tool-server-issuer": "O acesso voltou de um servi\xE7o diferente do que esse servidor indicou. Nada foi lido e nada foi ligado.",
+  "integrations.error.tool-server-redirected": "Esse servidor tentou enviar o pedido para outro lugar. {brand} n\xE3o leva uma credencial atrav\xE9s de um redirecionamento, portanto nada foi ligado.",
+  "integrations.error.tool-server-points-inward": "Esse servidor indicou um endere\xE7o de liga\xE7\xE3o dentro de uma rede privada, portanto nada foi buscado a partir dele.",
+  "integrations.tool-server.paused.title": "Em pausa: as suas ferramentas alteraram-se",
+  "integrations.tool-server.paused": "Este servidor agora oferece uma lista diferente de ferramentas da que foi aprovada. Nada lhe \xE9 pedido at\xE9 algu\xE9m ler a altera\xE7\xE3o e aprov\xE1-la.",
+  "integrations.tool-server.reapprove.submit": "Aprovar a nova lista",
+  "integrations.tool-server.diff.added": "Adicionado",
+  "integrations.tool-server.diff.removed": "Removido",
+  "integrations.tool-server.diff.changed": "Alterado",
+  "integrations.tool-server.diff.unchanged": "Inalterado",
+  "integrations.tool-server.diff.parameters": "Os seus par\xE2metros mudaram. A descri\xE7\xE3o n\xE3o.",
+  "integrations.ok.tool-server-reapproved": "A nova lista est\xE1 aprovada. {label} \xE9 oferecida novamente.",
+  "integrations.error.tool-server-not-paused": "Esse servidor n\xE3o est\xE1 em pausa, portanto n\xE3o h\xE1 nada para aprovar.",
+  "integrations.error.tool-server-plan-excludes": "Este plano n\xE3o inclui ferramentas emprestadas. Mude para um plano que as inclua.",
+  "integrations.error.tool-server-plan-limit": "Este plano n\xE3o tem espa\xE7o para outro servidor de ferramentas. Remova um, ou mude para um plano com maior capacidade.",
+  "integrations.error.tool-server-stale-approval": "A lista alterou-se novamente desde que a leu. Leia a nova antes de aprovar.",
   "webhooks.action.gate-refused": "recusado no port\xE3o {gate}: {reason}",
   "webhooks.action.not-signed-in": "n\xE3o tem sess\xE3o iniciada",
   "webhooks.register.not-https": "O endere\xE7o tem de come\xE7ar por https. Uma entrega \xE9 assinada, n\xE3o encriptada, por isso em http simples tanto o corpo como a assinatura podem ser lidos por qualquer pessoa no caminho.",
@@ -26483,7 +28763,7 @@ var pt_default = {
   "mailbox.send.not-connected": "N\xE3o enviada. Nenhuma caixa de correio est\xE1 ligada.",
   "mailbox.send.reason": "N\xE3o enviada. {reason}",
   "mailbox.archive.bad-destination": "Esse n\xE3o \xE9 um lugar onde uma mensagem possa ser arquivada.",
-  "mailbox.archive.archived": "Movida para Arquivo na sua caixa de correio. Repor \xE9 o mesmo movimento em sentido inverso.",
+  "mailbox.archive.archived": "Movida para Ficheiro na sua caixa de correio. Repor \xE9 o mesmo movimento em sentido inverso.",
   "mailbox.archive.restored": "Movida de volta para a caixa de entrada.",
   "mailbox.archive.gate-refused": "N\xE3o movida: recusado no port\xE3o {gate} ({reason}).",
   "mailbox.archive.not-found": "N\xE3o movida. A Microsoft j\xE1 n\xE3o tem essa mensagem.",
@@ -26599,8 +28879,18 @@ var pt_default = {
   "integrations.oauth.gateSuffix": " Recusado no port\xE3o {gate}.",
   "integrations.summary.none": "Nada est\xE1 ligado. {connectable} podem ser ligadas hoje.",
   "integrations.summary.some": "{connected} ligadas, {connectable} lig\xE1veis no total.",
+  "integrations.mcp.self": "Liga-se atrav\xE9s do servidor de ferramentas do pr\xF3prio {vendor}. O Orvay regista-se nele sozinho. N\xE3o h\xE1 nada a configurar antes.",
+  "integrations.mcp.unstated": "Liga-se atrav\xE9s do servidor de ferramentas do pr\xF3prio {vendor}. O Orvay tenta registar-se sozinho. Se {vendor} recusar, funciona em vez disso uma chave da sua conta {vendor}.",
+  "integrations.mcp.operator": "Liga-se atrav\xE9s do servidor de ferramentas do pr\xF3prio {vendor}, que s\xF3 admite uma aplica\xE7\xE3o registada pelo operador junto de {vendor}. Ap\xF3s o registo, o servidor de ferramentas abaixo indica o cliente que ainda falta a esta instala\xE7\xE3o.",
+  "integrations.mcp.authorize.submit": "Autorizar com {vendor}",
+  "integrations.mcp.awaiting": "Registado e ainda n\xE3o autorizado: {vendor} ainda tem de deixar entrar o Orvay. O bot\xE3o leva-o l\xE1 e traz-o de volta.",
+  "integrations.mcp.register.submit": "Registar o seu servidor de ferramentas",
+  "integrations.mcp.registered": "Registado como servidor de ferramentas. As suas ferramentas e os seus modos est\xE3o listados abaixo.",
   "integrations.badge.connected": "ligado",
   "integrations.connection.unknownAccount": "desconhecida",
+  "integrations.connection.checked": "Verificado {when}.",
+  "integrations.connection.checkOverdue": "\xDAltima verifica\xE7\xE3o {when}. Uma verifica\xE7\xE3o est\xE1 atrasada.",
+  "integrations.connection.neverChecked": "N\xE3o verificado desde a liga\xE7\xE3o.",
   "integrations.connection.lastError": " \xB7 \xFAltimo erro: {error}",
   "integrations.fix.heading": "Propor uma corre\xE7\xE3o",
   "integrations.fix.goalHeading": "Deixar um objetivo propor uma corre\xE7\xE3o",
@@ -26658,6 +28948,7 @@ var pt_default = {
   "fix.error.notThreeSteps": "esse contrato n\xE3o tem tr\xEAs passos",
   "fix.error.serverUnreachable": "esse servidor n\xE3o p\xF4de ser alcan\xE7ado: {reason}",
   "fix.error.toolRefused": "essa ferramenta recusou: {reason}",
+  "fix.error.toolListMoved": "A lista de ferramentas do servidor de ferramentas j\xE1 n\xE3o \xE9 a que foi aprovada. Isto n\xE3o ser\xE1 executado at\xE9 que algu\xE9m tenha lido a altera\xE7\xE3o na p\xE1gina Integra\xE7\xF5es e a tenha aprovado.",
   "fix.error.noModel": "nenhum modelo p\xF4de ser alcan\xE7ado, por isso n\xE3o h\xE1 nada a propor",
   "fix.pr.writtenBy": "Escrito pela {brand} a partir da ferramenta {tool} do servidor {server}, e aprovado antes de qualquer coisa ser lida.",
   "fix.error.githubNotConnected": "O GitHub n\xE3o est\xE1 ligado aqui.",
@@ -26748,7 +29039,203 @@ var pt_default = {
   "social.post.publishFailed": "N\xE3o foi poss\xEDvel publicar isto.",
   "social.post.notRecorded": "Foi publicado, e a execu\xE7\xE3o n\xE3o p\xF4de ser registada.",
   "social.post.notVerified": "Foi publicado, e o endere\xE7o n\xE3o p\xF4de voltar a ser lido.",
-  "notification.summary.approval.escalated": "Uma decis\xE3o aguarda h\xE1 um dia"
+  "notification.summary.approval.escalated": "Uma decis\xE3o aguarda h\xE1 um dia",
+  // -------------------------------------------------------------------------
+  // The second factor: the challenge at sign-in, and the enrolment in account
+  // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
+  // -------------------------------------------------------------------------
+  "auth.meta.verify": "Verifica\xE7\xE3o em dois passos",
+  "auth.verify.heading": "Introduza o seu c\xF3digo",
+  "auth.verify.lead": "Abra a sua aplica\xE7\xE3o de autentica\xE7\xE3o e introduza o c\xF3digo de seis d\xEDgitos que mostra para a Orvay.",
+  "auth.verify.field.code": "C\xF3digo de seis d\xEDgitos",
+  "auth.verify.submit": "Verificar",
+  "auth.verify.recovery.lead": "Se n\xE3o tiver o telem\xF3vel \xE0 m\xE3o, utilize um dos c\xF3digos de recupera\xE7\xE3o que guardou durante a configura\xE7\xE3o.",
+  "auth.verify.recovery.field": "C\xF3digo de recupera\xE7\xE3o",
+  "auth.verify.recovery.submit": "Utilizar um c\xF3digo de recupera\xE7\xE3o",
+  "auth.verify.expired.title": "Este in\xEDcio de sess\xE3o expirou",
+  "auth.verify.expired.body": "Um in\xEDcio de sess\xE3o \xE0 espera de um c\xF3digo dura dez minutos. A sua conta n\xE3o tem qualquer problema. Inicie sess\xE3o novamente e pediremos um c\xF3digo novo.",
+  "auth.verify.start-again": "Iniciar sess\xE3o novamente",
+  "auth.verify.error.wrong": "Esse c\xF3digo n\xE3o est\xE1 correto. Verifique a aplica\xE7\xE3o e introduza o que mostra agora.",
+  "auth.verify.error.already-used": "Esse c\xF3digo j\xE1 foi utilizado. Aguarde que a sua aplica\xE7\xE3o mostre o seguinte.",
+  "auth.verify.error.malformed": "Um c\xF3digo tem seis d\xEDgitos e um c\xF3digo de recupera\xE7\xE3o dez caracteres.",
+  "auth.verify.error.no-such-code": "Esse c\xF3digo de recupera\xE7\xE3o n\xE3o \xE9 um dos seus, ou j\xE1 foi utilizado.",
+  "auth.verify.error.throttled": "Demasiadas tentativas. Aguarde alguns minutos e tente novamente.",
+  "auth.verify.error.unavailable": "N\xE3o conseguimos verificar esse c\xF3digo. Nada mudou na sua conta. Tente novamente daqui a pouco.",
+  "account.mfa.heading": "Verifica\xE7\xE3o em dois passos",
+  "account.mfa.off.body": "Adicione uma aplica\xE7\xE3o de autentica\xE7\xE3o e a Orvay pedir\xE1 tamb\xE9m um c\xF3digo sempre que iniciar sess\xE3o.",
+  "account.mfa.start": "Configurar a verifica\xE7\xE3o em dois passos",
+  "account.mfa.enrol.heading": "Adicione o seu autenticador",
+  "account.mfa.enrol.lead": "Adicione esta chave \xE0 sua aplica\xE7\xE3o de autentica\xE7\xE3o e depois introduza o c\xF3digo que mostra para provar que resultou.",
+  "account.mfa.enrol.key": "Chave de configura\xE7\xE3o",
+  "account.mfa.enrol.field": "C\xF3digo de seis d\xEDgitos",
+  "account.mfa.enrol.submit": "Ativar a verifica\xE7\xE3o em dois passos",
+  "account.mfa.enrol.cancel": "Cancelar",
+  "account.mfa.on.body": "A Orvay pede um c\xF3digo do seu autenticador sempre que inicia sess\xE3o. Ativa desde {when}.",
+  "account.mfa.codes.heading": "C\xF3digos de recupera\xE7\xE3o",
+  "account.mfa.codes.lead": "Guarde-os num s\xEDtio a que consiga chegar sem o telem\xF3vel. Cada um funciona uma s\xF3 vez e s\xE3o a \xFAnica forma de voltar a entrar na sua conta se perder o autenticador. S\xE3o mostrados agora e nunca mais.",
+  "account.mfa.codes.left": "C\xF3digos de recupera\xE7\xE3o restantes: {left} de {total}",
+  "account.mfa.disable": "Desativar a verifica\xE7\xE3o em dois passos",
+  "account.mfa.unavailable": "N\xE3o conseguimos ler as suas defini\xE7\xF5es de seguran\xE7a, por isso esta sec\xE7\xE3o n\xE3o indica o que est\xE1 ativo.",
+  "account.mfa.notice.on": "A verifica\xE7\xE3o em dois passos est\xE1 ativa.",
+  "account.mfa.disable.lead": "Desativ\xE1-la pede um c\xF3digo, para que uma sess\xE3o roubada n\xE3o a possa remover. Utilize o seu autenticador ou um dos seus c\xF3digos de recupera\xE7\xE3o.",
+  "account.mfa.busy": "Em curso",
+  "account.mfa.notice.off": "A verifica\xE7\xE3o em dois passos est\xE1 desativada. A sua palavra-passe \xE9 a \xFAnica coisa que protege esta conta.",
+  // ORG-4: what RAN across the workspaces you belong to, beside what waits.
+  "org.activity.heading": "O que foi executado nos seus espa\xE7os de trabalho",
+  "org.activity.body": "Os \xFAltimos trinta dias, em cada espa\xE7o de trabalho a que pertence. Nunca verificadas e Ainda a decorrer n\xE3o t\xEAm per\xEDodo: uma execu\xE7\xE3o que nada verificou n\xE3o passa a verificada ao fim de um m\xEAs.",
+  "org.activity.none": "Aqui n\xE3o existe outro espa\xE7o de trabalho al\xE9m deste.",
+  "org.activity.running": "Ainda a decorrer",
+  "org.activity.oldest": "A mais antiga, em dias",
+  "org.activity.runs": "Execu\xE7\xF5es",
+  "org.activity.established": "Verificadas e confirmadas",
+  "org.activity.refused": "Verificadas e n\xE3o confirmadas",
+  "org.activity.unverified": "Nunca verificadas",
+  // Goal A close-out, batch one: seats, memory, the upload sentence, the studio branches, since you were last here
+  "account.footer.memory": "Procura o que esta empresa ensinou \xE0 Orvay, e como a impedir de usar algo? \xC9",
+  "dataUse.memory": "Os factos que a Orvay guardou do trabalho desta empresa podem ser lidos, e postos de parte para n\xE3o voltarem a ser usados numa resposta, em",
+  "files.upload.said.added": {
+    one: "{count} ficheiro adicionado.",
+    many: "{count} ficheiros adicionados.",
+    other: "{count} ficheiros adicionados."
+  },
+  "files.upload.said.more": {
+    one: "1 mais",
+    many: "{count} mais",
+    other: "{count} mais"
+  },
+  "files.upload.said.partial": {
+    one: "{added} adicionados. Um ficheiro n\xE3o foi aceite: {names}.",
+    many: "{added} adicionados. {refused} ficheiros n\xE3o foram aceites: {names}.",
+    other: "{added} adicionados. {refused} ficheiros n\xE3o foram aceites: {names}."
+  },
+  "home.since.events": {
+    one: "{count} evento registado",
+    many: "{count} eventos registados",
+    other: "{count} eventos registados"
+  },
+  "home.since.nothing": "Nada de novo desde a sua \xFAltima visita, {when}.",
+  "home.since.proposals": {
+    one: "{count} proposta nova",
+    many: "{count} propostas novas",
+    other: "{count} propostas novas"
+  },
+  "home.since.summary": "Desde a sua \xFAltima visita, {when}: {summary}.",
+  "nav.hint.memory": "O que a empresa guardou do seu trabalho, e como p\xF4r um facto de parte",
+  "onboarding.done.next.integrations": "Integra\xE7\xF5es liga uma caixa de correio, o GitHub, o Bluesky ou o Mastodon, e cada linha diz o que essa liga\xE7\xE3o permitiria.",
+  "policies.grant.apply": "Aplicar",
+  "policies.grant.mode.approval": "P\xE1ra para uma pessoa",
+  "policies.grant.mode.autonomous": "Age sem perguntar",
+  "policies.grant.mode.label": "Autonomia para {capability}",
+  "policies.grant.mode.restricted": "Age apenas dentro dos seus limites",
+  "policies.grant.saving": "A guardar",
+  "policies.history.contract": "Abrir a proposta",
+  "policies.history.contract.for": "Abrir a proposta de {intent}",
+  "studio.refused.still-running": "Esta cria\xE7\xE3o ainda est\xE1 em curso, e esta p\xE1gina deixou de esperar por ela. Nada foi publicado. Continua sem esta p\xE1gina, e o que produzir estar\xE1 aqui da pr\xF3xima vez que este ecr\xE3 abrir.",
+  "studio.refused.superseded": "Uma cria\xE7\xE3o mais recente deste site substituiu esta, e esta p\xE1gina deixou de a seguir. Nada foi publicado aqui. Volte a abrir este ecr\xE3 para seguir a cria\xE7\xE3o que ficou no seu lugar.",
+  "studio.unreachable.body": "Esta p\xE1gina continua a perguntar. A cria\xE7\xE3o pode ainda estar em curso: continua sem esta p\xE1gina em qualquer caso, e o que produzir estar\xE1 aqui da pr\xF3xima vez que este ecr\xE3 abrir.",
+  "studio.unreachable.title": "O servi\xE7o de cria\xE7\xE3o n\xE3o respondeu",
+  "team.head.seats": {
+    one: "{active} de {limit} lugar.",
+    many: "{active} de {limit} lugares.",
+    other: "{active} de {limit} lugares."
+  },
+  "team.head.seats.none": "Sem limite de lugares neste plano.",
+  "team.seats.full.body": "O pr\xF3ximo convite ser\xE1 recusado at\xE9 haver um lugar livre. Desative algu\xE9m que saiu, ou suba de plano em",
+  "team.seats.full.title": "Todos os lugares deste plano est\xE3o ocupados",
+  "usage.scope": "A utiliza\xE7\xE3o e a fatura\xE7\xE3o pertencem \xE0 organiza\xE7\xE3o e n\xE3o a um \xFAnico espa\xE7o de trabalho: \xE9 a organiza\xE7\xE3o que compra o plano, e cada espa\xE7o de trabalho que ela det\xE9m consome os mesmos cr\xE9ditos.",
+  // MON-8: invoices and the payment method, on Stripe's own page.
+  "billing.portal.heading": "Faturas e m\xE9todo de pagamento",
+  "billing.portal.body": "As suas faturas, o cart\xE3o com que paga e o cancelamento est\xE3o na pr\xF3pria p\xE1gina da Stripe. A Orvay n\xE3o guarda uma segunda c\xF3pia de uma fatura, por isso nada aqui pode divergir do que lhe foi cobrado.",
+  "billing.portal.open": "Abrir o portal de fatura\xE7\xE3o",
+  "billing.portal.none.reason": "N\xE3o h\xE1 nada para mostrar enquanto n\xE3o existir uma subscri\xE7\xE3o. Abre assim que o primeiro pagamento for conclu\xEDdo.",
+  "billing.portal.unavailable": "Indispon\xEDvel",
+  "billing.portal.no-customer.title": "Ainda n\xE3o existe conta de fatura\xE7\xE3o",
+  "billing.portal.no-customer.body": "Nada foi pago por esta organiza\xE7\xE3o, por isso a Stripe n\xE3o det\xE9m faturas nem m\xE9todo de pagamento para ela. Subscreva um plano e o portal abre.",
+  "billing.portal.refused.title": "Sem permiss\xE3o para gerir a fatura\xE7\xE3o",
+  "billing.portal.failed.title": "N\xE3o foi poss\xEDvel abrir o portal de fatura\xE7\xE3o",
+  "billing.portal.failed.body": "Nada mudou na sua subscri\xE7\xE3o. Tente novamente daqui a pouco e escreva-nos se continuar a acontecer.",
+  // Goal A close-out, batch two: versions, and the integrations page in the reader's language
+  "files.col.version": "Vers\xE3o",
+  "files.versions.replaces": "Substitui {name}",
+  "files.versions.replaced": "Substitu\xEDdo por uma vers\xE3o mais recente",
+  "files.versions.heading": "Vers\xF5es",
+  "files.versions.replaced.lead": "Uma vers\xE3o mais recente substituiu esta:",
+  "files.versions.previous.lead": "O que este ficheiro substituiu, do mais recente para o mais antigo:",
+  "files.versions.deleted": "eliminado",
+  "files.versions.note": "Substituir um documento n\xE3o remove o anterior. Cada vers\xE3o acima \xE9 um ficheiro por si, e eliminar uma \xE9 um passo \xE0 parte.",
+  "integrations.catalogue.github.summary": "Reposit\xF3rios, pull requests, verifica\xE7\xF5es",
+  "integrations.catalogue.github.because": "Existe um adaptador real. As a\xE7\xF5es feitas atrav\xE9s dele chegam ao GitHub e s\xE3o registadas como reais.",
+  "integrations.catalogue.github.label": "Token de acesso pessoal",
+  "integrations.catalogue.github.help": "Um token de granularidade fina com acesso de leitura aos reposit\xF3rios que a Orvay deve ver. A Orvay verifica-o com uma \xFAnica chamada s\xF3 de leitura antes de o guardar, e n\xE3o guarda nada se essa chamada falhar.",
+  "integrations.catalogue.bluesky.summary": "Publicar na sua pr\xF3pria conta",
+  "integrations.catalogue.bluesky.because": "Existe um adaptador real, e as publica\xE7\xF5es feitas atrav\xE9s dele aparecem mesmo na sua conta.",
+  "integrations.catalogue.bluesky.label": "Palavra-passe de app",
+  "integrations.catalogue.bluesky.help": "Gerada no Bluesky em Defini\xE7\xF5es, Palavras-passe de aplica\xE7\xE3o. N\xE3o \xE9 a palavra-passe da sua conta. O Bluesky n\xE3o oferece um OAuth que sirva para isto, por isso uma palavra-passe de aplica\xE7\xE3o \xE9 a credencial que a pr\xF3pria plataforma disponibiliza.",
+  "integrations.catalogue.mastodon.summary": "Publicar na sua pr\xF3pria inst\xE2ncia",
+  "integrations.catalogue.mastodon.because": "Existe um adaptador real, limitado \xE0 inst\xE2ncia a que o seu token pertence.",
+  "integrations.catalogue.mastodon.label": "Token de acesso",
+  "integrations.catalogue.mastodon.help": "Criado na sua inst\xE2ncia em Prefer\xEAncias, Desenvolvimento. Precisa do \xE2mbito write:statuses e de nada mais.",
+  "integrations.catalogue.email.summary": "Correio transacional e de marketing, enviado em seu nome",
+  "integrations.catalogue.email.because": "O fluxo de delega\xE7\xE3o de DNS ainda n\xE3o est\xE1 constru\xEDdo. A Orvay n\xE3o enviar\xE1 o seu correio de marketing a partir do pr\xF3prio dom\xEDnio como remendo, porque esse dano n\xE3o se desfaz mudando o comportamento mais tarde.",
+  "integrations.catalogue.email.help": "Enviar como o seu dom\xEDnio significa delegar o DKIM por CNAME, para que as chaves possam rodar sem que volte a tocar no DNS. A Orvay nunca envia correio de um cliente a partir de um dom\xEDnio da Orvay: a reputa\xE7\xE3o \xE9 partilhada entre um dom\xEDnio regist\xE1vel e os seus subdom\xEDnios, pelo que um cliente que ultrapassasse um limiar atingiria todos os clientes de uma vez, de forma permanente.",
+  "integrations.catalogue.gmail.summary": "Ler, triar e responder \xE0 sua pr\xF3pria caixa de correio",
+  "integrations.catalogue.gmail.because": "O cliente OAuth est\xE1 constru\xEDdo e testado. Esta instala\xE7\xE3o n\xE3o tem nenhum cliente de in\xEDcio de sess\xE3o Google registado, por isso a linha di-lo em vez de oferecer um bot\xE3o; e a Google classifica o acesso \xE0 caixa de correio como \xE2mbito restrito, que exige a sua avalia\xE7\xE3o de seguran\xE7a anual por terceiros antes de a caixa de um desconhecido poder ser alcan\xE7ada. Ler, triar e responder no Gmail ainda n\xE3o est\xE1 constru\xEDdo.",
+  "integrations.catalogue.gmail.help": "Ligaria a sua pr\xF3pria conta Google. A Orvay nunca v\xEA a sua palavra-passe, n\xE3o aloja nenhum do seu correio, e pode revogar a autoriza\xE7\xE3o na Google sem nos pedir. Responde \xE0s pessoas que lhe escreveram e n\xE3o inicia conversas: isso \xE9 uma capacidade diferente, e o produto recusa-a.",
+  "integrations.catalogue.outlook.summary": "Ler, triar e responder \xE0 sua pr\xF3pria caixa de correio",
+  "integrations.catalogue.outlook.because": "Existe um adaptador real, e l\xEA, arquiva e responde a uma caixa de correio real. A Microsoft n\xE3o pede uma avalia\xE7\xE3o de seguran\xE7a separada para ler correio, e foi por isso que isto chegou antes do Gmail. Nada \xE9 lido at\xE9 que pe\xE7a, e nada \xE9 enviado at\xE9 que carregue em algo.",
+  "integrations.catalogue.outlook.help": "Liga a sua pr\xF3pria conta Microsoft. Uma conta pessoal funciona hoje; uma conta de trabalho no tenant Microsoft 365 de uma empresa pode ser recusada por esse tenant, porque a Orvay ainda n\xE3o \xE9 um editor verificado da Microsoft. A Orvay nunca v\xEA a sua palavra-passe, n\xE3o aloja nenhum do seu correio, e pode revogar a autoriza\xE7\xE3o na Microsoft sem nos pedir. Responde \xE0s pessoas que lhe escreveram e n\xE3o inicia conversas: isso \xE9 uma capacidade diferente, e o produto recusa-a.",
+  "integrations.catalogue.stripe.summary": "Subscri\xE7\xF5es, faturas, reembolsos",
+  "integrations.catalogue.stripe.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio. O adaptador de pr\xE1tica que modela a\xE7\xF5es com forma de dinheiro para ensaiar as regras \xE9 separado, e cada artefacto que produz \xE9 carimbado como simulado.",
+  "integrations.catalogue.google-ads.summary": "Campanhas e despesa",
+  "integrations.catalogue.google-ads.because": "Modelado porque publicar uma campanha \xE9 o exemplo mais claro de uma a\xE7\xE3o irrevers\xEDvel virada para fora. Nada \xE9 publicado.",
+  "integrations.catalogue.vercel.summary": "Implementa\xE7\xF5es e revers\xF5es",
+  "integrations.catalogue.vercel.because": "Modelado para que uma revers\xE3o possa ser proposta e verificada. Nenhuma implementa\xE7\xE3o \xE9 tocada.",
+  "integrations.catalogue.linear.summary": "Issues e ciclos",
+  "integrations.catalogue.linear.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.catalogue.atlassian.summary": "Issues do Jira, p\xE1ginas do Confluence",
+  "integrations.catalogue.atlassian.because": "Um s\xF3 servidor para o Jira e o Confluence. Cada ferramenta que lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.catalogue.sentry.summary": "Erros, issues, vers\xF5es",
+  "integrations.catalogue.sentry.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.catalogue.notion.summary": "P\xE1ginas e bases de dados",
+  "integrations.catalogue.notion.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.catalogue.slack.summary": "Uma aprova\xE7\xE3o escalada, publicada num canal",
+  "integrations.catalogue.slack.because": "A Orvay publica no canal que indicar. A mensagem nunca traz um bot\xE3o: uma decis\xE3o tomada a partir de um cliente de chat n\xE3o tem uma sess\xE3o por tr\xE1s, por isso a mensagem liga \xE0 proposta e a decis\xE3o acontece na Orvay.",
+  "integrations.catalogue.slack.label": "Token OAuth do utilizador bot",
+  "integrations.catalogue.slack.help": "Crie uma aplica\xE7\xE3o no seu pr\xF3prio espa\xE7o de trabalho Slack, d\xEA-lhe os \xE2mbitos chat:write e channels:read, instale-a e depois convide-a para o canal. A Orvay verifica o token e o canal com duas chamadas s\xF3 de leitura antes de guardar o que quer que seja.",
+  "integrations.catalogue.hubspot.summary": "Pipeline e contactos",
+  "integrations.catalogue.hubspot.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.catalogue.intercom.summary": "Conversas e macros",
+  "integrations.catalogue.intercom.because": "N\xE3o constru\xEDdo. O texto de apoio recebido \xE9, por defini\xE7\xE3o, contexto n\xE3o fi\xE1vel, por isso este espera pelo percurso de quarentena em vez de chegar cedo.",
+  "integrations.catalogue.zenovay.summary": "An\xE1lise do site, objetivos, funis, disponibilidade",
+  "integrations.catalogue.zenovay.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.catalogue.posthog.summary": "Funis, grava\xE7\xF5es, feature flags",
+  "integrations.catalogue.posthog.because": "Cada ferramenta que o servidor lista espera aprova\xE7\xE3o at\xE9 que diga o contr\xE1rio.",
+  "integrations.connect.submit": "Ligar {name}",
+  "integrations.connect.busy": "A verificar",
+  "integrations.connect.busyReason": "A verificar a credencial junto de {name}",
+  "integrations.connect.oauth.submit": "Ligar {name} atrav\xE9s de {provider}",
+  "integrations.connect.oauth.busy": "A abrir {provider}",
+  "integrations.connect.oauth.busyReason": "A encaminh\xE1-lo para {provider}",
+  "integrations.connect.oauth.noClient": "Esta instala\xE7\xE3o n\xE3o tem nenhum cliente de in\xEDcio de sess\xE3o {provider} registado, por isso ainda n\xE3o h\xE1 nada em que carregar.",
+  "integrations.disconnect.submit": "Desligar",
+  "integrations.disconnect.busy": "A desligar",
+  // Goal A close-out, batch two: goals belong to a department, and a statement can be edited
+  "department.filter.label": "Mostrar um s\xF3 departamento",
+  "department.filter.all": "Todos os departamentos",
+  "department.filter.submit": "Mostrar",
+  "department.filter.showing": "Mostra apenas o que pertence a {department}.",
+  "department.filter.clear": "Mostrar todos os departamentos",
+  "department.filter.chain": "O registo \xE9 verificado de ponta a ponta, em sequ\xEAncia, por isso essa verifica\xE7\xE3o corre sobre o registo inteiro e n\xE3o sobre um departamento.",
+  "goals.department.label": "Que departamento",
+  "goals.department.company": "Toda a empresa",
+  "goals.department.saved": "Guardado.",
+  "goals.department.error": "Isso n\xE3o \xE9 um departamento desta empresa.",
+  "goals.department.on": "Departamento: {name}",
+  "goals.form.department.hint": "Um objetivo sem departamento pertence a toda a empresa.",
+  "goals.statement.label": "O que este objetivo diz",
+  "goals.statement.submit": "Guardar",
+  "goals.statement.saved": "Guardado.",
+  "integrations.catalogue.email.name": "Correio a partir do seu pr\xF3prio dom\xEDnio"
 };
 
 // ../../packages/content/src/messages/pt.legal.ts
@@ -26796,7 +29283,7 @@ var pt_legal_default = {
   "legal.privacy.transfers.p1": "A Su\xED\xE7a n\xE3o faz parte da Uni\xE3o Europeia nem do Espa\xE7o Econ\xF3mico Europeu. \xC9 um pa\xEDs terceiro que possui uma decis\xE3o de adequa\xE7\xE3o da Comiss\xE3o Europeia, e outra do Reino Unido. Uma transfer\xEAncia do EEE ou do Reino Unido para n\xF3s, portanto, baseia-se na adequa\xE7\xE3o e n\xE3o precisa de nenhum outro instrumento.",
   "legal.privacy.transfers.pair1.term": "Endere\xE7os da lista de espera, e todo outro registo de banco de dados",
   "legal.privacy.transfers.pair1.detail": "Armazenados em PostgreSQL em Zurique, Su\xED\xE7a, em um projeto cuja regi\xE3o \xE9 eu-central-2. Salvaguarda: a decis\xE3o de adequa\xE7\xE3o da UE para a Su\xED\xE7a.",
-  "legal.privacy.transfers.pair2.term": "Artefatos de evid\xEAncia",
+  "legal.privacy.transfers.pair2.term": "Artefactos de evid\xEAncia",
   "legal.privacy.transfers.pair2.detail": "Armazenados em um bucket de armazenamento de objetos fixado na jurisdi\xE7\xE3o da UE, de modo que esses objetos permanecem em infraestrutura da UE. Salvaguarda: a configura\xE7\xE3o de jurisdi\xE7\xE3o, mais as cl\xE1usulas contratuais padr\xE3o no contrato com o fornecedor.",
   "legal.privacy.transfers.pair3.term": "Sites de clientes gerados, e o cache de p\xE1ginas",
   "legal.privacy.transfers.pair3.detail": "Armazenados em buckets criados com uma indica\xE7\xE3o de localiza\xE7\xE3o europeia. Uma indica\xE7\xE3o \xE9 uma prefer\xEAncia, n\xE3o uma garantia, portanto n\xE3o descrevemos esses buckets como vinculados a uma jurisdi\xE7\xE3o. Salvaguarda: as cl\xE1usulas contratuais padr\xE3o no contrato com o fornecedor.",
@@ -26847,7 +29334,7 @@ var pt_legal_default = {
   "legal.privacy.security.item4": "A trilha de auditoria \xE9 somente de acr\xE9scimo e encadeada por hash. Um registo alterado \xE9 detet\xE1vel, e n\xE3o apenas desencorajado.",
   "legal.privacy.security.item5": "O livro-raz\xE3o de consentimento n\xE3o concede \xE0 aplica\xE7\xE3o permiss\xE3o de exclus\xE3o, e o texto armazenado de um consentimento n\xE3o pode ser reescrito.",
   "legal.privacy.security.item6": "Os cookies de sess\xE3o s\xE3o httpOnly e Secure.",
-  "legal.privacy.security.item7": "Segredos s\xE3o mantidos como segredos de implanta\xE7\xE3o. Nenhum deles est\xE1 no c\xF3digo-fonte.",
+  "legal.privacy.security.item7": "Segredos s\xE3o mantidos como segredos de instala\xE7\xE3o. Nenhum deles est\xE1 no c\xF3digo-fonte.",
   "legal.privacy.security.item8": "O site institucional p\xFAblico n\xE3o possui nenhuma vincula\xE7\xE3o de banco de dados, de modo que nenhuma p\xE1gina institucional tem caminho at\xE9 dados de clientes.",
   "legal.privacy.security.item9": "Nossos fornecedores criptografam dados em repouso e em tr\xE2nsito como parte do pr\xF3prio servi\xE7o.",
   "legal.privacy.security.p1": "N\xE3o afirmamos nada al\xE9m disso. N\xE3o h\xE1 relat\xF3rio de teste de invas\xE3o, n\xE3o h\xE1 certifica\xE7\xE3o, e h\xE1 uma \xFAnica pessoa com acesso.",
@@ -26866,7 +29353,7 @@ var pt_legal_default = {
   "legal.terms.service.p2": "N\xE3o \xE9 um chatbot e n\xE3o \xE9 um assistente de programa\xE7\xE3o. Um agente dizer que terminou n\xE3o \xE9 prova de que algo foi conclu\xEDdo, e o produto existe por causa dessa frase.",
   "legal.terms.prelaunch.heading": "\xC9 pr\xE9-lan\xE7amento, e a lista de espera n\xE3o \xE9 uma compra",
   "legal.terms.prelaunch.p1": "A Orvay ainda n\xE3o est\xE1 dispon\xEDvel ao p\xFAblico em geral. Entrar na lista de espera n\xE3o compra nada, n\xE3o reserva nada e n\xE3o cria direito algum a uma vaga, a um pre\xE7o ou a uma data de lan\xE7amento, e pela entrada n\xE3o \xE9 cobrado qualquer pagamento. Os planos pagos s\xE3o outra coisa e est\xE3o \xE0 venda hoje: escolher um abre um pagamento Stripe e o valor \xE9 cobrado. Podemos alterar o produto, os planos e os pre\xE7os antes do lan\xE7amento, e podemos decidir n\xE3o lan\xE7ar de forma alguma.",
-  "legal.terms.prelaunch.p2": "Tudo o que for exibido como simulado n\xE3o teve contacto com nenhum sistema externo. Rotulamos isso no pr\xF3prio artefato, porque uma demonstra\xE7\xE3o apresentada como uma execu\xE7\xE3o real \xE9 uma mentira, seja qual for o aviso no rodap\xE9 da p\xE1gina.",
+  "legal.terms.prelaunch.p2": "Tudo o que for exibido como simulado n\xE3o teve contacto com nenhum sistema externo. Rotulamos isso no pr\xF3prio artefacto, porque uma demonstra\xE7\xE3o apresentada como uma execu\xE7\xE3o real \xE9 uma mentira, seja qual for o aviso no rodap\xE9 da p\xE1gina.",
   "legal.terms.account.heading": "Sua conta",
   "legal.terms.account.p1": "\xC9 respons\xE1vel pela seguran\xE7a da sua conta e por tudo feito por meio dela. Avise-nos assim que suspeitar que outra pessoa tem acesso a ela. \xC9 necess\xE1rio ter idade suficiente para firmar um contrato no lugar onde vive.",
   "legal.terms.acceptable-use.heading": "O que n\xE3o pode fazer",
@@ -26901,7 +29388,7 @@ var pt_legal_default = {
   "legal.terms.warranty.p2": "A verifica\xE7\xE3o \xE9 um mecanismo de independ\xEAncia, n\xE3o um or\xE1culo. Um resultado verificado significa que um segundo ator, diferente daquele que fez o trabalho, conferiu esse trabalho e a evid\xEAncia foi registada. N\xE3o significa que o desfecho seja garantidamente correto, e n\xE3o o vendemos como tal.",
   "legal.terms.liability.heading": "Responsabilidade, com honestidade",
   "legal.terms.liability.p1": "A lei su\xED\xE7a n\xE3o nos permite excluir antecipadamente a responsabilidade por dolo il\xEDcito ou por culpa grave. O art. 100(1) do C\xF3digo Su\xED\xE7o das Obriga\xE7\xF5es torna nula uma cl\xE1usula desse tipo. N\xE3o escrevemos nenhuma.",
-  "legal.terms.liability.p2": "Para culpa leve, a nossa responsabilidade \xE9 limitada ao que nos pagou nos doze meses anteriores ao evento, e n\xE3o respondemos por perdas indiretas ou consequenciais, por lucros cessantes, ou por dados perdidos al\xE9m do que podemos restaurar a partir do nosso pr\xF3prio arquivo. Esse valor \xE9 o que efetivamente pagou, e j\xE1 n\xE3o \xE9 zero para todos: h\xE1 planos e pacotes de cr\xE9ditos \xE0 venda.",
+  "legal.terms.liability.p2": "Para culpa leve, a nossa responsabilidade \xE9 limitada ao que nos pagou nos doze meses anteriores ao evento, e n\xE3o respondemos por perdas indiretas ou consequenciais, por lucros cessantes, ou por dados perdidos al\xE9m do que podemos restaurar a partir do nosso pr\xF3prio ficheiro. Esse valor \xE9 o que efetivamente pagou, e j\xE1 n\xE3o \xE9 zero para todos: h\xE1 planos e pacotes de cr\xE9ditos \xE0 venda.",
   "legal.terms.liability.p3": "Nada aqui limita a responsabilidade por morte ou les\xE3o corporal, ou qualquer outra responsabilidade que n\xE3o possa ser limitada pela lei aplic\xE1vel a si. Se for consumidor, a prote\xE7\xE3o obrigat\xF3ria ao consumidor do seu pr\xF3prio pa\xEDs continua a aplicar-se, e estes termos n\xE3o a retiram.",
   "legal.terms.termination.heading": "Encerramento",
   "legal.terms.termination.p1": "Pode parar de usar o servi\xE7o a qualquer momento e pedir-nos para encerrar a sua conta. Exportaremos os seus dados a pedido antes disso.",
@@ -26935,7 +29422,7 @@ var pt_legal_default = {
   "legal.imprint.vat.p1": "N\xE3o registado para o IVA su\xED\xE7o. N\xE3o h\xE1 UID, portanto n\xE3o h\xE1 n\xFAmero de IVA. Se isso mudar, o n\xFAmero aparecer\xE1 aqui.",
   "legal.imprint.editorial.heading": "Responsabilidade pelo conte\xFAdo",
   "legal.imprint.editorial.p1": "{controller} \xE9 respons\xE1vel pelo conte\xFAdo destes sites, no endere\xE7o acima.",
-  "legal.imprint.editorial.p2": "Tudo o que for exibido como simulado \xE9 uma demonstra\xE7\xE3o e n\xE3o teve contacto com nenhum sistema externo. Rotulamos isso no pr\xF3prio artefato, em vez de depender de uma nota no rodap\xE9 de uma p\xE1gina.",
+  "legal.imprint.editorial.p2": "Tudo o que for exibido como simulado \xE9 uma demonstra\xE7\xE3o e n\xE3o teve contacto com nenhum sistema externo. Rotulamos isso no pr\xF3prio artefacto, em vez de depender de uma nota no rodap\xE9 de uma p\xE1gina.",
   "legal.imprint.links.heading": "Links",
   "legal.imprint.links.p1": "Onde fazemos link para um site que n\xE3o operamos, n\xE3o controlamos o que ele diz e n\xE3o assumimos responsabilidade alguma por ele. Avise-nos se um link estiver quebrado ou apontar para onde n\xE3o deveria.",
   "legal.imprint.disputes.heading": "Resolu\xE7\xE3o de disputas",
@@ -26952,9 +29439,9 @@ var pt_legal_default = {
   "legal.subprocessors.status.configured": "Configurado, e recebendo dados apenas onde a sua credencial estiver definida",
   "legal.subprocessors.status.not_engaged": "Nomeado no produto, sem conex\xE3o a nada",
   "legal.subprocessors.how-to-read.heading": "Como ler isto",
-  "legal.subprocessors.how-to-read.p1": "Esta lista deriva da configura\xE7\xE3o de implanta\xE7\xE3o, e n\xE3o da mem\xF3ria: as vincula\xE7\xF5es que cada Worker possui, as vari\xE1veis de ambiente que ele pode carregar, e as bibliotecas de fornecedores no c\xF3digo-fonte. Cada entrada carrega um dos tr\xEAs estados.",
+  "legal.subprocessors.how-to-read.p1": "Esta lista deriva da configura\xE7\xE3o de instala\xE7\xE3o, e n\xE3o da mem\xF3ria: as vincula\xE7\xF5es que cada Worker possui, as vari\xE1veis de ambiente que ele pode carregar, e as bibliotecas de fornecedores no c\xF3digo-fonte. Cada entrada carrega um dos tr\xEAs estados.",
   "legal.subprocessors.how-to-read.pair1.detail": "Dados est\xE3o a fluir para este fornecedor agora.",
-  "legal.subprocessors.how-to-read.pair2.detail": "A conex\xE3o \xE9 real, e se algo chega ao fornecedor depende de uma credencial definida para essa implanta\xE7\xE3o. N\xF3s a listamos porque ela pode estar a receber dados.",
+  "legal.subprocessors.how-to-read.pair2.detail": "A conex\xE3o \xE9 real, e se algo chega ao fornecedor depende de uma credencial definida para essa instala\xE7\xE3o. N\xF3s a listamos porque ela pode estar a receber dados.",
   "legal.subprocessors.how-to-read.pair3.detail": "O nome aparece no produto e n\xE3o est\xE1 conectado a nada. Ele n\xE3o recebe dado algum.",
   "legal.subprocessors.how-to-read.p2": "Mantemos o terceiro estado em vez de excluir essas linhas. Um nome de fornecedor que um cliente pode ver no produto e n\xE3o consegue encontrar nesta lista \xE9 o que torna uma lista de subcontratantes ulteriores n\xE3o confi\xE1vel.",
   "legal.subprocessors.how-to-read.p3": "Cada fornecedor usa os seus pr\xF3prios subcontratantes ulteriores, por exemplo a infraestrutura de nuvem por baixo de um banco de dados gerido. Cada um deles publica a sua pr\xF3pria lista.",
@@ -26964,7 +29451,7 @@ var pt_legal_default = {
   "legal.subprocessors.cloudflare.service": "Atende toda requisi\xE7\xE3o. Computa\xE7\xE3o Workers, armazenamento de objetos R2, pool de banco de dados Hyperdrive, Durable Objects, Workflows, DNS, registo de requisi\xE7\xF5es e a rota de email que envia alertas ao operador.",
   "legal.subprocessors.cloudflare.data1": "Metadados de requisi\xE7\xE3o de cada visita, incluindo endere\xE7o IP, user agent e a p\xE1gina solicitada",
   "legal.subprocessors.cloudflare.data2": "Um envio de lista de espera enquanto est\xE1 em tr\xE2nsito at\xE9 o banco de dados",
-  "legal.subprocessors.cloudflare.data3": "Artefatos de evid\xEAncia e arquivos do registo de eventos em repouso",
+  "legal.subprocessors.cloudflare.data3": "Artefactos de evid\xEAncia e ficheiros do registo de eventos em repouso",
   "legal.subprocessors.cloudflare.data4": "Sites de clientes gerados e o cache de p\xE1ginas renderizadas",
   "legal.subprocessors.cloudflare.data5": "Emails de alerta ao operador, que v\xE3o para um \xFAnico endere\xE7o pertencente ao operador",
   "legal.subprocessors.cloudflare.location1": "Workers s\xE3o executados na borda da rede, em escala mundial, de modo que o c\xF3digo que renderiza uma p\xE1gina pode rodar perto de si, e n\xE3o na Europa",
@@ -26981,13 +29468,13 @@ var pt_legal_default = {
   "legal.subprocessors.supabase.safeguard": "Uma transfer\xEAncia do EEE para a Su\xED\xE7a se baseia na decis\xE3o de adequa\xE7\xE3o da Comiss\xE3o Europeia para a Su\xED\xE7a e n\xE3o precisa de nenhum outro instrumento. A Supabase est\xE1 estabelecida nos Estados Unidos, e seu pr\xF3prio acesso \xE9 coberto por seu aditivo de tratamento de dados com as cl\xE1usulas contratuais padr\xE3o.",
   "legal.subprocessors.supabase.statusDetail": "Mant\xE9m o livro-raz\xE3o de consentimento e toda tabela de dom\xEDnio. O projeto anterior em Frankfurt, regi\xE3o eu-central-1, est\xE1 a ser desativado em favor do de Zurique.",
   "legal.subprocessors.anthropic.service": "Infer\xEAncia de modelo. O Claude \xE9 o padr\xE3o para a maioria das classes de tarefa, incluindo a que escreve um site gerado.",
-  "legal.subprocessors.anthropic.data1": "O texto da solicita\xE7\xE3o que faz a um agente, e o contexto reunido para ela",
+  "legal.subprocessors.anthropic.data1": "O texto do pedido que faz a um agente e o contexto reunido para ele, sendo removido antes do envio o texto que corresponde a uma lista curta de padr\xF5es de credenciais. Os dados pessoais nesse texto, como nomes e moradas, n\xE3o s\xE3o removidos",
   "legal.subprocessors.anthropic.data2": "Nenhum endere\xE7o de lista de espera jamais faz parte desse texto",
   "legal.subprocessors.anthropic.location1": "Estados Unidos. Fora da Su\xED\xE7a e fora do EEE",
   "legal.subprocessors.anthropic.safeguard": "As cl\xE1usulas contratuais padr\xE3o sob o aditivo de tratamento de dados do fornecedor. Baseamo-nos nas cl\xE1usulas, e n\xE3o em uma certifica\xE7\xE3o de framework.",
   "legal.subprocessors.anthropic.statusDetail": "O Worker de gera\xE7\xE3o de sites chama um modelo quando possui uma chave de fornecedor. \xC9 o \xFAnico Worker do produto que invoca um modelo, sem exce\xE7\xE3o.",
   "legal.subprocessors.openai.service": "Infer\xEAncia de modelo, usada onde a tabela de roteamento envia uma classe de tarefa a um modelo da OpenAI. \xC9 o segundo fornecedor, o que permite que uma verifica\xE7\xE3o seja feita por um fornecedor diferente daquele que executou o trabalho.",
-  "legal.subprocessors.openai.data1": "O texto da solicita\xE7\xE3o que faz a um agente, e o contexto reunido para ela",
+  "legal.subprocessors.openai.data1": "O texto do pedido que faz a um agente e o contexto reunido para ele, sendo removido antes do envio o texto que corresponde a uma lista curta de padr\xF5es de credenciais. Os dados pessoais nesse texto, como nomes e moradas, n\xE3o s\xE3o removidos",
   "legal.subprocessors.openai.data2": "Nenhum endere\xE7o de lista de espera jamais faz parte desse texto",
   "legal.subprocessors.openai.location1": "Estados Unidos. Fora da Su\xED\xE7a e fora do EEE",
   "legal.subprocessors.openai.safeguard": "As cl\xE1usulas contratuais padr\xE3o sob o aditivo de tratamento de dados do fornecedor. Baseamo-nos nas cl\xE1usulas, e n\xE3o em uma certifica\xE7\xE3o de framework.",
@@ -26998,13 +29485,13 @@ var pt_legal_default = {
   "legal.subprocessors.sentry.data3": "Nenhum endere\xE7o de lista de espera, nenhuma identidade de conta, e nenhum conte\xFAdo de cliente",
   "legal.subprocessors.sentry.location1": "A regi\xE3o europeia, que \xE9 onde o projeto foi criado. A Sentry est\xE1 estabelecida nos Estados Unidos",
   "legal.subprocessors.sentry.safeguard": "O aditivo de tratamento de dados da Sentry com as cl\xE1usulas contratuais padr\xE3o.",
-  "legal.subprocessors.sentry.statusDetail": "O Worker de alertas constr\xF3i um canal Sentry somente quando um endpoint de relato est\xE1 configurado nessa implanta\xE7\xE3o. Sem nenhum configurado, o canal est\xE1 ausente e nada \xE9 enviado.",
+  "legal.subprocessors.sentry.statusDetail": "O Worker de alertas constr\xF3i um canal Sentry somente quando um endpoint de relato est\xE1 configurado nessa instala\xE7\xE3o. Sem nenhum configurado, o canal est\xE1 ausente e nada \xE9 enviado.",
   "legal.subprocessors.stripe.service": "Processamento de pagamentos e c\xE1lculo de impostos.",
   "legal.subprocessors.stripe.data1": "Os seus dados de contacto de cobran\xE7a e o plano ou pacote de cr\xE9ditos que escolheu",
   "legal.subprocessors.stripe.data2": "Os dados do cart\xE3o, que introduz numa p\xE1gina fornecida pela Stripe no seu pr\xF3prio dom\xEDnio e que nunca chegam at\xE9 n\xF3s",
   "legal.subprocessors.stripe.location1": "A Stripe processa dados nos Estados Unidos e na Irlanda",
   "legal.subprocessors.stripe.safeguard": "A Stripe est\xE1 estabelecida nos Estados Unidos. As transfer\xEAncias baseiam-se nas cl\xE1usulas contratuais padr\xE3o do seu contrato de tratamento de dados, e no aditivo su\xED\xE7o a essas cl\xE1usulas.",
-  "legal.subprocessors.stripe.statusDetail": "Esta entrada afirmava o contr\xE1rio at\xE9 20 de agosto de 2026, e a corre\xE7\xE3o importa mais do que a reda\xE7\xE3o. Dizia \xABn\xE3o h\xE1 biblioteca da Stripe no c\xF3digo-fonte nem credencial da Stripe em implanta\xE7\xE3o alguma\xBB e \xABnada chega \xE0 Stripe\xBB, quando o produto j\xE1 podia aceitar um cart\xE3o. Isso foi escrito quando era verdade e manteve-se depois de deixar de o ser, o que \xE9 exatamente a falha que esta p\xE1gina inteira existe para evitar. O que \xE9 verdade agora: o processo de pagamento entrega o seu navegador a uma p\xE1gina fornecida pela Stripe, o cart\xE3o \xE9 introduzido ali e em nenhum outro lugar, e este produto n\xE3o tem, em momento algum, um campo para um n\xFAmero de cart\xE3o.",
+  "legal.subprocessors.stripe.statusDetail": "Esta entrada afirmava o contr\xE1rio at\xE9 20 de agosto de 2026, e a corre\xE7\xE3o importa mais do que a reda\xE7\xE3o. Dizia \xABn\xE3o h\xE1 biblioteca da Stripe no c\xF3digo-fonte nem credencial da Stripe em instala\xE7\xE3o alguma\xBB e \xABnada chega \xE0 Stripe\xBB, quando o produto j\xE1 podia aceitar um cart\xE3o. Isso foi escrito quando era verdade e manteve-se depois de deixar de o ser, o que \xE9 exatamente a falha que esta p\xE1gina inteira existe para evitar. O que \xE9 verdade agora: o processo de pagamento entrega o seu navegador a uma p\xE1gina fornecida pela Stripe, o cart\xE3o \xE9 introduzido ali e em nenhum outro lugar, e este produto n\xE3o tem, em momento algum, um campo para um n\xFAmero de cart\xE3o.",
   // -------------------------------------------------------------------------
   // 5. Data processing agreement (GDPR Art. 28)
   // -------------------------------------------------------------------------
@@ -27034,7 +29521,7 @@ var pt_legal_default = {
   "legal.dpa.confidentiality.p2": "Hoje isso \xE9 uma \xFAnica pessoa, o operador, vinculado por lei e por este contrato. N\xE3o h\xE1 funcion\xE1rios. Antes que qualquer outra pessoa seja autorizada, ela estar\xE1 sob um compromisso de confidencialidade por escrito, e esta cl\xE1usula passar\xE1 a diz\xEA-lo.",
   "legal.dpa.security.heading": "Medidas de seguran\xE7a",
   "legal.dpa.security.p1": "As medidas abaixo s\xE3o aquelas que realmente temos, apropriadas ao risco nos termos do art. 32 do GDPR. N\xE3o possu\xEDmos certifica\xE7\xE3o alguma e n\xE3o afirmamos possuir nenhuma.",
-  "legal.dpa.security.item1": "O banco de dados est\xE1 hospedado em Zurique, Su\xED\xE7a. Artefatos de evid\xEAncia s\xE3o mantidos em armazenamento de objetos fixado na jurisdi\xE7\xE3o da UE.",
+  "legal.dpa.security.item1": "O banco de dados est\xE1 hospedado em Zurique, Su\xED\xE7a. Artefactos de evid\xEAncia s\xE3o mantidos em armazenamento de objetos fixado na jurisdi\xE7\xE3o da UE.",
   "legal.dpa.security.item2": "O isolamento de clientes \xE9 aplicado no banco de dados por seguran\xE7a em n\xEDvel de linha do tipo RESTRICTIVE, de modo que uma consulta n\xE3o consegue ver as linhas de outra empresa, mesmo quando a aplica\xE7\xE3o as solicita.",
   "legal.dpa.security.item3": "A identidade do cliente \xE9 definida dentro da transa\xE7\xE3o, nunca na conex\xE3o, de modo que uma conex\xE3o em pool n\xE3o pode carregar o escopo de um cliente para a transa\xE7\xE3o do pr\xF3ximo.",
   "legal.dpa.security.item4": "A trilha de auditoria \xE9 somente de acr\xE9scimo e encadeada por hash. Editar ou remover um registo quebra a cadeia e \xE9 detet\xE1vel.",
@@ -27042,7 +29529,7 @@ var pt_legal_default = {
   "legal.dpa.security.item6": "Tudo o que alcan\xE7a o mundo externo passa por uma \xFAnica fun\xE7\xE3o de admiss\xE3o com oito port\xF5es em ordem fixa. Uma requisi\xE7\xE3o para o cliente errado \xE9 respondida como se o recurso n\xE3o existisse, portanto ela n\xE3o pode ser usada para descobrir o que existe.",
   "legal.dpa.security.item7": "Uma a\xE7\xE3o com efeito jur\xEDdico ou similarmente significativo sobre uma pessoa exige aprova\xE7\xE3o humana registada. A aprova\xE7\xE3o \xE9 armazenada como um registo delimitado e com escopo definido, e n\xE3o como uma marca\xE7\xE3o, de modo que pode ser apresentada como evid\xEAncia.",
   "legal.dpa.security.item8": "A elimina\xE7\xE3o \xE9 projetada como destrui\xE7\xE3o de uma chave de criptografia por titular, e n\xE3o como exclus\xE3o de uma linha, de modo que a cadeia de auditoria sobrevive e o conte\xFAdo n\xE3o. O armazenamento de chaves existe. Aplic\xE1-lo a todo campo ainda n\xE3o est\xE1 conclu\xEDdo, e at\xE9 que esteja, a elimina\xE7\xE3o \xE9 feita manualmente.",
-  "legal.dpa.security.item9": "Os cookies de sess\xE3o s\xE3o httpOnly e Secure. Segredos s\xE3o segredos de implanta\xE7\xE3o e n\xE3o est\xE3o no c\xF3digo-fonte.",
+  "legal.dpa.security.item9": "Os cookies de sess\xE3o s\xE3o httpOnly e Secure. Segredos s\xE3o segredos de instala\xE7\xE3o e n\xE3o est\xE3o no c\xF3digo-fonte.",
   "legal.dpa.security.item10": "O site institucional p\xFAblico n\xE3o possui vincula\xE7\xE3o de banco de dados alguma, de modo que nenhuma p\xE1gina institucional tem caminho at\xE9 dados de clientes.",
   "legal.dpa.security.item11": "Nossos fornecedores criptografam dados em repouso e em tr\xE2nsito como parte do pr\xF3prio servi\xE7o.",
   "legal.dpa.security.p2": "O que n\xE3o temos: um relat\xF3rio de teste de invas\xE3o, uma certifica\xE7\xE3o, uma equipa de seguran\xE7a, ou monitoriza\xE7\xE3o cont\xEDnua. Uma \xFAnica pessoa opera o servi\xE7o. Preferimos que soubesse disso agora a descobrir depois.",
@@ -27156,10 +29643,10 @@ var catalogue5 = {
   "blog.tabs.label": "Categorias",
   "blog.empty": "Ainda n\xE3o h\xE1 artigos nesta categoria.",
   "blog.similar": "Artigos semelhantes",
-  "blog.pagination.label": "P\xE1ginas",
-  "blog.pagination.page": "P\xE1gina {n}",
-  "blog.pagination.next": "Pr\xF3xima p\xE1gina",
-  "blog.pagination.previous": "P\xE1gina anterior",
+  "pagination.label": "P\xE1ginas",
+  "pagination.page": "P\xE1gina {n}",
+  "pagination.next": "Pr\xF3xima p\xE1gina",
+  "pagination.previous": "P\xE1gina anterior",
   "blog.done-is-not-proof.title": "Um agente dizer \u201Cfeito\u201D n\xE3o \xE9 prova",
   "blog.done-is-not-proof.lead": "Por que a Orvay trata cada tarefa conclu\xEDda como uma afirma\xE7\xE3o, e o que \xE9 preciso para transformar uma afirma\xE7\xE3o em um registro no qual uma empresa possa confiar.",
   "blog.done-is-not-proof.description": "Todo agente termina seu trabalho com uma mensagem que diz \u201Cfeito\u201D. Uma empresa n\xE3o pode funcionar com essa mensagem. \xC9 assim que a Orvay separa a afirma\xE7\xE3o da prova.",
@@ -27167,14 +29654,14 @@ var catalogue5 = {
   "blog.done-is-not-proof.introduction.p1": "Toda ferramenta que executa um agente termina do mesmo jeito. Chega uma mensagem dizendo que o trabalho est\xE1 feito. Segue um resumo, quase sempre confiante, \xE0s vezes com a lista do que mudou. Ent\xE3o uma pessoa decide se acredita.",
   "blog.done-is-not-proof.introduction.p2": "Essa decis\xE3o \xE9 o problema inteiro. Uma empresa n\xE3o funciona com mensagens que dizem \u201Cfeito\u201D. Funciona com coisas que est\xE3o feitas, e com a capacidade de mostrar que est\xE3o. A Orvay \xE9 constru\xEDda sobre a diferen\xE7a entre as duas.",
   "blog.done-is-not-proof.a-claim.heading": "Feito \xE9 uma afirma\xE7\xE3o",
-  "blog.done-is-not-proof.a-claim.p1": "Quando um modelo relata que terminou uma tarefa, ele descreve o pr\xF3prio trabalho de dentro. N\xE3o tem como saber se a implanta\xE7\xE3o que iniciou est\xE1 servindo tr\xE1fego, se o e-mail que redigiu foi entregue, ou se o registro que escreveu \xE9 o que uma colega vai ler amanh\xE3. Ele sabe o que pretendia e o que viu. Isso n\xE3o \xE9 a mesma coisa que o que aconteceu.",
+  "blog.done-is-not-proof.a-claim.p1": "Quando um modelo relata que terminou uma tarefa, ele descreve o pr\xF3prio trabalho de dentro. N\xE3o tem como saber se a instala\xE7\xE3o que iniciou est\xE1 servindo tr\xE1fego, se o e-mail que redigiu foi entregue, ou se o registro que escreveu \xE9 o que uma colega vai ler amanh\xE3. Ele sabe o que pretendia e o que viu. Isso n\xE3o \xE9 a mesma coisa que o que aconteceu.",
   "blog.done-is-not-proof.a-claim.p2": "Isso n\xE3o \xE9 uma falha de um modelo em particular. \xC9 a posi\xE7\xE3o de qualquer ator a quem se pede que avalie o pr\xF3prio trabalho. Uma pessoa que publica uma mudan\xE7a e confirma que ela chegou lendo a pr\xF3pria mensagem de commit fez a mesma coisa. Escrevemos a regra no produto porque n\xF3s mesmos n\xE3o par\xE1vamos de quebr\xE1-la.",
   "blog.done-is-not-proof.evidence.heading": "O que conta como prova",
   "blog.done-is-not-proof.evidence.p1": "A Orvay \xE9 constru\xEDda para que o ator que faz o trabalho nunca seja o ator que o verifica. Quem prop\xF5e n\xE3o verifica. A verifica\xE7\xE3o cabe a algo que n\xE3o teve parte no trabalho, e o tipo de prova importa mais do que quem a recolheu.",
   "blog.done-is-not-proof.evidence.item1": "Um c\xF3digo de sa\xEDda do comando que rodou, n\xE3o uma frase dizendo que deu certo.",
   "blog.done-is-not-proof.evidence.item2": "Uma resposta HTTP do servi\xE7o chamado, lida depois da chamada e n\xE3o antes.",
   "blog.done-is-not-proof.evidence.item3": "Uma linha no banco de dados, relida em uma conex\xE3o pr\xF3pria.",
-  "blog.done-is-not-proof.evidence.item4": "Um hash do artefato, para que um leitor posterior possa saber se ele mudou.",
+  "blog.done-is-not-proof.evidence.item4": "Um hash do artefacto, para que um leitor posterior possa saber se ele mudou.",
   "blog.done-is-not-proof.evidence.p2": "Um segundo modelo pode revisar o trabalho de um primeiro, e \xE0s vezes essa \xE9 a \xFAnica verifica\xE7\xE3o dispon\xEDvel. Mas dois modelos podem errar do mesmo jeito, por isso o registro anota que a verifica\xE7\xE3o veio de um modelo e nunca trata isso, por si s\xF3, como prova. Prova \xE9 o tipo de evid\xEAncia que uma pessoa poderia executar de novo.",
   "blog.done-is-not-proof.one-gate.heading": "Um s\xF3 port\xE3o, e nada que o contorne",
   "blog.done-is-not-proof.one-gate.p1": "Toda a\xE7\xE3o que um agente realiza dentro da Orvay passa pelo mesmo port\xE3o. Ele verifica quem pede, por qual empresa age, se essa empresa est\xE1 parada, o que o plano dela permite, o que o ator est\xE1 autorizado a fazer, se a pessoa do outro lado consentiu, o que diz a pol\xEDtica da empresa e se ainda h\xE1 dinheiro para gastar. Nessa ordem, todas as vezes.",
@@ -28163,7 +30650,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "2fada7bb" : "unknown";
+var sourceCommit = true ? "0ce1cb8f" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
