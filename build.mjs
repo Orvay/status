@@ -964,6 +964,7 @@ var PRICE_LOOKUP_KEYS = {
   max2: "orvay_max2_usd_monthly",
   max3: "orvay_max3_usd_monthly"
 };
+var PAID_TIERS = Object.keys(PRICE_LOOKUP_KEYS);
 
 // ../../packages/billing/src/signature.ts
 var HEX = "0123456789abcdef";
@@ -3964,7 +3965,7 @@ var PRODUCT_SOURCE = {
   "product.notes": "What the run could not determine",
   "product.inconclusive": "This run did not reach a conclusion from what it was given.",
   "inbox.none": "Nothing has been proposed in this company.",
-  "inbox.counts": "{waiting} waiting on a human, {decided} already decided.",
+  "inbox.counts": "{waiting} waiting on a human, {decided} no longer waiting.",
   "inbox.capped": "Showing {shown} of {total}, newest first.",
   "inbox.showingAll": "{total} in all.",
   "inbox.older": "Older",
@@ -3978,7 +3979,9 @@ var PRODUCT_SOURCE = {
   "inbox.refusedAt": "refused at {gate}",
   "inbox.needsYou": "needs you",
   "inbox.unattended": "would run unattended",
-  "inbox.decided": "Already decided",
+  "inbox.decided": "No longer waiting",
+  // EXEC-29: a run the port refused before it crossed, on the settled list with its own word.
+  "inbox.refusedByPort": "Refused before it ran",
   "inbox.refused": "refused",
   "inbox.checked": "checked by another actor",
   "inbox.notEstablished": "ran, not established",
@@ -4238,6 +4241,27 @@ var PRODUCT_SOURCE = {
   "evidence.run": "Run",
   // OUT-12: the prompt behind a produced document, named rather than only hashed.
   "evidence.prompt": "Prompt",
+  // VER-12 and VER-13: the track record on the policies screen.
+  "policies.record.heading": "Track record",
+  "policies.record.window": "Runs in the last 30 days, by capability. Verified means an independent check established the outcome.",
+  "policies.record.empty": "No runs in the last 30 days.",
+  "policies.record.capability": "Capability",
+  "policies.record.runs": "Runs",
+  "policies.record.succeeded": "Succeeded",
+  "policies.record.verified": "Verified",
+  "policies.record.failed": "Failed or refused",
+  "policies.record.all": "All capabilities",
+  // EDGE-3: a contract proposed from a template says so on the decision screen, and why.
+  "contract.origin.template.title": "A standard action",
+  "contract.origin.template.no_model": "No model is set up on this deployment, so this is a standard action proposed for any goal rather than one written for this one.",
+  "contract.origin.template.no_answer": "The model did not answer in time, so this is a standard action proposed for any goal rather than one written for this one.",
+  "contract.origin.template.nothing_usable": "The model answered and nothing in it was usable, so this is a standard action proposed for any goal rather than one written for this one.",
+  "contract.origin.template.unknown": "A standard action proposed for any goal rather than one written for this one.",
+  // USE-8: the stopped-preview page forge serves, in the reader's language.
+  "forge.previewStopped.title": "Preview not running",
+  "forge.previewStopped.heading": "The preview is not running",
+  "forge.previewStopped.stopped": "A preview runs in a container that stops once it has been idle for a while. This one has stopped, so there is nothing to show here.",
+  "forge.previewStopped.safe": "The draft is safe. It is saved outside the container, so nothing that was built has been lost.",
   "evidence.recorded": "Recorded the approved action and its plan; nothing left this system.",
   "evidence.kind.document": "Document",
   "evidence.kind.database_read": "Database read",
@@ -4391,6 +4415,8 @@ var PRODUCT_SOURCE = {
   "goals.cadence.manual": "Runs only when you ask",
   "goals.cadence.finished": "Ran once. Nothing further is scheduled.",
   "goals.cadence.due": "Due on the next sweep",
+  // EDGE-11: a first pass is not an overdue one.
+  "goals.cadence.firstDue": "Has not run yet. Its first pass is due on the next sweep.",
   "goals.cadence.next": "Next pass {when}",
   // WHAT ORVAY DID, NOT WHAT THE GOAL IS. "Paused" would read as somebody's
   // choice and "failed" as the goal's own verdict; this one was a decision the
@@ -10257,7 +10283,7 @@ var de_default = {
   "product.notes": "Was der Lauf nicht feststellen konnte",
   "product.inconclusive": "Dieser Lauf kam mit dem Vorliegenden zu keinem Ergebnis.",
   "inbox.none": "In diesem Unternehmen wurde nichts vorgeschlagen.",
-  "inbox.counts": "{waiting} warten auf einen Menschen, {decided} bereits entschieden.",
+  "inbox.counts": "{waiting} warten auf einen Menschen, {decided} warten nicht mehr.",
   "inbox.capped": "Es werden {shown} von {total} angezeigt, neueste zuerst.",
   "inbox.showingAll": "{total} insgesamt.",
   "inbox.older": "\xC4ltere",
@@ -10271,7 +10297,8 @@ var de_default = {
   "inbox.refusedAt": "abgelehnt am Gate {gate}",
   "inbox.needsYou": "braucht Sie",
   "inbox.unattended": "w\xFCrde unbeaufsichtigt laufen",
-  "inbox.decided": "Bereits entschieden",
+  "inbox.decided": "Warten nicht mehr",
+  "inbox.refusedByPort": "Abgelehnt, bevor es lief",
   "inbox.refused": "abgelehnt",
   "inbox.checked": "von einem anderen Akteur gepr\xFCft",
   "inbox.notEstablished": "ausgef\xFChrt, nicht belegt",
@@ -12536,7 +12563,28 @@ var de_default = {
   "activity.chain.sweep.ran": "Jeder Eintrag wurde {when} von der t\xE4glichen Pr\xFCfung von Anfang bis Ende nachgerechnet; ein Bruch w\xFCrde als \xF6ffentlicher Vorfall gemeldet.",
   "activity.chain.sweep.never": "Die t\xE4gliche Pr\xFCfung von Anfang bis Ende ist auf dieser Installation noch nicht gelaufen.",
   "evidence.prompt": "Prompt",
-  "activity.chain.sweep.missed": "Die t\xE4gliche Pr\xFCfung von Anfang bis Ende lief zuletzt {when}. Das Protokoll dieses Arbeitsbereichs hat sie nicht best\xE4tigt; ein Bruch w\xFCrde als \xF6ffentlicher Vorfall gemeldet."
+  "activity.chain.sweep.missed": "Die t\xE4gliche Pr\xFCfung von Anfang bis Ende lief zuletzt {when}. Das Protokoll dieses Arbeitsbereichs hat sie nicht best\xE4tigt; ein Bruch w\xFCrde als \xF6ffentlicher Vorfall gemeldet.",
+  // EDGE-3, EDGE-11, USE-8
+  "goals.cadence.firstDue": "Noch nie gelaufen. Der erste Durchgang ist beim n\xE4chsten Durchlauf f\xE4llig.",
+  "contract.origin.template.title": "Eine Standardaktion",
+  "contract.origin.template.no_model": "Auf dieser Installation ist kein Modell eingerichtet. Dies ist daher eine Standardaktion, die f\xFCr jedes Ziel vorgeschlagen wird, und keine, die f\xFCr dieses Ziel geschrieben wurde.",
+  "contract.origin.template.no_answer": "Das Modell hat nicht rechtzeitig geantwortet. Dies ist daher eine Standardaktion, die f\xFCr jedes Ziel vorgeschlagen wird, und keine, die f\xFCr dieses Ziel geschrieben wurde.",
+  "contract.origin.template.nothing_usable": "Das Modell hat geantwortet, und nichts davon war brauchbar. Dies ist daher eine Standardaktion, die f\xFCr jedes Ziel vorgeschlagen wird, und keine, die f\xFCr dieses Ziel geschrieben wurde.",
+  "contract.origin.template.unknown": "Eine Standardaktion, die f\xFCr jedes Ziel vorgeschlagen wird, und keine, die f\xFCr dieses Ziel geschrieben wurde.",
+  "forge.previewStopped.title": "Vorschau l\xE4uft nicht",
+  "forge.previewStopped.heading": "Die Vorschau l\xE4uft nicht",
+  "forge.previewStopped.stopped": "Eine Vorschau l\xE4uft in einem Container, der nach einer Weile ohne Aktivit\xE4t anh\xE4lt. Dieser ist angehalten, daher gibt es hier nichts zu zeigen.",
+  "forge.previewStopped.safe": "Der Entwurf ist sicher. Er ist au\xDFerhalb des Containers gespeichert, daher ist nichts von dem, was gebaut wurde, verloren.",
+  // VER-12, VER-13
+  "policies.record.heading": "Bilanz",
+  "policies.record.window": "L\xE4ufe der letzten 30 Tage, nach F\xE4higkeit. Verifiziert hei\xDFt, eine unabh\xE4ngige Pr\xFCfung hat das Ergebnis festgestellt.",
+  "policies.record.empty": "Keine L\xE4ufe in den letzten 30 Tagen.",
+  "policies.record.capability": "F\xE4higkeit",
+  "policies.record.runs": "L\xE4ufe",
+  "policies.record.succeeded": "Erfolgreich",
+  "policies.record.verified": "Verifiziert",
+  "policies.record.failed": "Fehlgeschlagen oder abgelehnt",
+  "policies.record.all": "Alle F\xE4higkeiten"
 };
 
 // ../../packages/content/src/messages/de.legal.ts
@@ -14399,7 +14447,7 @@ var fr_default = {
   "evidence.check.bad": "Recalcul\xE9 dans votre navigateur\xA0: l\u2019empreinte ne correspond PAS, cet enregistrement a donc chang\xE9 apr\xE8s avoir \xE9t\xE9 \xE9crit.",
   "evidence.check.unknown": "Cet enregistrement ne peut pas \xEAtre recalcul\xE9 dans le navigateur.",
   "inbox.none": "Rien n\u2019a \xE9t\xE9 propos\xE9 dans cette entreprise.",
-  "inbox.counts": "{waiting} en attente d\u2019une personne, {decided} d\xE9j\xE0 d\xE9cid\xE9s.",
+  "inbox.counts": "{waiting} en attente d\u2019une personne, {decided} n\u2019attendent plus.",
   "inbox.capped": "Affichage de {shown} sur {total}, les plus r\xE9centes en premier.",
   "inbox.showingAll": "{total} au total.",
   "inbox.older": "Plus anciennes",
@@ -14413,7 +14461,8 @@ var fr_default = {
   "inbox.refusedAt": "refus\xE9 \xE0 la porte {gate}",
   "inbox.needsYou": "a besoin de vous",
   "inbox.unattended": "fonctionnerait sans surveillance",
-  "inbox.decided": "D\xE9j\xE0 d\xE9cid\xE9s",
+  "inbox.decided": "N\u2019attendent plus",
+  "inbox.refusedByPort": "Refus\xE9 avant l\u2019ex\xE9cution",
   "inbox.refused": "refus\xE9",
   "inbox.checked": "v\xE9rifi\xE9 par un acteur diff\xE9rent",
   "inbox.notEstablished": "ex\xE9cut\xE9, non \xE9tabli",
@@ -16872,7 +16921,28 @@ var fr_default = {
   "activity.chain.sweep.ran": "Chaque entr\xE9e a \xE9t\xE9 rev\xE9rifi\xE9e de bout en bout par le contr\xF4le quotidien {when}\xA0; une rupture serait signal\xE9e comme incident public.",
   "activity.chain.sweep.never": "Le contr\xF4le quotidien de bout en bout n'a pas encore eu lieu sur ce d\xE9ploiement.",
   "evidence.prompt": "Prompt",
-  "activity.chain.sweep.missed": "Le contr\xF4le quotidien de bout en bout a eu lieu pour la derni\xE8re fois {when}. Il n'a pas confirm\xE9 le journal de cet espace de travail\xA0; une rupture serait signal\xE9e comme incident public."
+  "activity.chain.sweep.missed": "Le contr\xF4le quotidien de bout en bout a eu lieu pour la derni\xE8re fois {when}. Il n'a pas confirm\xE9 le journal de cet espace de travail\xA0; une rupture serait signal\xE9e comme incident public.",
+  // EDGE-3, EDGE-11, USE-8
+  "goals.cadence.firstDue": "Pas encore ex\xE9cut\xE9. Son premier passage est \xE0 ex\xE9cuter au prochain balayage.",
+  "contract.origin.template.title": "Une action standard",
+  "contract.origin.template.no_model": "Aucun mod\xE8le n'est configur\xE9 sur ce d\xE9ploiement. Il s'agit donc d'une action standard propos\xE9e pour n'importe quel objectif, et non d'une action r\xE9dig\xE9e pour celui-ci.",
+  "contract.origin.template.no_answer": "Le mod\xE8le n'a pas r\xE9pondu \xE0 temps. Il s'agit donc d'une action standard propos\xE9e pour n'importe quel objectif, et non d'une action r\xE9dig\xE9e pour celui-ci.",
+  "contract.origin.template.nothing_usable": "Le mod\xE8le a r\xE9pondu et rien dans sa r\xE9ponse n'\xE9tait utilisable. Il s'agit donc d'une action standard propos\xE9e pour n'importe quel objectif, et non d'une action r\xE9dig\xE9e pour celui-ci.",
+  "contract.origin.template.unknown": "Une action standard propos\xE9e pour n'importe quel objectif, et non une action r\xE9dig\xE9e pour celui-ci.",
+  "forge.previewStopped.title": "Aper\xE7u \xE0 l'arr\xEAt",
+  "forge.previewStopped.heading": "L'aper\xE7u n'est pas en cours d'ex\xE9cution",
+  "forge.previewStopped.stopped": "Un aper\xE7u s'ex\xE9cute dans un conteneur qui s'arr\xEAte apr\xE8s un certain temps d'inactivit\xE9. Celui-ci s'est arr\xEAt\xE9, il n'y a donc rien \xE0 afficher ici.",
+  "forge.previewStopped.safe": "Le brouillon est en s\xE9curit\xE9. Il est enregistr\xE9 en dehors du conteneur, donc rien de ce qui a \xE9t\xE9 construit n'est perdu.",
+  // VER-12, VER-13
+  "policies.record.heading": "Bilan",
+  "policies.record.window": "Ex\xE9cutions des 30 derniers jours, par capacit\xE9. V\xE9rifi\xE9 signifie qu'un contr\xF4le ind\xE9pendant a \xE9tabli le r\xE9sultat.",
+  "policies.record.empty": "Aucune ex\xE9cution au cours des 30 derniers jours.",
+  "policies.record.capability": "Capacit\xE9",
+  "policies.record.runs": "Ex\xE9cutions",
+  "policies.record.succeeded": "R\xE9ussies",
+  "policies.record.verified": "V\xE9rifi\xE9es",
+  "policies.record.failed": "\xC9chou\xE9es ou refus\xE9es",
+  "policies.record.all": "Toutes les capacit\xE9s"
 };
 
 // ../../packages/content/src/messages/fr.legal.ts
@@ -18713,7 +18783,7 @@ var it_default = {
   "evidence.check.bad": "Ricalcolato nel suo browser: l\u2019hash NON corrisponde, quindi questo record \xE8 cambiato dopo essere stato scritto.",
   "evidence.check.unknown": "Questo record non pu\xF2 essere ricalcolato nel browser.",
   "inbox.none": "In questa azienda non \xE8 stato proposto nulla.",
-  "inbox.counts": "{waiting} in attesa di una persona, {decided} gi\xE0 decisi.",
+  "inbox.counts": "{waiting} in attesa di una persona, {decided} non pi\xF9 in attesa.",
   "inbox.capped": "Vengono mostrate {shown} su {total}, le pi\xF9 recenti per prime.",
   "inbox.showingAll": "{total} in tutto.",
   "inbox.older": "Pi\xF9 vecchie",
@@ -18727,7 +18797,8 @@ var it_default = {
   "inbox.refusedAt": "rifiutato al cancello {gate}",
   "inbox.needsYou": "ha bisogno di lei",
   "inbox.unattended": "verrebbe eseguito senza supervisione",
-  "inbox.decided": "Gi\xE0 decisi",
+  "inbox.decided": "Non pi\xF9 in attesa",
+  "inbox.refusedByPort": "Rifiutato prima di essere eseguito",
   "inbox.refused": "rifiutato",
   "inbox.checked": "verificato da un attore diverso",
   "inbox.notEstablished": "eseguito, non stabilito",
@@ -21067,7 +21138,28 @@ var it_default = {
   "activity.chain.sweep.ran": "Ogni voce \xE8 stata ricontrollata da cima a fondo dal controllo giornaliero {when}; una rottura verrebbe segnalata come incidente pubblico.",
   "activity.chain.sweep.never": "Il controllo giornaliero da cima a fondo non \xE8 ancora stato eseguito su questa installazione.",
   "evidence.prompt": "Prompt",
-  "activity.chain.sweep.missed": "Il controllo giornaliero da cima a fondo \xE8 stato eseguito l'ultima volta {when}. Non ha confermato il registro di questo spazio di lavoro; una rottura verrebbe segnalata come incidente pubblico."
+  "activity.chain.sweep.missed": "Il controllo giornaliero da cima a fondo \xE8 stato eseguito l'ultima volta {when}. Non ha confermato il registro di questo spazio di lavoro; una rottura verrebbe segnalata come incidente pubblico.",
+  // EDGE-3, EDGE-11, USE-8
+  "goals.cadence.firstDue": "Non \xE8 ancora stato eseguito. Il primo passaggio \xE8 in scadenza alla prossima scansione.",
+  "contract.origin.template.title": "Un'azione standard",
+  "contract.origin.template.no_model": "Su questa installazione non \xE8 configurato alcun modello. Questa \xE8 quindi un'azione standard proposta per qualsiasi obiettivo, non una scritta per questo.",
+  "contract.origin.template.no_answer": "Il modello non ha risposto in tempo. Questa \xE8 quindi un'azione standard proposta per qualsiasi obiettivo, non una scritta per questo.",
+  "contract.origin.template.nothing_usable": "Il modello ha risposto e nulla della risposta era utilizzabile. Questa \xE8 quindi un'azione standard proposta per qualsiasi obiettivo, non una scritta per questo.",
+  "contract.origin.template.unknown": "Un'azione standard proposta per qualsiasi obiettivo, non una scritta per questo.",
+  "forge.previewStopped.title": "Anteprima non in esecuzione",
+  "forge.previewStopped.heading": "L'anteprima non \xE8 in esecuzione",
+  "forge.previewStopped.stopped": "Un'anteprima viene eseguita in un container che si ferma dopo un periodo di inattivit\xE0. Questo si \xE8 fermato, quindi qui non c'\xE8 nulla da mostrare.",
+  "forge.previewStopped.safe": "La bozza \xE8 al sicuro. \xC8 salvata fuori dal container, quindi nulla di ci\xF2 che \xE8 stato costruito \xE8 andato perso.",
+  // VER-12, VER-13
+  "policies.record.heading": "Bilancio",
+  "policies.record.window": "Esecuzioni degli ultimi 30 giorni, per capacit\xE0. Verificato significa che un controllo indipendente ha accertato l'esito.",
+  "policies.record.empty": "Nessuna esecuzione negli ultimi 30 giorni.",
+  "policies.record.capability": "Capacit\xE0",
+  "policies.record.runs": "Esecuzioni",
+  "policies.record.succeeded": "Riuscite",
+  "policies.record.verified": "Verificate",
+  "policies.record.failed": "Fallite o rifiutate",
+  "policies.record.all": "Tutte le capacit\xE0"
 };
 
 // ../../packages/content/src/messages/it.legal.ts
@@ -22909,7 +23001,7 @@ var es_default = {
   "product.notes": "Lo que la ejecuci\xF3n no pudo determinar",
   "product.inconclusive": "Esta ejecuci\xF3n no lleg\xF3 a una conclusi\xF3n con lo que se le dio.",
   "inbox.none": "En esta empresa no se ha propuesto nada.",
-  "inbox.counts": "{waiting} a la espera de una persona, {decided} ya decididos.",
+  "inbox.counts": "{waiting} a la espera de una persona, {decided} ya no esperan.",
   "inbox.capped": "Se muestran {shown} de {total}, las m\xE1s recientes primero.",
   "inbox.showingAll": "{total} en total.",
   "inbox.older": "M\xE1s antiguas",
@@ -22923,7 +23015,8 @@ var es_default = {
   "inbox.refusedAt": "rechazado en la puerta {gate}",
   "inbox.needsYou": "le necesita",
   "inbox.unattended": "se ejecutar\xEDa sin supervisi\xF3n",
-  "inbox.decided": "Ya decididos",
+  "inbox.decided": "Ya no esperan",
+  "inbox.refusedByPort": "Rechazado antes de ejecutarse",
   "inbox.refused": "rechazado",
   "inbox.checked": "verificado por un actor distinto",
   "inbox.notEstablished": "ejecutado, no establecido",
@@ -25256,7 +25349,28 @@ var es_default = {
   "activity.chain.sweep.ran": "Cada entrada fue verificada de principio a fin por la comprobaci\xF3n diaria {when}; una rotura se registrar\xEDa como incidente p\xFAblico.",
   "activity.chain.sweep.never": "La comprobaci\xF3n diaria de principio a fin a\xFAn no se ha ejecutado en esta instalaci\xF3n.",
   "evidence.prompt": "Prompt",
-  "activity.chain.sweep.missed": "La comprobaci\xF3n diaria de principio a fin se ejecut\xF3 por \xFAltima vez {when}. No confirm\xF3 el registro de este espacio de trabajo; una rotura se registrar\xEDa como incidente p\xFAblico."
+  "activity.chain.sweep.missed": "La comprobaci\xF3n diaria de principio a fin se ejecut\xF3 por \xFAltima vez {when}. No confirm\xF3 el registro de este espacio de trabajo; una rotura se registrar\xEDa como incidente p\xFAblico.",
+  // EDGE-3, EDGE-11, USE-8
+  "goals.cadence.firstDue": "A\xFAn no se ha ejecutado. Su primera pasada est\xE1 pendiente en el pr\xF3ximo barrido.",
+  "contract.origin.template.title": "Una acci\xF3n est\xE1ndar",
+  "contract.origin.template.no_model": "No hay ning\xFAn modelo configurado en esta instalaci\xF3n, as\xED que esta es una acci\xF3n est\xE1ndar propuesta para cualquier objetivo, no una escrita para este.",
+  "contract.origin.template.no_answer": "El modelo no respondi\xF3 a tiempo, as\xED que esta es una acci\xF3n est\xE1ndar propuesta para cualquier objetivo, no una escrita para este.",
+  "contract.origin.template.nothing_usable": "El modelo respondi\xF3 y nada de la respuesta era utilizable, as\xED que esta es una acci\xF3n est\xE1ndar propuesta para cualquier objetivo, no una escrita para este.",
+  "contract.origin.template.unknown": "Una acci\xF3n est\xE1ndar propuesta para cualquier objetivo, no una escrita para este.",
+  "forge.previewStopped.title": "Vista previa detenida",
+  "forge.previewStopped.heading": "La vista previa no se est\xE1 ejecutando",
+  "forge.previewStopped.stopped": "Una vista previa se ejecuta en un contenedor que se detiene tras un tiempo de inactividad. Este se ha detenido, as\xED que aqu\xED no hay nada que mostrar.",
+  "forge.previewStopped.safe": "El borrador est\xE1 a salvo. Se guarda fuera del contenedor, as\xED que nada de lo construido se ha perdido.",
+  // VER-12, VER-13
+  "policies.record.heading": "Historial",
+  "policies.record.window": "Ejecuciones de los \xFAltimos 30 d\xEDas, por capacidad. Verificada significa que una comprobaci\xF3n independiente estableci\xF3 el resultado.",
+  "policies.record.empty": "Ninguna ejecuci\xF3n en los \xFAltimos 30 d\xEDas.",
+  "policies.record.capability": "Capacidad",
+  "policies.record.runs": "Ejecuciones",
+  "policies.record.succeeded": "Con \xE9xito",
+  "policies.record.verified": "Verificadas",
+  "policies.record.failed": "Fallidas o rechazadas",
+  "policies.record.all": "Todas las capacidades"
 };
 
 // ../../packages/content/src/messages/es.legal.ts
@@ -27128,7 +27242,7 @@ var pt_default = {
   "product.notes": "O que a execu\xE7\xE3o n\xE3o conseguiu determinar",
   "product.inconclusive": "Esta execu\xE7\xE3o n\xE3o chegou a uma conclus\xE3o com o que lhe foi dado.",
   "inbox.none": "Nada foi proposto nesta empresa.",
-  "inbox.counts": "{waiting} \xE0 espera de uma pessoa, {decided} j\xE1 decididos.",
+  "inbox.counts": "{waiting} \xE0 espera de uma pessoa, {decided} j\xE1 n\xE3o esperam.",
   "inbox.capped": "A mostrar {shown} de {total}, as mais recentes primeiro.",
   "inbox.showingAll": "{total} no total.",
   "inbox.older": "Mais antigas",
@@ -27142,7 +27256,8 @@ var pt_default = {
   "inbox.refusedAt": "recusado no port\xE3o {gate}",
   "inbox.needsYou": "precisa de si",
   "inbox.unattended": "seria executado sem supervis\xE3o",
-  "inbox.decided": "J\xE1 decididos",
+  "inbox.decided": "J\xE1 n\xE3o esperam",
+  "inbox.refusedByPort": "Recusado antes de correr",
   "inbox.refused": "recusado",
   "inbox.checked": "verificado por um ator diferente",
   "inbox.notEstablished": "executado, n\xE3o estabelecido",
@@ -29477,7 +29592,28 @@ var pt_default = {
   "activity.chain.sweep.ran": "Cada entrada foi verificada de ponta a ponta pela verifica\xE7\xE3o di\xE1ria {when}; uma quebra seria registada como incidente p\xFAblico.",
   "activity.chain.sweep.never": "A verifica\xE7\xE3o di\xE1ria de ponta a ponta ainda n\xE3o correu nesta instala\xE7\xE3o.",
   "evidence.prompt": "Prompt",
-  "activity.chain.sweep.missed": "A verifica\xE7\xE3o di\xE1ria de ponta a ponta correu pela \xFAltima vez {when}. N\xE3o confirmou o registo deste espa\xE7o de trabalho; uma quebra seria registada como incidente p\xFAblico."
+  "activity.chain.sweep.missed": "A verifica\xE7\xE3o di\xE1ria de ponta a ponta correu pela \xFAltima vez {when}. N\xE3o confirmou o registo deste espa\xE7o de trabalho; uma quebra seria registada como incidente p\xFAblico.",
+  // EDGE-3, EDGE-11, USE-8
+  "goals.cadence.firstDue": "Ainda n\xE3o foi executado. A primeira passagem est\xE1 pendente na pr\xF3xima varredura.",
+  "contract.origin.template.title": "Uma a\xE7\xE3o padr\xE3o",
+  "contract.origin.template.no_model": "N\xE3o h\xE1 nenhum modelo configurado nesta instala\xE7\xE3o, por isso esta \xE9 uma a\xE7\xE3o padr\xE3o proposta para qualquer objetivo, e n\xE3o uma escrita para este.",
+  "contract.origin.template.no_answer": "O modelo n\xE3o respondeu a tempo, por isso esta \xE9 uma a\xE7\xE3o padr\xE3o proposta para qualquer objetivo, e n\xE3o uma escrita para este.",
+  "contract.origin.template.nothing_usable": "O modelo respondeu e nada na resposta era utiliz\xE1vel, por isso esta \xE9 uma a\xE7\xE3o padr\xE3o proposta para qualquer objetivo, e n\xE3o uma escrita para este.",
+  "contract.origin.template.unknown": "Uma a\xE7\xE3o padr\xE3o proposta para qualquer objetivo, e n\xE3o uma escrita para este.",
+  "forge.previewStopped.title": "Pr\xE9-visualiza\xE7\xE3o parada",
+  "forge.previewStopped.heading": "A pr\xE9-visualiza\xE7\xE3o n\xE3o est\xE1 em execu\xE7\xE3o",
+  "forge.previewStopped.stopped": "Uma pr\xE9-visualiza\xE7\xE3o corre num contentor que para ap\xF3s algum tempo de inatividade. Este parou, por isso n\xE3o h\xE1 nada para mostrar aqui.",
+  "forge.previewStopped.safe": "O rascunho est\xE1 seguro. Est\xE1 guardado fora do contentor, por isso nada do que foi constru\xEDdo se perdeu.",
+  // VER-12, VER-13
+  "policies.record.heading": "Hist\xF3rico",
+  "policies.record.window": "Execu\xE7\xF5es dos \xFAltimos 30 dias, por capacidade. Verificada significa que uma verifica\xE7\xE3o independente estabeleceu o resultado.",
+  "policies.record.empty": "Nenhuma execu\xE7\xE3o nos \xFAltimos 30 dias.",
+  "policies.record.capability": "Capacidade",
+  "policies.record.runs": "Execu\xE7\xF5es",
+  "policies.record.succeeded": "Com \xEAxito",
+  "policies.record.verified": "Verificadas",
+  "policies.record.failed": "Falhadas ou recusadas",
+  "policies.record.all": "Todas as capacidades"
 };
 
 // ../../packages/content/src/messages/pt.legal.ts
@@ -30892,7 +31028,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "ea8200b6" : "unknown";
+var sourceCommit = true ? "33fd2335" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
