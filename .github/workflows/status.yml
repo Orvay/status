@@ -127,7 +127,19 @@ jobs:
             KEY_ARG=(--probe-key "${{ secrets.ORVAY_STATUS_PROBE_KEY }}")
           fi
 
-          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}" "${SECRET_ARG[@]}" "${KEY_ARG[@]}"
+          # The Cloudflare Access service token, a THIRD credential. While the
+          # app sits behind an Access wall, every page target answers with
+          # Cloudflare's own login page and four rows read partial outage that
+          # is the wall, not the app. A Service Auth policy on the application
+          # admits this token and nobody else; without a wall the headers are
+          # ignored. Absent, the page reports the wall as what it sees, which
+          # is honest and wrong about the app.
+          ACCESS_ARG=()
+          if [ -n "${{ secrets.CF_ACCESS_CLIENT_ID }}" ] && [ -n "${{ secrets.CF_ACCESS_CLIENT_SECRET }}" ]; then
+            ACCESS_ARG=(--access-client-id "${{ secrets.CF_ACCESS_CLIENT_ID }}" --access-client-secret "${{ secrets.CF_ACCESS_CLIENT_SECRET }}")
+          fi
+
+          node build.mjs out --announce "$RUNNER_TEMP/announce.txt" "${FALLBACKS[@]}" "${SECRET_ARG[@]}" "${KEY_ARG[@]}" "${ACCESS_ARG[@]}"
 
       # ---------------------------------------------------------------------
       # The second channel, for the outage this page cannot report on itself.

@@ -631,16 +631,17 @@ var COMPONENTS = [
     id: "mailbox",
     /*
       ADDED IN THE SAME CHANGE THAT SHIPPED THE SURFACE (§13c). Reading a
-      connected mailbox needs a grant a person gave at Microsoft, and the prober
-      holds no session and no grant, so the vendor half cannot be watched from
-      outside. What CAN be watched, and is the failure most likely to happen
-      silently, is the start of the flow: `/api/oauth/microsoft/start` answering
-      405 to a GET is the route existing. That probe is not built yet either, so
-      the row is honest about both.
+      connected mailbox needs a grant a person gave at Microsoft or Google, and
+      the prober holds no session and no grant, so the vendor half cannot be
+      watched from outside. What IS watched is whether a mailbox could still be
+      connected here at all: the health route answers degraded when neither
+      vendor's OAuth client is on the deployment, which is what a deploy without
+      `--keep-vars` removes. One row for both vendors, because the mailbox screen
+      is one screen and a customer sees one mailbox.
     */
     group: "surfaces",
     label: "Connected mailbox",
-    summary: "Reading and answering a mailbox you connected by signing in at Microsoft. Nothing sends on its own; a reply goes only when you press Send. We check that a mailbox can still be connected and that your connection is stored. Reading one needs the grant you gave at Microsoft, so this cannot tell whether Microsoft is answering for you.",
+    summary: "Reading and answering a mailbox you connected by signing in at Microsoft or Google. Nothing sends on its own; a reply goes only when you press Send. We check that a mailbox can still be connected and that your connection is stored. Reading one needs the grant you gave at Microsoft or Google, so this cannot tell whether they are answering for you.",
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
@@ -1463,13 +1464,18 @@ var classifyError = (error) => {
   return "probe-errored";
 };
 var PROBE_SECRET_HEADER = "x-orvay-probe";
+var ACCESS_HEADERS = {
+  clientId: "cf-access-client-id",
+  clientSecret: "cf-access-client-secret"
+};
+var accessHeaders = (access) => access === void 0 ? {} : { [ACCESS_HEADERS.clientId]: access.clientId, [ACCESS_HEADERS.clientSecret]: access.clientSecret };
 var signatureFor = async (target, probeKey) => {
   if (target.signed !== true || probeKey === void 0 || probeKey === "") return {};
   const path = new URL(target.url).pathname;
   const header = await probeSignatureHeader(probeKey, Math.floor(Date.now() / 1e3), path);
   return { [PROBE_SIGNATURE_HEADER]: header };
 };
-var attempt = async (target, fetchImpl, clock, probeSecret, probeKey) => {
+var attempt = async (target, fetchImpl, clock, probeSecret, probeKey, access) => {
   const signature = await signatureFor(target, probeKey);
   const started = clock();
   try {
@@ -1489,7 +1495,8 @@ var attempt = async (target, fetchImpl, clock, probeSecret, probeKey) => {
         "user-agent": USER_AGENT,
         accept: "text/html,application/xhtml+xml",
         ...probeSecret === void 0 ? {} : { [PROBE_SECRET_HEADER]: probeSecret },
-        ...signature
+        ...signature,
+        ...accessHeaders(access)
       },
       signal: AbortSignal.timeout(target.thresholds.timeoutMs)
     });
@@ -1538,10 +1545,10 @@ var gradeResponse = (target, responded, previousWasSlow = false) => {
 var sleep = (ms) => new Promise((resolve2) => {
   setTimeout(resolve2, ms);
 });
-var probeTarget = async (target, fetchImpl, clock, delay = sleep, probeSecret, previousWasSlow = false, probeKey) => {
+var probeTarget = async (target, fetchImpl, clock, delay = sleep, probeSecret, previousWasSlow = false, probeKey, access) => {
   let last = "probe-errored";
   for (let n = 1; n <= CONFIRMATIONS; n += 1) {
-    const result = await attempt(target, fetchImpl, clock, probeSecret, probeKey);
+    const result = await attempt(target, fetchImpl, clock, probeSecret, probeKey, access);
     if (result.kind === "responded") {
       if (wasChallenged(result.headers)) return { kind: "blocked", reason: "challenged" };
       if (target.signed === true && result.status === 401) {
@@ -30885,7 +30892,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "5b94554d" : "unknown";
+var sourceCommit = true ? "ea8200b6" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
@@ -30967,7 +30974,8 @@ var main = async (outDir, options = {}) => {
         void 0,
         options.probeSecret,
         previousSlow.has(target.url),
-        options.probeKey
+        options.probeKey,
+        options.accessClientId !== void 0 && options.accessClientSecret !== void 0 ? { clientId: options.accessClientId, clientSecret: options.accessClientSecret } : void 0
       );
       perTarget.set(target.url, reading);
     })
@@ -31173,6 +31181,8 @@ if (outArg !== void 0 && !outArg.startsWith("--")) {
     announceFile: flag("announce"),
     probeSecret: flag("probe-secret"),
     probeKey: flag("probe-key"),
+    accessClientId: flag("access-client-id"),
+    accessClientSecret: flag("access-client-secret"),
     fallbacks: fallbacks()
   });
 }
