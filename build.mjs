@@ -630,18 +630,25 @@ var COMPONENTS = [
   {
     id: "mailbox",
     /*
-      ADDED IN THE SAME CHANGE THAT SHIPPED THE SURFACE (§13c). Reading a
-      connected mailbox needs a grant a person gave at Microsoft or Google, and
-      the prober holds no session and no grant, so the vendor half cannot be
-      watched from outside. What IS watched is whether a mailbox could still be
-      connected here at all: the health route answers degraded when neither
-      vendor's OAuth client is on the deployment, which is what a deploy without
-      `--keep-vars` removes. One row for both vendors, because the mailbox screen
-      is one screen and a customer sees one mailbox.
-    */
+          ADDED IN THE SAME CHANGE THAT SHIPPED THE SURFACE (§13c). Reading a
+          connected mailbox needs a grant a person gave at Microsoft or Google, and
+          the prober holds no session and no grant, so the vendor half cannot be
+          watched from outside. What IS watched is whether a mailbox could still be
+          connected here at all: the health route answers degraded when neither
+          vendor's OAuth client is on the deployment, which is what a deploy without
+          `--keep-vars` removes. One row for both vendors, because the mailbox screen
+          is one screen and a customer sees one mailbox.
+    
+          THE SUMMARY MOVED WHEN THE BEHAVIOUR DID. It used to say a reply goes only
+          when you press Send, which described the one path there was. Replies are
+          now drafted for you as well, and a sentence that was true of the old
+          surface reads as a promise that nothing drafts anything. §13c: the label
+          and the summary are customer-visible, so they are claims with a truth
+          value, and this one had to change in the commit that changed the product.
+        */
     group: "surfaces",
     label: "Connected mailbox",
-    summary: "Reading and answering a mailbox you connected by signing in at Microsoft or Google. Nothing sends on its own; a reply goes only when you press Send. We check that a mailbox can still be connected and that your connection is stored. Reading one needs the grant you gave at Microsoft or Google, so this cannot tell whether they are answering for you.",
+    summary: "Reading and answering a mailbox you connected by signing in at Microsoft or Google. Nothing sends on its own. A reply can be drafted for you and it waits on the approvals page until a person decides it, and only then does it go. We check that a mailbox can still be connected and that your connection is stored. Reading one needs the grant you gave at Microsoft or Google, so this cannot tell whether they are answering for you.",
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
@@ -2264,6 +2271,10 @@ var PRODUCT_SOURCE = {
       been STOPPED that it had a decision waiting.
     */
   "notification.headline.approval.waiting": "A contract is waiting on a decision",
+  // ATT-7. Named as a thing a COLLEAGUE did, because that is what distinguishes
+  // it from the line above: the queue told you something needs deciding, this
+  // says a person chose you for it.
+  "notification.headline.approval.assigned": "A colleague put a decision on you",
   "notification.headline.message.received": "Someone emailed your company address",
   // NOT "waiting". The policy allowed it and nobody was asked, which is the one
   // thing this row exists to say.
@@ -3982,6 +3993,9 @@ var PRODUCT_SOURCE = {
   "inbox.decided": "No longer waiting",
   // EXEC-29: a run the port refused before it crossed, on the settled list with its own word.
   "inbox.refusedByPort": "Refused before it ran",
+  // EXEC-30: an errand, not a verdict. Its own list, with the cause and what to do.
+  "inbox.tried.heading": "Tried and refused",
+  "inbox.tried.body": "These had permission and the step was refused before it ran. Fix the cause and propose the work again: the same action cannot be retried, because its attempt is already on the record as failed.",
   "inbox.refused": "refused",
   "inbox.checked": "checked by another actor",
   "inbox.notEstablished": "ran, not established",
@@ -4079,12 +4093,58 @@ var PRODUCT_SOURCE = {
   "comment.ok.posted": "Posted.",
   // The count is a value and "were told" carries no plural noun bound to it, so
   // this needs no plural rule in any of the six languages (Â§8b).
-  "comment.ok.mentioned": "Posted. {count} of your colleagues were told.",
+  "comment.ok.mentioned": {
+    one: "Posted. One colleague was told.",
+    other: "Posted. {count} colleagues were told."
+  },
   "comment.label": "Add a note",
   "comment.hint": "Type @ and somebody\u2019s address to ask them by name. A note cannot be edited or deleted afterwards.",
   "comment.submit": "Post",
   "comment.none": "Nothing has been said about this yet.",
   "comment.title": "Notes",
+  // GOV-9. What one person has approved, refused or endorsed. Three words and not
+  // two: `approvals_decision_known` allows `endorsed`, and a screen answering
+  // "everything this person decided" that drops a third of the vocabulary looks
+  // complete while being wrong.
+  // GOV-12. Several addresses at once. The cap is in the hint rather than only
+  // in the refusal, because §8a asks that every limit be stated before somebody
+  // builds on it.
+  "team.invite.emails.label": "Email addresses",
+  "team.invite.emails.hint": "One per line, or separated by commas. Up to {max} at a time, and each one is invited separately.",
+  "team.actions.invite.error.tooMany": "That is more than {max} addresses. Invite up to {max} at a time.",
+  "team.invite.results.heading": "What happened to each address",
+  "team.invite.result.invited": "Invited",
+  "team.invite.result.alreadyMember": "Already a member here",
+  "team.invite.result.alreadyInvited": "Already has an invitation waiting",
+  "team.invite.result.capReached": "Not invited: the plan has no seat left",
+  "team.invite.result.refused": "Not invited",
+  "team.invite.result.throttled": "Not attempted: too many invitations from this network just now",
+  "team.invite.result.malformed": "Not an email address",
+  // The link is shown once per invitation and cannot be recovered, so the list
+  // says so beside the links rather than only in the single-invitation notice.
+  "team.invite.results.links": "Each link below is shown once and cannot be shown again.",
+  "team.decisions.heading": "What each person has decided",
+  "team.decisions.because": "Every approval, refusal and endorsement is recorded against the person who made it, with the reason they gave. None of it can be edited or removed afterwards.",
+  "team.decisions.none": "Nothing decided yet.",
+  "team.decisions.count": {
+    one: "{count} decision",
+    other: "{count} decisions"
+  },
+  // EDGE-2: the list is capped and the count is not, so the screen says which is
+  // which rather than presenting a page as a total.
+  "team.decisions.showing": "Showing the most recent {shown}.",
+  "team.decisions.approved": "Approved",
+  "team.decisions.refused": "Refused",
+  "team.decisions.endorsed": "Endorsed",
+  "team.decisions.scope.once": "this proposal only",
+  "team.decisions.scope.standing": "standing",
+  "team.decisions.scope.bounded": "bounded, with a limit",
+  "team.decisions.revoked": "Withdrawn since then",
+  "team.decisions.open": "Open the proposal",
+  "comment.count": {
+    one: "{count} note",
+    other: "{count} notes"
+  },
   // WHO IS ON A PROPOSAL. `nobody` is a real choice and not an empty state:
   // unassigning has to be possible or the first name written to a proposal would
   // be permanent. `grants` is the sentence that stops a reader inferring that
@@ -6763,9 +6823,16 @@ var PRODUCT_SOURCE = {
   "toolCall.run.notRecorded": "The tool answered, but the run could not be recorded.",
   "toolCall.run.notEstablished": "The answer on the record could not be confirmed by a different actor.",
   "toolCall.evidence.plan": "The input proposed for {tool} on {server}",
+  "reply.evidence.draft": "A reply drafted for {to}, waiting for a decision.",
+  "reply.evidence.declined": "A reply for {to} was not drafted. The record says why.",
   "toolCall.evidence.answer": "What {server} answered to {tool}",
   "toolCall.evidence.verified": "The answer of {tool} on {server}, read back from the record",
   "decision.error.connectSocial": "Connect that social account on the integrations page first.",
+  "decision.ok.replied": "Sent to {to}, and a different actor looked in the thread for it.",
+  "decision.error.draftChanged": "Not sent. The words on file are not the words that were approved, so this needs proposing again.",
+  "decision.error.draftMissing": "Not sent. The draft this decision was about is no longer on file.",
+  "decision.error.notAnswerable": "Not sent. That message answers automatically or comes from a list, so a reply would reach a machine.",
+  "decision.error.connectMailbox": "Connect a mailbox on the integrations page first.",
   "decision.ok.opened": "Opened {url}, and GitHub confirms it.",
   "decision.ok.openedNote": "Opened {url}. {why}",
   "decision.ok.alreadyOpened": "That pull request is already open: {url}",
@@ -10392,12 +10459,19 @@ var de_default = {
   "comment.error.empty": "Schreiben Sie zuerst etwas.",
   "comment.error.tooLong": "Das ist l\xE4nger als {limit} Zeichen. K\xFCrzen Sie es oder h\xE4ngen Sie eine Datei an.",
   "comment.ok.posted": "Ver\xF6ffentlicht.",
-  "comment.ok.mentioned": "Ver\xF6ffentlicht. {count} Ihrer Kolleginnen und Kollegen wurden benachrichtigt.",
+  "comment.ok.mentioned": {
+    one: "Ver\xF6ffentlicht. Eine Kollegin oder ein Kollege wurde benachrichtigt.",
+    other: "Ver\xF6ffentlicht. {count} Kolleginnen und Kollegen wurden benachrichtigt."
+  },
   "comment.label": "Notiz hinzuf\xFCgen",
   "comment.hint": "Tippen Sie @ und eine Adresse, um jemanden direkt anzusprechen. Eine Notiz kann danach nicht bearbeitet oder gel\xF6scht werden.",
   "comment.submit": "Ver\xF6ffentlichen",
   "comment.none": "Dazu wurde noch nichts gesagt.",
   "comment.title": "Notizen",
+  "comment.count": {
+    one: "{count} Notiz",
+    other: "{count} Notizen"
+  },
   "contracts.assignee.label": "Wer daran arbeitet",
   "contracts.assignee.nobody": "Niemand",
   "contracts.assignee.none": "Das hat noch niemand \xFCbernommen.",
@@ -12342,6 +12416,11 @@ var de_default = {
   "decision.notConfirmed": "Es konnte nicht best\xE4tigt werden.",
   "decision.ok.alreadyPosted": "Dieser Beitrag ist bereits ver\xF6ffentlicht: {url}",
   "decision.error.connectSocial": "Verbinden Sie dieses soziale Konto zuerst auf der Integrationsseite.",
+  "decision.ok.replied": "An {to} gesendet, und ein anderer Akteur hat im Verlauf danach gesucht.",
+  "decision.error.draftChanged": "Nicht gesendet. Der gespeicherte Text ist nicht der genehmigte Text, das muss neu vorgeschlagen werden.",
+  "decision.error.draftMissing": "Nicht gesendet. Der Entwurf, um den es bei dieser Entscheidung ging, liegt nicht mehr vor.",
+  "decision.error.notAnswerable": "Nicht gesendet. Diese Nachricht antwortet automatisch oder kommt von einer Liste, eine Antwort w\xFCrde also eine Maschine erreichen.",
+  "decision.error.connectMailbox": "Verbinden Sie zuerst ein Postfach auf der Integrationsseite.",
   "decision.ok.opened": "Ge\xF6ffnet {url}, und GitHub best\xE4tigt es.",
   "decision.ok.openedNote": "Ge\xF6ffnet {url}. {why}",
   "decision.ok.alreadyOpened": "Dieser Pull Request ist bereits offen: {url}",
@@ -12548,6 +12627,8 @@ var de_default = {
   "toolCall.run.notRecorded": "Das Tool hat geantwortet, aber der Lauf konnte nicht aufgezeichnet werden.",
   "toolCall.run.notEstablished": "Die Antwort im Protokoll konnte von einem anderen Akteur nicht best\xE4tigt werden.",
   "toolCall.evidence.plan": "Die f\xFCr {tool} auf {server} vorgeschlagene Eingabe",
+  "reply.evidence.draft": "Eine Antwort an {to}, entworfen und wartet auf eine Entscheidung.",
+  "reply.evidence.declined": "F\xFCr {to} wurde keine Antwort entworfen. Der Eintrag nennt den Grund.",
   "toolCall.evidence.answer": "Was {server} auf {tool} geantwortet hat",
   "toolCall.evidence.verified": "Die Antwort von {tool} auf {server}, aus dem Protokoll zur\xFCckgelesen",
   // ATT-11: what needs THIS person in their other workspaces.
@@ -12584,7 +12665,10 @@ var de_default = {
   "policies.record.succeeded": "Erfolgreich",
   "policies.record.verified": "Verifiziert",
   "policies.record.failed": "Fehlgeschlagen oder abgelehnt",
-  "policies.record.all": "Alle F\xE4higkeiten"
+  "policies.record.all": "Alle F\xE4higkeiten",
+  // EXEC-30
+  "inbox.tried.heading": "Versucht und abgelehnt",
+  "inbox.tried.body": "Diese hatten die Berechtigung, und der Schritt wurde abgelehnt, bevor er lief. Beheben Sie die Ursache und schlagen Sie die Arbeit erneut vor: Dieselbe Aktion kann nicht wiederholt werden, denn ihr Versuch steht bereits als fehlgeschlagen im Protokoll."
 };
 
 // ../../packages/content/src/messages/de.legal.ts
@@ -14560,12 +14644,21 @@ var fr_default = {
   "comment.error.empty": "\xC9crivez d'abord quelque chose.",
   "comment.error.tooLong": "Cela d\xE9passe {limit} caract\xE8res. Raccourcissez le texte ou joignez un fichier.",
   "comment.ok.posted": "Publi\xE9.",
-  "comment.ok.mentioned": "Publi\xE9. {count} de vos coll\xE8gues ont \xE9t\xE9 pr\xE9venus.",
+  "comment.ok.mentioned": {
+    one: "Publi\xE9. Un coll\xE8gue a \xE9t\xE9 pr\xE9venu.",
+    many: "Publi\xE9. {count} coll\xE8gues ont \xE9t\xE9 pr\xE9venus.",
+    other: "Publi\xE9. {count} coll\xE8gues ont \xE9t\xE9 pr\xE9venus."
+  },
   "comment.label": "Ajouter une note",
   "comment.hint": "Tapez @ suivi d'une adresse pour interpeller quelqu'un. Une note ne peut \xEAtre ni modifi\xE9e ni supprim\xE9e ensuite.",
   "comment.submit": "Publier",
   "comment.none": "Rien n'a encore \xE9t\xE9 dit \xE0 ce sujet.",
   "comment.title": "Notes",
+  "comment.count": {
+    one: "{count} note",
+    many: "{count} notes",
+    other: "{count} notes"
+  },
   "contracts.assignee.label": "Qui s'en occupe",
   "contracts.assignee.nobody": "Personne",
   "contracts.assignee.none": "Personne ne l'a encore accept\xE9.",
@@ -16675,6 +16768,11 @@ var fr_default = {
   "decision.notConfirmed": "Cela n\u2019a pas pu \xEAtre confirm\xE9.",
   "decision.ok.alreadyPosted": "Cette publication est d\xE9j\xE0 publi\xE9e\xA0: {url}",
   "decision.error.connectSocial": "Connectez d\u2019abord ce compte de r\xE9seau social sur la page des int\xE9grations.",
+  "decision.ok.replied": "Envoy\xE9e \xE0 {to}, et un autre acteur l'a cherch\xE9e dans le fil.",
+  "decision.error.draftChanged": "Non envoy\xE9e. Le texte enregistr\xE9 n'est pas le texte approuv\xE9, il faut donc le proposer \xE0 nouveau.",
+  "decision.error.draftMissing": "Non envoy\xE9e. Le brouillon sur lequel portait cette d\xE9cision n'est plus enregistr\xE9.",
+  "decision.error.notAnswerable": "Non envoy\xE9e. Ce message r\xE9pond automatiquement ou vient d'une liste, une r\xE9ponse atteindrait donc une machine.",
+  "decision.error.connectMailbox": "Connectez d'abord une bo\xEEte mail sur la page des int\xE9grations.",
   "decision.ok.opened": "Ouvert {url}, et GitHub la confirme.",
   "decision.ok.openedNote": "Ouvert {url}. {why}",
   "decision.ok.alreadyOpened": "Cette pull request est d\xE9j\xE0 ouverte\xA0: {url}",
@@ -16906,6 +17004,8 @@ var fr_default = {
   "toolCall.run.notRecorded": "L'outil a r\xE9pondu, mais l'ex\xE9cution n'a pas pu \xEAtre enregistr\xE9e.",
   "toolCall.run.notEstablished": "La r\xE9ponse au registre n'a pas pu \xEAtre confirm\xE9e par un autre acteur.",
   "toolCall.evidence.plan": "L'entr\xE9e propos\xE9e pour {tool} sur {server}",
+  "reply.evidence.draft": "Une r\xE9ponse r\xE9dig\xE9e pour {to}, en attente d\u2019une d\xE9cision.",
+  "reply.evidence.declined": "Aucune r\xE9ponse n\u2019a \xE9t\xE9 r\xE9dig\xE9e pour {to}. Le motif figure dans cette note.",
   "toolCall.evidence.answer": "Ce que {server} a r\xE9pondu \xE0 {tool}",
   "toolCall.evidence.verified": "La r\xE9ponse de {tool} sur {server}, relue depuis le registre",
   // ATT-11: what needs THIS person in their other workspaces.
@@ -16942,7 +17042,10 @@ var fr_default = {
   "policies.record.succeeded": "R\xE9ussies",
   "policies.record.verified": "V\xE9rifi\xE9es",
   "policies.record.failed": "\xC9chou\xE9es ou refus\xE9es",
-  "policies.record.all": "Toutes les capacit\xE9s"
+  "policies.record.all": "Toutes les capacit\xE9s",
+  // EXEC-30
+  "inbox.tried.heading": "Tent\xE9 et refus\xE9",
+  "inbox.tried.body": "Ceux-ci avaient l'autorisation et l'\xE9tape a \xE9t\xE9 refus\xE9e avant son ex\xE9cution. Corrigez la cause et proposez le travail \xE0 nouveau\xA0: la m\xEAme action ne peut pas \xEAtre r\xE9essay\xE9e, car sa tentative figure d\xE9j\xE0 au registre comme ayant \xE9chou\xE9."
 };
 
 // ../../packages/content/src/messages/fr.legal.ts
@@ -18895,12 +18998,21 @@ var it_default = {
   "comment.error.empty": "Scrivi prima qualcosa.",
   "comment.error.tooLong": "Supera i {limit} caratteri. Accorcialo oppure allega un file.",
   "comment.ok.posted": "Pubblicato.",
-  "comment.ok.mentioned": "Pubblicato. {count} dei Suoi colleghi sono stati avvisati.",
+  "comment.ok.mentioned": {
+    one: "Pubblicato. Un collega \xE8 stato avvisato.",
+    many: "Pubblicato. {count} colleghi sono stati avvisati.",
+    other: "Pubblicato. {count} colleghi sono stati avvisati."
+  },
   "comment.label": "Aggiungi una nota",
   "comment.hint": "Digita @ e un indirizzo per chiamare qualcuno per nome. Una nota non pu\xF2 essere modificata n\xE9 eliminata in seguito.",
   "comment.submit": "Pubblica",
   "comment.none": "Non \xE8 ancora stato detto nulla al riguardo.",
   "comment.title": "Note",
+  "comment.count": {
+    one: "{count} nota",
+    many: "{count} note",
+    other: "{count} note"
+  },
   "contracts.assignee.label": "Chi se ne occupa",
   "contracts.assignee.nobody": "Nessuno",
   "contracts.assignee.none": "Nessuno lo ha ancora accettato.",
@@ -20892,6 +21004,11 @@ var it_default = {
   "decision.notConfirmed": "Non \xE8 stato possibile ottenere conferma.",
   "decision.ok.alreadyPosted": "Quel post \xE8 gi\xE0 pubblicato: {url}",
   "decision.error.connectSocial": "Colleghi prima quell'account social nella pagina delle integrazioni.",
+  "decision.ok.replied": "Inviata a {to}, e un altro attore l'ha cercata nella conversazione.",
+  "decision.error.draftChanged": "Non inviata. Il testo registrato non \xE8 il testo approvato, quindi va proposto di nuovo.",
+  "decision.error.draftMissing": "Non inviata. La bozza oggetto di questa decisione non \xE8 pi\xF9 registrata.",
+  "decision.error.notAnswerable": "Non inviata. Quel messaggio risponde automaticamente o viene da una lista, quindi una risposta raggiungerebbe una macchina.",
+  "decision.error.connectMailbox": "Colleghi prima una casella di posta dalla pagina delle integrazioni.",
   "decision.ok.opened": "Aperta {url}, e GitHub la conferma.",
   "decision.ok.openedNote": "Aperta {url}. {why}",
   "decision.ok.alreadyOpened": "Quella pull request \xE8 gi\xE0 aperta: {url}",
@@ -21123,6 +21240,8 @@ var it_default = {
   "toolCall.run.notRecorded": "Lo strumento ha risposto, ma l'esecuzione non ha potuto essere registrata.",
   "toolCall.run.notEstablished": "La risposta a registro non ha potuto essere confermata da un altro attore.",
   "toolCall.evidence.plan": "L'input proposto per {tool} su {server}",
+  "reply.evidence.draft": "Una risposta preparata per {to}, in attesa di una decisione.",
+  "reply.evidence.declined": "Nessuna risposta \xE8 stata preparata per {to}. La nota indica il motivo.",
   "toolCall.evidence.answer": "Ci\xF2 che {server} ha risposto a {tool}",
   "toolCall.evidence.verified": "La risposta di {tool} su {server}, riletta dal registro",
   // ATT-11: what needs THIS person in their other workspaces.
@@ -21159,7 +21278,10 @@ var it_default = {
   "policies.record.succeeded": "Riuscite",
   "policies.record.verified": "Verificate",
   "policies.record.failed": "Fallite o rifiutate",
-  "policies.record.all": "Tutte le capacit\xE0"
+  "policies.record.all": "Tutte le capacit\xE0",
+  // EXEC-30
+  "inbox.tried.heading": "Tentato e rifiutato",
+  "inbox.tried.body": "Questi avevano il permesso e il passaggio \xE8 stato rifiutato prima di essere eseguito. Correggi la causa e proponi di nuovo il lavoro: la stessa azione non pu\xF2 essere ritentata, perch\xE9 il suo tentativo \xE8 gi\xE0 registrato come fallito."
 };
 
 // ../../packages/content/src/messages/it.legal.ts
@@ -23113,12 +23235,21 @@ var es_default = {
   "comment.error.empty": "Escribe algo primero.",
   "comment.error.tooLong": "Supera los {limit} caracteres. Ac\xF3rtalo o adjunta un archivo.",
   "comment.ok.posted": "Publicado.",
-  "comment.ok.mentioned": "Publicado. {count} de sus compa\xF1eros han sido avisados.",
+  "comment.ok.mentioned": {
+    one: "Publicado. Se ha avisado a un compa\xF1ero.",
+    many: "Publicado. Se ha avisado a {count} compa\xF1eros.",
+    other: "Publicado. Se ha avisado a {count} compa\xF1eros."
+  },
   "comment.label": "A\xF1adir una nota",
   "comment.hint": "Escribe @ y una direcci\xF3n para dirigirte a alguien por su nombre. Una nota no se puede editar ni borrar despu\xE9s.",
   "comment.submit": "Publicar",
   "comment.none": "Todav\xEDa no se ha dicho nada sobre esto.",
   "comment.title": "Notas",
+  "comment.count": {
+    one: "{count} nota",
+    many: "{count} notas",
+    other: "{count} notas"
+  },
   "contracts.assignee.label": "Qui\xE9n se ocupa",
   "contracts.assignee.nobody": "Nadie",
   "contracts.assignee.none": "Nadie lo ha aceptado todav\xEDa.",
@@ -25103,6 +25234,11 @@ var es_default = {
   "decision.notConfirmed": "No se pudo confirmar.",
   "decision.ok.alreadyPosted": "Esa publicaci\xF3n ya est\xE1 publicada: {url}",
   "decision.error.connectSocial": "Conecte esa cuenta social en la p\xE1gina de integraciones primero.",
+  "decision.ok.replied": "Enviada a {to}, y otro actor la busc\xF3 en la conversaci\xF3n.",
+  "decision.error.draftChanged": "No enviada. El texto registrado no es el texto aprobado, as\xED que hay que proponerlo de nuevo.",
+  "decision.error.draftMissing": "No enviada. El borrador sobre el que trataba esta decisi\xF3n ya no est\xE1 registrado.",
+  "decision.error.notAnswerable": "No enviada. Ese mensaje responde autom\xE1ticamente o viene de una lista, as\xED que una respuesta llegar\xEDa a una m\xE1quina.",
+  "decision.error.connectMailbox": "Conecte primero un buz\xF3n en la p\xE1gina de integraciones.",
   "decision.ok.opened": "Abierto {url}, y GitHub lo confirma.",
   "decision.ok.openedNote": "Abierto {url}. {why}",
   "decision.ok.alreadyOpened": "Esa solicitud de extracci\xF3n ya est\xE1 abierta: {url}",
@@ -25334,6 +25470,8 @@ var es_default = {
   "toolCall.run.notRecorded": "La herramienta respondi\xF3, pero la ejecuci\xF3n no pudo registrarse.",
   "toolCall.run.notEstablished": "La respuesta del registro no pudo ser confirmada por otro actor.",
   "toolCall.evidence.plan": "La entrada propuesta para {tool} en {server}",
+  "reply.evidence.draft": "Una respuesta redactada para {to}, a la espera de una decisi\xF3n.",
+  "reply.evidence.declined": "No se redact\xF3 ninguna respuesta para {to}. La nota indica el motivo.",
   "toolCall.evidence.answer": "Lo que {server} respondi\xF3 a {tool}",
   "toolCall.evidence.verified": "La respuesta de {tool} en {server}, rele\xEDda desde el registro",
   // ATT-11: what needs THIS person in their other workspaces.
@@ -25370,7 +25508,10 @@ var es_default = {
   "policies.record.succeeded": "Con \xE9xito",
   "policies.record.verified": "Verificadas",
   "policies.record.failed": "Fallidas o rechazadas",
-  "policies.record.all": "Todas las capacidades"
+  "policies.record.all": "Todas las capacidades",
+  // EXEC-30
+  "inbox.tried.heading": "Intentado y rechazado",
+  "inbox.tried.body": "Estos ten\xEDan permiso y el paso se rechaz\xF3 antes de ejecutarse. Corrija la causa y proponga el trabajo de nuevo: la misma acci\xF3n no se puede reintentar, porque su intento ya consta en el registro como fallido."
 };
 
 // ../../packages/content/src/messages/es.legal.ts
@@ -27354,12 +27495,21 @@ var pt_default = {
   "comment.error.empty": "Escreva algo primeiro.",
   "comment.error.tooLong": "Ultrapassa os {limit} caracteres. Encurte o texto ou anexe um ficheiro.",
   "comment.ok.posted": "Publicado.",
-  "comment.ok.mentioned": "Publicado. {count} dos seus colegas foram avisados.",
+  "comment.ok.mentioned": {
+    one: "Publicado. Um colega foi avisado.",
+    many: "Publicado. {count} colegas foram avisados.",
+    other: "Publicado. {count} colegas foram avisados."
+  },
   "comment.label": "Adicionar uma nota",
   "comment.hint": "Escreva @ e um endere\xE7o para se dirigir a algu\xE9m pelo nome. Uma nota n\xE3o pode ser editada nem apagada depois.",
   "comment.submit": "Publicar",
   "comment.none": "Ainda n\xE3o foi dito nada sobre isto.",
   "comment.title": "Notas",
+  "comment.count": {
+    one: "{count} nota",
+    many: "{count} notas",
+    other: "{count} notas"
+  },
   "contracts.assignee.label": "Quem trata disto",
   "contracts.assignee.nobody": "Ningu\xE9m",
   "contracts.assignee.none": "Ningu\xE9m pegou nisto ainda.",
@@ -29346,6 +29496,11 @@ var pt_default = {
   "decision.notConfirmed": "N\xE3o p\xF4de ser confirmado.",
   "decision.ok.alreadyPosted": "Essa publica\xE7\xE3o j\xE1 est\xE1 no ar: {url}",
   "decision.error.connectSocial": "Ligue essa conta social na p\xE1gina de integra\xE7\xF5es primeiro.",
+  "decision.ok.replied": "Enviada para {to}, e outro ator procurou-a na conversa.",
+  "decision.error.draftChanged": "N\xE3o enviada. O texto registado n\xE3o \xE9 o texto aprovado, por isso tem de ser proposto de novo.",
+  "decision.error.draftMissing": "N\xE3o enviada. O rascunho a que esta decis\xE3o dizia respeito j\xE1 n\xE3o est\xE1 registado.",
+  "decision.error.notAnswerable": "N\xE3o enviada. Essa mensagem responde automaticamente ou vem de uma lista, por isso uma resposta chegaria a uma m\xE1quina.",
+  "decision.error.connectMailbox": "Ligue primeiro uma caixa de correio na p\xE1gina de integra\xE7\xF5es.",
   "decision.ok.opened": "Aberto {url}, e o GitHub confirma-o.",
   "decision.ok.openedNote": "Aberto {url}. {why}",
   "decision.ok.alreadyOpened": "Esse pull request j\xE1 est\xE1 aberto: {url}",
@@ -29577,6 +29732,8 @@ var pt_default = {
   "toolCall.run.notRecorded": "A ferramenta respondeu, mas a execu\xE7\xE3o n\xE3o p\xF4de ser registada.",
   "toolCall.run.notEstablished": "A resposta no registo n\xE3o p\xF4de ser confirmada por outro ator.",
   "toolCall.evidence.plan": "A entrada proposta para {tool} em {server}",
+  "reply.evidence.draft": "Uma resposta redigida para {to}, \xE0 espera de uma decis\xE3o.",
+  "reply.evidence.declined": "N\xE3o foi redigida nenhuma resposta para {to}. A nota indica o motivo.",
   "toolCall.evidence.answer": "O que {server} respondeu a {tool}",
   "toolCall.evidence.verified": "A resposta de {tool} em {server}, relida a partir do registo",
   // ATT-11: what needs THIS person in their other workspaces.
@@ -29613,7 +29770,10 @@ var pt_default = {
   "policies.record.succeeded": "Com \xEAxito",
   "policies.record.verified": "Verificadas",
   "policies.record.failed": "Falhadas ou recusadas",
-  "policies.record.all": "Todas as capacidades"
+  "policies.record.all": "Todas as capacidades",
+  // EXEC-30
+  "inbox.tried.heading": "Tentado e recusado",
+  "inbox.tried.body": "Estes tinham permiss\xE3o e o passo foi recusado antes de correr. Corrija a causa e proponha o trabalho novamente: a mesma a\xE7\xE3o n\xE3o pode ser repetida, porque a sua tentativa j\xE1 consta no registo como falhada."
 };
 
 // ../../packages/content/src/messages/pt.legal.ts
@@ -31028,7 +31188,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "33fd2335" : "unknown";
+var sourceCommit = true ? "f72f1d37" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
