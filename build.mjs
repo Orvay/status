@@ -15,7 +15,7 @@ var not_found_default = "/* ====================================================
 var button_default = "/* =============================================================================\n   The button.\n\n   ITS OWN PARTIAL BECAUSE IT HAS A SECOND CONSUMER THAT CANNOT LOAD `ui.css`.\n   `apps/status` is a static generator with no React and no bundler pipeline for\n   stylesheets: it inlines `tokens.css` and `page.css` through esbuild's text\n   loader, and inlining the whole of `ui.css` to reach one control would drag in\n   fields, menus, overlays and navigation that page does not have. Its 404 uses\n   the same two controls as the product's, so this file is the one place their\n   shape is decided, exactly as `not-found.css` is for the lockup they sit under.\n\n   Moved out of `ui.css` verbatim. An `@import` has to precede every rule, so\n   these declarations now sit earlier in the cascade than they used to; nothing\n   in this package or its partials targets `.o-button`, so there is nothing for\n   the move to reorder. The app's own overrides live in `apps/app/src/app/app.css`\n   and still come after this file in full.\n   ============================================================================= */\n\n/* -------------------------------------------------------------- button ---- */\n\n.o-button {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--o-space-2);\n  min-height: var(--o-tap-min);\n  padding: 0 var(--o-space-5);\n  font: var(--o-text-label-14);\n  /* The control tracking, not the label tracking. This is the exact element the\n     flip was measured on: `.Button .Paragraph` OVERRIDES the paragraph's -1.5%\n     with -0.35px, so a button label is tracked ~46% tighter than identical body\n     text beside it (trap 8). The token existed and every new control used it\n     while the button, the halt and the switch still carried the body-tier\n     value, which put a 14px button label at half the tracking of a 14px menu\n     item in the same font. */\n  letter-spacing: var(--o-tracking-control);\n  font-weight: var(--o-weight-medium);\n  /* Fully round. Controls and surfaces are the only two shapes in the system,\n     which is what stops a UI drifting into a dozen near-identical radii. */\n  border-radius: var(--o-radius-pill);\n  border: var(--o-hairline) solid transparent;\n  cursor: pointer;\n  /* An <a> wearing this class is a real case: \"go home\" on the 404 page is a\n     navigation, so it must be an anchor, and a control that navigates should\n     look like the controls beside it. Without this the user agent underlines it\n     and it is the one button in the product with a line under its label. Inert\n     on a <button>, which has no default decoration to reset. */\n  text-decoration: none;\n  /* Declared, never inherited from the user agent.\n     A <button> with no background gets `buttonface`, which is a UA colour that\n     follows `color-scheme` rather than our tokens. It looked right in the light\n     theme purely because the two agreed there, and put near-white ink on a\n     near-white face in dark. A control in a themed system paints its own\n     surface, so that the surface and the ink are decided in the same place. */\n  background: var(--bg-component);\n  color: var(--fg-primary);\n  border-color: var(--line-control);\n  /* Padding is animated deliberately: the control breathes on interaction\n     rather than only changing colour, which reads as physical. */\n  transition:\n    background-color var(--o-dur-quick) var(--o-ease-standard),\n    box-shadow var(--o-dur-quick) var(--o-ease-standard),\n    padding var(--o-dur-quick) var(--o-ease-standard);\n}\n\n/* Approve is FILLED, Reject is OUTLINE. They differed only by hue in the draft\n   and collapsed to identical rectangles in greyscale and forced-colors. */\n/* The solid control: a slab with a faint vertical gradient, so the surface\n   reads as lit from above rather than as flat fill. It is dark in the light\n   theme and light in the dark theme, which is why its ink is a paired token. */\n.o-button[data-intent='primary'] {\n  background: linear-gradient(\n    var(--control-solid-top) 0%,\n    var(--control-solid-bottom) 100%\n  );\n  /* --control-solid-ink, NOT --fg-on-solid. The slab inverts between themes and\n     --o-neutral-9 (which --fg-on-solid is the ink for) does not, so the two\n     drift apart: this rule rendered near-black text on a near-black button at\n     1.21:1 in the LIGHT theme \u2014 the default one \u2014 on every primary button in\n     the product. A fill and its ink are one decision, made in tokens.css. */\n  color: var(--control-solid-ink);\n  box-shadow: var(--o-bevel-control-solid);\n}\n.o-button[data-intent='primary']:hover:not(:disabled) {\n  /* ONE DECLARED COLOUR, NOT THE BOTTOM STOP PAINTED TWICE.\n     Repainting the gradient with its own lower stop is a hover only while the\n     two stops differ, and the paper scope binds both to one ink so the slab\n     reads flat. That made this rule paint the rest state on every surface the\n     product ships, so the loudest control answered the pointer with nothing.\n     `--control-solid-hover` is bound per scope: the neutral surfaces keep the\n     lower stop, which is exactly what this rule used to paint, and paper mixes\n     toward `--bg-subtle` so the direction matches `:active` without going as\n     far. */\n  background: var(--control-solid-hover);\n}\n\n/* The raised control: white, lifted off the ground by a white inset highlight\n   along its top edge plus a soft shadow beneath. This is the bevel that reads\n   as glass \u2014 no backdrop blur is involved (ADR: see tokens.css). */\n.o-button[data-intent='secondary'] {\n  background: var(--bg-raised);\n  color: var(--fg-primary);\n  border-color: transparent;\n  box-shadow: var(--o-bevel-control);\n}\n.o-button[data-intent='secondary']:hover:not(:disabled) {\n  padding-inline: var(--o-space-6);\n}\n\n.o-button[data-intent='danger'] {\n  background: var(--risk-critical-solid);\n  color: var(--risk-critical-on);\n}\n\n/* `[aria-disabled]`, NOT `:disabled`, and the difference was a shipped defect.\n\n   Button sets `aria-disabled` rather than the native attribute on purpose: the\n   native one removes the control from the tab order and announces nothing, so a\n   reader who tabs to a greyed Approve would never hear why it is unavailable.\n   That is right. But `:disabled` matches only the native attribute, so this rule\n   never applied to anything \u2014 a disabled button was inert to clicks, announced\n   as unavailable to a screen reader, and visually identical to a working one for\n   everybody else. Each half was individually correct, which is why nothing\n   caught it. Both selectors are listed so a caller using the native attribute\n   for a form control still gets the visual. */\n.o-button:disabled,\n.o-button[aria-disabled='true'] {\n  opacity: 0.55;\n  cursor: not-allowed;\n}\n\n.o-button:focus-visible {\n  outline: 2px solid var(--focus-ring);\n  outline-offset: 2px;\n}\n\n/* ===================================================================== actions ===\n   A row of buttons, owned here so a screen cannot invent a fifth geometry.\n\n   `flex: 0 0 auto` on the children is the whole rule. Without it a row that\n   happens to be a grid stretches its items to full width, which is how the\n   onboarding wizard ended up rendering the same two buttons in four different\n   shapes across seven screens.\n   ============================================================================ */\n\n.o-actions {\n  display: flex;\n  flex-wrap: wrap;\n  align-items: center;\n  gap: var(--o-space-3);\n  margin-block-start: var(--o-space-5);\n}\n\n.o-actions[data-align='end'] {\n  justify-content: flex-end;\n}\n\n/* Never stretch, never shrink below the label. \"Back\" is four characters and\n   \"Go to the command center\" is twenty-three; one width would make the first\n   absurd and both filling would make each a slab. */\n.o-actions > * {\n  flex: 0 0 auto;\n}\n\n/* An action row is the last thing on a step, so it owns the space above it and\n   nothing owns space below. A margin on both sides double-spaces a wrapped row. */\n.o-actions:last-child {\n  margin-block-end: 0;\n}\n\n/* The last child pushed to the far end. `margin-inline-start: auto` rather than\n   `justify-content: space-between`, because the row may wrap and space-between\n   would then spread a wrapped line across the whole column. */\n.o-actions[data-split] > :last-child {\n  margin-inline-start: auto;\n}\n";
 
 // ../../packages/ui/src/feedback.css
-var feedback_default = "/* =============================================================================\n   Absences, failures, and the one thing that blinks.\n   ============================================================================= */\n\n/* --------------------------------------------------------------- notice ---- */\n\n.o-notice {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-3) var(--o-space-4);\n  border-radius: var(--o-radius-md);\n  background: var(--bg-subtle);\n  color: var(--fg-primary);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n/*\n  A LONG UNBREAKABLE TOKEN MUST NOT WIDEN THE PAGE, and by default it does.\n\n  A `1fr` track resolves its minimum to `auto`, which is the content's\n  min-content width, so a grid column holding one long word refuses to shrink\n  and pushes its container past the viewport. `min-inline-size: 0` lets the\n  track shrink; `overflow-wrap: anywhere` then gives the word somewhere to\n  break. Both are needed and neither alone is enough.\n\n  Measured, at 390: a notice naming two deployment variables\n  (`MCP_OAUTH_CLIENT_ID__AUTH_EXAMPLE_COM` and its secret, 38 characters with no\n  space or hyphen to break at) widened its whole panel by 129px and clipped the\n  registration form beside it. \xA712c: wide content scrolls inside its own\n  container, and the page body never scrolls horizontally.\n\n  Fixed on the OWNER rather than at the call site, which is \xA79b's instruction:\n  a notice is the surface things get NAMED on, so an address, an identifier or a\n  variable name lands in one regularly, and every one of them had this.\n*/\n.o-notice > * {\n  min-inline-size: 0;\n}\n\n.o-notice__title,\n.o-notice__detail {\n  overflow-wrap: anywhere;\n}\n\n.o-notice__glyph {\n  margin-block-start: 0.15em;\n  color: var(--fg-secondary);\n}\n\n.o-notice__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n}\n\n.o-notice__detail {\n  margin-block-start: var(--o-space-2);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  color: var(--fg-secondary);\n}\n\n/* The tint is the second carrier, never the first. The glyph differs per tone\n   and the screen-reader word states it outright, so all four survive\n   forced-colors, greyscale print and achromatopsia. */\n/* One column, because an untinted notice renders no glyph. Leaving the `auto`\n   track in place would indent the text past a column that is never filled. */\n.o-notice[data-tone='info'] { grid-template-columns: 1fr; }\n\n.o-notice[data-tone='ok'] { background: var(--risk-low-tint); }\n.o-notice[data-tone='ok'] .o-notice__glyph { color: var(--verified-text); }\n.o-notice[data-tone='warning'] { background: var(--risk-medium-tint); }\n.o-notice[data-tone='warning'] .o-notice__glyph { color: var(--risk-medium-text); }\n.o-notice[data-tone='error'] { background: var(--risk-critical-tint); }\n.o-notice[data-tone='error'] .o-notice__glyph { color: var(--risk-critical-text); }\n\n@media (forced-colors: active) {\n  .o-notice { border: 1px solid CanvasText; }\n}\n\n/* ---------------------------------------------------------------- empty ---- */\n\n.o-empty {\n  display: grid;\n  gap: var(--o-space-2);\n  justify-items: start;\n  padding: var(--o-space-6) var(--o-space-5);\n  border-radius: var(--o-radius-lg);\n  /* Recessed, not raised. An absence is not a result being presented, and\n     giving it the card treatment makes emptiness look like content. */\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n}\n\n.o-empty__title {\n  margin: 0;\n  font: var(--o-text-title-19);\n  letter-spacing: var(--o-tracking-title-19);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n.o-empty__because {\n  margin: 0;\n  max-inline-size: 52ch;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-secondary);\n}\n\n.o-empty__action { margin-block-start: var(--o-space-2); }\n\n/* ---------------------------------------------------------------- error ---- */\n\n.o-error {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-4);\n  border-radius: var(--o-radius-lg);\n  background: var(--risk-critical-tint);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-error__glyph {\n  margin-block-start: 0.15em;\n  color: var(--risk-critical-text);\n}\n\n.o-error__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n/* What still works is set in primary ink, not muted. It is the sentence the\n   reader most needs and the one a design instinct most wants to de-emphasise. */\n.o-error__still {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-primary);\n}\n\n.o-error__detail {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-mono-13);\n  font-family: var(--o-font-mono);\n  color: var(--fg-secondary);\n  overflow-wrap: break-word;\n}\n\n.o-error__action { margin-block-start: var(--o-space-3); }\n\n@media (forced-colors: active) {\n  .o-error { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- loading ---- */\n\n/* Loading is the provenance hatch, and it does not move.\n\n   A loading state and an unverified state are both \"this is not yet a fact\",\n   so they look related (\xA76.2). A shimmer says the opposite \u2014 it says something\n   is happening on a surface whose whole argument is that it shows only what has\n   been established \u2014 and it is the most common source of ambient motion in a\n   product that permits none. */\n.o-loading {\n  display: grid;\n  gap: var(--o-space-2);\n}\n\n.o-loading__line {\n  display: block;\n  block-size: 0.75rem;\n  border-radius: var(--o-radius-sm);\n  background-color: var(--bg-subtle);\n  background-image: var(--provenance-hatch);\n}\n\n.o-loading__line:nth-child(2) { inline-size: 82%; }\n.o-loading__line:nth-child(3) { inline-size: 64%; }\n\n/* ------------------------------------------------------------- progress ---- */\n\n.o-progress { display: grid; gap: var(--o-space-2); }\n\n.o-progress__head {\n  display: flex;\n  justify-content: space-between;\n  gap: var(--o-space-3);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n}\n\n.o-progress__label { color: var(--fg-primary); }\n\n.o-progress__count {\n  color: var(--fg-secondary);\n  font-variant-numeric: tabular-nums;\n  letter-spacing: var(--o-tracking-numeric);\n}\n\n.o-progress__track {\n  block-size: 6px;\n  border-radius: var(--o-radius-pill);\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n  overflow: hidden;\n}\n\n.o-progress__fill {\n  display: block;\n  block-size: 100%;\n  border-radius: inherit;\n  background: linear-gradient(var(--control-solid-top) 0%, var(--control-solid-bottom) 100%);\n  /* The fill transitions when the fraction changes, and does not animate on\n     load. Series and figures draw instantly (\xA76.2); this is a state change,\n     which is one of the four permitted meanings. */\n  transition: inline-size var(--o-dur-considered) var(--o-ease-standard);\n}\n\n@media (forced-colors: active) {\n  .o-progress__track { border: 1px solid CanvasText; }\n  .o-progress__fill { background: CanvasText; }\n}\n\n/* ---------------------------------------------------------------- stale ---- */\n\n/* THE ONLY LOOP IN THE PRODUCT.\n\n   A run whose platform-observed heartbeat has gone quiet while it still reports\n   itself as running. 0.8 Hz at 70% duty is the low-priority flash rate from the\n   NASA display standard, and this is deliberately the only moving thing on any\n   screen, which is precisely why it will be seen.\n\n   The reference's reduced-motion block deletes its equivalent indicator and\n   substitutes nothing (trap 19). Here the glyph carries a hatch and the literal\n   word STALE at all times, so standing the pulse down removes the movement and\n   not the message. */\n.o-stale {\n  display: inline-flex;\n  align-items: center;\n  gap: var(--o-space-2);\n  padding: 2px var(--o-space-2);\n  border-radius: var(--o-radius-sm);\n  background-color: var(--risk-medium-tint);\n  background-image: var(--provenance-hatch);\n  color: var(--fg-primary);\n  font: var(--o-text-micro-11);\n  letter-spacing: 0.06em;\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-stale__glyph { color: var(--risk-medium-text); }\n\n.o-stale__word { font-weight: var(--o-weight-strong); }\n\n.o-stale__since {\n  letter-spacing: var(--o-tracking-badge);\n  color: var(--fg-secondary);\n  text-transform: none;\n}\n\n@media (prefers-reduced-motion: no-preference) {\n  /* Declared INSIDE no-preference, so the reduced path needs no code and\n     therefore cannot be got wrong (\xA76.3). */\n  .o-stale__glyph {\n    animation: o-stale-pulse 1250ms steps(1, end) infinite;\n  }\n}\n\n/* 0.8 Hz = 1250ms. 70% duty: lit for 875ms of every cycle. `steps(1, end)`\n   rather than an eased fade, because a flash rate is defined by its duty cycle\n   and a crossfade has no duty cycle. */\n@keyframes o-stale-pulse {\n  0%, 69.99% { opacity: 1; }\n  70%, 100% { opacity: 0.35; }\n}\n\n@media (forced-colors: active) {\n  .o-stale { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- tooltip ---- */\n\n.o-tooltip { position: relative; display: inline-flex; }\n\n.o-tooltip__bubble {\n  position: absolute;\n  inset-block-end: calc(100% + var(--o-space-2));\n  inset-inline-start: 50%;\n  z-index: var(--o-z-overlay);\n  translate: -50% 0;\n  inline-size: max-content;\n  max-inline-size: 22rem;\n  padding: var(--o-space-2) var(--o-space-3);\n  border-radius: var(--o-radius-sm);\n  background: var(--bg-raised);\n  color: var(--fg-primary);\n  box-shadow: var(--o-bevel-raised);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  opacity: 0;\n  /* Hidden from the pointer AND from paint, but never removed from the DOM: the\n     trigger's aria-describedby has to keep resolving whether or not the bubble\n     is visible, and display:none would break that association. */\n  visibility: hidden;\n  transition:\n    opacity var(--o-dur-exit) var(--o-ease-exit),\n    visibility var(--o-dur-exit);\n  pointer-events: none;\n}\n\n/* Focus as well as hover. A tooltip that only answers to a pointer is invisible\n   to a keyboard reader and absent from a touch device. */\n.o-tooltip:hover .o-tooltip__bubble,\n.o-tooltip:focus-within .o-tooltip__bubble {\n  opacity: 1;\n  visibility: visible;\n  transition:\n    opacity var(--o-dur-enter) var(--o-ease-enter),\n    visibility 0s;\n}\n\n/* Escape dismisses while the trigger keeps focus (WCAG 1.4.13). A tooltip a\n   reader cannot dismiss can cover the content they were trying to read. */\n.o-tooltip[data-dismissed] .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:hover .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:focus-within .o-tooltip__bubble {\n  opacity: 0;\n  visibility: hidden;\n}\n\n@media (forced-colors: active) {\n  .o-tooltip__bubble { border: 1px solid CanvasText; }\n}\n";
+var feedback_default = "/* =============================================================================\n   Absences, failures, and the one thing that blinks.\n   ============================================================================= */\n\n/* --------------------------------------------------------------- notice ---- */\n\n.o-notice {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-3) var(--o-space-4);\n  border-radius: var(--o-radius-md);\n  background: var(--bg-subtle);\n  color: var(--fg-primary);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n/*\n  A LONG UNBREAKABLE TOKEN MUST NOT WIDEN THE PAGE, and by default it does.\n\n  A `1fr` track resolves its minimum to `auto`, which is the content's\n  min-content width, so a grid column holding one long word refuses to shrink\n  and pushes its container past the viewport. `min-inline-size: 0` lets the\n  track shrink; `overflow-wrap: anywhere` then gives the word somewhere to\n  break. Both are needed and neither alone is enough.\n\n  Measured, at 390: a notice naming two deployment variables\n  (`MCP_OAUTH_CLIENT_ID__AUTH_EXAMPLE_COM` and its secret, 38 characters with no\n  space or hyphen to break at) widened its whole panel by 129px and clipped the\n  registration form beside it. \xA712c: wide content scrolls inside its own\n  container, and the page body never scrolls horizontally.\n\n  Fixed on the OWNER rather than at the call site, which is \xA79b's instruction:\n  a notice is the surface things get NAMED on, so an address, an identifier or a\n  variable name lands in one regularly, and every one of them had this.\n*/\n.o-notice > * {\n  min-inline-size: 0;\n}\n\n.o-notice__title,\n.o-notice__detail {\n  overflow-wrap: anywhere;\n}\n\n.o-notice__glyph {\n  margin-block-start: 0.15em;\n  color: var(--fg-secondary);\n}\n\n.o-notice__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n}\n\n.o-notice__detail {\n  margin-block-start: var(--o-space-2);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  color: var(--fg-secondary);\n}\n\n/* The tint is the second carrier, never the first. The glyph differs per tone\n   and the screen-reader word states it outright, so all four survive\n   forced-colors, greyscale print and achromatopsia. */\n/* One column, because an untinted notice renders no glyph. Leaving the `auto`\n   track in place would indent the text past a column that is never filled. */\n.o-notice[data-tone='info'] { grid-template-columns: 1fr; }\n\n.o-notice[data-tone='ok'] { background: var(--risk-low-tint); }\n.o-notice[data-tone='ok'] .o-notice__glyph { color: var(--verified-text); }\n.o-notice[data-tone='warning'] { background: var(--risk-medium-tint); }\n.o-notice[data-tone='warning'] .o-notice__glyph { color: var(--risk-medium-text); }\n.o-notice[data-tone='error'] { background: var(--risk-critical-tint); }\n.o-notice[data-tone='error'] .o-notice__glyph { color: var(--risk-critical-text); }\n\n@media (forced-colors: active) {\n  .o-notice { border: 1px solid CanvasText; }\n}\n\n/* ---------------------------------------------------------------- empty ---- */\n\n.o-empty {\n  display: grid;\n  gap: var(--o-space-2);\n  justify-items: start;\n  padding: var(--o-space-6) var(--o-space-5);\n  border-radius: var(--o-radius-lg);\n  /* Recessed, not raised. An absence is not a result being presented, and\n     giving it the card treatment makes emptiness look like content. */\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n}\n\n.o-empty__title {\n  margin: 0;\n  font: var(--o-text-title-19);\n  letter-spacing: var(--o-tracking-title-19);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n.o-empty__because {\n  margin: 0;\n  max-inline-size: 52ch;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-secondary);\n}\n\n.o-empty__action { margin-block-start: var(--o-space-2); }\n\n/* ---------------------------------------------------------------- error ---- */\n\n.o-error {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  gap: var(--o-space-3);\n  padding: var(--o-space-4);\n  border-radius: var(--o-radius-lg);\n  background: var(--risk-critical-tint);\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-error__glyph {\n  margin-block-start: 0.15em;\n  color: var(--risk-critical-text);\n}\n\n.o-error__title {\n  margin: 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  font-weight: var(--o-weight-medium);\n  color: var(--fg-primary);\n}\n\n/* What still works is set in primary ink, not muted. It is the sentence the\n   reader most needs and the one a design instinct most wants to de-emphasise. */\n.o-error__still {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-body-15);\n  letter-spacing: var(--o-tracking-body-15);\n  color: var(--fg-primary);\n}\n\n.o-error__detail {\n  margin: var(--o-space-2) 0 0;\n  font: var(--o-text-mono-13);\n  font-family: var(--o-font-mono);\n  color: var(--fg-secondary);\n  overflow-wrap: break-word;\n}\n\n.o-error__action { margin-block-start: var(--o-space-3); }\n\n@media (forced-colors: active) {\n  .o-error { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- loading ---- */\n\n/* Loading is the provenance hatch, and it does not move.\n\n   A loading state and an unverified state are both \"this is not yet a fact\",\n   so they look related (\xA76.2). A shimmer says the opposite \u2014 it says something\n   is happening on a surface whose whole argument is that it shows only what has\n   been established \u2014 and it is the most common source of ambient motion in a\n   product that permits none. */\n.o-loading {\n  display: grid;\n  gap: var(--o-space-2);\n}\n\n.o-loading__line {\n  display: block;\n  block-size: 0.75rem;\n  border-radius: var(--o-radius-sm);\n  background-color: var(--bg-subtle);\n  background-image: var(--provenance-hatch);\n}\n\n.o-loading__line:nth-child(2) { inline-size: 82%; }\n.o-loading__line:nth-child(3) { inline-size: 64%; }\n\n/* ------------------------------------------------------------- progress ---- */\n\n.o-progress { display: grid; gap: var(--o-space-2); }\n\n.o-progress__head {\n  display: flex;\n  justify-content: space-between;\n  gap: var(--o-space-3);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n}\n\n.o-progress__label { color: var(--fg-primary); }\n\n.o-progress__count {\n  color: var(--fg-secondary);\n  font-variant-numeric: tabular-nums;\n  letter-spacing: var(--o-tracking-numeric);\n}\n\n.o-progress__track {\n  block-size: 6px;\n  border-radius: var(--o-radius-pill);\n  background: var(--bg-subtle);\n  box-shadow: var(--o-bevel-inset);\n  overflow: hidden;\n}\n\n.o-progress__fill {\n  display: block;\n  block-size: 100%;\n  border-radius: inherit;\n  background: linear-gradient(var(--control-solid-top) 0%, var(--control-solid-bottom) 100%);\n  /* The fill transitions when the fraction changes, and does not animate on\n     load. Series and figures draw instantly (\xA76.2); this is a state change,\n     which is one of the four permitted meanings. */\n  transition: inline-size var(--o-dur-considered) var(--o-ease-standard);\n}\n\n@media (forced-colors: active) {\n  .o-progress__track { border: 1px solid CanvasText; }\n  .o-progress__fill { background: CanvasText; }\n}\n\n/* ---------------------------------------------------------------- stale ---- */\n\n/* THE ONLY LOOP IN THE PRODUCT.\n\n   A run whose platform-observed heartbeat has gone quiet while it still reports\n   itself as running. 0.8 Hz at 70% duty is the low-priority flash rate from the\n   NASA display standard, and this is deliberately the only moving thing on any\n   screen, which is precisely why it will be seen.\n\n   The reference's reduced-motion block deletes its equivalent indicator and\n   substitutes nothing (trap 19). Here the glyph carries a hatch and the literal\n   word STALE at all times, so standing the pulse down removes the movement and\n   not the message. */\n.o-stale {\n  display: inline-flex;\n  align-items: center;\n  gap: var(--o-space-2);\n  padding: 2px var(--o-space-2);\n  border-radius: var(--o-radius-sm);\n  background-color: var(--risk-medium-tint);\n  background-image: var(--provenance-hatch);\n  color: var(--fg-primary);\n  font: var(--o-text-micro-11);\n  letter-spacing: 0.06em;\n  print-color-adjust: exact;\n  -webkit-print-color-adjust: exact;\n}\n\n.o-stale__glyph { color: var(--risk-medium-text); }\n\n.o-stale__word { font-weight: var(--o-weight-strong); }\n\n.o-stale__since {\n  letter-spacing: var(--o-tracking-badge);\n  color: var(--fg-secondary);\n  text-transform: none;\n}\n\n@media (prefers-reduced-motion: no-preference) {\n  /* Declared INSIDE no-preference, so the reduced path needs no code and\n     therefore cannot be got wrong (\xA76.3). */\n  .o-stale__glyph {\n    animation: o-stale-pulse 1250ms steps(1, end) infinite;\n  }\n}\n\n/* 0.8 Hz = 1250ms. 70% duty: lit for 875ms of every cycle. `steps(1, end)`\n   rather than an eased fade, because a flash rate is defined by its duty cycle\n   and a crossfade has no duty cycle. */\n@keyframes o-stale-pulse {\n  0%, 69.99% { opacity: 1; }\n  70%, 100% { opacity: 0.35; }\n}\n\n@media (forced-colors: active) {\n  .o-stale { border: 1px solid CanvasText; }\n}\n\n/* -------------------------------------------------------------- tooltip ---- */\n\n.o-tooltip { position: relative; display: inline-flex; }\n\n.o-tooltip__bubble {\n  position: absolute;\n  inset-block-end: calc(100% + var(--o-space-2));\n  inset-inline-start: 50%;\n  z-index: var(--o-z-overlay);\n  translate: -50% 0;\n  inline-size: max-content;\n  max-inline-size: 22rem;\n  padding: var(--o-space-2) var(--o-space-3);\n  border-radius: var(--o-radius-sm);\n  background: var(--bg-raised);\n  color: var(--fg-primary);\n  box-shadow: var(--o-bevel-raised);\n  font: var(--o-text-label-14);\n  letter-spacing: var(--o-tracking-label-14);\n  opacity: 0;\n  /* Hidden from the pointer AND from paint, but never removed from the DOM: the\n     trigger's aria-describedby has to keep resolving whether or not the bubble\n     is visible, and display:none would break that association. */\n  visibility: hidden;\n  transition:\n    opacity var(--o-dur-exit) var(--o-ease-exit),\n    visibility var(--o-dur-exit);\n  pointer-events: none;\n}\n\n/* Focus as well as hover. A tooltip that only answers to a pointer is invisible\n   to a keyboard reader and absent from a touch device. */\n.o-tooltip:hover .o-tooltip__bubble,\n.o-tooltip:focus-within .o-tooltip__bubble {\n  opacity: 1;\n  visibility: visible;\n  transition:\n    opacity var(--o-dur-enter) var(--o-ease-enter),\n    visibility 0s;\n}\n\n/* Escape dismisses while the trigger keeps focus (WCAG 1.4.13). A tooltip a\n   reader cannot dismiss can cover the content they were trying to read. */\n.o-tooltip[data-dismissed] .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:hover .o-tooltip__bubble,\n.o-tooltip[data-dismissed]:focus-within .o-tooltip__bubble {\n  opacity: 0;\n  visibility: hidden;\n}\n\n@media (forced-colors: active) {\n  .o-tooltip__bubble { border: 1px solid CanvasText; }\n}\n\n/* ---------------------------------------------------------------------------\n   SuggestField: a textarea that completes a token after a trigger character.\n\n   THE LIST IS POSITIONED ABOVE THE FIELD, not below. A composer sits at the\n   FOOT of a thread, so a list opening downward is clipped by the viewport and\n   the options cannot be reached at all. `Dropdown` makes the caller declare\n   this with a `drop` prop because it can sit anywhere; this one only ever sits\n   under a composer, so the direction is fixed and stated rather than passed.\n   --------------------------------------------------------------------------- */\n.o-suggest {\n  position: relative;\n  display: grid;\n  gap: var(--o-space-1);\n}\n\n/* TEN OF THE THIRTEEN TOKENS THIS BLOCK NAMED DID NOT EXIST, so the list\n   painted as bare text floating over the paragraph above it: no surface, no\n   border, no shadow, wrong colours. An undefined custom property is CSS's\n   quietest failure, because `background: var(--o-surface-raised)` with no\n   fallback is invalid at computed-value time and the property silently falls\n   back to transparent. Nothing reported it: `enforce:check` printed\n   \"56 stylesheets scanned clean\" over this file every run, and no scan checks\n   that a referenced token is DEFINED.\n\n   THE NAMES NOW COME FROM `dropdown.css`, which is the same shape of popup and\n   the one that works. \xA74: one owner per concern, and the owner of \"what a\n   raised panel looks like\" is the token file plus the component that already\n   got it right. */\n.o-suggest__list {\n  position: absolute;\n  bottom: calc(100% + var(--o-space-1));\n  inset-inline: 0;\n  z-index: var(--o-z-overlay);\n  margin: 0;\n  padding: var(--o-space-1);\n  list-style: none;\n  max-height: 16rem;\n  overflow-y: auto;\n  background: var(--bg-raised);\n  border-radius: var(--o-radius-md);\n  box-shadow: var(--o-bevel-raised);\n}\n\n.o-suggest__option {\n  display: grid;\n  grid-template-columns: auto 1fr;\n  align-items: baseline;\n  gap: var(--o-space-2);\n  /* 32px, the house floor for a dense list (\xA77a rule 4). Choosing a mention is\n     neither irreversible nor costly, so it does not need the 44px an erase or\n     a publish does. */\n  min-height: 2rem;\n  padding: var(--o-space-1) var(--o-space-2);\n  border-radius: var(--o-radius-sm);\n  color: var(--fg-primary);\n  cursor: pointer;\n}\n\n/* THE HIGHLIGHT IS NOT CARRIED BY COLOUR ALONE (\xA77a rule 2, WCAG 1.4.1). The\n   fill is the courtesy; `aria-selected` is what a screen reader reads, and the\n   inline-start rule survives `forced-colors`, where a background is discarded\n   entirely. */\n.o-suggest__option[data-active] {\n  background: var(--bg-canvas);\n  box-shadow: inset 2px 0 0 0 var(--accent-solid);\n}\n\n@media (forced-colors: active) {\n  .o-suggest__option[data-active] {\n    outline: 2px solid Highlight;\n    outline-offset: -2px;\n  }\n}\n\n.o-suggest__name {\n  font-family: var(--o-font-mono);\n  color: var(--fg-primary);\n}\n\n.o-suggest__hint {\n  color: var(--fg-secondary);\n  font: var(--o-text-label-14);\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n";
 
 // ../../brand/orvay-favicon.svg
 var orvay_favicon_default = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Orvay">\n  <!--\n    The Orvay mark on its favicon tile. THE MASTER FOR THE TILED FORM.\n\n    brand/orvay-mark.svg is the master for the bare glyph; this is that glyph\n    placed on the dark tile, which is what a browser tab, an app icon and a\n    masthead actually want. Next.js requires a copy at apps/*/src/app/icon.svg\n    for its file convention, and those two are copies of this, regenerated\n    together rather than edited apart.\n\n    It lives outside apps/ because it is shared: apps/status imports it to write\n    its own favicon, and apps importing apps is a section 5 prohibition that\n    pnpm arch:check enforces. Pulling it from apps/site was the first attempt and\n    the check refused it.\n\n    No double hyphen appears in this comment, and that is load-bearing rather\n    than stylistic. XML forbids it inside a comment, and an earlier version of\n    this drawing used one: the favicon was unparseable, the browser fell back to\n    a default glyph, and it served a 200 with the right content-type the whole\n    time. scripts/check-enforcement.mjs now refuses it.\n\n    Colour literals are unavoidable in an image asset and the constitution ban is\n    scoped to CSS and TypeScript, where tokens.css is the sole owner. These two\n    values are the dark theme neutral-1 and neutral-12 resolved from oklch, held\n    in sync by nothing but this sentence, which is acceptable for a 32px mark\n    that changes approximately never.\n  -->\n  <rect width="32" height="32" rx="8" fill="#0c0d0f" />\n  <g transform="translate(0.2057 0.2057) scale(0.030848)">\n    <path fill="#eef0f3" fill-rule="nonzero" d="M359.5 122.9 L606.0 122.9 L722.7 239.6 L722.7 353.8 L822.0 353.8 L890.4 422.2 L890.4 675.2 L664.5 901.1 L418.0 901.1 L301.3 784.4 L301.3 670.2 L202.0 670.2 L133.6 601.8 L133.6 348.8 Z M284.0 400.7 L284.0 566.3 L466.0 748.3 L610.2 748.3 L737.6 620.9 L737.6 455.3 L555.6 273.3 L411.4 273.3 Z"/>\n  </g>\n</svg>\n';
@@ -57,10 +57,19 @@ var scale = (m, numerator, denominator) => {
 };
 
 // ../../packages/domain/src/capability.ts
-var CHANNELS = ["email", "voice", "sms"];
+var COMMUNICATION_CHANNELS = [
+  "email",
+  "voice",
+  "sms",
+  "public"
+];
+var CHANNELS = COMMUNICATION_CHANNELS;
 var RESERVED_RESOURCE_PREFIXES = ["communicate", ...CHANNELS].map(
   (segment) => `${segment}.`
 );
+
+// ../../packages/domain/src/rooms.ts
+var HANDOFF_LEASE_SECONDS = 15 * 60;
 
 // ../../packages/domain/src/roles.ts
 var ROLE_ORDER = Object.freeze([
@@ -97,7 +106,76 @@ var MEMBER = [
       they drafted. Forgetting a memory changes what every future answer for every
       colleague is built from, which is why that one sits with halting.
     */
-  "company.files:write:company"
+  "company.files:write:company",
+  /*
+    TEACHING THE COMPANY FROM YOUR OWN CONVERSATION (R1.10). Learning ran under
+    the read intent, so a guest's talk became facts every later answer was built
+    from. Member rather than admin: it is additive, a person can forget any fact
+    it produced, and it only ever reads conversations this person alone spoke in.
+    Guest and viewer do not hold it, which is the point.
+  */
+  "company.memory:learn:company",
+  /*
+      SAYING WHICH SLACK USER YOU ARE. Linking a Slack user id to your own seat,
+      from a signed-in session, so that a mention of @orvay in the company's bound
+      channel acts as you. Member rather than viewer, because a linked Slack user
+      can ask the company for work through the same door a member's click uses;
+      a viewer's seat causes nothing and gains nothing from a second way in.
+  
+      IT TRANSFERS NO AUTHORITY, and that is what makes it a member's own to
+      hold: the linked user acts as this member with this member's grants, and
+      `admit()` decides every request as if the member had clicked. Unlinking is
+      the same capability, because it is the same fact about the same seat.
+    */
+  "slack.identity:link:company",
+  /*
+      WATCHING A BROWSER SESSION, AND TAKING IT OVER WHEN IT ASKS FOR A PERSON
+      (ADR-0070). Copies of `BROWSER_SESSION_VIEW` and the shape
+      `browserControlCapability` builds, in `apps/app/src/server/browser-capabilities.ts`.
+  
+      Member rather than admin, and the handoff is the argument. A session stops
+      for a person at a login challenge, an MFA prompt or a CAPTCHA it may not
+      solve, and the person who started the work is usually a member. A handoff
+      only an admin could pick up would sit until the idle close killed it.
+  
+      WHAT A MEMBER DOES NOT GET, which is the other five: authorizing a site,
+      letting the agent act on one, moving files across, and importing or revoking
+      credentials. Taking over a session is acting yourself, on a site somebody
+      with more authority already authorized, in a session somebody already
+      opened; none of those five is. A viewer holds neither, because watching a
+      third party's site under the company's account shows that account's pages,
+      and a viewer's preset is pinned by `roles.test.ts` to reading the company.
+    */
+  "browser.session:view:company",
+  "browser.session:control:*",
+  /*
+      THE FOUR WORKFLOW CAPABILITIES A MEMBER DOES THE WORK WITH (ADR-0072 D15).
+      Copies of four of the nine constants in
+      `apps/app/src/server/workflow-capabilities.ts`.
+  
+      ANSWERING IS THE ONE THAT DECIDES THE OTHERS. A workflow stops and asks a
+      person a question, and the person it asks is whoever the run assigned it to,
+      which is a member. A bundle that left `workflow.task:answer:company` to an
+      owner would put every human task in the product behind one seat, and the
+      refusal at gate 5 carries no explanation. That is the defect this file
+      records for `company.files:write:company`, `company.memory:forget:company`
+      and `consent.record:capture:email`, arriving a fourth time.
+  
+      THE OTHER THREE MOVE NOTHING. A draft is a document. A dry run is simulated
+      by construction. Starting a run authorizes NO step of it: every effect a run
+      proposes is admitted against its own capability when it runs, so this grant
+      is the permission to begin and not the permission to do anything.
+  
+      WHAT A MEMBER DOES NOT GET, which is the other five: publishing a version
+      (it enables every later unattended run), resolving an exception (it asserts
+      a write landed, or spends again), cancelling somebody else's run, and the
+      two exports. The exports are the only pair worth arguing, and the argument
+      is in ADMIN beside `company.data:export:company`.
+    */
+  "workflow.task:answer:company",
+  "workflow.version:draft:company",
+  "workflow.run:dry_run:company",
+  "workflow.run:start:company"
 ];
 var ADMIN = [
   "company:read:company",
@@ -125,6 +203,44 @@ var ADMIN = [
   "member:remove:company",
   "company.halt:engage:company",
   "company.halt:release:company",
+  /*
+      STOPPING A WELCOME POST THAT HAS NOT GONE OUT, AND WHY ONLY THIS HALF.
+  
+      `company.announcement:consent:company` is NOT here. Agreeing that Orvay may
+      name the company publicly is the company speaking about itself to people who
+      are not in it, which is the shape this bundle is defined by not holding, so
+      it stays with the owner through `*:*:*`.
+  
+      Cancelling is the opposite act and takes the opposite answer. KILLING
+      SOMETHING MUST NEVER BE HARDER THAN STARTING IT: the seventy-two hour window
+      is the only moment the decision is reversible, and a bundle that could not
+      reach the stop button would spend it looking for an owner. §7a makes the
+      same argument for erasure, and it is the argument for `company.halt:engage`
+      two lines up.
+    */
+  "company.announcement:cancel:company",
+  /*
+      `company.brand:state:company` IS NOT HERE, AND THE REASON IS A MEASUREMENT.
+  
+      It belongs here on the merits: this bundle is defined by not holding acts
+      that speak to people outside the company, and a brand brief reaches
+      nobody. It was added, and `saas-ops-grants-backfill.pg.test.ts` refused it
+      with 41 capabilities against 42.
+  
+      That test is right and the lesson is §6b's. A preset is only a NAME for a
+      bundle; what a member holds is the row in `orvay.members.role_grants`,
+      written when the seat was created. Widening the preset does not widen the
+      seats, so every admin who already exists stops matching it, `identifyRole`
+      answers `custom` rather than `preset: admin`, and the team screen relabels
+      people who changed nothing.
+  
+      So adding it needs a second migration over `role_grants`, of the shape
+      `saas-ops-grants-backfill` already proves, and rewriting what members hold
+      is a deliberate act rather than a side effect of a settings screen.
+  
+      UNTIL THEN THE OWNER STATES THE BRIEF, through `*:*:*`. That is the
+      conservative direction: widening later is easy and narrowing is not.
+    */
   "integration:connect:company",
   "integration:disconnect:company",
   // Reading the mailbox the row above connected. With the connect and not with
@@ -178,6 +294,8 @@ var ADMIN = [
   // Inherited from MEMBER: the ladder is containment, and `isAttenuationOf`
   // proves it rather than trusting this comment.
   "company.files:write:company",
+  "company.memory:learn:company",
+  "slack.identity:link:company",
   /*
       TELLING ORVAY TO STOP USING SOMETHING IT LEARNED, AND THE ROLE QUESTION WAS
       NEARLY NOT ASKED AT ALL.
@@ -204,7 +322,94 @@ var ADMIN = [
     is something an admin could already do.
   */
   "policy.delegation:record:company",
-  "policy.delegation:revoke:company"
+  "policy.delegation:revoke:company",
+  /*
+      THE BROWSER LANE (ADR-0070 section 10, ADR-0071), all seven. Copies of the
+      strings and shapes in `apps/app/src/server/browser-capabilities.ts`.
+  
+      Watching and taking over are inherited from MEMBER. The five that are not
+      sit here with `integration:connect:company` and for its reason: authorizing
+      a site, importing its credentials and revoking them are the browser's form
+      of connecting an account, which is already an admin's authority.
+  
+      THE TWO THAT CROSS THE BOUNDARY, ARGUED RATHER THAN WAVED THROUGH, because
+      this bundle is defined by holding nothing that reaches a stranger.
+      `browser.session:act:*` is an agent acting on a site the company holds an
+      account on, under that account, not a message to a person; and
+      `browser.file:transfer:*` is one document crossing to or from such a site,
+      the same class of act as `company.files:share:company` above it, which this
+      bundle already holds.
+  
+      AND `approval` IS NOT A SECOND PERSON HERE. This comment used to finish
+      "gate 7 still stops the act", which is false in almost every company this
+      product has, and it was measured rather than re-reasoned:
+      `apps/app/src/server/browser-capabilities.test.ts` runs the real starter
+      policy and this bundle through `admit()` and gets `allow`. Below fifty
+      members `profileForOrgSize` gives `selfApproval: 'allowed_with_record'`, so
+      a HUMAN admin who presses the button discharges their own approval and the
+      decision carries a `record_self_approval` obligation. At fifty and above it
+      is `forbidden` and the act genuinely waits for somebody else. An AGENT is
+      stopped at every size, because an agent has no self to approve with, and
+      that is the case the `approval` row is actually for.
+  
+      THE ROWS STAY, AND THE REASON IS THE ONE THIS FILE RECORDS THREE TIMES
+      ALREADY. A capability `DEFAULT_GRANTS` seeds and no bundle names is held by
+      nobody but an owner, so the screen renders and every use of it is refused at
+      gate 5 with no explanation. The same self approval already applies to
+      `company.files:share:company` and `consent.record:capture:email` two entries
+      up, both of which reach somebody outside the company; narrowing the browser
+      rows alone would buy nothing and would leave the browser lane unusable by
+      the role that connects accounts.
+  
+      SO THE BUNDLE HEADER'S "nothing that reaches money, a stranger, or
+      production" IS A STATEMENT ABOUT BLAST RADIUS, NOT ABOUT WHO WATCHES. What
+      the argument does not cover, stated so nobody reads more into it: a browser
+      session on a payment dashboard or a deploy console is a refund or a deploy
+      with a browser in front of it. The packs refuse those hosts (`bindableHost`
+      in `packages/saas/src/authority.ts`); this bundle does not, and the per-site
+      authorization row is where a company says which sites exist. A company that
+      wants a second person in front of these writes `browser.session:act:*` at
+      `forbidden` for the sites it means, or raises its own governance profile.
+    */
+  "browser.session:view:company",
+  "browser.session:control:*",
+  "browser.site:authorize:company",
+  "browser.session:act:*",
+  "browser.file:transfer:*",
+  "browser.vault:import:company",
+  "browser.vault:revoke:company",
+  /*
+      VERSIONED WORKFLOWS (ADR-0072 D15), ALL NINE. Copies of the constants in
+      `apps/app/src/server/workflow-capabilities.ts`. Four are inherited from
+      MEMBER, where the argument for them is; these are the five that are not.
+  
+      PUBLISHING, RESOLVING AND CANCELLING sit with `policy.delegation:record`
+      above them and for its reason: each decides what runs unattended, or reaches
+      into work that is not the actor's own. Publishing a version enables every
+      effect its future runs will propose, on a schedule, with nobody present.
+      Resolving an exception asserts a write landed in somebody else's system, or
+      retries and spends again. Cancelling stops another person's run.
+  
+      THE TWO EXPORTS, WITH `company.data:export:company` RATHER THAN WITH THE
+      OWNER, and the same sentence carries both: a portability request has to be
+      answerable inside a month, and a company whose only owner is away should not
+      fail one because of a role table. ADR-0072 D14 split the run export from the
+      version export because a run carries personal data and its export is a right
+      on every tier (§7a); a right reserved to one seat is a right with a single
+      point of failure. The version export is a work product with no secret in it,
+      and travels with the pair rather than being the only one left behind.
+    */
+  "workflow.version:publish:company",
+  "workflow.run:cancel:company",
+  "workflow.run:resolve:company",
+  "workflow.version:export:company",
+  "workflow.run:export:company",
+  // Inherited from MEMBER, spelled out because the ladder is containment and
+  // `isAttenuationOf` proves it rather than trusting this comment.
+  "workflow.task:answer:company",
+  "workflow.version:draft:company",
+  "workflow.run:dry_run:company",
+  "workflow.run:start:company"
 ];
 var OWNER = ["*:*:*"];
 var ROLES = Object.freeze({
@@ -215,8 +420,375 @@ var ROLES = Object.freeze({
   owner: Object.freeze(OWNER)
 });
 
+// ../../packages/domain/src/contract.ts
+var EVIDENCE_KINDS = [
+  "http_response",
+  "build_log",
+  "test_report",
+  "screenshot",
+  "db_query",
+  "database_read",
+  "exit_code",
+  "model_output",
+  "document",
+  "webhook_receipt",
+  "metric_series",
+  "diff",
+  "model_transcript"
+];
+
 // ../../packages/domain/src/inbound.ts
 var INBOUND_MAX_BYTES = 64 * 1024;
+
+// ../../packages/domain/src/finding.ts
+var KNOWN_EVIDENCE_KINDS = new Set(EVIDENCE_KINDS);
+
+// ../../packages/domain/src/jurisdiction.ts
+var ISO_3166_1_ALPHA_2 = Object.freeze([
+  "AD",
+  "AE",
+  "AF",
+  "AG",
+  "AI",
+  "AL",
+  "AM",
+  "AO",
+  "AQ",
+  "AR",
+  "AS",
+  "AT",
+  "AU",
+  "AW",
+  "AX",
+  "AZ",
+  "BA",
+  "BB",
+  "BD",
+  "BE",
+  "BF",
+  "BG",
+  "BH",
+  "BI",
+  "BJ",
+  "BL",
+  "BM",
+  "BN",
+  "BO",
+  "BQ",
+  "BR",
+  "BS",
+  "BT",
+  "BV",
+  "BW",
+  "BY",
+  "BZ",
+  "CA",
+  "CC",
+  "CD",
+  "CF",
+  "CG",
+  "CH",
+  "CI",
+  "CK",
+  "CL",
+  "CM",
+  "CN",
+  "CO",
+  "CR",
+  "CU",
+  "CV",
+  "CW",
+  "CX",
+  "CY",
+  "CZ",
+  "DE",
+  "DJ",
+  "DK",
+  "DM",
+  "DO",
+  "DZ",
+  "EC",
+  "EE",
+  "EG",
+  "EH",
+  "ER",
+  "ES",
+  "ET",
+  "FI",
+  "FJ",
+  "FK",
+  "FM",
+  "FO",
+  "FR",
+  "GA",
+  "GB",
+  "GD",
+  "GE",
+  "GF",
+  "GG",
+  "GH",
+  "GI",
+  "GL",
+  "GM",
+  "GN",
+  "GP",
+  "GQ",
+  "GR",
+  "GS",
+  "GT",
+  "GU",
+  "GW",
+  "GY",
+  "HK",
+  "HM",
+  "HN",
+  "HR",
+  "HT",
+  "HU",
+  "ID",
+  "IE",
+  "IL",
+  "IM",
+  "IN",
+  "IO",
+  "IQ",
+  "IR",
+  "IS",
+  "IT",
+  "JE",
+  "JM",
+  "JO",
+  "JP",
+  "KE",
+  "KG",
+  "KH",
+  "KI",
+  "KM",
+  "KN",
+  "KP",
+  "KR",
+  "KW",
+  "KY",
+  "KZ",
+  "LA",
+  "LB",
+  "LC",
+  "LI",
+  "LK",
+  "LR",
+  "LS",
+  "LT",
+  "LU",
+  "LV",
+  "LY",
+  "MA",
+  "MC",
+  "MD",
+  "ME",
+  "MF",
+  "MG",
+  "MH",
+  "MK",
+  "ML",
+  "MM",
+  "MN",
+  "MO",
+  "MP",
+  "MQ",
+  "MR",
+  "MS",
+  "MT",
+  "MU",
+  "MV",
+  "MW",
+  "MX",
+  "MY",
+  "MZ",
+  "NA",
+  "NC",
+  "NE",
+  "NF",
+  "NG",
+  "NI",
+  "NL",
+  "NO",
+  "NP",
+  "NR",
+  "NU",
+  "NZ",
+  "OM",
+  "PA",
+  "PE",
+  "PF",
+  "PG",
+  "PH",
+  "PK",
+  "PL",
+  "PM",
+  "PN",
+  "PR",
+  "PS",
+  "PT",
+  "PW",
+  "PY",
+  "QA",
+  "RE",
+  "RO",
+  "RS",
+  "RU",
+  "RW",
+  "SA",
+  "SB",
+  "SC",
+  "SD",
+  "SE",
+  "SG",
+  "SH",
+  "SI",
+  "SJ",
+  "SK",
+  "SL",
+  "SM",
+  "SN",
+  "SO",
+  "SR",
+  "SS",
+  "ST",
+  "SV",
+  "SX",
+  "SY",
+  "SZ",
+  "TC",
+  "TD",
+  "TF",
+  "TG",
+  "TH",
+  "TJ",
+  "TK",
+  "TL",
+  "TM",
+  "TN",
+  "TO",
+  "TR",
+  "TT",
+  "TV",
+  "TW",
+  "TZ",
+  "UA",
+  "UG",
+  "UM",
+  "US",
+  "UY",
+  "UZ",
+  "VA",
+  "VC",
+  "VE",
+  "VG",
+  "VI",
+  "VN",
+  "VU",
+  "WF",
+  "WS",
+  "YE",
+  "YT",
+  "ZA",
+  "ZM",
+  "ZW"
+]);
+var ALL = (codes, regime) => codes.map((code) => [code, regime]);
+var REGIMES = Object.freeze(
+  Object.fromEntries([
+    ...ALL(
+      [
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",
+        "FI",
+        "FR",
+        "DE",
+        "GR",
+        "HU",
+        "IE",
+        "IT",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SK",
+        "SI",
+        "ES",
+        "SE"
+      ],
+      "eu"
+    ),
+    // Codes of their own, EU territory in law. Canary Islands, Azores and Madeira
+    // carry ES and PT and are covered by those.
+    ...ALL(["AX", "GF", "GP", "MQ", "RE", "YT", "MF"], "eu_territory"),
+    ...ALL(["IS", "LI", "NO"], "eea"),
+    ...ALL(["CH", "GB"], "gdpr_equivalent"),
+    ...ALL(
+      [
+        "GL",
+        "FO",
+        "BL",
+        "PM",
+        "NC",
+        "PF",
+        "WF",
+        "TF",
+        "AW",
+        "CW",
+        "SX",
+        "BQ",
+        "GI",
+        "IM",
+        "JE",
+        "GG",
+        "SJ",
+        "BV"
+      ],
+      "eu_associated_ambiguous"
+    )
+  ])
+);
+var COUNTRY_SOURCES = Object.freeze(["person_entered", "crm_field", "company_registry"]);
+var BUILT = /* @__PURE__ */ new WeakSet();
+var ISO = new Set(ISO_3166_1_ALPHA_2);
+var WELL_FORMED = /^[A-Z]{2}$/u;
+var codeRefusal = (code) => {
+  if (typeof code !== "string" || !WELL_FORMED.test(code)) return "malformed_code";
+  return ISO.has(code) ? void 0 : "unassigned_code";
+};
+var eligibilityRules = (allowlist) => {
+  const entries = [];
+  for (const entry2 of allowlist) {
+    const refused = codeRefusal(entry2);
+    if (refused) {
+      entries.push({ entry: entry2, reason: refused });
+      continue;
+    }
+    const regime = REGIMES[entry2];
+    if (regime !== void 0) entries.push({ entry: entry2, reason: regime });
+  }
+  if (entries.length > 0) return { kind: "refused", entries };
+  const rules = Object.freeze({
+    kind: "rules",
+    assessed: Object.freeze([...new Set(allowlist)])
+  });
+  BUILT.add(rules);
+  return rules;
+};
+var DEFAULT_ALLOWLIST = Object.freeze(["AU", "CA", "NZ", "SG", "US"]);
+var DEFAULT_ELIGIBILITY_RULES = eligibilityRules(DEFAULT_ALLOWLIST);
 
 // ../../packages/routes/src/index.ts
 var HOSTS = {
@@ -484,10 +1056,69 @@ var COMPONENTS = [
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
+    id: "connected-tools",
+    group: "work",
+    label: "Connected tools",
+    summary: "Calling the tools you connected, such as your analytics or error tracker, when work needs to read from them.",
+    budget: { staleAfterMs: 45 * MINUTE },
+    /*
+          NOTHING WATCHES THIS, AND THE ROW EXISTS BECAUSE OF THAT RATHER THAN
+          DESPITE IT (§13c, R3.19).
+    
+          A vendor tool call can fail for every company at once, and until this row
+          there was no public or internal surface that said so: the only mention of
+          connected tools anywhere on the status page was one clause inside
+          scheduled-work's summary about a recheck timer. An absent row is a gap
+          nobody can see; a not-measured row is a gap on the roadmap.
+    
+          WHY IT CANNOT BE PROBED FROM OUTSIDE YET, which is the honest reason and
+          not a scheduling one. Every other row on this page is answered by fetching
+          a public address. A tool call is per company, needs that company's stored
+          credential, and reaches a third party we do not control, so a probe would
+          have to pick a tenant and spend their vendor's rate limit to tell a
+          stranger whether Orvay is well. The measurable version is Orvay's own
+          record of the last `tool.called` outcome, read through `/api/health`, which
+          is a signed internal target rather than a page fetch.
+    
+          THE SENTENCE BELOW IS WHAT A CUSTOMER READS, so it says which part is
+          unwatched rather than that the row is unfinished. A reader who has
+          connected PostHog wants to know whether a silent failure would reach them,
+          and the true answer today is that it would not.
+        */
+    notMeasuredWhy: "Nothing checks this from outside yet. A tool call runs against your own connected account, so a failure shows on that integration in the product rather than here."
+  },
+  {
+    id: "workflow-and-deadline-sweeps",
+    group: "work",
+    label: "Workflow runs and deadline checks",
+    summary: "Two background passes that are built and are not scheduled yet: the one that drives a workflow run forward after it starts, and the one that notices a deadline you declared has been missed. Each leaves a mark when it runs, and nothing reads those marks, because nothing runs them.",
+    budget: { staleAfterMs: 45 * MINUTE },
+    /*
+          A ROW THAT SAYS "NOBODY IS WATCHING THIS" RATHER THAN NO ROW AT ALL.
+    
+          §13c: "An absent row is a gap nobody can see; a `not-measured` row is a gap
+          on the roadmap." Both passes define a lease and a scheduler mark, so they
+          look scheduled from the inside, and neither has a caller: `sweepWorkflows`
+          and the expectation sweep are reachable from no route, cron or server
+          action (`docs/plan/35-goal-gap-map.md` findings 2 and §1).
+    
+          THIS IS WHY IT IS NOT A `scheduled-work` LINE. That row reads three marks
+          against their own cadences and is honest about what it measures. Adding
+          these two to it would make it permanently degraded and say the timers had
+          STOPPED, which is a different and false claim: a timer that never started
+          is not a timer that broke, and the remedy is not the same.
+    
+          THE SENTENCE A CUSTOMER READS names the work rather than the mechanism.
+          Somebody who declared a deadline wants to know whether a miss would reach
+          them, and today it would not.
+        */
+    notMeasuredWhy: "These passes are built but nothing starts them yet, so a missed deadline will not reach you and a workflow run will wait where it is. Nothing here is measuring them until they are scheduled."
+  },
+  {
     id: "scheduled-work",
     group: "work",
     label: "Scheduled work",
-    summary: "Background work that runs on a timer rather than when you ask for it. Three timers leave a mark: one every five minutes, one once a day that rechecks every audit trail end to end, and one once a day that re-reads every connected tool server's list against the one you approved. This row reads how old each mark is, against its own schedule, so a stopped five-minute timer shows within fifteen minutes and a stopped daily one within a day.",
+    summary: "Background work that runs on a timer rather than when you ask for it. Three timers leave marks: one every five minutes, one once a day that rechecks every audit trail end to end, and one once a day that re-reads every connected tool server's list against the one you approved. The five-minute timer does several jobs, and each one leaves its own mark, so a job that stops is visible even while the timer it rides on keeps running. This row reads how old every mark is, against its own schedule, so a stopped five-minute timer shows within fifteen minutes and a stopped daily one within a day.",
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
@@ -841,7 +1472,7 @@ var PLANS = {
     // money rather than the other way round: 25 x CREDIT_COST_MINOR = 150.
     allowanceMinor: 150n,
     features: [],
-    limits: { members: 3, departments: 1, concurrentRuns: 1, mcpServers: 0 },
+    limits: { members: 3, departments: 1, concurrentRuns: 1, concurrentCrossings: 2, mcpServers: 0 },
     heartbeatSeconds: 86400
   },
   standard: {
@@ -850,7 +1481,7 @@ var PLANS = {
     // 100 credits, $6.00 of model spend, 30% of price.
     allowanceMinor: 600n,
     features: ["console_propose", "voice", "site_unbranded", "integration_mcp"],
-    limits: { members: 5, departments: 3, concurrentRuns: 2, mcpServers: 1 },
+    limits: { members: 5, departments: 3, concurrentRuns: 2, concurrentCrossings: 4, mcpServers: 1 },
     heartbeatSeconds: 86400
   },
   pro: {
@@ -866,7 +1497,7 @@ var PLANS = {
       "site_unbranded",
       "integration_mcp"
     ],
-    limits: { members: 25, departments: 10, concurrentRuns: 8, mcpServers: 5 },
+    limits: { members: 25, departments: 10, concurrentRuns: 8, concurrentCrossings: 16, mcpServers: 5 },
     heartbeatSeconds: 3600
   },
   max: {
@@ -888,6 +1519,7 @@ var PLANS = {
       members: 100,
       departments: Number.MAX_SAFE_INTEGER,
       concurrentRuns: 32,
+      concurrentCrossings: 64,
       mcpServers: Number.MAX_SAFE_INTEGER
     },
     heartbeatSeconds: 900
@@ -911,6 +1543,7 @@ var PLANS = {
       members: 250,
       departments: Number.MAX_SAFE_INTEGER,
       concurrentRuns: 64,
+      concurrentCrossings: 128,
       mcpServers: Number.MAX_SAFE_INTEGER
     },
     heartbeatSeconds: 900
@@ -942,6 +1575,7 @@ var PLANS = {
       members: Number.MAX_SAFE_INTEGER,
       departments: Number.MAX_SAFE_INTEGER,
       concurrentRuns: 128,
+      concurrentCrossings: 256,
       mcpServers: Number.MAX_SAFE_INTEGER
     },
     heartbeatSeconds: 900
@@ -962,6 +1596,9 @@ var packPriceMinorFor = (tier, credits) => {
   if (rate === null || credits <= 0n) return null;
   return rate * credits;
 };
+var MICRO_PER_MINOR = 1000000n;
+var BROWSER_CREDITS_PER_HOUR = 1;
+var BROWSER_MICRO_PER_MINUTE = BigInt(BROWSER_CREDITS_PER_HOUR) * CREDIT_COST_MINOR * MICRO_PER_MINOR / 60n;
 
 // ../../packages/billing/src/prices.ts
 var PRICE_LOOKUP_KEYS = {
@@ -1897,7 +2534,7 @@ var PRODUCT_SOURCE = {
   // describes limits nothing enforces is not lying to the customer's disadvantage,
   // and it is still describing software that does not exist.
   "pricing.enforcement.heading": "What is enforced today",
-  "pricing.enforcement.paragraph.1": "The money allowance is enforced at the last admission gate, before any model is called. The number of runs a company may have in flight at once is not enforced anywhere yet: the limit is published and the code that would apply it is not written.",
+  "pricing.enforcement.paragraph.1": "The money allowance is enforced at the last admission gate, before any model is called. The number of runs a company may have in flight at once is enforced where each run starts: a run that would go over it does not start, and work you already approved is tried again later rather than refused.",
   "pricing.enforcement.paragraph.2": "Prepaid packs are recorded but are not yet spent. The plan engine knows the rule, which is allowance first and then packs by soonest expiry, and no running part of the product loads a pack balance into it, so a pack bought today would sit unused rather than extend anything. Packs can be bought, so the buy controls are switched off on this deployment until that is fixed. This paragraph changes on the day that stops being true.",
   "pricing.enforcement.paragraph.3": "The member and department counts are limits the plan sets, and the admission gate compares them wherever the product supplies a count, which today is the invitation path alone. Plan features are not enforced anywhere yet, because nothing in the product asks for one, which is why every feature above says whether it exists.",
   "pricing.data.heading": "Where your data is",
@@ -1961,6 +2598,8 @@ var PRODUCT_SOURCE = {
   "docs.nav.reference.hosts.summary": "Which domain does what, and which may never send mail.",
   "docs.nav.reference.decisions.title": "Decisions",
   "docs.nav.reference.decisions.summary": "Every ADR, and what it settled.",
+  "docs.nav.reference.verify-your-export.title": "Verify your export",
+  "docs.nav.reference.verify-your-export.summary": "Check the hash chain in your export yourself, without an account.",
   // The documentation shell's own chrome.
   "docs.shell.label": "Documentation",
   "docs.shell.nav.label": "Documentation sections",
@@ -2175,6 +2814,114 @@ var PRODUCT_SOURCE = {
   "settings.group.account": "Account",
   "settings.group.company": "This company",
   "settings.dataUse": "Data use",
+  /*
+    BEING NAMED IN PUBLIC. §5b: every one of these is a message id because a
+    person reads it, and `announcement.wording` is the one that matters most.
+    It is the sentence the consent record ATTESTS TO, so the screen renders it
+    and the arm is handed the SAME resolved string as `presentedText`. Two
+    spellings of it would put one sentence in front of the person and a
+    different one in the ledger, on the one surface where that cannot be taken
+    back. English only for now, every key listed in TRANSLATION_DEFERRED under
+    the same date.
+  */
+  "settings.announcement": "Being named in public",
+  /*
+      THE BRAND BRIEF. §5b: every one of these is a message id. English only for
+      now, every key listed in TRANSLATION_DEFERRED under the same date.
+  
+      THE BRIEF IS NOT A PUBLICATION AND THE COPY SAYS SO TWICE, because a
+      settings form that quietly authorised posting would be the worst kind of
+      consent: one nobody was asked for. Stating it writes a row; drafts and
+      publishing are separate acts with their own approvals.
+    */
+  "settings.brand": "Brand brief",
+  "brand.intro": "What this company sounds like, who it is talking to, and which channels drafts may be written for. Stating it writes nothing public: drafts and publishing are separate, and each is approved on its own.",
+  "brand.positioning.label": "One sentence you would recognise as your own",
+  "brand.positioning.hint": "What this company does, in the words you would use.",
+  "brand.audience.label": "Who it is addressed to",
+  "brand.audience.hint": "In your own words, not a segment name.",
+  "brand.avoid.label": "Words to avoid",
+  "brand.avoid.hint": "One per line. Drafts containing them are refused rather than edited.",
+  "brand.channels.label": "Channels drafts may be written for",
+  "brand.submit": "State the brief",
+  "brand.busy": "Recording it",
+  "brand.stated": "Recorded. Drafts written from this brief will be checked against it.",
+  "brand.exists": "These are the same words as the brief already recorded, so nothing changed.",
+  "brand.current": "The brief recorded for this company.",
+  "brand.none": "No brief has been stated yet.",
+  "brand.error.positioning": "A brief needs a sentence about what this company does.",
+  "brand.error.audience": "A brief needs to say who it is addressed to.",
+  "brand.error.channels": "Choose at least one channel drafts may be written for.",
+  "brand.error.notPermitted": "Your role cannot state the brief for this company.",
+  "brand.error.unavailable": "That could not be recorded just now. Nothing was stored, and trying again is worth it.",
+  /*
+      THE DRAFT, WRITTEN BY A PERSON. §5b again, and the refusals are separate
+      keys because `draftMatchesBrief` answers four different things and a
+      single "that did not work" would leave somebody editing at random.
+  
+      A DRAFT IS NOT A PUBLICATION EITHER. Recording one writes a row and
+      schedules nothing; the approval and the publish are further acts.
+    */
+  "brand.draft.heading": "Write a draft",
+  "brand.draft.body.label": "The words",
+  "brand.draft.body.hint": "Exactly as they would appear. An approval is bound to these words, so editing them later withdraws it.",
+  "brand.draft.channel.label": "Channel",
+  "brand.draft.submit": "Record the draft",
+  "brand.draft.busy": "Recording it",
+  "brand.draft.recorded": "Recorded. It is not scheduled and nothing is public until it is approved.",
+  "brand.draft.exists": "These are the same words as a draft already recorded, so nothing changed.",
+  "brand.draft.none": "No drafts have been written from this brief.",
+  "brand.draft.list": "Drafts written from this brief.",
+  "brand.draft.needsBrief": "State a brief first. A draft is checked against one.",
+  "brand.draft.error.empty": "A draft needs some words.",
+  "brand.draft.error.channel": "This brief does not authorise drafts for that channel.",
+  "brand.draft.error.avoided": "These words contain one the brief says to avoid.",
+  "brand.draft.error.wrongBrief": "The brief changed while this was being written. Read the brief above and write it again.",
+  /*
+    APPROVING A DRAFT AND SCHEDULING IT. The two are one act on this screen
+    because approving without scheduling produces a row nobody acts on, which
+    is the dead control §7 forbids, and scheduling without approving is the
+    thing every gate here exists to prevent.
+  */
+  "brand.approve.submit": "Approve and schedule",
+  "brand.approve.busy": "Scheduling it",
+  "brand.approve.done": "Approved and scheduled. Nothing goes out before {when}, and withdrawing the approval until then stops it.",
+  "brand.approve.claimed": "Another draft from this brief is already scheduled for that channel. One at a time.",
+  "brand.approve.refused": "That could not be scheduled. The draft, its approval and the channel have to agree, and they did not.",
+  "brand.approve.scheduled": "Scheduled.",
+  /*
+      WHAT THE VENDOR SAYS THIS CREDENTIAL MAY DO TODAY, against what was
+      recorded when it was connected. `connection-health.ts` has computed this
+      since it existed and nothing rendered it, so a permission a vendor
+      withdrew was invisible to the only person who could act on it.
+  
+      TWO DIRECTIONS, NOT ONE SENTENCE. A permission that is gone may break the
+      work; one that is new was never asked for. They are different facts and
+      the remedies differ, so they are different keys.
+    */
+  "integrations.connection.scopes.gone": "No longer granted, and work that needs it will refuse: {scopes}",
+  "integrations.connection.scopes.added": "Granted now and not recorded when this was connected: {scopes}",
+  "integrations.connection.scopes.checkedAt": "The vendor last stated its permissions {when}.",
+  "announcement.intro": "{product} can say once, in public, that your company is here. Nothing goes out unless you agree, and you can stop it for three days after you do.",
+  "announcement.wording": "{product} may say once, in public, that our company is here.",
+  "announcement.agree.submit": "Agree to be named",
+  "announcement.agree.busy": "Recording your agreement",
+  "announcement.cancel.submit": "Stop this post",
+  "announcement.cancel.busy": "Stopping it",
+  "announcement.state.proposed": "Nothing has been agreed and nothing is scheduled.",
+  "announcement.state.armed": "Agreed. Nothing goes out before {when}, and you can stop it until then.",
+  "announcement.state.cancelled": "Stopped. Your agreement was withdrawn, and you can agree again.",
+  "announcement.state.refused": "This was not posted, and your agreement has been withdrawn.",
+  "announcement.state.published": "This went out.",
+  "announcement.done": "Your company has been named once. There is nothing further to decide.",
+  // THE THREE HOLDS ARE ONE SENTENCE TO A CUSTOMER ON PURPOSE. `houseSink`
+  // keeps them apart because the three need opposite responses FROM ORVAY, and
+  // none of the three is anything this company can act on.
+  "announcement.unavailable": "This is not available right now. Nothing about your company is the reason, and nothing has been recorded.",
+  "announcement.error.notPermitted": "Your role cannot decide this for the company.",
+  "announcement.error.notOpen": "That is no longer the state this is in. The page has been read again.",
+  "announcement.error.tooLate": "This is going out now, so it can no longer be stopped.",
+  "announcement.error.unavailable": "That could not be recorded just now. Nothing was stored, and trying again is worth it.",
   "dataUse.intro": "What Orvay may learn from you, and what it may not. Every choice here takes effect immediately.",
   "dataUse.essential.title": "Security and reliability",
   "dataUse.essential.body": "Sign-ins, devices, refused requests and errors. This is how an account is kept from being taken over and how a fault is found, so it cannot be turned off while you have an account.",
@@ -2293,6 +3040,14 @@ var PRODUCT_SOURCE = {
   // not news if it is still running, and a goal that stopped is not news if
   // nobody knows why.
   "notification.headline.goal.thrashing": "A goal kept failing and was stopped",
+  // NOT "traffic fell". A tracker that reports nothing cannot tell an outage
+  // from itself, and the only step that can is repairing the tracking (R4.4).
+  "notification.headline.finding.tracking_fault": "A connected source reports nothing to judge",
+  // NOT "failed". Nothing heard back, so the honest sentence is that nobody can
+  // say whether it happened (R5.11). NOT "you approved" either: when a policy
+  // ran the work with no approval, the person told is the one who set its goal,
+  // and one kind has one sentence, so it has to be true of both of them.
+  "notification.headline.effect.abandoned": "Work you set in motion never reported back, so whether it happened is unknown",
   /*
     THE REST OF A PUSH NOTIFICATION. The title above is the headline; these are
     the two lines under it and the one shown when nothing is waiting. A push with
@@ -2322,6 +3077,24 @@ var PRODUCT_SOURCE = {
     */
   "notification.slack.escalated": "A decision in {company} has been waiting for a day.",
   "notification.slack.note": "Nothing is decided in Slack. The link opens {brand}, where a decision is recorded against the person who makes it.",
+  /*
+      WHAT @ORVAY SAYS BACK, IN THE THREAD IT WAS ASKED IN.
+  
+      Fixed sentences, every interpolated value escaped for Slack by the caller.
+      No proposal objective and no member's address ever appears in one: a
+      channel is a surface where a sentence carries authority it did not earn,
+      and the objective is model-authored from context that may be untrusted
+      (§10). The decision is never in the sentence. The link is where it is taken.
+    */
+  // Shown to the person who asked, and to nobody else in the channel (ADR-0054).
+  "slack.reply.not-linked": "This Slack account is not linked to a seat in {company}. Sign in to {brand} at {url}, open Integrations, and press Link my Slack account on the Slack row. Only you can see this message.",
+  "slack.reply.refused": "{brand} could not do that as you. Your seat in {company} does not allow it right now.",
+  "slack.reply.waiting": {
+    one: "{company} has # proposal waiting for a decision.",
+    other: "{company} has # proposals waiting for a decision."
+  },
+  "slack.reply.waiting.none": "{company} has nothing waiting for a decision.",
+  "slack.reply.decide": "Decide at {url}",
   "notification.push.none.body": "You are up to date.",
   "notification.push.only": "In {company}.",
   "notification.push.more": {
@@ -2368,6 +3141,73 @@ var PRODUCT_SOURCE = {
   "home.setup.integration": "Connect a tool",
   "home.setup.colleague": "Invite a colleague",
   "home.setup.site": "Build the company site",
+  /*
+    WHAT THE NUMBERS SHOW (R4, ADR-0056). Every line here describes a stored
+    finding: which source, which window, which evidence tier, and what the
+    detector concluded. A change names the band it fell outside, and the
+    sentence beside a change says in the requirement's words that the move is
+    not its cause. The one cause a line states is a defect's "something broke",
+    and it says whether a check supports it or it is a hypothesis (R4.9).
+  */
+  "home.findings.heading": "What the numbers show",
+  "home.findings.none": "No connected source has been read yet. Connect Stripe or Zenovay and release its read tools to run without you.",
+  "home.findings.source": "Source",
+  "home.findings.window": "Window",
+  "home.findings.window.days": "{from} to {to}",
+  "home.findings.tier": "Evidence",
+  "home.findings.tier.objective_sufficient": "Measured, enough data",
+  "home.findings.tier.objective_thin": "Measured, thin data",
+  "home.findings.tier.attested": "Attested only",
+  "home.findings.kind.tracking_fault": "Tracking fault",
+  "home.findings.kind.defect": "Defect",
+  "home.findings.kind.hypothesis": "Hypothesis",
+  "home.findings.metric.cash_collected": "Cash collected",
+  "home.findings.metric.visitors": "Visitors",
+  "home.findings.metric.pageviews": "Page views",
+  "home.findings.metricCurrency": "{metric} in {currency}",
+  "home.findings.change.down": "{metric} fell to {observed} on {day}. The same weekday of earlier weeks puts it between {low} and {high}.",
+  "home.findings.change.up": "{metric} rose to {observed} on {day}. The same weekday of earlier weeks puts it between {low} and {high}.",
+  "home.findings.noChange": "{metric} on {day} was {observed}, inside its band.",
+  "home.findings.stale": "{metric}: the source has reported nothing recently, so there is nothing to judge.",
+  "home.findings.incomplete": "{metric}: {day} is not complete yet.",
+  "home.findings.insufficient": "{metric}: too little data around {day} to judge.",
+  "home.findings.invalid": "{metric}: the series could not be read.",
+  "home.findings.causation": "Correlation is not causation.",
+  "home.findings.proposal": "A proposal is waiting on you.",
+  // The sentence under the findings panel. The ground's default says a real
+  // system was affected, and these numbers were only read. It sits above lines
+  // saying a series could not be read and above sandbox figures, so it says what
+  // each line is rather than that every number was read.
+  "home.findings.provenance": "Live: each line below is what a read of the connected account found.",
+  // Beside a figure read from a Stripe sandbox, so a test account's zero is not
+  // read as a business that stopped taking money.
+  "home.findings.testMode": "Test mode: sandbox figures, not real money",
+  // R4.9, 2026-09-17: beside a line whose finding says something broke, which is a cause. Which of
+  // the two is chosen by `statedCauseOf` in @orvay/domain: supported only when a check other than the
+  // number itself backs it, and never by a model's reading.
+  "home.findings.cause.supported": "Something broke: supported by a check other than the number itself. Supported is not proven.",
+  "home.findings.cause.hypothesis": "Something broke: a hypothesis. No check other than the number itself supports it, and a model's reading is not a check.",
+  /*
+    THE CONTRACT A FINDING PROPOSES. Rendered once, at proposal time, into the
+    hashed contract a person reads on the approvals screen. The claims carry the
+    numbers and the two sentences the requirement asks for: that the number moved
+    is not why it moved, and what would test a cause.
+  */
+  "finding.contract.objective.investigate": "Investigate why {metric} from {source} moved on {day}",
+  "finding.contract.objective.reproduce": "Reproduce the defect behind {metric} from {source} on {day}",
+  "finding.contract.claim.change": "{metric} from {source} on {day} was {observed}. The same weekday of the previous {weeks} weeks puts it between {low} and {high}, around {expected}.",
+  "finding.contract.claim.causation": "Correlation is not causation. The number moved; nothing here says why, and a page rewritten, a price changed or a campaign paused on the strength of this number alone is a guess with a cost.",
+  "finding.contract.claim.test": "What would test a cause: name one, say what {metric} should read if it is right, and compare the same weekday across enough days for the band to separate the two. Falling views alone do not justify a rewrite.",
+  "finding.contract.claim.defect": "Error evidence was read beside the number, so this is treated as something broken rather than as a hypothesis. The step is to reproduce it, because a reproduction is a check and a report is an attestation.",
+  // First among the claims when the Stripe account read was a sandbox, so a test
+  // account's figures are not read as money the business earned or lost.
+  "finding.contract.claim.testMode": "Test mode: these figures come from a Stripe sandbox and are not real money, so nothing here says the business earned or lost anything.",
+  // R4.9, 2026-09-17: what a proposal written from a finding that says something broke says about
+  // that cause, chosen by `statedCauseOf`. The objective a reproduce draft carries when the cause is
+  // only a hypothesis asks rather than asserts.
+  "finding.contract.objective.defectHypothesis": "Check whether something broke behind {metric} from {source} on {day}",
+  "finding.contract.claim.cause.supported": "That something broke behind this number is supported by a check other than the number itself. Supported is not proven: two things moving together do not show that one moved the other.",
+  "finding.contract.claim.cause.hypothesis": "That something broke behind this number is a hypothesis, not a finding. No check other than the number itself supports it, and a model's reading or a document cannot make a cause more than a hypothesis.",
   "nav.skip": "Skip to the page",
   "nav.sections": "Sections",
   "nav.overview": "Overview",
@@ -2524,6 +3364,18 @@ var PRODUCT_SOURCE = {
   "console.source.read": "Read from memory: {count}",
   "console.source.none": "Recall found nothing, so this was written from your question alone.",
   "console.source.manage": "See and change what is remembered",
+  // Backlog 92, 2026-09-13: a connected tool server whose tools were not offered for a question,
+  // named in the fold by the label a person gave it, with why. `{why}` is one of the sentences
+  // below or the fence's own `toolCall.run.*` sentence. English only, every key listed in
+  // TRANSLATION_DEFERRED under the same date.
+  "console.source.left-out": "{server} was left out of the tools offered for this question. {why}",
+  "console.source.left-out-unexplained": "{server} was left out of the tools offered for this question.",
+  "console.source.left-out.not-https": "The address of that tool server is not an https address, so nothing was sent to it.",
+  "console.source.left-out.no-host": "The address of that tool server has no host in it, so nothing was sent to it.",
+  "console.source.left-out.carries-credentials": "The address of that tool server carries a name, a password or something after the path, so nothing was sent to it.",
+  "console.source.left-out.needs-account": "That tool server would not list its tools without a sign-in or a key it accepts.",
+  "console.source.left-out.unread": "That tool server was asked for its tools and did not answer with a list that could be read.",
+  "console.source.left-out.changed": "The list of tools that server gave is not the list that was approved.",
   "console.keep": "Keep as a document",
   "console.keep.done": "Kept in your files.",
   // PRESSING IT TWICE IS THE COMMON CASE, and it used to read "Refused at
@@ -2553,6 +3405,17 @@ var PRODUCT_SOURCE = {
   "console.memory.show": "What it says",
   "console.memory.refused.role": "Your role cannot set memories aside in this company.",
   "console.memory.forget": "Forget this",
+  // R1.9: correcting a fact. The notice promises only what is true of an entry with no searchable form: the earlier
+  // words are no longer used and stay on record.
+  "console.memory.correct": "Correct this",
+  "console.memory.correct.label": "As it should read",
+  "console.memory.correct.submit": "Save correction",
+  "console.memory.correct.refused.role": "Your role cannot correct what this company remembers.",
+  "console.memory.corrected": "Corrected. The earlier words are no longer used, and they stay on record.",
+  "console.memory.corrected.unchanged": "That is what it already says, so nothing changed.",
+  "console.memory.corrected.empty": "Write the fact as it should read. To stop using it, forget it instead.",
+  "console.memory.corrected.too-long": "A fact can be at most {limit} characters.",
+  "console.memory.corrected.refused": "Refused at {gate}. You may not correct what this company remembers.",
   "console.memory.forgotten": "Set aside. It will not be used in an answer again.",
   "console.memory.set-aside": {
     one: "Set aside: {count}. It is never used in an answer.",
@@ -2570,12 +3433,196 @@ var PRODUCT_SOURCE = {
   "console.memory.shelf.unsorted.why": "These were stored whole, before Orvay learned to pull single facts out of a piece of work. They are still read, and you can set any of them aside.",
   "console.memory.more": "Only the {count} most recent are shown.",
   "console.memory.back": "Back to the console",
+  // R1.4, 2026-09-12: what a person says the company offers, who it is for and how it sounds, on the memory
+  // screen. English only, every key listed in TRANSLATION_DEFERRED under the same date.
+  "console.memory.profile.title": "What the company says about itself",
+  "console.memory.profile.lead": "Work Orvay writes and answers in the console read these first, in your words. Each save is kept like any other memory: the earlier words stay on record, and forgetting one below stops it being read. An empty box changes nothing.",
+  "console.memory.profile.offer.label": "What the company offers",
+  "console.memory.profile.offer.hint": "What you sell or provide, and what it costs when that matters.",
+  "console.memory.profile.customer.label": "Who it is for",
+  "console.memory.profile.customer.hint": "The customers you want: who they are and what they need.",
+  "console.memory.profile.voice.label": "How it sounds",
+  "console.memory.profile.voice.hint": "The tone of anything written in the company's name.",
+  "console.memory.profile.submit": "Save",
+  "console.memory.profile.saved": "Saved. The next work Orvay writes and the next console answer read it.",
+  "console.memory.profile.unchanged": "Nothing changed, so nothing was saved.",
+  "console.memory.profile.too-long": "Each answer holds at most {limit} characters. Shorten it and save again.",
+  "console.memory.profile.refused": "Not saved: the {gate} gate refused it.",
+  "console.memory.profile.refused.role": "Your role cannot teach the company. A member or above can.",
+  "console.memory.profile.always": "Read with written work and answers",
   "pricing.feature.console_propose.name": "Proposing work from the console",
   "pricing.feature.console_propose.detail": "Turn a sentence in the console into a proposed action that the gates decide on. Reading what is waiting, and seeing why something was refused, are free on every plan.",
   // The command menu. It is scoped to NAVIGATION and the words say so: it opens
   // a section, it does not run an action. §12b asks what would be a lie on the
   // screen, and 'Search' over a box that only reaches thirteen destinations is
   // the lie available here, so the placeholder narrows the promise.
+  // Rooms, 2026-09-18: a place inside the company where people and agents talk.
+  /*
+      THE SUPPORT QUEUE, 2026-09-22. English only, every key listed in
+      TRANSLATION_DEFERRED under the same date.
+  
+      §12b governs `support.notWired` in particular. This screen shows a real
+      queue and lets a person take a ticket, and it does NOT answer anybody,
+      move a ticket through its states, set a deadline or verify who the
+      customer is. Every one of those is built and has no door yet, so the
+      screen says which in the words a customer would use rather than offering
+      a control that would do nothing.
+    */
+  "support.title": "Support",
+  "nav.support": "Support",
+  "support.lead": "Messages from outside this company, newest first. Taking one makes you the person responsible for it.",
+  /*
+    THE SHELL ALREADY DRAWS "Support" ABOVE THIS, so the empty state must not
+    say it again. Found by looking at the rendered page and by nothing else:
+    axe passed, the contrast passed, no test could see it, and the phrase read
+    perfectly well in the catalogue. The pattern came from the rooms screen,
+    where the shell does NOT draw the title, so it was correct where it was
+    copied from.
+  */
+  "support.empty.title": "No messages yet",
+  "support.empty": "Nothing connects a support inbox to this company, so nothing has arrived.",
+  // A VALUE AND A LABEL, never a count inside a sentence: that would need a
+  // plural rule, and French takes the singular below two. §8b says it for
+  // credits and it is the same problem.
+  "support.unreadable": "Messages this version cannot display: {count}",
+  "support.notWired": "Answering, closing, setting a deadline and confirming who the customer is are not built into this screen yet.",
+  "support.state.received": "New",
+  "support.state.triaged": "Being looked at",
+  "support.state.answered": "Answered",
+  "support.state.resolved": "Resolved",
+  "support.state.closed": "Closed",
+  "support.link.none": "No customer named",
+  "support.link.claimed": "Customer claimed, not confirmed",
+  "support.link.verified": "Customer confirmed",
+  "support.source.intercom": "Intercom",
+  "support.source.email": "Email",
+  "support.source.slack": "Slack",
+  "support.owner.you": "Yours",
+  "support.owner.other": "Taken by somebody else",
+  "support.owner.nobody": "Nobody has taken this",
+  "support.take.submit": "Take this",
+  "support.take.busy": "Taking it",
+  "support.error.notPermitted": "You do not hold the permission to take a message in this company.",
+  "support.error.unavailable": "The support queue could not be reached. Nothing was changed.",
+  "support.error.notFound": "That message is no longer here. Nothing was changed.",
+  "support.error.closed": "That message is closed, so nobody can take it on.",
+  "support.error.unknownMember": "You are not an active member of this company, so a message cannot be given to you.",
+  // English only, every key listed in TRANSLATION_DEFERRED under the same date.
+  "rooms.title": "Rooms",
+  "nav.rooms": "Rooms",
+  "rooms.lead": "A room is a place inside this company where people and agents work on one thing together. Being in a room lets you read it and say something in it. It grants nothing outside the room: not a connector, not an approval, not the right to start work.",
+  "rooms.empty": "No rooms yet. The first one you make is yours to run.",
+  "rooms.create.label": "Name the room",
+  "rooms.create.hint": "What the people in it are working on. Up to 80 characters.",
+  "rooms.create.submit": "Make the room",
+  "rooms.created": "The room is made, and you own it.",
+  "rooms.error.nameShort": "Give the room a name.",
+  "rooms.error.nameLong": "That name is longer than 80 characters. Shorten it.",
+  "rooms.error.notHere": "There is no such room here.",
+  "rooms.error.gate": "Not done: the {gate} gate refused it.",
+  "rooms.role.owner": "Owner",
+  "rooms.role.editor": "Editor",
+  "rooms.role.viewer": "Viewer",
+  "rooms.yourRole": "You are {role} here",
+  "rooms.members.count": "in this room",
+  "rooms.post.label": "Say something",
+  "rooms.post.submit": "Post",
+  "rooms.post.posted": "Posted.",
+  /*
+      THE SECOND SENTENCE USED TO SAY "Nothing runs as an agent yet", and by the
+      time anybody read it again an ask ran two ways: a person pressing Run, and
+      the unattended sweep. §11b: the present indicative asserts running
+      behaviour, and a page describing a mechanism that has changed is false
+      rather than merely old.
+  
+      NO NUMBER AGREEMENT. `@all` makes {agents} a list of however many are in
+      the room, and "was asked" would be wrong for all but one of them. §5b rule
+      8 forbids bounding a plural with one/other, and the cheapest correct
+      sentence is the one that never counts.
+  
+      IT NAMES THE COST, because `@all` is the first way to spend several asks
+      with one keystroke and the person pressing it should know before they do.
+    */
+  "rooms.post.handedOff": "Posted. Asked: {agents}. Each ask is separate work and costs credits when it runs.",
+  "rooms.post.everyAgentNamedNobody": "Posted. You asked every agent in this room and there is no agent in it yet. Add one, then ask again.",
+  "rooms.post.postedNotHandedOff": "Posted. You named an agent and your role cannot hand work to one, so nothing was asked.",
+  "rooms.post.empty": "Write something first.",
+  "rooms.post.tooLong": "A message holds at most {limit} characters.",
+  "rooms.post.disabled": "You can read this room and cannot post in it. An owner can make you an editor.",
+  "rooms.thread.empty": "Nothing has been said in this room yet.",
+  "rooms.leave.submit": "Leave this room",
+  "rooms.leave.lastOwner": "You are the only owner of this room. Make somebody else an owner before you leave, or archive it.",
+  "rooms.leave.notMember": "You are not in that room.",
+  "rooms.busy": "Saving",
+  "rooms.tasks.title": "Work handed to an agent",
+  "rooms.tasks.none": "Nothing has been handed to an agent in this thread.",
+  "rooms.tasks.row": "{agent} \xB7 {state} \xB7 asked by {asker}",
+  "rooms.tasks.state.queued": "Queued",
+  "rooms.tasks.state.claimed": "Picked up",
+  "rooms.tasks.state.running": "Running",
+  "rooms.tasks.state.waiting_approval": "Waiting for approval",
+  "rooms.tasks.state.finished": "Answered",
+  "rooms.tasks.state.refused": "Not started",
+  "rooms.tasks.state.revoked": "Cancelled",
+  "rooms.tasks.state.abandoned": "Given up",
+  /*
+    THE THIRD COPY OF ONE STALE CLAIM, and it was the worst placed: it sat
+    directly under a working "Run this ask" button telling the reader the ask
+    would never move. Found by reading the deployed page rather than the
+    source, which is the only way this shape is ever found (§11b: prose wrong
+    about behaviour that still exists under the same name).
+  */
+  "rooms.tasks.waiting": "Queued means the ask is recorded and nothing has picked it up yet. Run it here, or leave it for the sweep. Either way the work costs credits.",
+  "rooms.files.title": "Files in this room",
+  "rooms.files.none": "No files are attached to this room.",
+  "rooms.files.note": "A file here is a pointer to a company file. Being in the room lets you see that it is attached; opening it still needs the right to read company files.",
+  "rooms.transfer.title": "Hand this room to somebody else",
+  "rooms.transfer.hint": "They become the owner and you become an editor, in one step. This is what you do before leaving a room you are the only owner of.",
+  "rooms.transfer.submit": "Hand over",
+  "rooms.transfer.done": "{who} owns this room now. You are an editor.",
+  "rooms.transfer.self": "You already own this room.",
+  "rooms.transfer.notOwner": "Only an owner can hand a room over.",
+  "rooms.transfer.notMember": "That person is not in this room. Add them first.",
+  "rooms.transfer.agent": "An agent cannot own a room. Ownership carries a duty a person is asked about.",
+  "rooms.mention.all.label": "Every agent in this room",
+  "rooms.mention.all.hint": "One ask each, and each ask costs credits",
+  "rooms.post.agentNotInRoom": "{agents} is not in this room, so no work was handed over. Add the agent to the room, then ask again.",
+  "rooms.open.title": "Open a room",
+  "rooms.open.because": "Choose a room from the list, or make a new one below.",
+  "rooms.navigator.label": "Your rooms",
+  "rooms.preview.none": "Nothing said yet",
+  "rooms.back": "All rooms",
+  "rooms.author.agent": "Agent",
+  "rooms.author.unknown": "Unknown author",
+  "rooms.tasks.run": "Run this ask",
+  "rooms.tasks.ran": "{agent} answered, and the answer is in the thread above.",
+  "rooms.tasks.noAnswer": "The model did not answer. The ask is back in the queue and can be tried again.",
+  "rooms.tasks.notQueued": "That ask is not waiting any more. Somebody may have run it already.",
+  "rooms.tasks.tooMany": "This ask has been tried three times and will not be tried again.",
+  "rooms.tasks.noForge": "The model service is not reachable from this deployment, so the ask cannot be run here.",
+  "rooms.add.title": "Add somebody to this room",
+  "rooms.add.hint": "People and agents in this company who are not in this room yet. They join as an editor, which is the role that can post here and be handed work.",
+  "rooms.add.who": "Who to add",
+  "rooms.add.submit": "Add to the room",
+  "rooms.add.done": "{who} is in this room now.",
+  "rooms.add.nobody": "Everybody in this company is already in this room.",
+  "rooms.add.alreadyHere": "They are already in this room.",
+  "rooms.add.notFound": "That is not somebody in this company.",
+  "rooms.transfer.newOwner": "New owner",
+  "rooms.transfer.nobody": "You are the only person in this room, so there is nobody to hand it to. Add somebody first.",
+  /*
+      "Nothing in this product runs as an agent yet" was true when it was
+      written and stopped being true when `runQueuedAsk` got its two call sites,
+      the Run button on the room page and the unattended sweep. §11b: the
+      present indicative asserts running behaviour, and the fix is the tense
+      rather than deleting the claim.
+  
+      IT SAYS WHAT IT COSTS, and stops short of saying when. Whether the sweep
+      reaches a given ask before a person presses Run is a scheduling question,
+      and a sentence answering it would be a promise about timing that nothing
+      here enforces.
+    */
+  "rooms.agentsNote": "An agent in a room can be named in a message. Naming one hands it the ask as a separate piece of work, and work by an agent costs credits.",
   "nav.search": "Search",
   "nav.search.placeholder": "Jump to a section",
   "nav.search.empty": "Nothing here matches that.",
@@ -2611,6 +3658,9 @@ var PRODUCT_SOURCE = {
   // The escape hatch, because a short denylist WILL refuse somebody wrongly and
   // a refusal with no way forward is the loop this flow already had once.
   "onboarding.refused.mistake": "If this is a mistake, the name is what was checked, not you. Change it and carry on.",
+  // The same way out when the refused box was the website address, which is
+  // checked too: telling somebody to change a name that was fine leads nowhere.
+  "onboarding.refused.mistake-domain": "If this is a mistake, the website address is what was checked, not you. Change it and carry on.",
   // The marketing site
   //
   // Extracted from apps/site when the site gained locale routing. Until then
@@ -3635,6 +4685,9 @@ var PRODUCT_SOURCE = {
   "studio.refused.build-failed": "The site did not compile, so nothing was published and nothing was spent. Describe the change you want and build it again.",
   "studio.refused.unusable": "What came back was not a website, on every model this was tried on, so there is nothing to show. Those attempts used credits. Say a little more about what the site is for and build it again.",
   "studio.refused.build-running": "This site is still being built. Publishing now would put half of it on a public address, so it waits until the build has finished.",
+  // R2.5: a second Publish while the first may still be under way.
+  "studio.refused.publish-running": "This site was sent to be published in the last few minutes and that may still be under way, so it was not sent again. Reload in a minute to see whether it is live.",
+  "studio.refused.publish-withdrawn": "This site was not published. The approval to publish it was withdrawn before the publish could begin.",
   "studio.refused.build-service": "The build service did not answer. Nothing was published and nothing was spent.",
   "studio.refused.allowanceShort": "Building a website reserves more credits than are left this period, so nothing was built and nothing was used. Smaller work still runs. The credits return when the period resets, and a larger plan includes more.",
   "studio.refused.allowance": "The credits included in this plan are used up for this period, so nothing was built and nothing was spent. A larger plan is what makes more available.",
@@ -3730,12 +4783,24 @@ var PRODUCT_SOURCE = {
   "studio.step.files-written": "Writing the files",
   "studio.step.preview-ready": "Starting the preview",
   // STOPPING THE WATCH IS NOT STOPPING THE BUILD, and the copy has to be exact
-  // about which of the two it does. There is no way to cancel a build once a
-  // model has been asked, so a control labelled "Stop" would be a control that
-  // does nothing, which is the dead UI §12b refuses. This one stops the looking.
-  // The sentence beneath it is the whole reason that is worth offering: the work
-  // outlives this page, so leaving costs nothing.
+  // about which of the two it does. This one stops the looking, and the sentence
+  // beneath it is why that is worth offering: the work outlives this page, so
+  // leaving costs nothing. Stopping the build itself is the cancel below.
   "studio.watch.stop": "Stop watching",
+  // CANCELLING THE BUILD. Offered only until the model has answered. A refused
+  // cancel gets one of two sentences and neither promises how the build ends: a
+  // build past stopping may still complete or fail, and a build that has ended
+  // left nothing to cancel. The pending sentence is the stated reason a press
+  // does nothing while the cancel waits. The failed sentence claims nothing
+  // about the build, because the screen goes on watching it and will say what it
+  // does.
+  "studio.cancel.label": "Cancel this build",
+  "studio.cancel.pending": "Cancelling",
+  "studio.cancel.pending-reason": "Asking the build to stop. This takes a moment.",
+  "studio.cancel.finishing": "This build is too far along to cancel. It will end on its own.",
+  "studio.cancel.finished": "This build had already ended, so there was nothing to cancel.",
+  "studio.cancel.failed": "This build could not be cancelled just now.",
+  "studio.refused.cancelled": "This build was cancelled before it wrote anything to the site.",
   "studio.watch.stopped": "This build is no longer being watched here. It carries on without this page, and what it produced is waiting the next time this screen opens.",
   // Pressing build while one is already running attaches to it instead of
   // starting a second. Saying so matters more than it looks: the alternative
@@ -3917,6 +4982,7 @@ var PRODUCT_SOURCE = {
   "usage.phase.search": "Searching",
   "usage.phase.speech": "Speaking",
   "usage.phase.console": "Answering",
+  "usage.phase.browser": "Browsing",
   "usage.phase.other": "Not recorded",
   "usage.byGoal": "By goal",
   "usage.noGoal": "Not tied to a goal",
@@ -3993,6 +5059,8 @@ var PRODUCT_SOURCE = {
   "inbox.decided": "No longer waiting",
   // EXEC-29: a run the port refused before it crossed, on the settled list with its own word.
   "inbox.refusedByPort": "Refused before it ran",
+  "inbox.tried.again": "Propose it again",
+  "inbox.tried.againPending": "Proposing it again",
   // EXEC-30: an errand, not a verdict. Its own list, with the cause and what to do.
   "inbox.tried.heading": "Tried and refused",
   "inbox.tried.body": "These had permission and the step was refused before it ran. Fix the cause and propose the work again: the same action cannot be retried, because its attempt is already on the record as failed.",
@@ -4027,6 +5095,13 @@ var PRODUCT_SOURCE = {
   "contract.reversible.yes": "Yes, every step can be undone",
   "contract.reversible.no": "No. At least one step cannot be undone once it has run.",
   "contract.cites": "Cites",
+  // The drafted reply, shown to the person who decides whether to send it.
+  // `pinned` is the sentence that makes the seal mean something to a reader:
+  // the approval covers these words and no others.
+  "contract.reply.title": "The words that would be sent",
+  "contract.reply.pinned": "These exact words are sealed into the proposal. If a single character changes, the send is refused.",
+  "contract.reply.to": "To",
+  "contract.reply.subject": "Subject",
   "contract.gates": "What the gates say",
   "contract.gates.note": "Evaluated now, against this company's current policy. Eight gates run in a fixed order and the first refusal ends it, so a trace that stops early is the pipeline stopping, not a shortened list.",
   "contract.conditions": "Conditions attached",
@@ -4082,6 +5157,11 @@ var PRODUCT_SOURCE = {
   "decision.error.gate": "refused at the {gate} gate: {reason}",
   "decision.error.signedOut": "you are not signed in",
   "decision.error.notHere": "that contract is not in this company",
+  // EXEC-30: each way the re-proposal can decline, in words that name what to do.
+  "decision.error.notRefused": "that one was not refused before it ran, so there is nothing to propose again",
+  "decision.error.noGoal": "that contract has no goal to propose against any more",
+  "decision.error.notRepeatable": "that shape cannot be proposed again from here; set the work up once more instead",
+  "decision.reproposed": "Proposed again. It is waiting for a decision.",
   "decision.error.decided": "somebody already decided this one; the page has been refreshed",
   "decision.error.superseded": "a later proposal replaced this one, so it can no longer be decided",
   "decision.error.notApproved": "this contract has not been approved, so there is nothing to run",
@@ -4109,6 +5189,29 @@ var PRODUCT_SOURCE = {
   // GOV-12. Several addresses at once. The cap is in the hint rather than only
   // in the refusal, because §8a asks that every limit be stated before somebody
   // builds on it.
+  // GOV-12's organization half. One person, several workspaces, one press.
+  // FIRST-8. The reward is stated before anybody builds on it (§8a), including
+  // the condition, because "when they pay" is the whole of the abuse design and
+  // a referral page that hides it reads as a bounty on signups.
+  "org.referral.heading": "Refer another company",
+  "org.referral.because": "Share your code. When a company that signed up with it starts paying, you both get {credits} credits, once. Nothing is earned for a signup on its own.",
+  "org.referral.yourCode": "Your code",
+  "org.referral.counts": "{referred} signed up with your code. {rewarded} have started paying.",
+  "org.referral.none": "Nobody has used your code yet.",
+  "org.invite.heading": "Invite somebody to several workspaces",
+  "org.invite.because": "Only workspaces where your own role lets you invite are listed, and the role you choose is checked again in each one. A workspace where it would be more than you hold there is refused rather than quietly narrowed.",
+  "org.invite.emails.label": "Email addresses",
+  "org.invite.emails.hint": "One per line, or separated by commas.",
+  "org.invite.role.label": "They join as",
+  "org.invite.workspaces.label": "Which workspaces",
+  "org.invite.submit": "Send the invitations",
+  "org.invite.working": "Sending",
+  "org.invite.results.heading": "What happened in each workspace",
+  "org.invite.notAnAddress": "Not an address",
+  "org.invite.none": "There is no workspace here you can invite into.",
+  "org.invite.error.noWorkspace": "Choose at least one workspace.",
+  "org.invite.error.tooMany": "That is more than {max} invitations in one press. Choose fewer addresses or fewer workspaces.",
+  "org.invite.error.unreachable": "This workspace could not be reached just now. Nothing was sent to it.",
   "team.invite.emails.label": "Email addresses",
   "team.invite.emails.hint": "One per line, or separated by commas. Up to {max} at a time, and each one is invited separately.",
   "team.actions.invite.error.tooMany": "That is more than {max} addresses. Invite up to {max} at a time.",
@@ -4178,6 +5281,27 @@ var PRODUCT_SOURCE = {
     other: "Recorded. {count} of your colleagues who can decide this were told."
   },
   "decision.error.title": "That did not go through",
+  // ADR-0062: the plan's limit on runs at once is reached. No number in the sentence, because a count needs a plural rule.
+  "decision.error.busy": "The most your plan runs at once are already under way, so this has not started. Run it again when one of them finishes.",
+  "studio.refused.publish-busy": "The most your plan runs at once are already under way, so this site was not published. Publish it again when one of them finishes.",
+  // ADR-0065, 2026-09-17: a refusal about the moment (the allowance used up, a halt, a service not answering) leaves
+  // an approval standing. The cause is recorded on the contract as why it waits; a person pressing Run reads it inside
+  // `decision.error.waiting`. No count and no duration in any sentence. English only, listed in TRANSLATION_DEFERRED
+  // under the same date. `decision.error.waiting` promises no later pass: Run is also offered on an open contract the
+  // gates allow, and the unattended pass comes back only for an approval given once by a person who is still a member,
+  // so a promise here would be false for the rest. The decision page says what the pass does, where it does it.
+  "decision.waiting.allowance": "The allowance for this period is used up.",
+  "decision.waiting.halted": "The company is halted.",
+  "decision.waiting.unavailable": "A service this work needs did not answer.",
+  "decision.error.waiting": "This has not started. {reason} Run it again later.",
+  "decision.waiting.title": "Waiting to run",
+  "decision.waiting.body": "The approval stands. The unattended pass tries this again later, less often each time, and records it as refused if it still cannot start.",
+  "decision.waiting.ended": "This was tried again on later passes and never started, so the approval has ended. Propose the work again if it should still happen. The last reason: {reason}",
+  // ADR-0065 D4, 2026-09-18: the service that does the work holds no model key, which is a setting rather than a
+  // moment, so this is NOT a `decision.waiting.*` reason: the same answer comes back on every later pass. It is the
+  // refusal recorded beside the contract as well as the sentence a person reads, so it says what happened and what
+  // has to change, and promises no later pass. English only, listed in TRANSLATION_DEFERRED under the same date.
+  "decision.error.noModel": "This did not run, and running it again will not help: Orvay is not set up to call a model in this deployment. Nothing was produced.",
   "decision.done": "Done",
   "decision.ran.title": "This has already run",
   "decision.ran.body": "A contract runs once. Running it again would be a second attempt at the same approved action, which is a new run rather than a repeat of this one. What happened is on the Record view.",
@@ -4191,6 +5315,30 @@ var PRODUCT_SOURCE = {
   "decision.running": "Running",
   "decision.halted": "Autonomy is halted. Release the halt before anything runs, including something you have already approved.",
   "decision.run.note": "Running executes the plan and then hands the result to a different actor to check. No adapter is connected on this deployment, so the effect is simulated and every artifact it produces says so.",
+  // Shown beside Run on an approved contract only: the unattended pass runs
+  // approved work as its approver, so nobody has to stay. Not on an open one
+  // the gates allow, which the pass does not pick up.
+  "decision.run.unattended": "You do not need to stay: the next unattended pass, within minutes, runs approved work on its own. Run it now to skip the wait.",
+  // R2.10: taking an approval back before the pass runs it. The control sits
+  // beside the sentence above, on an approved contract that has not started.
+  "decision.withdraw": "Withdraw approval",
+  "decision.withdrawing": "Withdrawing",
+  "decision.withdraw.why": "Why (recorded with the withdrawal)",
+  "decision.withdraw.hint": "Withdrawing takes this out of the next unattended pass and records it as refused before it ran, under your name, with your reason. It cannot be undone: propose the work again if it should still happen.",
+  "decision.withdrawn.title": "Approval withdrawn",
+  "decision.withdrawn.body": "This will not run. A withdrawal is recorded and final. Propose a new contract rather than reversing this one, so the record of what was withdrawn survives.",
+  "contract.withdrawnBy": "Approval withdrawn by {name} on {when}",
+  // The sentence the refused run row carries: the queue shows it beneath the
+  // objective, and a stale tab that presses Run reads it.
+  "decision.withdrawn.reason": "Approval withdrawn by {name}: {rationale}",
+  "decision.ok.withdrawn": "Approval withdrawn. This will not run.",
+  "decision.error.withdraw.needsWords": "Say why you are withdrawing this, so the record says more than that you did.",
+  "decision.error.withdraw.notApproved": "This contract is not approved, so there is no approval to withdraw.",
+  "decision.error.withdraw.started": "This already started, so the approval can no longer be withdrawn. What happened is on the Record view.",
+  "decision.error.withdraw.already": "This approval was already withdrawn; the page has been refreshed.",
+  // What a runner says when the approval was withdrawn between its decision
+  // check and its announcement: the effect ledger refused the crossing.
+  "decision.error.withdrawn": "Not started. The approval was withdrawn before this could begin, so nothing left this system.",
   "decision.refused.title": "This was refused",
   "decision.recheck": "Check again",
   "decision.rechecking": "Checking",
@@ -4301,6 +5449,37 @@ var PRODUCT_SOURCE = {
   "evidence.run": "Run",
   // OUT-12: the prompt behind a produced document, named rather than only hashed.
   "evidence.prompt": "Prompt",
+  // ATT-5: the hours a person does not want to be emailed.
+  "account.quiet.heading": "Quiet hours",
+  "account.quiet.body": "Between these hours we will not email you. The decision still waits for you here, and you will see it when you next look. Hours are read in this company's time zone.",
+  "account.quiet.from": "From",
+  "account.quiet.to": "Until",
+  "account.quiet.save": "Save quiet hours",
+  "account.quiet.clear": "Turn quiet hours off",
+  "account.quiet.off": "Quiet hours are off. We may email you at any hour.",
+  "account.quiet.set": "You are not emailed between {from} and {to}.",
+  "account.quiet.saved": "Quiet hours saved.",
+  "account.quiet.cleared": "Quiet hours are off.",
+  "account.quiet.malformed": "That was not a pair of hours, so nothing changed.",
+  // VER-17: a second model read the work. What it may and may not settle.
+  "evidence.review.agrees": "A second model read this and found it does what was asked",
+  "evidence.review.disagrees": "A second model read this and found it does not do what was asked",
+  "evidence.review.by": "Read by",
+  // R8.5: the SAME sentence used to name a cause nobody observed. A fallback
+  // down the chain and a deployment holding one key both end here, and only one
+  // of them is "no other was available". So it states what was recorded.
+  "evidence.review.sameVendor": "It came from the same vendor as the model that did the work, so it is not a reading from a second vendor.",
+  // R8.5: the third state. `differentVendorFromExecutor` was a boolean, so a run
+  // whose producer was never recorded printed the sentence above about two
+  // vendors, one of which nobody wrote down.
+  //
+  // ENGLISH ONLY, listed in TRANSLATION_DEFERRED under the same date. It is a
+  // NEW key, so the standing deferral in CLAUDE.md §5b applies to it. The two
+  // keys around it are deliberately NOT deferred: they existed already and only
+  // their English moved, and a target catalogue left on the old English would go
+  // on stating a claim the source has withdrawn, in five languages.
+  "evidence.review.unknownVendor": "Nothing recorded which vendor produced the work, so whether this reading came from a second vendor is not known.",
+  "evidence.review.cannotEstablish": "A reading by a model is not proof on its own, whoever made it. What settles an outcome here is a fact anyone could check: an exit code, a reply from another system, a row in the database.",
   // VER-12 and VER-13: the track record on the policies screen.
   "policies.record.heading": "Track record",
   "policies.record.window": "Runs in the last 30 days, by capability. Verified means an independent check established the outcome.",
@@ -4329,6 +5508,21 @@ var PRODUCT_SOURCE = {
   "evidence.kind.exit_code": "Exit code",
   "evidence.kind.screenshot": "Screenshot",
   "evidence.kind.model_output": "Model output",
+  /*
+    SEVEN OF THE THIRTEEN KINDS HAD NO LABEL, and the badge fell back to the
+    machine identifier, so a customer read `model_transcript` on the approvals
+    page in all six languages. Added English-only under the standing deferral;
+    the keys are in TRANSLATION_DEFERRED. The table that reads them is typed
+    against EvidenceKind, so a fourteenth kind will not compile until it has one.
+  */
+  "evidence.kind.build_log": "Build log",
+  "evidence.kind.test_report": "Test report",
+  "evidence.kind.db_query": "Database query",
+  "evidence.kind.webhook_receipt": "Webhook receipt",
+  "evidence.kind.metric_series": "Metric readings",
+  "evidence.kind.diff": "Diff",
+  "evidence.kind.model_transcript": "What a model read and concluded",
+  "evidence.kind.unknown": "A kind of evidence this version does not have words for",
   "receipt.title": "Receipt",
   "receipt.model": "Model",
   "receipt.vendor": "Vendor",
@@ -4988,6 +6182,8 @@ var PRODUCT_SOURCE = {
   "contacts.summary.already-known": "Already on record:",
   "contacts.summary.without-evidence": "Read, with nothing to show an agreement:",
   "contacts.summary.rejected": "Not a usable address, or listed twice:",
+  // R7.11: an address this company recorded a withdrawal or an erasure for is never brought back by a file.
+  "contacts.summary.suppressed": "Withdrawn or erased here, so not imported:",
   "contacts.error.no-file": "Choose a CSV first.",
   "contacts.error.too-large": "That file is over one megabyte. Split it and import each part.",
   "contacts.error.no-rows": "That file has a heading and no rows under it.",
@@ -5219,7 +6415,7 @@ var PRODUCT_SOURCE = {
   "gates.honest.heading": "What this gate has and has not refused",
   "gates.honest.lead": "A policy engine that exists and a policy engine that has been hit are different claims, and only one of them is about running software.",
   "gates.honest.consent": "Gate 6 has never refused anything, because no call yet names a person as its subject. The gate is built and tested. It has not been reached.",
-  "gates.honest.concurrency": "The limit on how many runs may go at once is written down and not enforced. Members, departments and features are.",
+  "gates.honest.concurrency": "The limit on how many runs may go at once is never refused at the gate, because a refusal there would use up an approval on a busy moment. It is applied where each run starts instead: a run over the limit does not start, and approved work is tried again later.",
   /* THE COUNT AND THE POINTER BOTH CAME OUT, 2026-09-06. It said "Two surfaces
      still check without booking, and those are named in the changelog." The
      changelog does not name them, so the citation resolved to nothing, which
@@ -5249,11 +6445,15 @@ var PRODUCT_SOURCE = {
   //
   // WHAT IS TRUE: the site-publish path builds with one actor, checks with a
   // second, and the evidence is an HTTP response fetched by a third with the
-  // body hash computed on the receiving side.
-  // WHAT IS NOT: `verify.independent` is a routing entry with no call site, so
-  // no OTHER task class is independently verified yet. The page says so. The
-  // whole product argument is that saying "done" is not proof, and a page that
-  // broke that rule to sell the rule would be the worst thing on this site.
+  // body hash computed on the receiving side. Since R8.5 gave
+  // `verify.independent` a call site, a second model also reads written work
+  // against the objective it was given.
+  // WHAT IS NOT: that second reading. It is ATTESTED evidence, `establishes()`
+  // refuses it on its own, and no outcome here is established by one model
+  // agreeing with another. The page carries that limit in the same sentence
+  // that admits to the reading, never in a footnote under it. The whole product
+  // argument is that saying "done" is not proof, and a page that broke that
+  // rule to sell the rule would be the worst thing on this site.
   // -------------------------------------------------------------------------
   "verification.eyebrow": "Law one",
   "verification.lead": "Every other agent tells you it finished. The question this product is built around is a different one: who checked, and were they the one who did the work.",
@@ -5278,7 +6478,15 @@ var PRODUCT_SOURCE = {
   // An UNDERCLAIM rather than an overclaim, which is the safe direction and
   // still wrong: §11b says the tense is the claim, and a page telling a reader
   // we do less than we do is as inaccurate as the reverse.
-  "verification.today.gap": "A second path is judged the same way: when a post is published, a different actor reads it back and one function decides whether that establishes the outcome. What is still missing is asking a second model to check a first: that route exists in the code and nothing calls it. Naming which is which is the point of this page.",
+  //
+  // CORRECTED AGAIN 2026-09-18 (R8.5), and in the same direction. The final
+  // clause read "What is still missing is asking a second model to check a
+  // first: that route exists in the code and nothing calls it", and that stopped
+  // being true when `runAndVerify` started asking one. What must NOT creep in
+  // with the correction is the claim §3 forbids: a second model reading the work
+  // is kept as evidence, `establishes()` refuses it as attested, and the
+  // sentence has to carry that limit rather than leave it to the reader.
+  "verification.today.gap": "A second path is judged the same way: when a post is published, a different actor reads it back and one function decides whether that establishes the outcome. A second model now reads written work against the objective it was given, and the same function answers what that is worth: a reading by a model is kept as evidence and settles nothing on its own. Naming which is which is the point of this page.",
   "verification.today.why": "It is written here because a category claim resting on one path is the exact failure this product exists to refuse, and we would rather say so than be found out.",
   "verification.field.heading": "What everyone else does",
   "verification.field.lead": "Read from vendor documentation in September 2026. Where a product describes its own verification, this is what it describes.",
@@ -5420,7 +6628,7 @@ var PRODUCT_SOURCE = {
   "for.engineer.p2.title": "Nothing crosses the boundary without a contract",
   "for.engineer.p2.body": "Every side effect goes through a two-phase port: begin, then settle. A webhook writes the settlement to the log inside the transaction, then signals the workflow as best effort.",
   "for.engineer.p3.title": "We publish what is not wired",
-  "for.engineer.p3.body": "The consent gate has never refused anything. The concurrency limit is written down and not enforced. You will find both in the documentation, because a control that is built and unreachable is the worst thing to describe as protecting anybody.",
+  "for.engineer.p3.body": "The consent gate has never refused anything. The department limit is published and nothing asks the gate to check it. You will find both in the documentation, because a control that is built and unreachable is the worst thing to describe as protecting anybody.",
   // -------------------------------------------------------------------------
   // THE GLOSSARY
   //
@@ -5663,6 +6871,33 @@ var PRODUCT_SOURCE = {
   "company.department.error.long": "A department name is eighty characters at most.",
   "company.department.error.refused": "A gate refused this. Your policy does not allow adding a department.",
   "company.department.no-envelope": "no capability envelope",
+  // R1.17: the funnels a company writes down. English only, every key listed in
+  // TRANSLATION_DEFERRED under the same date.
+  //
+  // §12b GOVERNS `company.funnels.unmeasured`, AND IT IS THE MOST IMPORTANT STRING HERE.
+  // Orvay stores the steps and reads no count for any of them, so a screen that showed a
+  // funnel without saying that would be read as a measurement. The sentence is in the words a
+  // customer would use, and it goes when something reads a number.
+  "company.funnels.heading": "How customers arrive",
+  "company.funnels.lead": "Write down the steps somebody passes through on the way to becoming a customer, in the order they happen. A growth goal is easier to judge when the path it talks about is written down.",
+  "company.funnels.unmeasured": "Orvay keeps what you write here and does nothing else with it yet. Nothing counts these steps, and no work Orvay proposes reads them.",
+  "company.funnels.empty": "No funnels written down yet.",
+  "company.funnels.legend": "Add a funnel",
+  "company.funnels.name": "What this funnel is called",
+  "company.funnels.steps": "The steps, one per line",
+  "company.funnels.steps.hint": "In order, from the first thing a person does to the last. At most {limit} steps of {chars} characters.",
+  "company.funnels.submit": "Save the funnel",
+  "company.funnels.saved": "The funnel was saved.",
+  "company.funnels.retire": "Retire",
+  "company.funnels.retired": "Retired. It stays on record and is no longer read.",
+  "company.funnels.state.retired": "Retired",
+  "company.funnels.error.name": "A funnel needs a name of at most {chars} characters.",
+  "company.funnels.error.steps": "A funnel has between one and {limit} steps.",
+  "company.funnels.error.stepLength": "Each step needs words, and at most {chars} characters of them.",
+  "company.funnels.error.notAFunnel": "That funnel is not in this company.",
+  "company.funnels.error.gate": "Refused at {gate}. {reason}",
+  "company.funnels.error.halted": "{brand} is halted for this company, so nothing was saved.",
+  "company.funnels.error.source": "That analytics tool is not one this company has connected, so it was not saved.",
   "company.agent.task-class": "task class {taskClass}",
   "company.agent.legend": "Add an agent",
   "company.agent.name": "What to call it",
@@ -5674,7 +6909,7 @@ var PRODUCT_SOURCE = {
   // §12b: an agent created here holds no capabilities, because nothing writes
   // agent grants and nothing runs as an agent-kind actor. A confirmation saying
   // only "added" would be true about the row and false about the product.
-  "company.agent.created": "The agent was added. It holds no capabilities, so it cannot act yet.",
+  "company.agent.created": "The agent was added. It holds no capabilities of its own: work you ask it for runs under your authority, not its.",
   "company.agent.error.short": "An agent needs a name of at least two characters.",
   "company.agent.error.long": "An agent name is eighty characters at most.",
   // ONE SENTENCE FOR THREE CAUSES. A malformed id, an id belonging to nobody and
@@ -5684,7 +6919,96 @@ var PRODUCT_SOURCE = {
   "company.agent.error.task-class": "Choose one of the task classes offered.",
   "company.agent.error.refused": "A gate refused this. Your policy does not allow adding an agent.",
   "company.agent.needs-department": "An agent belongs to a department. Add a department first, below.",
-  "company.agents.no-authority": "An agent acts only with capabilities it has been granted. Granting them to an agent is not built yet, so none of these can act.",
+  "company.agents.no-authority": "An agent holds no capabilities of its own, and granting them is not built yet. When one answers a question, it does so with the authority of the person who asked, and it reads only what that person may read.",
+  "console.answer.rooms": "The rooms you are in.",
+  "console.answer.agents": "The agents in this company.",
+  "console.answer.people": "The people in this company.",
+  "console.answer.room-opened": "The room is open.",
+  "console.answer.room-invited": "They are in that room now.",
+  "console.answer.room-said": "Said in that room.",
+  "console.answer.browser-opened": "A browser is open on that site. Open the link to watch it and take over.",
+  "console.browser.heading": "Live browser",
+  "console.browser.holding": "You are holding this browser. Click inside it and it responds, as if it were on your own screen.",
+  "console.browser.watching": "Somebody else is holding this browser. You are watching.",
+  /*
+    NO "YET". This key covers the states that are NOT `opening` and NOT
+    `asleep`, which those two now carry themselves: a simulated run and a
+    provider whose live view we do not serve will never have a picture, so a
+    word promising that waiting helps is false on the commonest of them. It
+    points at the full page instead, which holds a named sentence per state.
+  */
+  "console.browser.noPicture": "A browser is open for this company. This screen cannot show a picture of it; the full browser page says why.",
+  "console.browser.frame.label": "The live browser",
+  "console.browser.openFull": "Open the full browser page",
+  "rooms.archive.label": "Put this room away",
+  /*
+    IT USED TO SAY "an owner can still reach it by its address", and that was
+    both true and the defect: archiving wrote a column, `roomsFor` stopped
+    listing the room, and nothing else changed. The room stayed readable,
+    postable and able to spend credits on an agent to anybody holding the URL.
+    The sentence is rewritten because the behaviour is, and §7a's rule about a
+    legal page holds for any copy that describes what the product does: a
+    sentence that was true in one commit and false in the next is not stale,
+    it is wrong.
+  */
+  "rooms.archive.hint": "It closes. The room leaves everyone\u2019s list, its address stops working, nobody can post in it and no agent can be asked from it. Nothing said in it is deleted, and an owner can open it again from the list of rooms.",
+  "rooms.archive.submit": "Put it away",
+  "rooms.archive.busy": "Putting it away",
+  "rooms.archive.already": "That room is already put away.",
+  "rooms.archive.notOwner": "Only an owner of this room can put it away.",
+  "rooms.archived.title": "Put away",
+  "rooms.archived.because": "These rooms are closed. Nothing said in them is deleted, and opening one puts it back exactly as it was.",
+  "rooms.archived.when": "Put away {when}",
+  "rooms.reopen.submit": "Open again",
+  "rooms.reopen.busy": "Opening",
+  "rooms.reopen.done": "{room} is open again.",
+  "rooms.reopen.already": "That room is already open.",
+  /*
+    THE DELETE COPY SAYS WHAT SURVIVES, because the honest thing to tell
+    somebody about an irreversible act is what it does not take. The audit
+    entry naming who destroyed the room stays on the hash chain, and that is
+    not a caveat, it is the reason this can be offered at all.
+  */
+  "rooms.delete.submit": "Delete for good",
+  "rooms.delete.busy": "Deleting",
+  "rooms.delete.done": "{room} is deleted. What was said in it is gone.",
+  "rooms.delete.note": "Deleting a room here removes it and everything said in it, for everyone, and cannot be undone. The record of who deleted it is kept.",
+  "rooms.said.archived": "{room} is put away. Open it again below whenever you want it back.",
+  "rooms.said.left": "You have left that room.",
+  /*
+    THE SWITCH THAT MAKES MESSAGES COST MONEY, so the copy leads with that
+    rather than with the feature. §8b: a customer's unit is the credit, and
+    the thing they need to know before turning this on is that an ordinary
+    sentence can now start paid work.
+  */
+  "rooms.answers.title": "Let agents answer without being named",
+  "rooms.answers.hint": "Off by default. When it is on, a message here that names nobody is read once to decide whether an agent should answer, and that reading costs credits whether one answers or not. At most two agents answer a message.",
+  "rooms.answers.label": "Agents may answer unasked",
+  "rooms.answers.submit": "Save",
+  "rooms.answers.busy": "Saving",
+  "rooms.answers.on": "Agents in this room may now answer without being named. Messages here cost credits.",
+  "rooms.answers.off": "Agents in this room answer only when named.",
+  "rooms.answers.unchanged": "That was already the setting.",
+  "rooms.answers.notOwner": "Only an owner of this room can change that.",
+  "rooms.say.mention-hint": "Type @ to name somebody in this room. An agent you name can be asked to do the work.",
+  /*
+    NO `{count}` PLACEHOLDER, DELIBERATELY. The substitution would have to
+    happen in the client half, and `t()` is server-only, so a key with a
+    placeholder cannot be resolved where the number is known. Saying HOW to use
+    the list is more useful to the reader this exists for than saying how long
+    it is, and the listbox itself already conveys the length.
+  */
+  "rooms.say.mention-status": "Names are listed. Use the arrow keys to choose one, or Escape to dismiss.",
+  "company.agent.skill.label": "What this agent may look at",
+  "company.agent.skill.hint": "A skill narrows which tools this agent may be offered. It never widens what it may do: every use is checked against the capabilities of whoever runs the ask.",
+  "company.agent.skill.submit": "Save skill",
+  "company.agent.skill.custom": "A list set by hand",
+  "company.agent.skill.unchanged": "Choose one of the skills below to replace the list this agent has now.",
+  "company.agent.skill.reads": "Read what the company has",
+  "company.agent.skill.reads_and_proposes": "Read, and propose work for a person to decide",
+  "company.agent.skill.saved": "Saved. {agent} has a new skill.",
+  "company.agent.skill.error.unknown": "That agent is not one of this company\u2019s.",
+  "company.agent.skill.error.skill": "That is not a skill you can choose.",
   "company.badge.halted": "halted",
   "company.badge.active": "active",
   "company.badge.inactive": "inactive",
@@ -5870,7 +7194,7 @@ var PRODUCT_SOURCE = {
   "account.erased.what.heading": "Exactly what happened",
   "account.erased.halted": "This workspace has been stopped, because you were the last person in it who could approve anything. Nothing runs in it now. Somebody with access to the account that pays for it can start it again.",
   "account.erased.sealed": "Your address and display name have been overwritten, and the key that made your consent records readable has been destroyed, so those records cannot be read again by anyone including us. Entries already written to the audit log stay as they are: an audit log that could be rewritten would not be one. We keep a record that an interaction happened, when, and under whose authority, because we have to be able to show that we acted lawfully.",
-  "account.erased.suppression": "We also keep a one-way keyed digest of your address on our suppression list, so that we can recognise it and refuse to contact you again. That digest is the only thing we retain about you and it is the reason your withdrawal stays honoured.",
+  "account.erased.suppression": "We also keep a one-way keyed digest of your address on our suppression list, so that we can recognise it and refuse to contact you again. It is the reason your withdrawal stays honoured. It is not the only thing we keep, and what this does not cover is set out below.",
   "account.erased.uncovered.label": "What this does not cover",
   "account.erased.history.title": "History written before this existed",
   "account.erased.history.body": "Entries written before personal fields were ever encrypted under a key are plaintext, and the audit log cannot be rewritten by anything, which is what makes it an audit log. Those entries stay as they are.",
@@ -5961,6 +7285,24 @@ var PRODUCT_SOURCE = {
   "tools.mode.busy": "Changing",
   "tools.mode.hold": "Hold for a person",
   "tools.mode.release": "Let a model call it on its own",
+  // R3.11. What a tool server says about whether a tool changes anything, repeated as ITS
+  // claim and never as a finding: MCP calls `readOnlyHint` a hint and nothing checks it.
+  // `unpinned` is the server saying so about a list that was approved before the claim was
+  // recorded, which is why it still asks for the confirmation below.
+  "tools.claim.pinned": "The server says this tool only reads. {brand} does not check that.",
+  "tools.claim.unpinned": "The server says this tool only reads. The approved list does not say so, so treat it as able to change things.",
+  "tools.claim.none": "The server does not say this tool only reads. Treat it as able to change things.",
+  // The confirmation beside "Let a model call it on its own", for every tool the approved list
+  // does not say only reads. The server refuses the release without it.
+  "tools.mode.acknowledge": "I understand this tool may change things.",
+  // Backlog 28, 2026-09-11. A tool that runs other tools by name (Sentry's `execute_sentry_tool`)
+  // stands where the release control would be: it is never released, and every call on it is
+  // admitted as the tool it names.
+  "tools.dispatcher.note": "This tool runs other tools on this server by name, so it cannot be released. Each call is checked as the tool it names and waits for a person.",
+  // Backlog 32, ADR-0055. A tool that takes a free-form command (PostHog's `exec`)
+  // reaches every tool on its server; the sentence says so, and its release
+  // always asks the confirmation.
+  "tools.whole-server.note": "This tool takes a free-form command, so it can reach every tool on this server. Releasing it needs the confirmation whatever the server says about reading, and each call is checked as this tool.",
   "tools.heading": "Tool servers",
   // FOUR OF THIS FILE'S STRINGS ARE INVISIBLE TO THE COVERAGE SCAN, which read 17
   // where there are 21. Three are template literals interpolating a value, and
@@ -6010,8 +7352,8 @@ var PRODUCT_SOURCE = {
   "mailbox.lede.empty": "The inbox of {account} is empty.",
   "mailbox.lede.count": "The newest {count} messages in {account}. Sorted by what the sender alone reveals; the headers are checked at the moment you send.",
   "mailbox.lede.dropped": "{count} could not be read and are not shown.",
-  "mailbox.consent.title": "Nothing sends until you press Send",
-  "mailbox.consent.body": "{brand} reads this mailbox under the grant you gave at Microsoft, and every read is on the record. It does not draft replies yet and it never starts a conversation. A reply you write here goes in the thread, from your own address, and the record shows who pressed Send and when. Archive moves a message in your own mailbox, and only a press does that.",
+  "mailbox.consent.title": "Nothing sends without a person",
+  "mailbox.consent.body": "{brand} reads this mailbox under the grant you gave at Microsoft, and every read is on the record. It can draft a reply for you, and the draft waits for your approval before anything is sent. It never starts a conversation. A reply you write here goes in the thread, from your own address, and the record shows who pressed Send and when. Archive moves a message in your own mailbox, and only a press does that.",
   // The badge table and the explanation below it are two halves of one idea, so
   // they share the triage vocabulary and are keyed by the same senderTriage value.
   "mailbox.triage.needs-reply": "Somebody wrote",
@@ -6297,6 +7639,23 @@ var PRODUCT_SOURCE = {
   "tools.form.label.label": "Label",
   "tools.form.label.hint": "What this server is called on screen.",
   "tools.form.address.hint": "https only. A public hostname whose address points into a private network is refused.",
+  // R3.6: a key from the vendor account as the bearer, where the vendor offers no sign-in.
+  "tools.form.key.label": "API key",
+  "tools.form.key.hint": "Optional. A key or token from the vendor account, sent as the bearer on every request. It is checked against the server before it is stored, sealed, and never shown again.",
+  // The same field where a key is the whole point of the form, so it is not "Optional" there.
+  "tools.key.required.hint": "A key or token from the vendor account, sent as the bearer on every request. It is checked against the server before it is stored, sealed, and never shown again.",
+  "tools.key.set.submit": "Set the key",
+  "tools.key.replace.submit": "Replace the key",
+  "tools.key.instead.submit": "Use a key instead",
+  "tools.key.instead.body": "The sign-in for this server is set aside. From then on the key is what every request carries.",
+  "tools.key.replace-authorization.body": "This server is connected through a sign-in. Setting a key discards that sign-in and destroys its grant. From then on the key is what every request carries.",
+  "tools.key.busy": "Checking the key",
+  "tools.key.remove.submit": "Remove the key",
+  "tools.key.remove.busy": "Removing the key",
+  "tools.result.key-not-set": "Key not set",
+  "tools.result.key-set": "Key set",
+  "tools.result.key-not-removed": "Key not removed",
+  "tools.result.key-removed": "Key removed",
   "webhooks.title": "Webhooks",
   "webhooks.unavailable.title": "Not available",
   // INVISIBLE TO THE COVERAGE SCAN. This sits inside a JSX expression as a bare
@@ -6404,6 +7763,22 @@ var PRODUCT_SOURCE = {
   "integrations.error.mastodon-needs-host": "Mastodon needs the hostname of your instance.",
   "integrations.error.slack-needs-channel": "Slack needs the channel ID as well as the token.",
   /*
+      X TAKES FOUR SECRETS AND THE OTHERS TAKE ONE, which is why these three exist
+      rather than reusing `no-credential`. OAuth 1.0a signs with a consumer pair
+      AND an access pair, and three of the four produce a signature X rejects as
+      an authentication failure: a person told "invalid credential" would go and
+      regenerate keys that were never the problem. So the refusal names the SHAPE.
+  
+      `x-wrong-account` is the one that matters most and is not a validation
+      message at all. It fires when the keys authenticate perfectly AS SOMEBODY
+      ELSE, which is the exact case the handle pin exists for: an Orvay key pasted
+      into a customer's connection works. It names the account X answered with,
+      because "wrong account" without saying which is unactionable.
+    */
+  "integrations.error.x-needs-four-keys": "X needs four values, one per line: the API key, the API key secret, the access token and the access token secret.",
+  "integrations.error.x-needs-handle": "X needs the account handle as well as the keys.",
+  "integrations.error.x-wrong-account": "Those keys belong to {named}, which is not the account you entered. Connect the account the keys are for, or use keys for this one.",
+  /*
       THE SECOND CREDENTIAL FIELD, PER PROVIDER.
   
       These were two hardcoded English strings inside a ternary in
@@ -6416,6 +7791,15 @@ var PRODUCT_SOURCE = {
   "integrations.field.mastodon.hint": "For example mastodon.social, without https",
   "integrations.field.slack.label": "Channel ID",
   "integrations.field.slack.hint": "In Slack, open the channel and choose View channel details. The ID is at the bottom and starts with C.",
+  /*
+    X IS THE ONLY ONE WHOSE SECRET FIELD TAKES FOUR VALUES, so its hint carries
+    the ORDER. Without it a person pastes four correct secrets in the order
+    their portal happened to display them, the signature fails, and X answers
+    401, which reads as "these keys are wrong" rather than "these keys are in
+    the wrong places". That is the most expensive sentence to omit on this form.
+  */
+  "integrations.field.x.label": "Your handle",
+  "integrations.field.x.hint": "For example newonorvay, without the at sign. Paste the four keys one per line, in this order: API key, API key secret, access token, access token secret.",
   "integrations.error.no-adapter": "No adapter exists for that integration.",
   "integrations.error.verify-unreachable": "Nothing was stored: {reason}. Your credential is unchanged and untouched.",
   "integrations.error.gate-refused": "refused at the {gate} gate: {reason}",
@@ -6424,6 +7808,71 @@ var PRODUCT_SOURCE = {
   "integrations.ok.connected": "Connected as {label}. {brand} checked the credential with a real call before storing it.",
   "integrations.error.not-connected": "That was not connected.",
   "integrations.ok.disconnected": "Disconnected. The key and the stored credential were both destroyed, so nothing here can use it again. Revoke the token at the provider too, because it stays valid there until you do.",
+  /*
+    THE SLACK WORKSPACE IS BOUND WHEN THE TOKEN IS, and these are the two ways
+    that can fail. A mention of @orvay is resolved to a company by the
+    workspace id Slack states for the token, so a token whose workspace is
+    already another company's, or one Slack will not name, stores nothing.
+  */
+  "integrations.error.slack-workspace-taken": "That Slack workspace is already connected to another company. Disconnect it there first.",
+  "integrations.error.slack-no-workspace": "Slack did not say which workspace that token belongs to, so nothing was stored.",
+  /*
+    LINKING YOUR SLACK ACCOUNT TO YOUR SEAT, on the Slack row of the
+    integrations page, shown once Slack is connected (ADR-0054). One press
+    sends the person to Slack's own sign-in; nothing is typed and nothing is
+    looked up.
+  */
+  "integrations.slack.link.heading": "Your Slack account",
+  "integrations.slack.link.body": "A mention of {brand} in the bound channel acts as the person who sent it, and only after that person has linked their Slack account here. Linking is one press: Slack confirms which account you are signed in with, and nothing else about it is kept. A mention grants nothing on its own, and nothing is decided in Slack.",
+  "integrations.slack.link.not-bound": "This connection was made before workspaces were bound, so mentions from it are not received. Disconnect Slack and connect it again to bind the workspace.",
+  "integrations.slack.link.not-ready": "This deployment has no Slack app registered, so a Slack account cannot be linked here.",
+  "integrations.slack.link.linked": "Linked to Slack user {user}.",
+  "integrations.slack.link.unlinked": "Not linked. A mention from your Slack account is answered, only to you, with how to link, and nothing else.",
+  "integrations.slack.link.submit": "Link my Slack account",
+  "integrations.slack.link.busy": "Sending you to Slack",
+  "integrations.slack.link.busyReason": "Waiting for Slack to open the sign-in page.",
+  // Where Slack sends a person back from the sign-in. `refused`, `expired`,
+  // `signed-out`, `unavailable` and the not-configured sentence are shared.
+  "integrations.slackLink.status.linked": "Linked. Mentions of {brand} from that Slack account now act as your seat, with the permissions that seat holds.",
+  "integrations.slackLink.status.declined": "You cancelled at Slack, so nothing was linked.",
+  "integrations.slackLink.status.state": "The reply from Slack did not belong to the attempt this browser started, so nothing was linked. Start again from this page.",
+  "integrations.slackLink.status.no-code": "Slack answered without an authorization code, so there was nothing to exchange and nothing was linked. Start again from this page.",
+  "integrations.slackLink.status.exchange": "Slack refused to exchange the authorization code, or answered with something that could not be used, so nothing was linked. Start again; a code is valid for a few minutes only.",
+  "integrations.slackLink.status.identity": "What Slack sent back did not pass the checks that tie it to this sign-in and to this app, so nothing was linked. Start again from this page.",
+  "integrations.slackLink.status.team": "You signed in to a Slack workspace that is not the one connected to this company, so nothing was linked. Sign in to the connected workspace and try again.",
+  "integrations.slackLink.status.taken": "That Slack account is already linked to another seat in this company, so nothing was changed. Ask them to unlink it first.",
+  /*
+    THE CHANNEL THE APP POSTS IN AND LISTENS TO, chosen from a list on the Slack
+    row once the app is added (ADR-0054). Nobody looks up a channel id.
+  */
+  "integrations.slack.channel.heading": "The channel",
+  "integrations.slack.channel.body": "Choose the channel {brand} posts in and listens to. The app joins it itself, and Slack shows in the channel that it joined. You can change it here at any time.",
+  "integrations.slack.channel.label": "Channel",
+  "integrations.slack.channel.hint": "The public channels of the connected workspace, by name.",
+  "integrations.slack.channel.none": "No channel is chosen yet. Until one is, nothing is posted and no mention is heard.",
+  "integrations.slack.channel.current": "Posting in and listening to {channel}.",
+  "integrations.slack.channel.submit": "Use this channel",
+  "integrations.slack.channel.busy": "Joining the channel",
+  "integrations.slack.channel.busyReason": "Waiting for Slack to confirm the channel.",
+  "integrations.slack.channel.capped": "This workspace has more public channels than are listed here. The first {count} Slack returned are shown, by name.",
+  "integrations.slack.channel.empty": "Slack listed no public channels in this workspace. Create one in Slack, then reload this page.",
+  "integrations.slack.channel.unlisted": "Slack could not list the channels just now. Reload the page to try again.",
+  "integrations.slack.channel.done": "Done. {brand} posts in and listens to {channel}.",
+  "integrations.slack.channel.malformed": "That is not one of the public channels Slack listed. Choose one from the list.",
+  "integrations.slack.channel.join-refused": "Slack would not let the app join that channel, or could not confirm it: it may be archived, private, or gone. Nothing was changed.",
+  "integrations.slack.channel.unreachable": "Slack could not be reached to join and check the channel. Nothing was changed.",
+  "integrations.slack.channel.team": "Slack named a different workspace when the channel was checked, so nothing was changed.",
+  "integrations.slack.channel.not-bound": "No Slack workspace is bound to this company, so there is no channel to choose.",
+  "integrations.slack.channel.not-installed": "This Slack connection was made with a pasted token, whose channel is fixed when it is connected. Disconnect it and use Add to Slack to choose from a list.",
+  "integrations.slack.channel.stale": "The Slack connection changed while this was being saved, so nothing was changed. Reload and choose again.",
+  "integrations.slack.channel.refused": "Your seat does not include choosing the channel.",
+  "integrations.connection.slack.noChannel": "Connected to the {team} Slack workspace. No channel is chosen yet, so nothing is posted and no mention is heard.",
+  "integrations.connection.kind.slackApp": "Connected by adding the {brand} app to the workspace, so mentions are heard.",
+  "integrations.connection.kind.slackToken": "Connected with a pasted bot token, which posts notices and never hears a mention.",
+  "integrations.slack.link.unlink.submit": "Unlink",
+  "integrations.slack.link.unlink.busy": "Unlinking",
+  "integrations.slack.link.unlink.done": "Unlinked. Mentions from that Slack account no longer act as you.",
+  "integrations.slack.link.refused": "Your seat does not include linking a Slack account.",
   "integrations.error.not-microsoft": "That is not an integration {brand} connects through Microsoft.",
   "integrations.error.no-microsoft-client": "This deployment has no Microsoft sign-in client registered, so a mailbox cannot be connected from it.",
   "integrations.error.not-google": "That is not an integration {brand} connects through Google.",
@@ -6442,9 +7891,24 @@ var PRODUCT_SOURCE = {
   "integrations.ok.tool-approval": "{tool} now waits for a person. A model is not offered it.",
   "integrations.error.tool-unnameable": "That tool name cannot be made into a capability, so it cannot be granted.",
   "integrations.error.tool-forbidden": "That tool is forbidden by a migration, which this control may not lift.",
+  "integrations.error.tool-needs-acknowledgement": "Confirm that this tool may change things before a model calls it on its own.",
+  "integrations.error.tool-dispatcher": "This tool runs other tools by name and cannot be released. Each call is checked as the tool it names.",
   "integrations.tool-server.needs-account": "This server asks for a signed-in account before it will list its tools. Nothing is asked of it until you connect one.",
   "integrations.tool-server.connect.submit": "Connect",
   "integrations.tool-server.pending": "Sign-in started. Finish it in the window that opened, and this server lists its tools afterwards.",
+  // Backlog 35, 2026-09-11. The sign-in happens in this tab and comes back to
+  // this page, so a pending row is a sign-in somebody left, not a window open
+  // somewhere. The key above stays as it was translated; this one replaces it
+  // on the screen.
+  "integrations.tool-server.pending.unfinished": "A sign-in was started and not finished. Connect again to be sent to it; this server lists its tools once the sign-in is granted.",
+  // ADR-0055, backlog 24. What a person is told before the browser is sent to a
+  // grant that may write, or to a vendor that does not say what it grants.
+  "integrations.grant.confirm.title": "Before the sign-in",
+  "integrations.grant.may-write": "Signing in asks {issuer} for permissions that may change or delete things in your account, not only read them, because {issuer} offers no narrower set. Every tool still waits for a person until you release it.",
+  "integrations.grant.unstated": "{issuer} does not say what a sign-in grants, so the grant may include changing and moving things in your account, and {brand} cannot ask for less. Every tool still waits for a person until you release it.",
+  "integrations.grant.scopes": "Permissions that will be requested:",
+  "integrations.grant.confirm": "I understand this grant may include more than reading, and I want to continue.",
+  "integrations.error.tool-server-no-declared-scope": "That server lists none of the permissions {brand} needs for this connector, so nothing was connected.",
   "integrations.tool-server.authorized": "Connected through {issuer}, {when}. The grant is sealed under a key that is destroyed when you remove this server.",
   "integrations.tool-server.no-account-needed": "This server answers without an account, so there is nothing to connect.",
   "integrations.tool-server.reauth-required.title": "Needs a new sign-in",
@@ -6453,11 +7917,19 @@ var PRODUCT_SOURCE = {
   "integrations.tool-server.client-rejected": "{issuer} no longer recognises how {brand} identifies itself, so nothing is asked of this server. Signing in again does not fix this one. Remove the server and add it again to register afresh.",
   "integrations.tool-server.unconfigured.title": "Not configured",
   "integrations.tool-server.unconfigured": "This server does not hand out its own client credentials, so {brand} cannot register itself with it. Set {idVariable} and {secretVariable} on this deployment, then connect it.",
+  // Backlog 33, 2026-09-11. The sentence above named two deployment variables
+  // to a customer, who can set neither. The names go to the log and the
+  // runbook; the customer is told what stands and who acts. The key above stays
+  // as it was translated.
+  "integrations.tool-server.unconfigured.body": "This server admits only an app registered with it by the {brand} operator, and this deployment holds none for it. Nothing is asked of it until the operator registers one.",
   "integrations.error.tool-server-discovery": "That server could not say where to sign in, so nothing was connected.",
   "integrations.error.tool-server-pkce": "That server signs in through a service that does not offer the protection which stops an intercepted sign-in being reused, so nothing was connected.",
   "integrations.error.tool-server-issuer": "The sign-in came back from a different service than the one that server named. Nothing was read and nothing was connected.",
   "integrations.error.tool-server-redirected": "That server tried to send the request somewhere else. {brand} does not carry a credential across a redirect, so nothing was connected.",
   "integrations.error.tool-server-points-inward": "That server named a sign-in address inside a private network, so nothing was fetched from it.",
+  // R3.12, 2026-09-13: a tool server address the fence could not look up, which is now refused
+  // rather than passed. English only, listed in TRANSLATION_DEFERRED under the same date.
+  "integrations.error.tool-server-unresolved": "The address of that server, or an address it gave for signing in, could not be looked up, so nothing was sent to it. Check that the address is spelled correctly, or try again in a few minutes.",
   "integrations.tool-server.paused.title": "Paused: its tools changed",
   "integrations.tool-server.paused": "This server now offers a different list of tools than the one that was approved. Nothing is asked of it until somebody reads the change and approves it.",
   "integrations.tool-server.reapprove.submit": "Approve the new list",
@@ -6466,11 +7938,29 @@ var PRODUCT_SOURCE = {
   "integrations.tool-server.diff.changed": "Changed",
   "integrations.tool-server.diff.unchanged": "Unchanged",
   "integrations.tool-server.diff.parameters": "Its parameters changed. The description did not.",
+  // R3.11. A read-only claim that moved, which the diff counts as a change. "Gained" is said
+  // against the APPROVED list rather than as news, because a list approved before claims were
+  // recorded never held one even when the server was already sending it.
+  "integrations.tool-server.diff.reads-only-gained": "The server says this tool only reads. The approved list did not say so.",
+  "integrations.tool-server.diff.reads-only-lost": "The server no longer says this tool only reads.",
   "integrations.ok.tool-server-reapproved": "The new list is approved. {label} is offered again.",
   "integrations.error.tool-server-not-paused": "That server is not paused, so there is nothing to approve.",
   "integrations.error.tool-server-stale-approval": "The list changed again since you read it. Read the new one before approving.",
   "integrations.error.tool-server-plan-excludes": "This plan does not include borrowed tools. Move to a plan that does.",
   "integrations.error.tool-server-plan-limit": "This plan has no room for another tool server. Remove one, or move to a plan that holds more.",
+  // R3.6: a pasted key as the bearer. Verified against the server before anything is stored.
+  "integrations.ok.tool-server-key-set": "The server accepted the key and listed its tools. The key is sealed and is never shown again.",
+  "integrations.ok.tool-server-key-removed": "The key is destroyed. Nothing is sent to this server with it again.",
+  "integrations.error.tool-server-key-required": "Paste a key first.",
+  "integrations.error.tool-server-key-refused": "The server refused that key, so nothing was stored.",
+  "integrations.error.tool-server-key-unverified": "The server could not be asked whether the key works, so nothing was stored. Try again in a moment.",
+  "integrations.error.tool-server-holds-authorization": "This server is connected through a sign-in. Use a key instead only from the control that says so, because it discards the sign-in.",
+  "integrations.error.tool-server-holds-key": "This server holds a key. Remove the key before connecting an account.",
+  "integrations.error.tool-server-no-key": "This server holds no key.",
+  "integrations.tool-server.key": "A key is set, {when}. It is sealed under a key that is destroyed when you replace or remove it.",
+  "integrations.tool-server.key-failed.title": "The key stopped working",
+  "integrations.tool-server.key-refused": "The server refused the key it was given, {when}. Set a new one.",
+  "integrations.tool-server.key-unreadable": "The stored key could not be read, {when}. Set a new one.",
   // invite
   "invite.accept.error.not-signed-in": "You are not signed in.",
   "invite.accept.error.no-email": "Your account has no email address, so {brand} cannot check that this invitation was addressed to you.",
@@ -6498,6 +7988,8 @@ var PRODUCT_SOURCE = {
   "mailbox.send.no-sender": "Not sent. That message names no sender to answer.",
   "mailbox.send.bad-address": "Not sent. The sender address has a shape {brand} will not put into a capability.",
   "mailbox.send.not-found": "Not sent. The mailbox no longer has that message.",
+  // R2.5: a second press while the first send may still be under way.
+  "mailbox.send.in-flight": "Not sent again. This reply was started in the last few minutes and may still be on its way. Check the thread before sending it a second time.",
   "mailbox.send.not-connected": "Not sent. No mailbox is connected.",
   "mailbox.send.reason": "Not sent. {reason}",
   "mailbox.archive.bad-destination": "That is not a place a message can be filed.",
@@ -6512,6 +8004,13 @@ var PRODUCT_SOURCE = {
   "mailbox.grant.no-client": "This deployment has no Microsoft sign-in client, so the grant cannot be refreshed.",
   "mailbox.grant.revoked": "The mailbox provider no longer accepts the grant. Connect the mailbox again.",
   "mailbox.approval.rationale": "Pressed Send in the mailbox",
+  // R5.13/backlog-109, 2026-09-19: the three runners that crossed on a self approval and
+  // recorded nothing. Each says WHERE the person was when they approved, because "approved
+  // their own action" is only meaningful if the record says which action. English only,
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "social.post.approval.rationale": "Ran an approved post from the decision page",
+  "toolCall.approval.rationale": "Ran an approved tool call from the decision page",
+  "reply.approval.rationale": "Ran an approved reply from the decision page",
   // members
   "capability.read.label": "See this company. Taking it away leaves the seat and stops every page loading.",
   "capability.approve.label": "Approve or refuse what an agent proposes.",
@@ -6653,6 +8152,14 @@ var PRODUCT_SOURCE = {
   "integrations.goalFixSource.ok.set": "Saved. A goal will now propose a change to {repo}, and nothing is opened until a person approves the contract.",
   "integrations.goalFixSource.ok.cleared": "Cleared. Goals will not propose changes to a repository.",
   "decision.recheck.error.nothingLeft": "Nothing left this system for that contract, so there is nothing to check.",
+  // R3.12 review, 2026-09-13: why Check again did not fetch an address, one sentence per refusal
+  // code, so the guard's English reason and a resolver's word never reach the page. English only,
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "decision.recheck.notFetched.notHttps": "What this contract left on the record is not an https address, so nothing was fetched.",
+  "decision.recheck.notFetched.unparseable": "What this contract left on the record is not an address with a host in it, so nothing was fetched.",
+  "decision.recheck.notFetched.carriesCredentials": "The address on the record carries a name or a password, so it was not fetched.",
+  "decision.recheck.notFetched.pointsInward": "The address on the record points inside a private network, so it was not fetched.",
+  "decision.recheck.notFetched.unresolved": "The address on the record could not be looked up, so it was not fetched. That says nothing about whether it is still there. Try again in a few minutes.",
   // briefing
   "briefing.title": "The last day in {company}",
   "briefing.range": "{since} to {until}",
@@ -6699,6 +8206,75 @@ var PRODUCT_SOURCE = {
   "integrations.oauth.signed-out.body": "You were signed out before the grant came back, so it was not stored.",
   "integrations.oauth.unavailable.body": "The database could not be reached when the grant came back, so it was not stored. Try again in a moment.",
   "integrations.oauth.gateSuffix": " Refused at the {gate} gate.",
+  /*
+    THE GITHUB APP INSTALL FLOW (ADR-0047 D3, R5.7). Eight statuses of its own,
+    because every sentence above names Microsoft and a mailbox, and a GitHub
+    installation is neither. The four that say nothing vendor-specific
+    (`refused`, `expired`, `signed-out`, `unavailable`) are shared.
+  */
+  // A tool server's sign-in coming back (2026-09-11). These replaced the
+  // Microsoft sentences the MCP callback borrowed, which named Microsoft on a
+  // PostHog connection.
+  "integrations.toolServer.status.connected": "The sign-in worked and the grant is stored encrypted. Orvay read the list of tools this server offers, and every tool waits for a person until you decide otherwise.",
+  "integrations.toolServer.status.declined": "You cancelled at the sign-in, so nothing was granted and nothing was stored.",
+  "integrations.toolServer.status.state": "The reply from the sign-in did not belong to the attempt this browser started, so it was not read. Start again from this page.",
+  "integrations.toolServer.status.no-code": "The sign-in answered without a code, so there was nothing to exchange. Start again from this page.",
+  "integrations.toolServer.status.exchange": "The tool server refused to exchange the code for a grant, so nothing was stored. Start again; a code is valid for a few minutes only.",
+  // R3.12 review, 2026-09-13: the token endpoint pointed inward when the sign-in came back. English
+  // only, listed in TRANSLATION_DEFERRED under the same date.
+  "integrations.toolServer.status.inward": "The address named for finishing the sign-in points inside a private network, so the code was not sent there and nothing was stored.",
+  // R3.12 review, 2026-09-13: the token endpoint could not be looked up when the sign-in came back.
+  // The address is the vendor's, not one the person typed, and the attempt is cleared. English only,
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "integrations.toolServer.status.unresolved": "The address named for finishing the sign-in could not be looked up, so the code was not sent there and nothing was stored. Start again from this page in a few minutes.",
+  "integrations.githubApp.status.connected": "The GitHub App installation is bound to this company. Nothing long-lived is stored: each pull request asks GitHub for a one-hour token limited to that one repository.",
+  "integrations.githubApp.status.declined": "You cancelled at GitHub, so nothing was installed here and nothing was stored.",
+  "integrations.githubApp.status.state": "The reply from GitHub did not belong to the attempt this browser started, so the installation was not bound. Start again from this page.",
+  "integrations.githubApp.status.no-code": "GitHub answered without an authorization code, so the installation could not be checked and was not bound. Start again from this page.",
+  "integrations.githubApp.status.exchange": "GitHub refused to exchange the authorization code, so the installation could not be checked and was not bound. Start again; a code is valid for a few minutes only.",
+  "integrations.githubApp.status.installation": "The installation GitHub sent back is not one your GitHub account can see, so it was not bound. Install the App while signed in to the GitHub account that owns the repositories.",
+  "integrations.githubApp.status.already": "GitHub is already connected here with another credential, so the installation was not bound. Disconnect that credential first; a connection never changes kind on its own.",
+  "integrations.githubApp.status.not-configured": "This deployment has no GitHub App registered, so an installation cannot be bound from it.",
+  // The GitHub row's second way in, beside the token field.
+  "integrations.githubApp.help": "Or install the {brand} GitHub App on the repositories you choose, instead of a token. {brand} stores only the installation and the account it was verified against, and asks GitHub for a one-hour token limited to one repository each time it opens a pull request.",
+  "integrations.githubApp.submit": "Install the GitHub App",
+  "integrations.githubApp.busy": "Sending you to GitHub",
+  "integrations.githubApp.busyReason": "Waiting for GitHub to open the installation page.",
+  "integrations.githubApp.notConfigured": "This deployment has no GitHub App registered, so only a token can be connected here.",
+  "integrations.error.not-github-app": "That is not an integration {brand} connects through the GitHub App.",
+  // The daily re-check of an App connection, which asks GitHub whether the
+  // installation still exists and mints nothing.
+  "integrations.githubApp.recheck.removed": "GitHub no longer reports this installation. It may have been uninstalled; disconnect here and install the App again.",
+  "integrations.githubApp.recheck.unconfigured": "this deployment has no GitHub App registered, so the installation could not be checked",
+  // What a connected GitHub row says about the kind of credential it holds.
+  "integrations.connection.kind.token": "Connected with a personal access token.",
+  "integrations.connection.kind.githubApp": "Connected through the GitHub App installation on {account}. Each pull request uses a one-hour token limited to one repository, and nothing long-lived is stored.",
+  /*
+    "ADD TO SLACK" (ADR-0053). The one way a Slack connection hears a mention:
+    the events route verifies deliveries against the signing secret of the one
+    app Orvay distributes, so a token pasted from a customer's own app posts and
+    is never heard. The row says so before anybody chooses.
+  */
+  "integrations.slackInstall.help": "{brand} answers mentions only when Slack is connected this way. Add the {brand} app to your workspace, then choose the channel it posts in and listens to from a list. Nothing to look up and nothing to type.",
+  "integrations.slackInstall.submit": "Add to Slack",
+  "integrations.slackInstall.busy": "Sending you to Slack",
+  "integrations.slackInstall.busyReason": "Waiting for Slack to open the install page.",
+  "integrations.slackInstall.notConfigured": "This deployment has no Slack app registered, so Slack can be connected here only with a pasted token, which posts notices and does not receive mentions.",
+  // Beside the pasted token, in the product only: the catalogue help above the
+  // field is also the public integration page's, and stays true as it is.
+  "integrations.slack.paste.note": "A token from your own Slack app posts notices only and never hears a mention.",
+  "integrations.error.not-slack-app": "That is not an integration {brand} connects through its Slack app.",
+  // Where Slack sends a person back. The four statuses that say nothing about
+  // Slack (`refused`, `expired`, `signed-out`, `unavailable`) are shared.
+  "integrations.slackInstall.status.connected": "The {brand} app is added and the workspace is bound to this company. Choose the channel it posts in and listens to on the Slack row; a mention there acts for a person once they have linked their Slack account.",
+  "integrations.slackInstall.status.declined": "You cancelled at Slack, so nothing was added here and nothing was stored.",
+  "integrations.slackInstall.status.state": "The reply from Slack did not belong to the attempt this browser started, so nothing was stored. Start again from this page.",
+  "integrations.slackInstall.status.no-code": "Slack answered without an authorization code, so there was nothing to exchange and nothing was stored. Start again from this page.",
+  "integrations.slackInstall.status.exchange": "Slack refused to exchange the authorization code, or answered with something that could not be used, so nothing was stored. Start again; a code is valid for a few minutes only.",
+  "integrations.slackInstall.status.scopes": "Slack did not grant the app every permission it asks for, so nothing was stored. Start again and allow reading mentions, reading and joining public channels, and posting, or ask a workspace admin to approve the app.",
+  "integrations.slackInstall.status.enterprise": "That install covered a whole Enterprise Grid organization. {brand} binds one workspace to one company, so nothing was stored. Add the app to a single workspace instead.",
+  "integrations.slackInstall.status.team": "Slack did not name the same workspace when it issued the token and when the token was checked, so nothing was stored. Start again from this page.",
+  "integrations.slackInstall.status.unreachable": "Slack could not be reached to check the new token, so nothing was stored. Try again in a moment.",
   "integrations.summary.none": "Nothing is connected. {connectable} can be connected today.",
   "integrations.summary.some": "{connected} connected, {connectable} connectable in total.",
   // A catalogue row that is the vendor's own tool server: one press registers it.
@@ -6709,6 +8285,13 @@ var PRODUCT_SOURCE = {
   "integrations.mcp.authorize.submit": "Authorize with {vendor}",
   "integrations.mcp.awaiting": "Registered, and not yet authorized: {vendor} still has to let Orvay in. The button takes you there and brings you back.",
   "integrations.mcp.registered": "Registered as a tool server. Its tools and their modes are listed below.",
+  // R3.6: the second way in on a vendor row whose documentation accepts a key as the bearer.
+  "integrations.mcp.key.sentence": "Or paste a key from your {vendor} account. It is checked against the server before it is stored, and it is never shown again.",
+  "integrations.mcp.key.submit": "Connect with a key",
+  // Backlog 33, ADR-0055. A vendor that admits only an operator-registered app,
+  // on a deployment that holds none: the button is disabled with this as its
+  // reason, and no row is made.
+  "integrations.mcp.operator.unavailable": "{vendor} admits only an app the {brand} operator has registered with it, and this deployment holds none, so it cannot be connected here yet.",
   "integrations.badge.connected": "connected",
   "integrations.connection.unknownAccount": "unknown",
   "integrations.connection.checked": "Checked {when}.",
@@ -6716,6 +8299,12 @@ var PRODUCT_SOURCE = {
   "integrations.connection.checkOverdue": "Last checked {when}. A check is overdue.",
   "integrations.connection.neverChecked": "Not checked since it was connected.",
   "integrations.connection.lastError": " \xB7 last error: {error}",
+  // The scopes the vendor actually granted, read from the row rather than from the
+  // catalogue's request. The two can differ: a vendor may grant less than was asked
+  // for, and a pasted token carries whatever scopes its owner gave it. 2026-09-20,
+  // English only, both keys listed in TRANSLATION_DEFERRED under the same date.
+  "integrations.connection.scopes.label": "This connection was granted:",
+  "integrations.connection.scopes.none": "This vendor did not say which permissions it granted, so Orvay cannot show them. What it will allow is decided at the vendor, not here.",
   "integrations.fix.heading": "Propose a fix",
   "integrations.fix.goalHeading": "Let a goal propose one",
   "integrations.fix.toolHeading": "Propose a fix from a tool",
@@ -6741,6 +8330,21 @@ var PRODUCT_SOURCE = {
   "integrations.fix.goal.savedTitle": "Saved",
   "integrations.fix.goal.body.withCurrent": "Goals read {tool} on {server} and propose changes to {repo}. Each one is a contract that waits for a person; nothing is opened on its own.",
   "integrations.fix.goal.body.empty": "Goals propose no changes to a repository. Name one and every goal that runs will read a tool, write what it found, and leave a pull request waiting for somebody to approve. {brand} opens nothing on its own.",
+  // R4.12, 2026-09-17: what a goal's fix has to rest on, said where a person configures one. The two
+  // sentences above promise a change on every goal pass, which was true and is not: a fix is proposed
+  // only from an error a server reported. English only, listed in TRANSLATION_DEFERRED under the same
+  // date, so the sentences already translated are left as they are rather than edited.
+  "integrations.fix.goal.body.onlyFromAnError": "A change is proposed only from an error a server reported, and one waits for a person at a time. Sentry is the one server {brand} reads errors from today.",
+  "integrations.fix.goal.body.readsNoError": "Goals propose no change to {repo} from {server}. A change is proposed only from an error a server reported, and {brand} reads no error from {server}. Sentry is the one server it reads errors from today.",
+  // R4.12, 2026-09-17, review fix: a Sentry source may be saved with no project, and then every goal
+  // pass refuses it as unmapped. The two sentences above were both wrong for that company: one
+  // promised a change on every pass, the other said the server reads no error, and it does.
+  "integrations.fix.goal.body.needsSentryProject": "Goals propose no change to {repo} yet. A change is proposed only from an error {server} reported in the project whose errors belong to this repository, and the Sentry project field is empty. Fill it in and a goal can propose a change from an error read there, one waiting for a person at a time.",
+  // R4.12, 2026-09-18, review fix: the tool is a free-text box and `setFixSource` checks only the
+  // shape of the name, so a tool the pin does not hold, one that runs other tools, one that does not
+  // claim to only read, or one whose required inputs cannot be filled all save cleanly and propose
+  // nothing for ever. All four are one sentence, because what a person does about them is one thing.
+  "integrations.fix.goal.body.toolCannotRead": "Goals propose no change to {repo} yet. A change is proposed only from an error {server} reported, and reading that error is the first thing a fix does. The Tool field holds {tool}, and a fix reads with a tool on the approved list for {server} that only reads, runs no other tool, and needs nothing but the project and the issue. Name one of those and a goal can propose a change from an error read there, one waiting for a person at a time.",
   "integrations.fix.goal.path.label": "Where the file goes",
   "integrations.fix.goal.path.hint": "A folder. Each goal writes its own file under it. Left empty, docs/orvay is used.",
   "integrations.fix.goal.path.placeholder": "docs/orvay",
@@ -6748,6 +8352,8 @@ var PRODUCT_SOURCE = {
   "integrations.fix.goal.submitSave": "Let goals propose changes",
   "integrations.fix.goal.submitChange": "Change it",
   "integrations.fix.goal.stop": "Stop proposing",
+  "integrations.fix.goal.sentryProject.label": "Sentry project",
+  "integrations.fix.goal.sentryProject.hint": "Written organization/project, as Sentry names them: the project whose errors belong to this repository.",
   "integrations.change.body": "{brand} writes one file on a new branch and opens a pull request. It changes no branch anybody relies on, and nothing happens until a person approves the contract this makes.",
   "integrations.change.repo.hint": "Written owner/name, exactly as GitHub writes it.",
   "integrations.change.path.label": "File",
@@ -6777,19 +8383,36 @@ var PRODUCT_SOURCE = {
   "fix.error.noModel": "no model was reachable, so there is nothing to propose",
   "fix.pr.writtenBy": "Written by {brand} from the {server} server's {tool} tool, and approved before anything was read.",
   "fix.error.githubNotConnected": "GitHub is not connected here.",
+  "fix.error.alreadyTried": "This fix was already tried, so it cannot run again. Propose it again to try once more.",
   "fix.error.pathFormatShort": 'A path is written without a leading slash and without ".."',
   "fix.error.serverToolNotCapability": "That server and tool cannot be made into a capability.",
+  "fix.error.sentryProjectFormat": "A Sentry project is written organization/project.",
   "fix.evidence.plannerPlan": "orvay.planner: what contract {hash} will read and where it will write",
   "fix.evidence.executorProduced": "orvay.executor: the change contract {hash} produced",
   "pullRequest.contract.claim": "Opening a pull request on {repo} proposes a change to the people who watch that repository. It changes no branch they rely on and it can be closed, so it is reversible; it cannot be un-notified, so a person decides.",
   "pullRequest.contract.citation": "a pull request you asked for",
   "pullRequest.error.needsTitleAndFile": "A pull request needs a title and a file to change.",
+  "pullRequest.error.previouslyFailed": "This pull request was tried and did not open, so the same contract cannot run again. Fix the cause and propose it again.",
+  // R2.5: a second Run while the first may still be opening the pull request.
+  "pullRequest.error.inFlight": "Not opened again. This pull request was started in the last few minutes and may still be opening. Check the repository before running it a second time.",
+  "pullRequest.error.pathRunsOnPush": "A pull request here may not change a file your CI runs, such as anything under .github. Pushing the branch would run the change before anybody reviewed it.",
   "pullRequest.error.alreadyRefused": "that contract was refused",
   "pullRequest.error.changeMissing": "the change this contract proposed is missing",
   "pullRequest.error.credentialUnreadable": "the stored GitHub credential could not be read",
+  // The App path's two refusals, before anything crosses. Never a fallback to a
+  // token: an App connection holds none (ADR-0047 D3 rule 5).
+  "pullRequest.error.appTokenRefused": "GitHub would not issue an installation token for {repo}, so nothing was opened. The App may have been uninstalled, or {repo} is not a repository it was installed on.",
+  "pullRequest.error.appNotConfigured": "This connection uses the GitHub App and this deployment has no App registered, so nothing was opened.",
   "pullRequest.error.companyHalted": "this company is halted",
   "pullRequest.error.githubRefused": "GitHub refused: {step} ({status}).",
   "pullRequest.error.notOpened": "The pull request could not be opened.",
+  // Backlog 57 / R5.11: GitHub may have opened it and gave no answer, so the effect stays pending.
+  "pullRequest.error.outcomeUnknown": "GitHub did not answer, so whether this pull request opened is unknown, and it is not recorded as failed. Check the repository. Running it again after a few minutes finds the pull request if it opened, and does not open a second one.",
+  // R5.11: a crossing whose contract expired with nothing heard back, written off by the unattended pass.
+  "expiredCrossing.run.unknown": "This was started and never reported back before it expired, so whether it happened is unknown. Nothing was retried. Check the place it was meant to reach.",
+  "expiredCrossing.run.notOnGithub": "This pull request was started and never reported back before it expired. GitHub lists no pull request from the branch {branch} in {repo}, and it is recorded as unknown rather than failed because the attempt itself never answered. Nothing was retried.",
+  "expiredCrossing.run.githubUnasked": "This pull request was started and never reported back before it expired, and GitHub could not be asked about it. Whether it opened is unknown. Nothing was retried. Check {repo} for the branch {branch}.",
+  "expiredCrossing.evidence.found": "orvay.executor: found on api.github.com after this work expired",
   "pullRequest.evidence.plannerChange": "orvay.planner: the change proposed by contract {hash}",
   "pullRequest.evidence.executorPiece": "orvay.executor: {kind} from api.github.com",
   "pullRequest.error.runNotRecorded": "the run could not be recorded",
@@ -6798,6 +8421,29 @@ var PRODUCT_SOURCE = {
   "pullRequest.evidence.verifierGet": "orvay.verifier: GET https://api.github.com/repos/{repo}/pulls/{number}",
   "pullRequest.why.wrongBranch": "GitHub reports that pull request on branch {head}, not {branch}",
   "pullRequest.why.notConfirmed": "GitHub would not confirm the pull request ({status})",
+  // R5.4, checking a pull request again: what GitHub says about it later, one
+  // sentence per fact, so the notice and the record both say which were established.
+  "decision.recheck.title": "What checking again found",
+  "decision.recheck.note.pullRequest": "Asks GitHub, with the GitHub connection this company holds, whether the pull request is still on its branch, whether it was closed or merged, and what its checks say at its latest commit.",
+  "pullRequest.recheck.opened": "GitHub reports pull request #{number} on {repo}, on the branch this contract named ({branch}).",
+  "pullRequest.recheck.wrongBranch": "GitHub reports pull request #{number} on branch {head}, not on {branch}, so it is not the one this contract opened and nothing else about it was read.",
+  "pullRequest.recheck.unreadable": "GitHub did not show pull request #{number} to this connection. That means it could not be read, not that it is gone, so nothing about it was established.",
+  "pullRequest.recheck.open": "It is still open and has not been merged.",
+  "pullRequest.recheck.closed": "It was closed without being merged.",
+  "pullRequest.recheck.closedThroughOrvay": "It was closed through {brand}, by the close that was approved and run, and has not been merged.",
+  "pullRequest.recheck.merged": "It was merged, as commit {sha}.",
+  "pullRequest.recheck.checks.passed": "At its latest commit, {sha}, every check GitHub reports passed.",
+  "pullRequest.recheck.checks.failed": "At its latest commit, {sha}, at least one check did not succeed.",
+  "pullRequest.recheck.checks.pending": "At its latest commit, {sha}, checks are still running and none has failed so far.",
+  "pullRequest.recheck.checks.none": "At its latest commit, {sha}, GitHub reports no checks at all, and no checks is not a pass.",
+  "pullRequest.recheck.checks.runsUnread": "At its latest commit, {sha}, the check runs could not be read in full, so the checks were not established.",
+  "pullRequest.recheck.checks.statusesUnread": "At its latest commit, {sha}, the commit statuses could not be read in full, so the checks were not established. A connection that is not allowed to read commit statuses is refused this way.",
+  "pullRequest.recheck.noConnection": "There is no readable GitHub connection here, so GitHub was not asked and nothing was established.",
+  "pullRequest.recheck.noApp": "This connection uses the GitHub App and this deployment has no App registered, so GitHub was not asked and nothing was established.",
+  "pullRequest.recheck.tokenRefused": "GitHub would not issue a reading token for {repo}, so GitHub was not asked and nothing was established.",
+  "pullRequest.recheck.notAPullRequest": "The address this contract recorded is not a pull request on the repository it named, so GitHub was not asked and nothing was established.",
+  "pullRequest.recheck.doesNotEstablish": "that the change is correct, that anybody reviewed it, which checks the repository requires before merging, or that a second credential saw the same thing",
+  "pullRequest.evidence.verifierChecks": "orvay.verifier: GET https://api.github.com/repos/{repo}/commits/{sha}/check-runs and /status",
   // leftovers
   "decision.ok.posted": "Posted {url}, and it reads back publicly.",
   "decision.ok.postedNote": "Posted {url}. {why}",
@@ -6817,14 +8463,28 @@ var PRODUCT_SOURCE = {
   "toolCall.run.planMissing": "The input for this call is not on the record, so nothing was sent.",
   "toolCall.run.planMismatch": "The input on the record is not the input that was approved, so nothing was sent.",
   "toolCall.run.halted": "This company is halted. Nothing was sent.",
+  // R2.5: a second Run while the first call may still be waiting on its answer.
+  "toolCall.run.inFlight": "Not sent again. This call was started in the last few minutes and may still be waiting on its answer. Check the runs list before running it a second time.",
   "toolCall.run.capabilityDenied": "The approval does not cover this tool. Nothing was sent.",
   "toolCall.run.serverRefused": "The server refused the call: {reason}",
+  // R3.12 review, 2026-09-13: a call the fence stopped before it reached the server, shared by the
+  // tool-call runner and the fix runner. English only, listed in TRANSLATION_DEFERRED under the same date.
+  "toolCall.run.unresolved": "The address of that tool server could not be looked up, so nothing was sent to it.",
+  "toolCall.run.pointsInward": "The address of that tool server points inside a private network, so nothing was sent to it.",
+  // Backlog 28, 2026-09-11. A tool that runs other tools by name named nothing this approval
+  // covers. One sentence per refusal, so no code reaches a person.
+  "toolCall.run.dispatch.unnamed": "The call did not name the tool to run. Nothing was sent.",
+  "toolCall.run.dispatch.unlisted": "The call named a tool that is not on the approved list for this server. Nothing was sent.",
+  "toolCall.run.dispatch.unnameable": "The call named a tool whose name cannot be granted. Nothing was sent.",
+  "toolCall.run.dispatch.dispatcher": "The call named a tool that itself runs other tools. Nothing was sent.",
+  "toolCall.run.dispatch.notHeld": "This approval does not cover the tool the call names. Nothing was sent.",
   "toolCall.run.failed": "The call did not go through. Nothing is recorded as sent.",
   "toolCall.run.notRecorded": "The tool answered, but the run could not be recorded.",
   "toolCall.run.notEstablished": "The answer on the record could not be confirmed by a different actor.",
   "toolCall.evidence.plan": "The input proposed for {tool} on {server}",
   "reply.evidence.draft": "A reply drafted for {to}, waiting for a decision.",
   "reply.evidence.declined": "A reply for {to} was not drafted. The record says why.",
+  "reply.draft.no-record": "Drafted without the company record, which could not be read. The answer may be thinner than it should be.",
   "toolCall.evidence.answer": "What {server} answered to {tool}",
   "toolCall.evidence.verified": "The answer of {tool} on {server}, read back from the record",
   "decision.error.connectSocial": "Connect that social account on the integrations page first.",
@@ -6837,6 +8497,37 @@ var PRODUCT_SOURCE = {
   "decision.ok.openedNote": "Opened {url}. {why}",
   "decision.ok.alreadyOpened": "That pull request is already open: {url}",
   "decision.error.connectGithub": "Connect GitHub on the integrations page first.",
+  // Backlog 39 (R5.14), 2026-09-12: closing a pull request Orvay opened, as a contract of its
+  // own. English only, every key listed in TRANSLATION_DEFERRED under the same date.
+  "decision.close": "Close the pull request",
+  "decision.closing": "Proposing the close",
+  "decision.close.note": "Proposes a separate contract that closes this pull request on GitHub, and takes you to it. That contract passes the same gates as any other before it runs, and a different actor then asks GitHub whether the pull request is closed. A merged pull request is not closed, because closing does not undo a merge.",
+  "decision.ok.closed": "Closed {url}, and GitHub confirms it.",
+  "decision.ok.closedNote": "Closed {url}. {why}",
+  "decision.ok.alreadyClosed": "This contract already closed that pull request: {url}",
+  "pullRequestClose.contract.objective": "Close pull request #{number} on {repo}",
+  "pullRequestClose.contract.claim": "The contract that opened this pull request declared closing it as the way to reverse it. Closing leaves the branch and the conversation on GitHub, and it notifies the people who watch the repository, which cannot be taken back.",
+  "pullRequestClose.contract.citation": "contract {hash}, which opened the pull request",
+  "pullRequestClose.contract.reopen": "Reopen the pull request on GitHub, which GitHub allows while its branch still exists. Orvay does not reopen it.",
+  "pullRequestClose.check.describes": "A different actor asks GitHub for the pull request and checks that it is closed, was not merged, and is on the branch the contract that opened it named.",
+  "pullRequestClose.check.expectation": "GitHub reports the pull request closed and not merged, on the branch derived from the hash of the contract that opened it",
+  "pullRequestClose.check.establishes": "GitHub itself reports this pull request closed without being merged, on the branch the contract that opened it named",
+  "pullRequestClose.check.doesNotEstablish": "that nobody reopens it later, that its branch was deleted, or that a second credential saw the same thing",
+  "pullRequestClose.error.notPullRequest": "Only a contract that opened a pull request has a pull request to close.",
+  "pullRequestClose.error.nothingToClose": "There is no pull request on the record to close. This contract has not run successfully, or its run did not record a pull request on the repository it named.",
+  "pullRequestClose.error.notAClose": "that contract does not close a pull request",
+  "pullRequestClose.error.merged": "GitHub reports this pull request merged. Closing does not undo a merge, so nothing was closed.",
+  "pullRequestClose.error.notClosed": "The pull request could not be closed.",
+  "pullRequestClose.error.previouslyFailed": "This close was tried and did not go through, so the same contract cannot run again. Its run says why.",
+  "pullRequestClose.error.inFlight": "Not closed again. This close was started in the last few minutes and may still be under way. Check the pull request before running it a second time.",
+  "pullRequestClose.error.appTokenRefused": "GitHub would not issue an installation token for {repo}, so nothing was closed. The App may have been uninstalled, or {repo} is not a repository it was installed on.",
+  "pullRequestClose.error.appNotConfigured": "This connection uses the GitHub App and this deployment has no App registered, so nothing was closed.",
+  "pullRequestClose.error.alreadyTried": "This close was already tried and did not close the pull request, so it cannot run again. Propose closing the pull request again from its own page.",
+  "pullRequestClose.error.closedWithoutRecord": "A run of this close succeeded, but the record of what GitHub answered is missing, so it is not run again. Check the pull request on GitHub.",
+  "pullRequestClose.why.stillOpen": "GitHub still reports the pull request as open",
+  "pullRequestClose.why.merged": "GitHub reports the pull request merged rather than closed",
+  "pullRequestClose.recheck.holds": "GitHub still reports pull request #{number} closed and not merged, on the branch its opening contract named.",
+  "pullRequestClose.recheck.noRun": "GitHub reports pull request #{number} closed and not merged, but no run of this close is on the record, so there is nothing here for the check to confirm.",
   "team.invite.role.label": "They arrive as",
   "team.invite.role.hint": "Member is the usual answer. Guest reads this company and opens no files, which is what to give somebody from outside it.",
   // social-push
@@ -6850,9 +8541,13 @@ var PRODUCT_SOURCE = {
   "social.post.vendorRefused": "The account refused: {step}.",
   "social.post.vendorRefusedWithStatus": "The account refused: {step} ({status}).",
   "social.post.publishFailed": "The post could not be published.",
+  // R2.5: a second Run while the first post may still be under way.
+  "social.post.inFlight": "Not posted again. This post was started in the last few minutes and may still be going out. Check the account before running it a second time.",
   "social.post.notRecorded": "It was published, and the run could not be recorded.",
   "social.post.notVerified": "It was published, and the address could not be read back.",
   "notification.summary.approval.escalated": "A decision has been waiting for a day",
+  // ATT-8: the daily briefing, in a line the product wrote rather than a count.
+  "notification.summary.briefing.ready": "Your morning briefing is ready",
   // -------------------------------------------------------------------------
   // The second factor: the challenge at sign-in, and the enrolment in account
   // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
@@ -7110,6 +8805,20 @@ var PRODUCT_SOURCE = {
   "integrations.catalogue.bluesky.because": "A real adapter exists, and posts made through it genuinely appear on your account.",
   "integrations.catalogue.bluesky.label": "App password",
   "integrations.catalogue.bluesky.help": "Generated in Bluesky under Settings, App Passwords. Not your account password. Bluesky has no OAuth worth using for this, so an app password is the credential the platform itself offers.",
+  /*
+      X. §5a applies: no em dash, and the `help` string has to be followed by a
+      person with the console open, so it names the screen and the four values
+      rather than gesturing at them.
+  
+      `because` SAYS WHAT IS TRUE TODAY AND NOT WHAT IS PLANNED. The adapter
+      posts; it cannot deduplicate a retry the way the Bluesky one can, because X
+      offers no idempotency key. §11b: a page describing a mechanism nobody can
+      reach is a placeholder wearing prose, and the inverse is an overclaim.
+    */
+  "integrations.catalogue.x.summary": "Posting to your own account",
+  "integrations.catalogue.x.because": "A real adapter exists and posts through the official API. There is no browser fallback, and there will not be one.",
+  "integrations.catalogue.x.label": "API key, API secret, access token, access token secret",
+  "integrations.catalogue.x.help": "All four come from the X developer console, under your app, Keys and Tokens. Generate the access token AFTER setting the app to read and write, because a token keeps the permission it was created with and a read-only one fails only when you try to post.",
   "integrations.catalogue.mastodon.summary": "Posting to your own instance",
   "integrations.catalogue.mastodon.because": "A real adapter exists, scoped to the instance your token belongs to.",
   "integrations.catalogue.mastodon.label": "Access token",
@@ -7179,6 +8888,51 @@ var PRODUCT_SOURCE = {
   "integrations.connect.oauth.noClient": "This deployment has no {provider} sign-in client registered, so there is nothing to press yet.",
   "integrations.disconnect.submit": "Disconnect",
   "integrations.disconnect.busy": "Disconnecting",
+  /*
+      ONE CLICK FOR EVERY CONNECTOR (ADR-0057), 2026-09-11. Deferred under the
+      standing rule in CLAUDE.md §5b: new English, translated in the final pass.
+  
+      GMAIL'S RETURN SENTENCES NAME GOOGLE. The Google callback returned the
+      Microsoft-worded statuses, so a Gmail connection announced that Microsoft
+      granted access. The seven below are Google's; the Microsoft keys and their
+      translations are untouched.
+    */
+  "integrations.google.status.connected": "Google granted access and the tokens are stored encrypted. Nothing has been read yet, and nothing will be sent until you press something.",
+  "integrations.google.status.declined": "You cancelled at Google, so nothing was granted and nothing was stored.",
+  "integrations.google.status.state": "The reply from Google did not belong to the attempt this browser started, so it was not read. Start again from this page.",
+  "integrations.google.status.no-code": "Google answered without a code, so there was nothing to exchange. Start again from this page.",
+  "integrations.google.status.exchange": "Google refused to exchange the code for tokens, so nothing was stored. Start again; a code is valid for a few minutes only.",
+  "integrations.google.status.account": "Google granted tokens but Gmail would not say which mailbox they belong to, so nothing was stored.",
+  "integrations.google.status.not-configured": "This deployment has no Google sign-in client registered, so a mailbox cannot be connected from it.",
+  // Mastodon, signed in at the person's own instance rather than pasted.
+  "integrations.mastodon.lead": "Sign in at your instance. {brand} registers itself there once, asks only for permission to post statuses and to read your account, and keeps the token encrypted. There is no token to create or paste.",
+  "integrations.mastodon.submit": "Sign in at your instance",
+  "integrations.mastodon.busy": "Opening your instance",
+  "integrations.mastodon.busyReason": "Registering with your instance and sending you there to sign in",
+  "integrations.mastodon.paste": "Or paste an access token instead. A pasted token carries whatever scopes you gave it when you created it, and disconnecting here cannot revoke it at your instance.",
+  "integrations.mastodon.error.host": "That is not an instance hostname. Type the address your instance is on, for example mastodon.social.",
+  "integrations.mastodon.error.inward": "That hostname points inside a private network, so {brand} will not contact it.",
+  // R3.12, 2026-09-13: an instance the fence could not look up, now refused rather than contacted.
+  // English only, listed in TRANSLATION_DEFERRED under the same date.
+  "integrations.mastodon.error.unresolved": "That hostname could not be looked up, so nothing was sent to it. Check that it is spelled correctly, or try again in a few minutes.",
+  "integrations.mastodon.error.redirected": "That address sends visitors somewhere else. Type the address your instance\u2019s own web interface is on, which can differ from the one in your handle.",
+  "integrations.mastodon.error.unreachable": "That instance did not answer, so nothing was registered there. Check the hostname and try again.",
+  "integrations.mastodon.error.not-an-instance": "That host did not answer as a Mastodon instance, so nothing was registered there.",
+  "integrations.mastodon.error.register": "That instance would not register {brand}, so there is nowhere to sign in yet. You can paste an access token below instead.",
+  "integrations.mastodon.status.connected": "Your instance granted access and the token is stored encrypted. It was asked for permission to post statuses and to read your account, and for nothing else.",
+  "integrations.mastodon.status.declined": "You cancelled at your instance, so nothing was granted and nothing was stored.",
+  "integrations.mastodon.status.state": "The reply from your instance did not belong to the attempt this browser started, so it was not read. Start again from this page.",
+  "integrations.mastodon.status.no-code": "Your instance answered without a code, so there was nothing to exchange. Start again from this page.",
+  "integrations.mastodon.status.exchange": "Your instance refused to exchange the code for a token, so nothing was stored. Start again from this page.",
+  "integrations.mastodon.status.account": "Your instance issued a token but would not say which account it belongs to, so nothing was stored and the instance was asked to revoke the token.",
+  "integrations.mastodon.status.already": "Mastodon is already connected here, so this token was not stored and your instance was asked to revoke it. Disconnect first to connect another account.",
+  "integrations.mastodon.status.instance": "Your instance no longer points somewhere on the open internet, so nothing was exchanged and nothing was stored.",
+  "integrations.mastodon.status.unresolved": "Your instance could not be looked up when the sign-in came back, so nothing was exchanged and nothing was stored. Try again in a few minutes.",
+  "integrations.ok.mastodon-revoked": "Disconnected. {instance} confirmed the token is revoked, and the key and the stored credential were both destroyed.",
+  "integrations.ok.mastodon-unrevoked": "Disconnected. The key and the stored credential were both destroyed, but {instance} did not confirm the token is revoked. Remove {brand} from the authorized apps in your account settings there.",
+  // The GitHub row leading with the App where this deployment holds one.
+  "integrations.githubApp.lead": "Install the {brand} GitHub App on the repositories you choose. {brand} stores only the installation and the account it was verified against, and asks GitHub for a one-hour token limited to one repository each time it opens a pull request.",
+  "integrations.githubApp.tokenFallback": "Or paste a personal access token instead. A token is not limited to the repositories an installer chose: it reaches whatever its owner granted, and it stays valid until the expiry its owner set rather than for one hour.",
   // GOV-10 and USE-16: goals belong to a department, and a statement can be edited
   //
   // THE FILTER'S OWN VOCABULARY IS NOT UNDER `goals.`, because it is drawn on three screens.
@@ -7217,20 +8971,1086 @@ var PRODUCT_SOURCE = {
   "goals.statement.label": "What this goal says",
   "goals.statement.submit": "Save",
   "goals.statement.saved": "Saved.",
+  // R1.3: closing a goal, and the word for each state a goal can be in. The badge printed the stored state itself.
+  "goals.close.label": "Close this goal",
+  "goals.close.hint": "Closing stops {brand} working on this goal, and its sentence and target can no longer be changed. Notes can still be added.",
+  "goals.close.met": "It is met",
+  "goals.close.abandoned": "Stop pursuing it",
+  "goals.close.saved.met": "Marked as met.",
+  "goals.close.saved.abandoned": "No longer pursued.",
+  "goals.close.error.outcome": "Choose whether the goal is met or no longer pursued.",
+  "goals.close.error.notOpen": "That goal is not open, so there is nothing to close.",
+  "goals.state.open": "Open",
+  "goals.state.proposed": "Drafted",
+  "goals.state.met": "Met",
+  "goals.state.abandoned": "Abandoned",
+  "goals.reopen.label": "Reopen this goal",
+  "goals.reopen.hint": "Reopening lets {brand} work on this goal again, and its sentence and target can be changed again.",
+  "goals.reopen.submit": "Reopen",
+  "goals.reopen.saved": "Reopened.",
+  "goals.reopen.error.notClosed": "That goal is not closed, so there is nothing to reopen.",
+  // R1.3: a goal's history, one sentence per change read back off the chain, ending where the goal began.
+  "goals.history.label": "History",
+  "goals.history.created": "Set as a goal, {when}",
+  "goals.history.statement": "{who} changed the sentence, {when}. It said: {from}",
+  "goals.history.target": "{who} changed what it is measured by, {when}",
+  "goals.history.cadence": "{who} changed how often {brand} works on it, {when}. Set to: {cadence}",
+  "goals.history.assignee": "{who} put {person} on it, {when}",
+  "goals.history.assignee.nobody": "{who} took everyone off it, {when}",
+  "goals.history.department": "{who} moved it to {department}, {when}",
+  "goals.history.department.company": "{who} made it a goal for the whole company, {when}",
+  "goals.history.department.gone": "{who} moved it to a department that no longer exists, {when}",
+  "goals.history.closed.met": "{who} marked it as met, {when}",
+  "goals.history.closed.abandoned": "{who} stopped pursuing it, {when}",
+  "goals.history.reopened": "{who} reopened it, {when}",
+  "goals.history.thrashing": "{brand} stopped working on it after its runs kept failing, {when}",
+  "goals.history.someone": "Someone",
+  "goals.measure.label": "What this goal is measured by",
+  "goals.measure.metric": "What is measured",
+  "goals.measure.unit": "Measured in",
+  "goals.measure.count": "A count",
+  "goals.measure.value": "The number that reaches it",
+  "goals.measure.submit": "Save the target",
+  "goals.measure.clear": "Remove the target",
+  "goals.measure.saved": "Target saved.",
+  "goals.measure.cleared": "Target removed.",
+  // R1.5, 2026-09-12: which verified reading measures a goal, and what it measured. English only, every key listed
+  // in TRANSLATION_DEFERRED under the same date.
+  "goals.measure.source": "Measured by",
+  "goals.measure.source.none": "Nothing yet",
+  "goals.measure.source.stripe": "Cash collected in Stripe, last 30 days",
+  "goals.measure.source.zenovay": "Page views in Zenovay, last 30 days",
+  "goals.measure.error.source": "That source cannot measure this target: Stripe measures an amount of money, and Zenovay a count.",
+  "goals.measured.value": "{value} in the 30 days to {to}, read on {read} from {source}",
+  // No full stop: each sits inside the goal's meta line between middots, as the measured value does.
+  "goals.measured.none.noReading": "Not measured yet: nothing has been read from {source}",
+  "goals.measured.none.stale": "Not measured: {source} has reported nothing recently",
+  "goals.measured.none.incomplete": "Not measured: the last reading from {source} does not cover all 30 days",
+  "goals.measured.none.otherCurrency": "Not measured: {source} collects in a currency other than this target's",
+  "goals.measured.none.invalid": "Not measured: the last reading from {source} held a value that cannot be counted, such as a fraction or a negative number",
+  "goals.measured.stripe": "Stripe",
+  "goals.measured.zenovay": "Zenovay",
+  "goals.measure.error.metric": "Name what is measured, in 80 characters or fewer.",
+  "goals.measure.error.unit": "Choose a count or one of the currencies offered.",
+  "goals.measure.error.number": "Give the target as a whole number from 1 to 1,000,000,000,000.",
+  "goals.measure.error.amount": "Give the amount as a number from 0.01 to 1,000,000,000,000, with at most two decimals and no separators.",
   // ATT-11: what needs THIS person in their other workspaces.
   "inbox.elsewhere.heading": "Waiting on you elsewhere",
-  "inbox.elsewhere.body": "Undecided proposals in your other workspaces. Refused ones are left out, because no decision of yours would move them.",
+  "inbox.elsewhere.body": "Undecided proposals in your other workspaces, and steps that were refused before they ran, which need you to fix the cause. Ones a person refused are left out, because no decision of yours would move them.",
   "inbox.elsewhere.count": "Needs you",
   "inbox.elsewhere.atLeast": "Needs you, at least",
-  "inbox.elsewhere.more": "You are in more workspaces than this list counts."
+  "inbox.elsewhere.more": "You are in more workspaces than this list counts.",
+  // G3.13 / ADR-0072 D11, 2026-09-17: the one list that answers "what needs me". A proposal
+  // waiting in the queue and a workflow run that stopped are produced by different machinery
+  // and a person does not care which, so they are one list here. English only, every key
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "inbox.needs.title": "What needs you",
+  "inbox.needs.lead": "Everything waiting on a person, longest wait first. A proposal is read and decided in the approvals queue; a workflow that stopped is answered here.",
+  "inbox.needs.listLabel": "What needs you",
+  "inbox.needs.heading": "Waiting on you",
+  "inbox.needs.empty.title": "Nothing is waiting on you",
+  "inbox.needs.empty.body": "Proposals and workflow runs arrive here when they need a person. None does right now.",
+  "inbox.needs.empty.action": "Open the approvals queue",
+  // THE CAP, NAMED. A list whose whole job is "everything waiting on you" is the worst
+  // surface in the product to truncate in silence, which is the approvals queue's own
+  // recorded defect.
+  "inbox.needs.capped": "Proposals on this list: {shown}, from the newest {scanned} of {total}. Anything older is in the approvals queue.",
+  "inbox.needs.runsCapped": "More workflow runs are live than this page reads, so some of them are not on this list.",
+  "inbox.needs.unreadable": "Live runs that could not be read and are not on this list: {count}. The record holds what happened to them.",
+  // Nobody is waiting on these, and saying so is the point: they are here because they are
+  // in the queue, and a list headed "what needs you" must not imply otherwise.
+  "inbox.needs.unattended.heading": "Proposed, and nothing is needed from you",
+  "inbox.needs.unattended.body": "The gates allow these, so the unattended pass runs them without a decision.",
+  // THE WORD BESIDE EVERY ROW. Colour is never the sole carrier of what a row is (§7a rule 2),
+  // and these are the words that survive greyscale, forced colours and a printed page.
+  "inbox.needs.kind.proposal": "Proposal",
+  "inbox.needs.kind.approval": "Approval",
+  "inbox.needs.kind.takeover": "Takeover",
+  "inbox.needs.kind.reconnect": "Reconnect",
+  "inbox.needs.kind.task": "Task",
+  "inbox.needs.kind.exception": "Exception",
+  "inbox.needs.kind.unverified": "Not checked",
+  "inbox.needs.kind.partial": "Partly done",
+  "inbox.needs.runLabel": "Run",
+  "inbox.needs.step": "Step: {step}",
+  "inbox.needs.approval.body": "A step of this workflow proposed work, and it is waiting for a decision.",
+  "inbox.needs.takeover.body": "The agent handed this session to a person and has stopped until somebody hands it back.",
+  "inbox.needs.reconnect.body": "This step needs a connection that is no longer working. Reconnect it and the run carries on.",
+  "inbox.needs.task.deadline": "Answer by {when}",
+  // VERIFIED IS NOT DONE, and this is where the product says so in a sentence rather than in
+  // a badge: the run finished in the executor's own account and nobody else confirmed it.
+  "inbox.needs.unverified.body": "This run finished. Of the effects that landed, {verified} of {settled} were checked by somebody other than whoever performed them.",
+  "inbox.needs.partial.body": "This run failed after something had already landed, so the outside world moved and the run did not finish. Of what landed, {verified} of {settled} were checked by somebody else.",
+  // WHY A RUN STOPPED, one sentence per code. The detail stays in the event log, because it
+  // may name a balance in micro units or a connector's own words (§8b, §11b).
+  "inbox.needs.code.step_failed": "A step failed, and trying it again automatically is no longer allowed.",
+  "inbox.needs.code.retries_exhausted": "A step failed on every attempt it was allowed.",
+  "inbox.needs.code.recovery_exhausted": "This run has used every recovery attempt it was allowed.",
+  "inbox.needs.code.outcome_unknown_no_reconcile": "A step may or may not have landed, and there is no way to ask the other system which.",
+  "inbox.needs.code.verifier_is_the_executor": "The only check offered was by whoever did the work, so it establishes nothing.",
+  "inbox.needs.code.executor_unrecorded": "Nothing recorded who performed the step, so no check of it can be shown to be independent.",
+  "inbox.needs.code.acceptance_inconclusive": "The check ran and could not say whether the work landed.",
+  "inbox.needs.code.budget_exhausted": "This run has spent the credits it was given.",
+  "inbox.needs.code.run_deadline_expired": "This run passed the deadline it was given.",
+  "inbox.needs.code.loop_bound_exceeded": "A loop in this workflow ran more times than the workflow allows.",
+  "inbox.needs.code.depth_exceeded": "This run started workflows inside workflows deeper than the workflow allows.",
+  "inbox.needs.code.branch_unevaluable": "A branch in this workflow could not be decided from what the run holds.",
+  "inbox.needs.code.input_unresolvable": "A step could not be given its input from what the run holds.",
+  "inbox.needs.code.unknown_step": "This workflow points at a step that is not in it.",
+  // ONLY THE ANSWERS THAT CHANGE SOMETHING ARE OFFERED (ADR-0072 D9). A retry that would
+  // raise the same thing again is a button that loops, so it is absent rather than disabled.
+  "inbox.needs.resolution.retry": "Try the step again",
+  "inbox.needs.resolution.skip": "Skip the step",
+  "inbox.needs.resolution.markLanded": "Record that it landed",
+  "inbox.needs.resolution.hint": "Only the answers that would change something are offered here.",
+  "inbox.needs.resolution.pending": "Recording",
+  "inbox.needs.resolution.ok.retry": "Recorded. The step gets one more attempt.",
+  "inbox.needs.resolution.ok.skip": "Recorded. The step is skipped and the run moves on.",
+  "inbox.needs.resolution.ok.mark_landed": "Recorded. The step counts as landed and the run moves on.",
+  "inbox.needs.answer.label": "Your answer",
+  "inbox.needs.answer.submit": "Send the answer",
+  "inbox.needs.answer.pending": "Sending",
+  "inbox.needs.answer.ok": "Answer recorded. The run carries on.",
+  "inbox.needs.cancel.label": "Why you are stopping this run",
+  "inbox.needs.cancel.submit": "Stop this run",
+  "inbox.needs.cancel.pending": "Stopping",
+  "inbox.needs.cancel.ok": "The run is stopped.",
+  // TWO NUMBERS, NEITHER BOUND TO A COUNT NOUN, because that would need a plural rule and
+  // French takes the singular below two (§8b). Nothing is "left standing": a cancellation
+  // that cannot take an approval back fails instead, so the second number is the one case
+  // where there was nothing to take back, work that had already begun.
+  "inbox.needs.cancel.okApprovals": "The run is stopped. Approvals taken back: {withdrawn}. Approvals whose work had already begun: {started}.",
+  "inbox.needs.error.notFound": "That run is not live in this company.",
+  "inbox.needs.error.noException": "That run has no exception open. Somebody may have answered it already.",
+  "inbox.needs.error.notApplicable": "That answer would change nothing for this exception, so nothing was recorded.",
+  "inbox.needs.error.notWaiting": "That run is not waiting on this task any more.",
+  "inbox.needs.error.notYours": "This task is somebody else's to answer.",
+  "inbox.needs.error.noWords": "Write an answer first.",
+  "inbox.needs.error.cancelWords": "Say why you are stopping this run.",
+  // The key a run's answers are sealed under is gone, which is what erasure does. The answer
+  // would have to be written in clear to be stored at all, and it will not be.
+  "inbox.needs.error.noKey": "This run can no longer store an answer, because the key its answers are sealed under is gone.",
+  "inbox.needs.error.alreadyCancelled": "That run is already stopped.",
+  "inbox.needs.error.notLive": "That run has already finished, so there is nothing left to answer.",
+  // ONE CANCEL PATH. Stopping a run also takes back the approvals it is holding, so the
+  // sentence names the control that does the whole job rather than refusing in the abstract.
+  "inbox.needs.error.useStop": "To stop this run, use Stop this run: it also takes back the approvals the run is holding.",
+  // NOTHING WAS WRITTEN. Half a cancellation is worse than none: the run would read as
+  // stopped while the approvals it was holding were still live work.
+  "inbox.needs.error.approvalsStand": "This run was not stopped, because approvals it is holding could not be taken back: {standing}. Somebody who can decide approvals has to withdraw them first.",
+  // THE RAIL'S OWN WORDS FOR THE ROW THAT IS NOT THERE YET. `/inbox` sits beside
+  // `/approvals` (ADR-0072 D11: a union over it, never a replacement), and the rail
+  // is a shared file this goal may not edit, so the two strings the edit needs are
+  // authored here and the edit itself is a handoff. A key with no caller renders
+  // nowhere and breaks nothing; a rail row with no key would render a key.
+  "nav.needs": "Needs you",
+  "nav.hint.needs": "Everything waiting on a person",
+  // THE PROTECTED LIVE VIEW OF A BROWSER SESSION (ADR-0070 D9). The route writes
+  // the `browser.view.*` sentences into a framed document of its own; the page
+  // draws the `browser.view.page.*` ones. English only, every key listed in
+  // TRANSLATION_DEFERRED under the same date.
+  // ADR-0070 §5, 2026-09-20: the embed. The copy says what a person is looking
+  // at and what closing it does, because the browser costs money while it runs
+  // and the only revocation this vendor offers is stopping it.
+  "browser.view.page.embed.holding": "You are holding this browser. Click inside it and it responds, exactly as if it were on your own screen.",
+  "browser.view.page.embed.label": "The remote browser, live",
+  "browser.view.page.embed.cost": "This browser is running and is charged for while it is open. Close it when you are finished.",
+  "browser.view.title": "Live browser session",
+  "browser.view.simulated.title": "This session runs on the simulated provider",
+  "browser.view.simulated.body": "The simulated provider has no picture to show. It exists so a session can be exercised without a live vendor, and nothing it does reaches a real website.",
+  "browser.view.closed.title": "This session has closed",
+  "browser.view.closed.body": "A closed session does not reopen. Its record and its replay stay with the company.",
+  "browser.view.opening.title": "The browser is still opening",
+  "browser.view.opening.body": "The provider has not answered yet. Reload in a moment.",
+  /*
+    ASLEEP IS NOT OPENING, and the two notices exist so a person is never told
+    to wait for a browser that is not coming. A sleeping session has a NULL
+    provider id exactly like one still starting up; the only thing that tells
+    them apart is `slept_at`, and the only thing that tells the PERSON apart is
+    this copy.
+  */
+  "browser.view.asleep.title": "This browser is asleep",
+  "browser.view.asleep.body": "It was stopped while nobody was using it, so it stopped costing credits. The sign in was kept, so starting it again puts you back on the same site, still signed in.",
+  "browser.wake.button": "Wake the browser",
+  "browser.wake.pending": "Starting the browser",
+  "browser.wake.ok": "The browser is awake, on the same sign in.",
+  "browser.wake.alreadyAwake": "That browser was already running.",
+  "browser.wake.error.closed": "That session is closed for good. Open a new browser instead.",
+  "browser.wake.error.noProfile": "This session kept no sign in, so waking it would give you a signed out browser. Open a new one and sign in again.",
+  "browser.wake.error.provider": "The provider could not start a browser just now. Try again in a moment.",
+  "browser.wake.error.profileBusy": "Another browser took this site\u2019s sign in while this one slept. Only one browser can hold it at a time, so close that one and wake this again.",
+  "browser.view.error.invalid": "This address does not carry a valid viewer grant. Open the session from the product rather than from a copied address.",
+  "browser.view.error.expired": "This viewer grant has expired. Reload the session page to receive a new one.",
+  "browser.view.error.escalation": "This grant allows watching only. Taking control needs a control grant, and one is issued only to the person who holds control.",
+  "browser.view.error.wrongPerson": "This grant was issued to somebody else. Open the session yourself to receive your own.",
+  "browser.view.error.refused": "Your company's policy does not allow you to watch this session.",
+  "browser.view.error.notServed": "No live picture can be served for this provider yet. The session keeps running and its replay is recorded.",
+  "browser.view.error.notLive": "The provider reports that this browser is no longer running.",
+  "browser.view.error.upstream": "The provider did not answer. Reload to try again.",
+  "browser.view.error.notConfigured": "This deployment has no viewer signing secret, so no live view can be opened.",
+  "browser.view.error.notFound": "No such session.",
+  "browser.view.error.signedOut": "You are not signed in. Sign in and open the session from the product.",
+  "browser.view.error.unavailable": "Orvay cannot establish who you are right now. Try again in a moment.",
+  "browser.view.page.lead": "A browser Orvay opened on a site the company authorized. What it shows is the provider\u2019s own picture, served through Orvay and only to a signed-in member the policy allows to watch.",
+  "browser.view.page.site": "Site",
+  "browser.view.page.notFound.title": "No such session",
+  "browser.view.page.notFound.body": "There is no browser session with this address in this company. It may belong to another company or it may never have existed; Orvay does not say which.",
+  "browser.view.page.refused.title": "You cannot watch this session",
+  "browser.view.page.refused.body": "Your company's policy does not allow you to watch browser sessions. Somebody who can change the policy can grant it.",
+  "browser.view.page.notServed.title": "No live picture yet",
+  "browser.view.page.notServed.body": "Orvay has not yet proved that this provider\u2019s live view can be served without handing its link to a browser, so it serves none. The session keeps running and its replay is recorded.",
+  "browser.view.page.notConfigured.title": "No live view on this deployment",
+  "browser.view.page.frame.label": "Live view of the browser session",
+  "browser.view.page.frame.expires": "The grant behind this picture lasts one minute. Reload the page for a new one.",
+  "browser.view.page.control.holding": "You hold control of this session. What you do in the picture reaches the site.",
+  "browser.view.page.control.watching": "You are watching. Nothing you do in the picture reaches the site.",
+  // -------------------------------------------------------------------------
+  // The connectors screen. English only, every key listed in
+  // TRANSLATION_DEFERRED under the same date.
+  //
+  // THE WORDS THAT CARRY THE PRODUCT ARGUMENT ARE HERE, not in the component:
+  // where a reading came from, whether a vendor signed a delivery, and whether
+  // a credential may change anything. A component that spelled those inline
+  // would be one refactor away from two screens disagreeing about what "live"
+  // means.
+  // -------------------------------------------------------------------------
+  "saas.connectors.title": "Connectors",
+  "saas.connectors.meta": "What your company has connected, whether it still works, and where that answer came from.",
+  "saas.connectors.intro": "Every row says where its own reading came from. A reading taken from the vendor and a recorded fixture are different things, so they are never shown as the same thing.",
+  "saas.connectors.unavailable.title": "This list could not be read",
+  "saas.connectors.unavailable.body": "Nothing was changed. Try again in a moment.",
+  "saas.connectors.state.connected": "Connected",
+  "saas.connectors.state.notConnected": "Not connected",
+  "saas.connectors.source": "Where this reading came from",
+  // THREE STATES, NEVER TWO. A reading taken from the vendor, a recorded
+  // fixture, and nothing yet are three different facts, and a screen that
+  // collapsed the last two would show an unprobed connector as a mock and an
+  // unmocked one as unprobed.
+  "saas.connectors.source.live": "Live vendor read",
+  "saas.connectors.source.recorded": "Recorded fixture",
+  "saas.connectors.source.never": "Not checked yet",
+  "saas.connectors.checkedWith": "Checked with {probe}",
+  "saas.connectors.checkedAt": "Checked {when}",
+  "saas.connectors.stale": "This reading is more than a day old.",
+  "saas.connectors.health.reachable": "The vendor answered.",
+  "saas.connectors.health.rejected": "The vendor refused the credential.",
+  "saas.connectors.health.unreachable": "The vendor could not be reached. That is the network, not the credential.",
+  "saas.connectors.health.notConnected": "There is no credential stored for this vendor yet.",
+  "saas.connectors.health.never": "Nothing has checked this connector yet.",
+  // WHAT THE CREDENTIAL MAY DO, said in the words a person decides with. A
+  // scope nobody recognises is never rounded to "read only", because "read
+  // only" is a promise.
+  "saas.connectors.authority.readOnly": "Read only: {scopes}",
+  "saas.connectors.authority.write": "Can change things in your account: {scopes}",
+  "saas.connectors.authority.unrecognised": "Also holds {scopes}, which we cannot classify as read or write.",
+  "saas.connectors.authority.none": "No scopes recorded, so we cannot say what this credential may do.",
+  "saas.connectors.inbound.title": "Inbound deliveries",
+  "saas.connectors.inbound.none": "No inbound address has been opened for this vendor.",
+  "saas.connectors.inbound.open": "An inbound address is open.",
+  "saas.connectors.inbound.closed": "The inbound address for this vendor is closed.",
+  "saas.connectors.inbound.lastDelivery": "Last delivery {when}",
+  "saas.connectors.inbound.never": "Nothing has been delivered yet.",
+  "saas.connectors.inbound.counted": "{deliveries} received, {unhandled} still to finish",
+  "saas.connectors.inbound.signed": "This vendor signs what it sends, and we check the signature.",
+  // THE POSTHOG ROW, AND THE REASON THIS KEY EXISTS. PostHog documents no
+  // signature on an outbound webhook, so a delivery proves somebody holds the
+  // secret we issued and proves nothing about who sent it. A screen that let a
+  // reader believe otherwise would be the provenance failure in a webhook
+  // costume.
+  "saas.connectors.inbound.unauthenticated": "This vendor does not sign what it sends. Deliveries are accepted on a secret we issued, so they show that the sender holds that secret and not that the vendor sent them.",
+  "saas.connectors.needs.title": "This connector needs somebody",
+  "saas.connectors.needs.revoked": "A delivery said this connection was ended at the vendor: {event}. Nothing was disconnected here.",
+  "saas.connectors.needs.rejected": "The vendor refused the stored credential the last time we asked.",
+  // ---------------------------------------------------------------------------
+  // Pack 1: paid and not activated (ADR-0074 D1). The one pack whose decision
+  // logic is real, given a screen a person can press. English only for now, every
+  // key listed in TRANSLATION_DEFERRED under the same date.
+  // ---------------------------------------------------------------------------
+  // THE TITLE AND THE LEAD MOVED, when the screen grew from one pack to three:
+  // they are `saas.pack.<pack>.title` and `.lead` at the end of this file now,
+  // one pair per pack, because one heading over three different jobs tells a
+  // reader nothing about which one they opened.
+  "saas.pack.remedies.heading": "Remedies this company allows",
+  // NOT AN EMPTY LIST WITH NO SENTENCE. A pack that proposes nothing is doing
+  // what it was told; a screen that says nothing looks broken.
+  "saas.pack.remedies.none": "No remedy is allowed yet. The pack still records what it finds, and it proposes nothing until somebody allows a remedy.",
+  "saas.pack.remedy.notify_account_owner": "Tell the member who owns this situation",
+  "saas.pack.remedy.repair_entitlement": "Repair the entitlement so it matches the plan",
+  "saas.pack.remedy.provision_access_api": "Provision access through your own API",
+  "saas.pack.remedy.provision_access_browser": "Provision access through a browser session",
+  "saas.pack.remedy.allowed": "Allowed",
+  "saas.pack.remedy.notAllowed": "Not allowed",
+  // THE OWNER IS PART OF THE ROW, and a remedy with nobody to tell is a remedy
+  // that will be indicated and then do nothing, so the screen says which it is.
+  "saas.pack.remedy.owner": "Owned by {owner}",
+  "saas.pack.remedy.noOwner": "Nobody owns this yet",
+  "saas.pack.run.submit": "Run this pack now",
+  "saas.pack.run.busy": "Running the pack",
+  "saas.pack.run.doneTitle": "The pack ran",
+  // COUNTS, NOT A VERDICT. Every proposal waits for a person, and the sentence
+  // says so rather than letting "proposed" read as "done".
+  "saas.pack.run.done": "Read {customers} customers. Proposed {proposed} remedies, each waiting for a person to approve it. Already proposed this week: {already}. Indicated with nothing wired to run them: {noPort}.",
+  "saas.pack.run.failedTitle": "The pack did not run",
+  "saas.pack.run.error.observe": "The signal read did not finish: {reason}",
+  // AN ABSENCE WITH TWO EXPLANATIONS IS NOT REPORTED AS ONE. A cut identity read
+  // is not "no customers are mapped", and treating it as one would propose
+  // remedies for people nobody has identified.
+  "saas.pack.run.error.truncated": "The identity read was cut short, so nothing can be said about who these customers are. Resolve the identity links and run it again.",
+  "saas.pack.run.error.gate": "Refused at the {gate} gate: {reason}",
+  "saas.pack.notFound": "There is no pack with that name.",
+  // The headline of the in-app row an approved notify remedy writes.
+  "notification.headline.situation.owner_notified": "A customer paid and has not activated",
+  // ADR-0070 WP-9, 2026-09-18: the takeover controls and the handoff rows on the
+  // live view. English only, every key listed in TRANSLATION_DEFERRED under the same date.
+  "browser.control.heading": "Controls",
+  "browser.control.lead": "Pause the agent, take the browser yourself, hand it back, or close it. Every control is checked against your company's policy when you press it.",
+  "browser.control.phase.idle": "The agent is between steps",
+  "browser.control.phase.agent_step": "The agent is acting",
+  "browser.control.phase.paused": "Paused. Nobody is acting",
+  "browser.control.phase.person_control": "A person holds the browser",
+  "browser.control.phase.revalidating": "The agent is checking the page before its next step",
+  "browser.control.phase.renewing": "Signing in to the site again",
+  "browser.control.phase.handoff": "Stopped. A person must act",
+  "browser.control.phase.closed": "Closed",
+  "browser.control.step": "Step {step}",
+  "browser.control.holder.you": "You hold control.",
+  "browser.control.holder.other": "A colleague holds control.",
+  "browser.control.pause": "Pause the agent",
+  "browser.control.resume": "Resume",
+  "browser.control.takeOver": "Take over",
+  "browser.control.release": "Hand back to the agent",
+  "browser.control.close": "Close the browser and stop the job",
+  "browser.control.busy": "Working",
+  "browser.control.notAllowed": "Your company's policy does not let you control this session.",
+  "browser.control.refused.closed": "This session has closed. A closed session does not reopen.",
+  "browser.control.refused.person_in_control": "A person holds the browser. The agent cannot be paused or resumed while they do.",
+  "browser.control.refused.controlled_by_other": "A colleague took over first. Only they can hand it back.",
+  "browser.control.refused.not_the_controller": "You do not hold control of this session.",
+  "browser.control.refused.paused": "The session is already paused.",
+  "browser.control.refused.not_paused": "The session is not paused.",
+  "browser.control.refused.handoff_pending": "The agent has stopped for a person. Take over to act, or close the session.",
+  "browser.control.refused.other": "That control does not apply to the session in its current state.",
+  "browser.control.error.gate": "Refused at the {gate} gate: {reason}",
+  "browser.control.error.notFound": "No such session.",
+  "browser.control.error.signedOut": "You are not signed in.",
+  "browser.control.ok.pause": "The agent is paused.",
+  "browser.control.ok.resume": "The agent will check the page and go on.",
+  "browser.control.ok.take_over": "You hold the browser. What you do in the live view reaches the site.",
+  "browser.control.ok.release": "Handed back. The agent checks the page before its next step.",
+  "browser.control.ok.close": "The session is closed and the job is stopped.",
+  "browser.handoffs.heading": "Handoffs",
+  "browser.handoffs.lead": "Each time the agent stopped and asked for a person, and why.",
+  "browser.handoffs.none": "The agent has not asked for a person on this session.",
+  "browser.handoffs.reason.captcha_unsolved": "A CAPTCHA the agent could not pass within its allowance",
+  "browser.handoffs.reason.mfa_required": "The site asked for a second factor. The agent never enters one",
+  "browser.handoffs.reason.login_challenge": "The site challenged the sign-in. The agent never retries a refused login",
+  "browser.handoffs.reason.session_expired": "The site signed the agent out and it could not sign in again",
+  "browser.handoffs.reason.ui_drift": "The page was not what the agent expected",
+  "browser.handoffs.reason.revalidation_failed": "The page could not be confirmed after a pause or a handback",
+  "browser.handoffs.reason.account_unconfirmed": "A person must confirm which account is signed in on this site",
+  "browser.handoffs.reason.unknown": "Stopped for a reason this page does not recognise",
+  "browser.handoffs.at": "Raised at step {step}",
+  "browser.handoffs.standing": "Standing now",
+  "browser.control.doneTitle": "Done",
+  "browser.control.failedTitle": "Not done",
+  // ---------------------------------------------------------------------------
+  // Files crossing a browser session, and the browser settings screen
+  // (ADR-0070 D12, ADR-0071 D9 to D14). English only for now, every key listed
+  // in TRANSLATION_DEFERRED under the same date.
+  // ---------------------------------------------------------------------------
+  "browser.transfer.refused.session": "There is no browser session here with that address.",
+  "browser.transfer.refused.closed": "That session is closed. Nothing crosses into or out of a closed session.",
+  "browser.transfer.refused.notLive": "That session has no browser open yet, so there is nowhere to send the file.",
+  "browser.transfer.refused.file": "That file is not in this company file store.",
+  "browser.transfer.refused.type": "Orvay moves documents, spreadsheets, images, CSV, JSON and plain text. This file is another kind and was not moved.",
+  "browser.transfer.refused.tooLarge": "This file is larger than Orvay sends to a site.",
+  "browser.transfer.refused.tooMany": "This session has already moved as many files as Orvay allows.",
+  "browser.transfer.refused.provider": "The remote browser refused the file.",
+  // THE TWO EXPLANATIONS ARE BOTH NAMED, because they call for the same refusal
+  // and a person has to know a substituted file is one of them.
+  "browser.transfer.refused.hash": "The bytes that arrived are not the bytes the site said it was sending. The file was not kept. It was either cut short in transit or replaced.",
+  "browser.transfer.refused.bytes": "The site listed this file and then could not produce it. Nothing was kept.",
+  "browser.transfer.refused.store": "The file store did not accept this file.",
+  "settings.browser.title": "Browser sessions and site sign ins",
+  // THE NAV ROW IS SHORTER THAN THE PAGE TITLE AND IS NOT A SECOND NAME FOR IT:
+  // a rail entry is a destination, and the full sentence does not fit one.
+  "settings.browser.nav": "Browser sign ins",
+  // WHAT HAPPENS, IN THE ORDER IT HAPPENS, before anybody uploads anything.
+  "settings.browser.lead": "Orvay can sign in to a site your company already has an account on and do work there. You authorize the site first. You then choose that one site and import the sign in for it. Orvay never reads your computer and never reads a site you did not choose.",
+  "settings.browser.sites.heading": "Sites this company authorized",
+  "settings.browser.sites.empty": "No site is authorized yet. Authorize one below before importing any sign in.",
+  "settings.browser.sites.attested": "Attested by a person",
+  "settings.browser.sites.notAttested": "Waiting for an attestation",
+  "settings.browser.sites.lane.third_party": "A third party site",
+  "settings.browser.sites.lane.owned_site": "A site this company owns",
+  "settings.browser.site.add.heading": "Authorize a site",
+  "settings.browser.site.add.host.label": "Site address",
+  "settings.browser.site.add.host.hint": "The address of the site, such as app.example.com. No scheme, no path.",
+  "settings.browser.site.add.lane.label": "Which kind of site is this",
+  "settings.browser.site.add.accountHeld.label": "This company holds the account on this site",
+  "settings.browser.site.add.termsChecked.label": "Somebody read what this site says about automated access",
+  "settings.browser.site.add.termsRef.label": "Where those terms were read",
+  "settings.browser.site.add.submit": "Authorize this site",
+  "settings.browser.site.add.pending": "Recording the attestation",
+  "settings.browser.site.add.done": "{host} is authorized. The attestation is recorded against your name.",
+  /*
+    ONE DECISION INSTEAD OF ONE PER SITE. The operator's objection to the old
+    flow was "why does this need to be authorized", and the flow was the
+    problem rather than the attestation: `evaluateSitePolicy` refuses
+    `not_attested` on this lane and should. So a person makes the statement
+    ONCE, knowing what it covers, and these strings are where they learn that.
+    The warning on `allow_all` is not decoration: it is the difference between
+    a considered claim and a toggle somebody flicked.
+  */
+  "settings.browser.default.heading": "Sites this company has not named",
+  "settings.browser.default.body": "Choose once instead of authorizing every site. A blocked site is always refused, whatever this says.",
+  "settings.browser.default.mode.ask": "Ask for each site",
+  "settings.browser.default.mode.ask.hint": "Nothing opens until somebody authorizes that site. This is the default.",
+  "settings.browser.default.mode.allow_all": "Allow every site that is not blocked",
+  "settings.browser.default.mode.allow_all.hint": "You are attesting for every site at once: that this company holds the accounts it signs in to, and that somebody read what those sites say about automated access. Your name and the time go on the record, and every site opened this way points at it.",
+  "settings.browser.default.mode.block_all": "Allow no site at all",
+  "settings.browser.default.mode.block_all.hint": "Turns the browser off without revoking the sites you authorized.",
+  "settings.browser.default.accountHeld": "This company holds the accounts it will sign in to",
+  "settings.browser.default.termsChecked": "Somebody read what these sites say about automated access",
+  "settings.browser.default.termsRef": "Where you read it",
+  "settings.browser.default.submit": "Save this decision",
+  "settings.browser.default.error.mode": "Choose one of the three.",
+  "settings.browser.default.error.attestation": "Allowing every site needs both statements. Tick them, or choose to be asked for each site.",
+  "settings.browser.default.done.ask": "Each site will be asked for.",
+  "settings.browser.default.done.allow_all": "Every site that is not blocked may be opened. The attestation is recorded against your name.",
+  "settings.browser.default.done.block_all": "No site may be opened.",
+  "settings.browser.block.heading": "Blocked sites",
+  "settings.browser.block.body": "A blocked site is refused before anything else is checked. Nothing overrides it.",
+  "settings.browser.block.host": "Site to block",
+  "settings.browser.block.note": "Why, in your words",
+  "settings.browser.block.submit": "Block this site",
+  "settings.browser.block.done": "{host} is blocked. No browser will open on it.",
+  "settings.browser.block.undone": "{host} is no longer blocked.",
+  "settings.browser.site.error.host": "That is not a public site address. Give a host such as app.example.com.",
+  "settings.browser.site.error.attestation": "Both statements have to be true before a site can be authorized.",
+  "settings.browser.site.error.duplicate": "That site is already authorized.",
+  // A DISABLED CONTROL SAYS WHY (CLAUDE.md 7). These two are the reasons.
+  "settings.browser.site.flags.disabled": "Available once a person has attested this site.",
+  "settings.browser.site.flags.ownedSite": "Never available on a site this company owns. There is nothing to hide from your own site.",
+  // 12b: SAY SO IN THE COPY. Nothing in this deployment turns one of these on,
+  // and a control that quietly did nothing would be worse than the sentence.
+  "settings.browser.site.flags.notBuilt": "Turning these on is not built yet. They are off for every site, and a session that asks for one is refused.",
+  // ADR-0070 D15, 2026-09-20: a person opens a browser and signs in with their
+  // own hands. The import below is what this replaces, and the copy says so
+  // rather than leaving two doors that look equally intended. English only,
+  // every key listed in TRANSLATION_DEFERRED under the same date.
+  "settings.browser.signin.heading": "Sign in to a site yourself",
+  "settings.browser.signin.lead": "Open a real browser on one of your authorized sites, watch it on screen, and sign in the way you always do. The session stays signed in afterwards, so work on that site can carry on without anyone handing over a password.",
+  "settings.browser.signin.sites.label": "Which site do you want to sign in to",
+  "settings.browser.signin.sites.empty": "Authorize a site first. A browser only opens on a site somebody has attested.",
+  "settings.browser.signin.submit": "Open a browser and sign in",
+  "settings.browser.signin.pending": "Opening a browser",
+  "settings.browser.signin.note": "You hold the browser from the moment it opens. Nothing runs on the site until you hand it back, and a challenge or a one time code is yours to answer: Orvay never works one out.",
+  "settings.browser.open.heading": "Browsers open now",
+  "settings.browser.open.empty": "No browser is open.",
+  "settings.browser.open.resume": "Open this browser",
+  "settings.browser.open.yours": "You are holding this one",
+  "settings.browser.open.other": "Somebody else is holding this one",
+  "settings.browser.open.agent": "Orvay is working in this one",
+  "settings.browser.open.waiting": "Waiting for a person",
+  "settings.browser.signin.error.noSite": "Choose one of your authorized sites.",
+  "settings.browser.signin.error.policy": "This site is authorized, and the rules recorded for it refuse a browser right now.",
+  "settings.browser.signin.error.noBrowser": "This deployment has no browser to open. Nothing was started and nothing was charged.",
+  "settings.browser.signin.error.busy": "Too many browsers are open. Close one and try again.",
+  "settings.browser.signin.error.profileBusy": "A browser is already signed in to this site for your company. Only one can hold the sign in at a time, so close that one and try again.",
+  "settings.browser.signin.error.provider": "The browser service did not start a browser. Nothing was left running.",
+  "settings.browser.signin.error.unavailable": "The browser could not be opened. Nothing was started.",
+  // The import, kept and demoted. It is the fallback for a site nobody can sign
+  // in to by hand, and the summary says that rather than presenting it as the
+  // ordinary route it used to be.
+  "settings.browser.import.fallback.summary": "Import a sign in from a password manager file instead",
+  "settings.browser.import.fallback.why": "Only worth it when nobody can sign in by hand, for example a shared account whose one time codes live in the company vault. It needs an export file from your password manager, which most password managers advise against making.",
+  "settings.browser.import.heading": "Import a sign in for one site",
+  "settings.browser.import.sites.label": "Which site is this sign in for",
+  "settings.browser.import.sites.empty": "Authorize a site first. The site is chosen before the file is read.",
+  "settings.browser.import.file.label": "The export file from your password manager",
+  "settings.browser.import.file.hint": "Up to 2 MB. The file is read in memory, and the rows for every other site are dropped before anything is stored.",
+  "settings.browser.import.format.label": "Which password manager wrote it",
+  "settings.browser.import.format.auto": "Work it out from the file",
+  "settings.browser.import.format.onepassword_csv": "1Password, CSV",
+  "settings.browser.import.format.bitwarden_json": "Bitwarden, unencrypted JSON",
+  "settings.browser.import.format.bitwarden_csv": "Bitwarden, CSV",
+  "settings.browser.import.format.chrome_csv": "Chrome, CSV",
+  "settings.browser.import.format.apple_csv": "Apple Passwords, CSV",
+  // THE CAVEAT IS SHOWN, NOT BURIED. The two column sets were never checked
+  // against a real export, and a reader whose import is refused deserves to
+  // know that before they blame their file.
+  "settings.browser.import.unconfirmed": "The Chrome and Apple column names have not been checked against a real export yet. If one of those is refused, tell us and send the header row.",
+  "settings.browser.import.stored": "What is stored: the password and any one time code seed for {host}, each sealed under its own key, with the username so a person can tell them apart.",
+  "settings.browser.import.notStored": "What is not stored: the file itself, notes, card numbers, identities, and every row for a site other than {host}. Those are dropped as the file is read and never written anywhere.",
+  "settings.browser.import.decrypt": "Where it is opened: only on Orvay servers, only at the moment of signing in, and only on {host}. It is never put in a prompt, a log, an event, a recording or anything on your screen.",
+  "settings.browser.import.revoke": "How to end it: revoke it below. Revoking destroys the key, so what is stored can never be read again. Orvay cannot change the password on the site itself, so change it there too if that is what you want.",
+  "settings.browser.import.noLocalAccess": "Orvay has no way to read your computer. There is no extension and no helper. This file, an account sign in the site offers, or signing in yourself inside the remote browser are the only three ways in.",
+  "settings.browser.import.consent.label": "I am importing this sign in for {host} and this company holds that account",
+  "settings.browser.import.submit": "Import the sign in for this site",
+  "settings.browser.import.pending": "Reading the file",
+  "settings.browser.import.doneTitle": "The sign in is stored",
+  "settings.browser.import.done": "Sealed {sealed} for {host}. Dropped {dropped} rows for other sites. Refused {refused} rows the file could not be read from. The file was never written anywhere.",
+  "settings.browser.import.error.noSite": "Choose the site before the file.",
+  "settings.browser.import.error.noConsent": "Tick the statement above before importing.",
+  "settings.browser.import.error.noFile": "Choose an export file.",
+  "settings.browser.import.error.tooLarge": "That file is larger than 2 MB. A password manager export is much smaller than that.",
+  "settings.browser.import.error.unknownFormat": "This does not look like an export from a password manager Orvay reads.",
+  "settings.browser.import.error.encrypted": "This export is encrypted. Orvay never asks for the password that opens it. Export it again without encryption.",
+  "settings.browser.import.error.malformed": "This file could not be read as an export.",
+  "settings.browser.import.error.noRows": "There is no sign in for {host} in this file. Nothing was stored.",
+  // ONE SENTENCE, ONE ID. Both forms on this screen refuse the same way, and
+  // two ids for one sentence is the merge that took both sides.
+  "settings.browser.error.gate": "Refused at the {gate} gate: {reason}",
+  "settings.browser.items.heading": "Sign ins this company holds",
+  "settings.browser.items.empty": "No sign in is stored.",
+  "settings.browser.items.imported": "Imported from {format}",
+  "settings.browser.items.revoke.submit": "Revoke this sign in",
+  "settings.browser.items.revoke.pending": "Destroying the key",
+  "settings.browser.items.revoked": "Revoked",
+  "settings.browser.items.revokedNote": "The key is destroyed, so what was stored can never be read again. The password on the site itself is unchanged: Orvay cannot change it.",
+  // ---------------------------------------------------------------------------
+  // The workflow editor, its history and publication (ADR-0072 D1, D13). English
+  // only for now, every key listed in TRANSLATION_DEFERRED under the same date.
+  //
+  // EVERY REFUSAL HERE IS A CODE THE SERVER MAPPED, never a sentence a module
+  // composed. The dry run's problems and a publish refusal carry a `detail` for
+  // the log, and these keys are what a person reads instead.
+  // ---------------------------------------------------------------------------
+  "workflows.title": "Workflows",
+  "workflows.lead": "A workflow is a version. Editing one writes a new version that supersedes it, and publishing runs the version\u2019s own acceptance checks first: a simulated run of every scenario, and a replay of what the published version actually did.",
+  "workflows.list.empty": "No workflow has been written here yet.",
+  "workflows.list.versionsLabel": "Versions",
+  "workflows.list.draftsLabel": "Drafts",
+  "workflows.list.open": "Open",
+  "workflows.status.draft": "Draft",
+  "workflows.status.published": "Published",
+  "workflows.status.retired": "Retired",
+  "workflows.status.nonePublished": "Nothing published",
+  "workflows.new.heading": "Start a workflow",
+  "workflows.new.lead": "A new workflow begins as a draft that does one harmless thing: it writes a line to the inbox. Edit it into what you need, dry run it, then publish.",
+  "workflows.new.nameLabel": "Name",
+  "workflows.new.lineageLabel": "Short name",
+  "workflows.new.lineageHint": "Lowercase letters, digits and underscores, starting with a letter. Triggers bind to this and it never changes.",
+  "workflows.new.submit": "Write the first draft",
+  "workflows.new.busy": "Writing",
+  "workflows.new.error.name": "Give the workflow a name.",
+  "workflows.new.error.lineage": "A short name holds lowercase letters, digits and underscores, and starts with a letter.",
+  "workflows.new.done": "The first draft is saved. Open it to edit it.",
+  "workflows.lineage.notFound": "No workflow here goes by that name.",
+  "workflows.lineage.back": "All workflows",
+  "workflows.editor.heading": "The definition",
+  "workflows.editor.lead": "The definition is JSON. Saving writes a NEW version that supersedes the one you opened; the version you opened is never changed, and runs already under way finish under the version they started with.",
+  "workflows.editor.label": "Definition",
+  "workflows.editor.editingLabel": "Editing",
+  "workflows.editor.editingNothing": "This workflow has no version to edit yet.",
+  "workflows.editor.save": "Save as a new version",
+  "workflows.editor.saving": "Saving",
+  "workflows.editor.savedTitle": "Saved",
+  "workflows.editor.saved": "Saved as version {hash}.",
+  "workflows.editor.exists": "That is the same definition as version {hash}, so nothing new was written.",
+  "workflows.editor.problemTitle": "Not saved",
+  "workflows.dryRun.submit": "Dry run",
+  "workflows.dryRun.busy": "Running",
+  "workflows.dryRun.heading": "The dry run",
+  "workflows.dryRun.lead": "Every scenario, simulated. Nothing is admitted, no connector is reached and no money is reserved.",
+  "workflows.dryRun.passed": "Passed",
+  "workflows.dryRun.failed": "Failed",
+  "workflows.dryRun.result": "Scenario {id} ended {outcome}.",
+  "workflows.dryRun.problem": "Problem: {code}",
+  "workflows.publish.submit": "Publish",
+  "workflows.publish.busy": "Publishing",
+  "workflows.publish.doneTitle": "Published",
+  "workflows.publish.done": "Version {hash} is published.",
+  "workflows.publish.doneRetired": "Version {hash} is published, and version {retired} is retired.",
+  "workflows.publish.refusedTitle": "Not published",
+  "workflows.publish.acknowledgeLabel": "Runs you have read",
+  "workflows.publish.acknowledgeHint": "A replay shows where this version would have decided differently on a past run. Type the run ids you have read, separated by spaces.",
+  "workflows.publish.replay": "Replayed {total} recorded runs. Unchanged: {unchanged}. Different: {diverged}. Newly moving something or asking somebody: {newlyLive}.",
+  "workflows.publish.problem.invalid_definition": "The definition is not valid: {code} at {step}.",
+  "workflows.publish.problem.no_scenarios": "A version needs at least one scenario before it can be published.",
+  "workflows.publish.problem.scenario_failed": "Scenario {id} did not pass its dry run.",
+  "workflows.publish.problem.replay_diverged": "Run {run} would go differently from event {seq} onwards. Read it, then acknowledge it by id.",
+  "workflows.publish.problem.replay_run_foreign": "Run {run} was recorded under another version, so it cannot stand in for this one.",
+  "workflows.publish.problem.supersedes_mismatch": "This draft was edited from an older version. Open what is published now and edit that instead.",
+  "workflows.publish.notDraft": "That version is already {status}.",
+  "workflows.publish.stale": "Another version was published while this draft was open. Edit that one instead.",
+  "workflows.retire.submit": "Retire the published version",
+  "workflows.retire.busy": "Retiring",
+  "workflows.retire.done": "Version {hash} is retired. No new run will start from this workflow.",
+  "workflows.retire.nothingPublished": "This workflow has nothing published.",
+  "workflows.history.heading": "Versions",
+  "workflows.history.createdLabel": "Written",
+  "workflows.history.publishedLabel": "Published",
+  "workflows.history.supersedesLabel": "Supersedes",
+  "workflows.history.hashLabel": "Version",
+  "workflows.history.none": "No version yet.",
+  "workflows.error.notFound": "There is no version here with that hash.",
+  "workflows.error.not_json": "That is not JSON.",
+  "workflows.error.not_an_object": "A definition is a JSON object.",
+  "workflows.error.too_large": "That definition is too long to store.",
+  "workflows.error.bad_field": "This field is not what a definition holds: {path}.",
+  "workflows.error.unknown_key": "A definition holds no field by that name: {path}.",
+  "workflows.error.too_deep": "That definition nests too deeply, at {path}.",
+  "workflows.error.invalid": "The definition is not valid yet: {problems}.",
+  // THE ONE REFUSAL THAT IS ABOUT AUTHORITY RATHER THAN SHAPE, so it says what
+  // was asked for and who would have to hold it, instead of reading as a typo.
+  "workflows.error.overreaches": "This definition asks for something you do not hold: {capabilities}. A workflow can only ever ask for what the person writing it can ask for.",
+  "workflows.error.notStorable": "That definition cannot be stored as written.",
+  "workflows.error.parentNotFound": "The version this was edited from is no longer here.",
+  "workflows.error.unexpectedParent": "This text names a version it was edited from, and nothing was opened to edit. Open a version and edit it instead.",
+  "workflows.error.gate": "Refused at the {gate} gate: {reason}",
+  "workflows.error.unavailable": "That did not finish: {reason}",
+  "workflows.error.signedOut": "You are signed out. Sign in and try again.",
+  // ---------------------------------------------------------------------------
+  // Usage and cost (ADR-0073 D10, D11). What the automated work used this month,
+  // in CREDITS, and how often a person had to step in. Our metered dollars, the
+  // lane prices and the margins appear on no screen (CLAUDE.md 8b), so no string
+  // below carries a currency. Every number is a value and every word beside one
+  // is a label, never a count inside a sentence: a sentence would need a plural
+  // rule, and French takes the singular below two. English only for now, every
+  // key listed in TRANSLATION_DEFERRED under the same date.
+  // ---------------------------------------------------------------------------
+  "saas.usage.title": "Usage and cost",
+  "saas.usage.lead": "What your automated work used this period, in credits, and how often somebody had to step in.",
+  "saas.usage.unavailable.title": "Usage is not available",
+  "saas.usage.unavailable.body": "These figures could not be read just now. Nothing has been spent or lost by this screen failing to load.",
+  "saas.usage.period": "Period starting {start}",
+  "saas.usage.caps.heading": "Budgets",
+  "saas.usage.lane.browser": "Browser",
+  "saas.usage.lane.proxy": "Proxy traffic",
+  "saas.usage.lane.runs": "Workflow runs",
+  "saas.usage.lane.browser.what": "Time spent driving a browser on your behalf.",
+  "saas.usage.lane.proxy.what": "Traffic carried through a proxy while a browser worked.",
+  "saas.usage.lane.runs.what": "Everything one workflow run uses: the model, the browser and the proxy together.",
+  // A LANE WITH NO BUDGET REFUSES, and the copy says which of the two it is
+  // rather than leaving a reader to guess that silence means unlimited.
+  "saas.usage.cap.none.title": "No budget set",
+  "saas.usage.cap.none.body": "Nothing runs in this lane until somebody sets a budget for it. Setting one waits for an approval, because raising a budget lets more be spent.",
+  "saas.usage.cap.left": "Left",
+  "saas.usage.cap.used": "Used",
+  "saas.usage.cap.budget": "Budget",
+  "saas.usage.cap.overrun.title": "This budget is spent",
+  "saas.usage.cap.overrun.body": "This lane has reached its budget for the period, so work in it is refused until somebody raises the budget or the period turns over.",
+  // WHOSE NUMBER IT IS. The plan is bought per organization and the model
+  // allowance is pooled across it; these three lanes are not, and a screen that
+  // let a reader assume otherwise would be describing a figure nobody computes.
+  "saas.usage.scope.company": "These three figures are for this company alone. Your organization pools the model allowance, and it does not pool these.",
+  "saas.usage.work.heading": "Work this period",
+  "saas.usage.work.runs": "Runs",
+  "saas.usage.work.verified": "Verified by something other than the thing that did the work",
+  "saas.usage.work.undecided": "Waiting to be checked",
+  "saas.usage.work.perVerified": "Credits per verified run",
+  "saas.usage.work.none": "Nothing has run this period yet.",
+  // NOT A SCORE. Each of these is a moment the work needed a person, which is
+  // worth reading and is not by itself a failure.
+  "saas.usage.interventions.heading": "When a person stepped in",
+  "saas.usage.interventions.lead": "Each of these is a moment the work needed somebody. A count that keeps rising is worth reading as a signal, and none of them is a fault on its own.",
+  "saas.usage.interventions.takeovers": "Takeovers",
+  "saas.usage.interventions.approvals": "Approvals",
+  "saas.usage.interventions.corrections": "Corrections",
+  "saas.usage.interventions.exceptions": "Exceptions",
+  "saas.usage.interventions.none": "Nobody has had to step in this period.",
+  "saas.usage.credits.label": "credits",
+  // WHOSE FIGURE IT IS, said on the screen rather than assumed. The plan is
+  // bought for the organization and the model allowance is pooled across it;
+  // the three lanes above are this company's own. English only for now, listed
+  // in TRANSLATION_DEFERRED under the same date.
+  "saas.usage.pool.heading": "Across your organization",
+  "saas.usage.pool.lead": "Your plan is bought for the whole organization, and the model allowance is pooled across every company in it. This is what the organization has drawn this period.",
+  "saas.usage.pool.used": "Credits drawn this period",
+  "saas.usage.pool.companies": "Companies counted",
+  "saas.usage.pool.unavailable": "The pooled figure could not be read just now. The figures above are still this company\u2019s own.",
+  // ADR-0070 D15, 2026-09-18: the headline of the in-app row a browser handoff
+  // writes. English only, listed in TRANSLATION_DEFERRED under the same date.
+  // It says what is needed rather than what went wrong: the reasons differ (MFA,
+  // a login challenge, an unsolved CAPTCHA, a page that changed, a wrong
+  // account) and the act is the same one every time.
+  "notification.headline.browser.handoff": "A browser is waiting for a person",
+  "notification.headline.browser.job.abandoned": "A browser job stopped because it was never allowed to run",
+  /*
+      WHEN A CONNECTED ACCOUNT IS NOT THE ONE THIS COMPANY MAY USE.
+  
+      `docs/plan/32-announcement-pipeline.md` §2.2. The account is verified against
+      the provider before anything is stored, so the name in the refusal is the
+      VENDOR'S word about the credential, and the refusal is about WHOSE account it
+      is rather than about whether it works.
+  
+      §11b: the sentence a customer reads carries no internal detail. It does not
+      name the house company, the pin, or the list of handles. It says the account
+      belongs to Orvay, which is the only fact the person needs and the only one
+      they can act on.
+  
+      `no_handles_declared` is deliberately NOT here. It can only be reached by the
+      operator connecting the house account, which is a script and not a screen, so
+      a customer-facing sentence for it would be copy nobody reads describing a
+      state nobody can enter.
+    */
+  "integrations.error.belongs-to-orvay": "That account belongs to {brand}, so it cannot be connected to your company. Connect your own account instead.",
+  /*
+      THE WELCOME POST, IN THE WORDS A CUSTOMER WOULD USE.
+  
+      A headline is read in a list beside a dozen others, so each of these says WHO
+      acts and WHAT is still possible, and none of them says "announcement", which
+      is a word from the plan rather than a word anybody would use about their own
+      company.
+  
+      §5a: no em dash, and the preview headline deliberately does not promise the
+      window in the headline itself. The clock belongs on the row, where it can
+      count down, rather than in a sentence that will be wrong an hour later.
+    */
+  "notification.headline.announcement.preview": "Orvay would like to say your company is here",
+  "notification.headline.announcement.published": "Orvay said your company is here",
+  "notification.headline.announcement.excluded": "Orvay will not be posting about your company",
+  /*
+      THE WORDS ORVAY POSTS, AND THE WHOLE VOCABULARY IS TWO SENTENCES.
+  
+      `docs/plan/32-announcement-pipeline.md` §4.1. The composer's entire input is
+      a company name and, when one is published, a site host. There is no plan, no
+      spend, no member count, no goal and no model: a model call would be the first
+      place an unintended fact could enter a sentence Orvay says in public about
+      somebody else.
+  
+      THESE TWO ARE POSTED IN ENGLISH WHATEVER THE READER'S LANGUAGE, by decision.
+      The Orvay account speaks one voice to one set of followers. They are message
+      ids anyway, because §5b admits no exception and because the PREVIEW shows
+      them, labelled as the words that will post. The chrome around the preview is
+      in the reader's language; these are not.
+    */
+  "announcement.welcome.text": "{company} now runs on {brand}.",
+  "announcement.welcome.text.with-site": "{company} now runs on {brand}. {url}",
+  /*
+      WHY A POST DID NOT HAPPEN, in the words a customer would use.
+  
+      A company name is the one field a stranger typed, and on every vendor it can
+      carry syntax: an `@` becomes a mention of somebody who agreed to nothing, a
+      `#` becomes a hashtag, and anything link-shaped points somewhere nobody
+      checked. The composer refuses rather than stripping, because a stripped name
+      is a different name and the customer agreed to theirs.
+  
+      Each of these says what would have happened, never what the customer did
+      wrong, and each ends by saying the decision is still theirs: changing the
+      name and asking again is the whole remedy.
+    */
+  "announcement.refused.mention": "Orvay did not post this. Your company name contains an @, which on a social account reads as a mention of somebody else. Change the name and ask again, and the post goes out as normal.",
+  "announcement.refused.tag": "Orvay did not post this. Your company name contains a #, which on a social account turns the word into a public tag nobody chose. Change the name and ask again, and the post goes out as normal.",
+  "announcement.refused.link": "Orvay did not post this. Your company name reads as a web address, so the post would carry a link to somewhere we have not checked. Change the name and ask again, and the post goes out as normal.",
+  "announcement.refused.length": "Orvay did not post this. With your company name in it the post is longer than a social account accepts. A shorter name fits, and the post goes out as normal.",
+  // ---------------------------------------------------------------------------
+  // The context screens (ADR-0073 D1, D2, D3, D5, D6): who a customer is across
+  // your systems, what you expect to happen and by when, and the review of a
+  // rule a correction proposed. English only for now, every key listed in
+  // TRANSLATION_DEFERRED under the same date.
+  //
+  // THE CLAIM VOCABULARY IS FOUR WORDS AND NOTHING ELSE. `claimLevelFor` in
+  // packages/saas/src/anomaly-guards.ts decides the level and owns the key; these
+  // are the only place the word exists. Neither of the two lower ones may carry a
+  // causal verb, because a correlation that reads as a cause is the one mistake a
+  // finding about somebody's revenue must never make.
+  // ---------------------------------------------------------------------------
+  "saas.claim.label": "Claim",
+  "saas.claim.observed": "Observed",
+  "saas.claim.correlated": "Correlated",
+  "saas.claim.reproduced": "Reproduced",
+  "saas.claim.experimentally_supported": "Experimentally supported",
+  "saas.claim.none": "Nothing claimed",
+  "saas.claim.noCause": "At this level the finding names no cause.",
+  "saas.claim.mayNameCause": "At this level the finding may name a cause.",
+  "saas.claim.guards.heading": "Checks",
+  "saas.claim.guard.tracking": "Tracking",
+  "saas.claim.guard.sample_size": "Sample size",
+  "saas.claim.guard.weekly_seasonality": "Weekly pattern",
+  "saas.claim.guard.annual_seasonality": "Annual pattern",
+  "saas.claim.guard.holiday": "Holiday",
+  "saas.claim.guard.passed": "Passed",
+  "saas.claim.guard.failed": "Failed",
+  "saas.claim.guard.unchecked": "Not checked",
+  "saas.claim.blocked.title": "This finding is not acted on",
+  "saas.claim.blocked.body": "A check below failed, so the finding is shown and nothing is proposed from it.",
+  "saas.claim.provenance.simulated": "Simulated",
+  "saas.claim.provenance.live": "Live",
+  "saas.claim.provenance.simulatedNote": "This finding was read from demonstration data. No real account was touched.",
+  // ---------------------------------------------------------------------------
+  // Customers, and the conflicts only a person resolves.
+  // ---------------------------------------------------------------------------
+  "saas.customers.title": "Customers across your systems",
+  "saas.customers.lead": "One customer is known by a different name in Stripe, in your product and in your analytics. Orvay joins them from links it observed, and shows where each link came from and how sure that source can be.",
+  "saas.customers.mappings.heading": "Joined customers",
+  "saas.customers.mappings.none": "No customer has been joined yet.",
+  "saas.customers.identities.heading": "Known as",
+  "saas.customers.links.heading": "Links",
+  "saas.customers.confidence.label": "Confidence",
+  "saas.customers.confidence.declared": "Declared by a person",
+  "saas.customers.confidence.observed": "Observed",
+  "saas.customers.confidence.inferred": "Inferred",
+  "saas.customers.source.person_entered": "A person entered it",
+  "saas.customers.source.vendor_webhook": "A webhook from the vendor",
+  "saas.customers.source.vendor_read": "A read of the vendor",
+  "saas.customers.source.vendor_metadata": "A field on the vendor record",
+  "saas.customers.source.address_match": "The same address",
+  "saas.customers.source.signed": "Signature checked",
+  "saas.customers.source.unsigned": "No signature",
+  "saas.customers.system.stripe_customer": "Stripe",
+  "saas.customers.system.app_user": "Your product",
+  "saas.customers.system.analytics_distinct": "Analytics",
+  "saas.customers.system.support_address": "Support address",
+  "saas.customers.seenAt": "Seen {at}",
+  "saas.customers.sourceRef": "Read from {ref}",
+  "saas.customers.linkId": "Link {id}",
+  "saas.customers.addressHidden": "A support address is never stored in the clear. What these rows join on is a keyed hash of it, and the readable copy is sealed.",
+  "saas.customers.truncated.title": "Not every link was read",
+  "saas.customers.truncated.body": "This company holds at least {limit} links, so what is below is a part of the picture and something missing from it means nothing.",
+  "saas.customers.invalid.heading": "Links that were not used",
+  "saas.customers.invalid.same_system": "Both sides name the same system.",
+  "saas.customers.invalid.empty_id": "One side has no identifier.",
+  "saas.customers.invalid.duplicate_link_id": "Two different links were recorded under one id.",
+  "saas.customers.invalid.confidence_exceeds_source": "The confidence claimed is higher than the source can support.",
+  "saas.customers.conflicts.heading": "Conflicts a person resolves",
+  "saas.customers.conflicts.none": "No conflict is waiting.",
+  "saas.customers.conflicts.lead": "These identities were joined into one customer, and one of your systems holds more than one identifier for them. Orvay never picks a winner. Retire the link that is wrong.",
+  "saas.customers.conflicts.disputed": "{system} holds more than one identifier here: {ids}",
+  "saas.customers.conflicts.disputedTitle": "More than one identifier for one customer",
+  "saas.customers.resolve.heading": "Resolve a conflict",
+  "saas.customers.resolve.lead": "Copy the link ids you want retired from the conflict above. The next reading joins the same identities without them.",
+  "saas.customers.resolve.linksLabel": "Link ids to retire",
+  "saas.customers.resolve.linksHint": "One id per line.",
+  "saas.customers.resolve.reasonLabel": "Why",
+  "saas.customers.resolve.reasonHint": "What you know that the links do not say. It is kept with your name and the moment.",
+  "saas.customers.resolve.submit": "Retire these links",
+  "saas.customers.resolve.busy": "Recording the resolution",
+  "saas.customers.resolve.doneTitle": "The conflict is resolved",
+  "saas.customers.resolve.done": "Retired {count} links. The next reading joins these identities without them.",
+  "saas.customers.resolve.failedTitle": "Nothing was retired",
+  "saas.customers.resolve.error.no_links": "Name at least one link id to retire.",
+  "saas.customers.resolve.error.too_many_links": "That is more link ids than one resolution takes.",
+  "saas.customers.resolve.error.bad_link_id": "One of those is not a link id.",
+  "saas.customers.resolve.error.no_reason": "Say why, in a sentence somebody reading this later can use.",
+  "saas.customers.resolve.error.reason_too_long": "That reason is longer than the record holds.",
+  "saas.customers.resolve.error.unknown_link": "One of those link ids is not a link of this company.",
+  "saas.customers.resolve.error.notAPerson": "A resolution is written by a signed in person, under their own name. Sign in again and try once more.",
+  // ---------------------------------------------------------------------------
+  // Expected events: what is due, what was missed, who owns it.
+  // ---------------------------------------------------------------------------
+  "saas.expectations.title": "Expected events",
+  "saas.expectations.lead": "What should happen, by when, and who hears about it when it does not.",
+  "saas.expectations.list.heading": "Declared expectations",
+  "saas.expectations.list.none": "Nothing is expected yet.",
+  "saas.expectations.shape.once": "Once, after an instant",
+  "saas.expectations.shape.daily": "Once a day",
+  "saas.expectations.shape.interval": "Every so often",
+  "saas.expectations.subject.company": "The company",
+  "saas.expectations.subject.customer": "One customer",
+  "saas.expectations.status.met": "Met",
+  "saas.expectations.status.pending": "Waiting",
+  "saas.expectations.status.missed": "Missed",
+  "saas.expectations.status.unknown": "Nothing due yet",
+  "saas.expectations.owner": "Owned by {owner}",
+  "saas.expectations.noOwner": "Nobody owns this yet",
+  "saas.expectations.due": "Due {at}",
+  "saas.expectations.deadline": "Deadline {at}",
+  "saas.expectations.missedCount": "Missed periods",
+  "saas.expectations.periodsTruncated": "Older periods than these were not read.",
+  "saas.expectations.unreadable": "Expectations that could not be read: {count}. Tell us, because the table should make that impossible.",
+  "saas.expectations.unreadableTitle": "Some expectations could not be read",
+  "saas.expectations.filled": "This company holds at least {limit} expectations, so what is below is a part of the list.",
+  "saas.expectations.filledTitle": "Not every expectation is listed",
+  "saas.expectations.declare.heading": "Declare an expected event",
+  "saas.expectations.declare.lead": "Name the event, say when it is due and how long it may be late, and name who hears about a miss.",
+  "saas.expectations.declare.eventLabel": "Event",
+  "saas.expectations.declare.eventHint": "Lower case letters, digits and underscores. This is the name your own events carry.",
+  "saas.expectations.declare.shapeLabel": "Shape",
+  "saas.expectations.declare.anchorLabel": "Counted from",
+  "saas.expectations.declare.anchorHint": "A date and time, such as 2026-09-18T09:00.",
+  "saas.expectations.declare.withinLabel": "Due within, in hours",
+  "saas.expectations.declare.everyLabel": "Every, in minutes",
+  "saas.expectations.declare.everyHint": "A minute is the shortest Orvay accepts.",
+  "saas.expectations.declare.zoneLabel": "Time zone",
+  "saas.expectations.declare.zoneHint": "A named zone, such as Europe/Zurich. A fixed offset is refused, because clocks move.",
+  "saas.expectations.declare.fromDayLabel": "First day",
+  "saas.expectations.declare.fromDayHint": "A date, such as 2026-09-18.",
+  "saas.expectations.declare.graceLabel": "Grace, in minutes",
+  "saas.expectations.declare.graceHint": "How late it may be before it counts as missed. A week is the most Orvay accepts.",
+  "saas.expectations.declare.customerLabel": "Customer",
+  "saas.expectations.declare.customerHint": "Leave this empty for an expectation about the company. Otherwise a system and an identifier, such as stripe_customer:cus_123. Never an address.",
+  "saas.expectations.declare.ownerLabel": "Owner",
+  "saas.expectations.declare.ownerHint": "The member who hears about a miss. Leave it empty to decide later.",
+  "saas.expectations.declare.ownerNobody": "Nobody yet",
+  "saas.expectations.declare.submit": "Declare it",
+  "saas.expectations.declare.busy": "Declaring",
+  "saas.expectations.declare.doneTitle": "It is declared",
+  "saas.expectations.declare.done": "Orvay now expects {event} and will report a miss.",
+  "saas.expectations.declare.failedTitle": "Nothing was declared",
+  "saas.expectations.error.bad_event": "An event name is lower case letters, digits and underscores, up to 39 characters.",
+  "saas.expectations.error.bad_grace": "Grace runs from nothing to one week.",
+  "saas.expectations.error.bad_window": "Say how long after the anchor it is due, in whole hours.",
+  "saas.expectations.error.bad_interval": "A minute is the shortest interval Orvay accepts.",
+  "saas.expectations.error.bad_zone": "Name a zone such as Europe/Zurich. A fixed offset is refused.",
+  "saas.expectations.error.bad_day": "Write the first day as a date, such as 2026-09-18.",
+  "saas.expectations.error.bad_anchor": "That is not a moment Orvay can count from, or it holds an address.",
+  "saas.expectations.error.unknown_owner": "That is not an active member of this company.",
+  "saas.expectations.error.bad_id": "That is not an expectation id.",
+  "saas.expectations.error.not_found": "There is no expectation here with that id.",
+  "saas.expectations.owner.heading": "Move an owner",
+  "saas.expectations.owner.lead": "Who hears about a miss is the one thing about an expectation that changes.",
+  "saas.expectations.owner.idLabel": "Expectation id",
+  "saas.expectations.owner.idHint": "Copied from the list above.",
+  "saas.expectations.owner.submit": "Set the owner",
+  "saas.expectations.owner.busy": "Setting the owner",
+  "saas.expectations.owner.doneTitle": "The owner is set",
+  "saas.expectations.owner.done": "Somebody now hears about a miss.",
+  "saas.expectations.owner.failedTitle": "The owner did not move",
+  "saas.expectations.retire.submit": "Retire it",
+  "saas.expectations.retire.busy": "Retiring",
+  "saas.expectations.retire.done": "It is retired. Declare a new one to change a deadline.",
+  "saas.expectations.retire.note": "A due time and a grace are never edited in place, because moving them rewrites whether past periods were missed. Retire the expectation and declare the new one.",
+  // ---------------------------------------------------------------------------
+  // Rules a correction proposed, and the review that lets one through.
+  // ---------------------------------------------------------------------------
+  "saas.rules.title": "Rules from corrections",
+  "saas.rules.lead": "When somebody corrects a decision, the correction becomes a proposed rule with the case that proves it. Somebody else reviews it before it changes anything, and every past case replays.",
+  "saas.rules.version": "Rule set version",
+  "saas.rules.versionNone": "No rule has been accepted yet.",
+  "saas.rules.rules.heading": "Rules in force",
+  "saas.rules.rules.none": "No rule is in force.",
+  "saas.rules.cases.heading": "Regression cases",
+  "saas.rules.cases.count": "Cases that must keep passing",
+  "saas.rules.proposals.heading": "Waiting for review",
+  "saas.rules.proposals.none": "No proposal is waiting.",
+  "saas.rules.decided.heading": "Already decided",
+  "saas.rules.decided.none": "Nothing has been decided yet.",
+  "saas.rules.kind.rule": "A new rule",
+  "saas.rules.kind.retirement": "Retiring a rule",
+  "saas.rules.status.proposed": "Waiting",
+  "saas.rules.status.accepted": "Accepted",
+  "saas.rules.status.rejected": "Rejected",
+  "saas.rules.proposedBy": "Proposed by {member}",
+  "saas.rules.reviewedBy": "Reviewed by {member}",
+  "saas.rules.selfReviewed": "Reviewed by its author, and that is recorded",
+  "saas.rules.fromVersion": "Written against version {version}",
+  "saas.rules.retires": "Retires {rule}",
+  "saas.rules.addsCase": "Adds case {case}",
+  "saas.rules.review.heading": "Review a proposal",
+  "saas.rules.review.lead": "The reviewer is never the author, unless this company has one member and the record says so.",
+  "saas.rules.review.idLabel": "Proposal id",
+  "saas.rules.review.idHint": "Copied from the list above.",
+  "saas.rules.review.supersedeLabel": "Cases this change supersedes",
+  "saas.rules.review.supersedeHint": "One case id per line, and only a case this change actually breaks. Leave it empty unless you know otherwise.",
+  "saas.rules.review.accept": "Accept it",
+  "saas.rules.review.reject": "Reject it",
+  "saas.rules.review.busy": "Recording the review",
+  "saas.rules.review.doneTitle": "The review is recorded",
+  "saas.rules.review.accepted": "Accepted. The rule set is now version {version}, and {cases} cases still pass.",
+  "saas.rules.review.acceptedSelf": "Accepted, and the record says you reviewed your own proposal.",
+  "saas.rules.review.rejected": "Rejected. Nothing changed.",
+  "saas.rules.review.failedTitle": "Nothing was reviewed",
+  "saas.rules.error.bad_id": "That is not a proposal id.",
+  "saas.rules.error.unreadable_proposal": "That proposal could not be read as one.",
+  "saas.rules.error.not_found": "There is no proposal here with that id.",
+  "saas.rules.error.already_decided": "That proposal was already {status}.",
+  "saas.rules.error.self_review": "A proposal is reviewed by somebody other than the person who wrote it. This company has more than one member, so somebody else reviews this one.",
+  "saas.rules.error.self_supersede": "An author reviewing their own proposal may not also declare a past case superseded.",
+  "saas.rules.error.stale_version": "The rule set moved while this proposal was waiting, so it has to be written again against what is there now.",
+  "saas.rules.error.breaks_regression": "This change breaks cases that pass today: {cases}.",
+  "saas.rules.error.superseded_case_passes": "These cases still pass, so this change does not supersede them: {cases}.",
+  "saas.rules.error.unknown_case": "These case ids are not in the rule set: {cases}.",
+  "saas.rules.error.unknown_rule": "There is no rule here with that id.",
+  "saas.rules.error.notAPerson": "A review is recorded by a signed in person, under their own name. Sign in again and try once more.",
+  // ---------------------------------------------------------------------------
+  // The three sentences every door refuses with, shared by all three screens.
+  // ONE SENTENCE, ONE ID: three ids for one sentence is the merge that took
+  // every side.
+  // ---------------------------------------------------------------------------
+  "saas.context.error.gate": "Refused at the {gate} gate: {reason}",
+  "saas.context.error.noSession": "Your session could not be read. Sign in again and try once more.",
+  "saas.context.error.unavailable": "That did not finish: {reason}",
+  "saas.context.error.signedOut": "You are signed out. Sign in and try again.",
+  // ---------------------------------------------------------------------------
+  // ADR-0074, 2026-09-18: one screen for all three packs, and the third kind of
+  // inbox row. Pack 1 already had a screen; the anomaly pack and the research
+  // pack decided things nobody could see. English only for now, every key listed
+  // in TRANSLATION_DEFERRED under the same date.
+  // ---------------------------------------------------------------------------
+  //
+  // A TITLE AND A LEAD PER PACK, because one heading over three different jobs
+  // tells a reader nothing about which one they opened. Each lead says what the
+  // pack does, in the order it does it, and what it will not do.
+  "saas.pack.paid_unactivated.title": "Paid and not activated",
+  "saas.pack.paid_unactivated.lead": "Orvay reads your payment source and your activation source, finds customers who paid and never got in, and proposes only the remedies you allowed. Nothing reaches your customer: every remedy here acts on your own systems or tells one of your own people.",
+  "saas.pack.traffic_revenue_anomaly.title": "Traffic and revenue anomalies",
+  "saas.pack.traffic_revenue_anomaly.lead": "Orvay judges the numbers already on record: whether the tracking is alive, whether the move survives seasonality and sample size, and how strong a claim the evidence supports. A move that fails a check is shown and never acted on.",
+  "saas.pack.market_research.title": "Market research",
+  "saas.pack.market_research.lead": "Orvay reads one source you name, through the same door every research read uses, and records the pages it read so a citation is checkable later. Research is not permission to contact anybody, and writing a lead record waits for a legal review.",
+  // THE FINDINGS, AND WHAT A FINDING IS ALLOWED TO SAY. The verb comes from the
+  // state and never from free text, so a number that moved cannot be described
+  // as a number that caused something (ADR-0074 D5).
+  "saas.pack.findings.heading": "What the pack found",
+  "saas.pack.findings.none": "This pack has found nothing yet. Run it to see what it makes of what you already hold.",
+  "saas.pack.finding.state.unactivated": "Paid and has not got in",
+  "saas.pack.finding.state.tracking_fault": "The reading is the problem",
+  "saas.pack.finding.state.measured_change": "The number moved",
+  "saas.pack.finding.state.guarded_out": "The number moved and a check refused the finding",
+  "saas.pack.finding.state.no_claim": "Nothing moved",
+  "saas.pack.finding.state.blocked": "Read and recorded, and the next step waits",
+  "saas.pack.finding.needsPerson": "Needs you",
+  "saas.pack.finding.noAction": "Nothing to do",
+  "saas.pack.finding.subject": "About {subject}",
+  // THE CHECKS, AS WORDS. A guard is a word and a glyph beside the tint, so it
+  // reads in greyscale and in forced colours.
+  "saas.pack.guards.heading": "Checks",
+  "saas.pack.guard.tracking": "The tracking was alive",
+  "saas.pack.guard.sample_size": "There was enough data",
+  "saas.pack.guard.weekly_seasonality": "Judged against the same weekday",
+  "saas.pack.guard.annual_seasonality": "Judged against the same time last year",
+  "saas.pack.guard.holiday": "Not a day you declared a holiday",
+  "saas.pack.guard.payment_read_fresh": "The payment read is still fresh",
+  "saas.pack.guard.mapping_strength": "The customer is identified strongly enough to touch access",
+  "saas.pack.guard.lead_eligibility": "Leads were checked against the countries assessed as eligible",
+  "saas.pack.guard.contact_authority": "The pack holds nothing that reaches a person",
+  "saas.pack.guard.status.passed": "Passed",
+  "saas.pack.guard.status.failed": "Failed",
+  "saas.pack.guard.status.unchecked": "Not checked",
+  // WHAT THE GATES SAY RIGHT NOW, rather than what the grant table says. A
+  // one-person company can approve its own action by taking it, and that reads
+  // as allowed here because that is what the gates answer.
+  "saas.pack.gate.allow": "Your policy allows it",
+  "saas.pack.gate.requires_approval": "Waits for a person",
+  "saas.pack.gate.deny": "Your policy refuses it",
+  "saas.pack.remedy.wired": "Something here can run it",
+  "saas.pack.remedy.notWired": "Nothing here can run it yet",
+  "saas.pack.remedy.templated": "Needs an authorized site before anything is checked",
+  // The proposal steps of packs 2 and 3, by the name their definition gives them.
+  "saas.pack.step.reproduce": "Reproduce the defect on your own site",
+  "saas.pack.step.pull_request": "Open a draft pull request carrying a failing test",
+  "saas.pack.step.record": "Record a lead",
+  "saas.pack.step.drafts": "Write a marketing draft",
+  "saas.pack.step.proposal": "Propose an experiment",
+  "saas.pack.blockedBy": "The lead record waits for a legal review, recorded as {document}.",
+  // Running packs 2 and 3.
+  "saas.pack.run.wrote": "Wrote {written} findings. Each one is a record, and none of them acted on anything.",
+  "saas.pack.run.nothingToRead": "There is nothing on record for this pack to judge yet.",
+  "saas.pack.run.noSource": "Name a site or something to search for first.",
+  "saas.pack.run.readFailed": "The source could not be read: {reason}",
+  "saas.pack.run.source.label": "A site, or something to search for",
+  "saas.pack.run.source.hint": "A name with a dot is read as a site. Anything else is searched for.",
+  // The third kind of inbox row.
+  "inbox.needs.kind.packFinding": "A pack stopped and asked",
+  "inbox.openPack": "Open the {pack} pack",
+  // ITS OWN HEADING, because the address bar is where a wrong pack name comes
+  // from and a page headed "What the pack found" above "there is no pack with
+  // that name" tells a reader the pack exists and found nothing.
+  "saas.pack.notFound.heading": "No such pack"
 };
 
 // ../../packages/content/src/legal.ts
 var LEGAL_UPDATED = {
-  privacy: "2026-09-06",
+  privacy: "2026-09-19",
   terms: "2026-08-27",
   imprint: "2026-08-20",
-  subprocessors: "2026-08-20",
+  // Moved 2026-09-21: Anthropic went from `configured` to `not_engaged`, which
+  // changes what this page tells a reader about a transfer to a US processor.
+  // §7a rule 3 wants the date moved when the document changes and only then, so
+  // this is the shape that earns it and a typo would not.
+  subprocessors: "2026-09-21",
   dpa: "2026-08-20",
   security: "2026-08-20"
 };
@@ -7362,6 +10182,10 @@ var PRIVACY_NOTICE = {
             {
               term: "Measuring how the product performs",
               detail: "Our legitimate interest in knowing whether the product works and whether the right model was chosen for a piece of work, GDPR Art. 6(1)(f). It covers which model ran, the kind of task, what it cost, which screens were loaded and how long they took. It carries no names and no content. You can turn it off under Data use, and we honour a Global Privacy Control signal from your browser on every request whether or not you do."
+            },
+            {
+              term: "Counting requests to a website we host for a company",
+              detail: "Our legitimate interest in telling a company whether anybody is reading the website we host for them, GDPR Art. 6(1)(f). We count requests to sites on orvay.app. We set no cookie and read none. We do not store your address, and we do not hash it either, because a hashed address is still a way of picking you out. We read the browser name only to leave out obvious robots, and we keep it for no longer than that. We record which site, whether the request was for a page or for a file, and whether it succeeded. We do not record which page. A count of requests is what comes out, and it identifies nobody."
             }
           ]
         },
@@ -8448,6 +11272,8 @@ var LEGAL_SOURCE = {
   "legal.privacy.purposes.pair5.detail": "Performance of a contract with you, GDPR Art. 6(1)(b). The text of your request is sent to a model vendor outside Switzerland and outside the EEA. See international transfers.",
   "legal.privacy.purposes.pair6.term": "Measuring how the product performs",
   "legal.privacy.purposes.pair6.detail": "Our legitimate interest in knowing whether the product works and whether the right model was chosen for a piece of work, GDPR Art. 6(1)(f). It covers which model ran, the kind of task, what it cost, which screens were loaded and how long they took. It carries no names and no content. You can turn it off under Data use, and we honour a Global Privacy Control signal from your browser on every request whether or not you do.",
+  "legal.privacy.purposes.pair7.term": "Counting requests to a website we host for a company",
+  "legal.privacy.purposes.pair7.detail": "Our legitimate interest in telling a company whether anybody is reading the website we host for them, GDPR Art. 6(1)(f). We count requests to sites on orvay.app. We set no cookie and read none. We do not store your address, and we do not hash it either, because a hashed address is still a way of picking you out. We read the browser name only to leave out obvious robots, and we keep it for no longer than that. We record which site, whether the request was for a page or for a file, and whether it succeeded. We do not record which page. A count of requests is what comes out, and it identifies nobody.",
   "legal.privacy.purposes.p1": "There is no other purpose. We do not profile visitors, we do not build advertising audiences, and we sell nothing to anyone.",
   "legal.privacy.automated.heading": "Automated decisions",
   "legal.privacy.automated.p1": "Nothing on the public website engages GDPR Art. 22. The sign-in screen is a different matter and this notice used to be silent about it, so here it is in full.",
@@ -10291,6 +13117,7 @@ var de_default = {
   "usage.phase.search": "Suchen",
   "usage.phase.speech": "Sprechen",
   "usage.phase.console": "Antworten",
+  "usage.phase.browser": "Browsen",
   "usage.phase.other": "Nicht erfasst",
   "usage.byGoal": "Nach Ziel",
   "usage.noGoal": "Keinem Ziel zugeordnet",
@@ -10397,6 +13224,10 @@ var de_default = {
   "contract.reversible.yes": "Ja, jeder Schritt l\xE4sst sich r\xFCckg\xE4ngig machen",
   "contract.reversible.no": "Nein. Mindestens ein Schritt l\xE4sst sich nach dem Lauf nicht mehr r\xFCckg\xE4ngig machen.",
   "contract.cites": "Beruft sich auf",
+  "contract.reply.title": "Der Wortlaut, der gesendet w\xFCrde",
+  "contract.reply.pinned": "Genau dieser Wortlaut ist im Vorschlag versiegelt. \xC4ndert sich ein einziges Zeichen, wird das Senden verweigert.",
+  "contract.reply.to": "An",
+  "contract.reply.subject": "Betreff",
   "contract.gates": "Was die Gates sagen",
   "contract.gates.note": "Jetzt bewertet, gegen die aktuelle Richtlinie dieses Unternehmens. Acht Gates laufen in fester Reihenfolge, und die erste Ablehnung beendet den Durchlauf; eine Spur, die fr\xFCh endet, ist die Pipeline, die anh\xE4lt, keine gek\xFCrzte Liste.",
   "contract.conditions": "Auflagen",
@@ -11256,7 +14087,7 @@ var de_default = {
   "verification.today.heading": "Wo das heute wahr ist",
   "verification.today.lead": "Ein Pfad, genau beschrieben, denn ein Pfad ist das, was existiert.",
   "verification.today.publish": "Wenn Orvay eine Seite ver\xF6ffentlicht, baut ein Akteur sie auf. Ein zweiter \xFCberpr\xFCft sie. Der Nachweis ist eine HTTP-Antwort, abgerufen von einem dritten. Der Body-Hash wird von der Seite berechnet, die ihn empfangen hat, nicht von der Seite, die ihn gesendet hat.",
-  "verification.today.gap": "Ein zweiter Weg wird genauso beurteilt: Wenn ein Beitrag ver\xF6ffentlicht wird, liest ein anderer Akteur ihn zur\xFCck, und eine Funktion entscheidet, ob das den Ausgang belegt. Was noch fehlt, ist ein zweites Modell zu bitten, ein erstes zu pr\xFCfen: dieser Weg steht im Code und nichts ruft ihn auf. Zu benennen, was was ist, ist der Zweck dieser Seite.",
+  "verification.today.gap": "Ein zweiter Weg wird genauso beurteilt: Wenn ein Beitrag ver\xF6ffentlicht wird, liest ein anderer Akteur ihn zur\xFCck, und eine Funktion entscheidet, ob das den Ausgang belegt. Ein zweites Modell liest geschriebene Arbeit inzwischen gegen das Ziel, das ihr gegeben wurde, und dieselbe Funktion beantwortet, was das wert ist: die Lekt\xFCre durch ein Modell wird als Beleg aufbewahrt und belegt f\xFCr sich genommen nichts. Zu benennen, was was ist, ist der Zweck dieser Seite.",
   "verification.today.why": "Es wird hier geschrieben, denn ein Kategorien-Anspruch, der auf einem Pfad ruht, ist genau das Versagen, das dieses Produkt ablehnt. Wir w\xFCrden es lieber sagen, statt entdeckt zu werden.",
   "verification.field.heading": "Was alle anderen tun",
   "verification.field.lead": "Gelesen von Anbieter-Dokumentation im September 2026. Wo ein Produkt seine eigene Verifizierung beschreibt, ist das, was es beschreibt.",
@@ -11540,7 +14371,7 @@ var de_default = {
   "company.agent.error.task-class": "W\xE4hlen Sie eine der angebotenen Aufgabenklassen.",
   "company.agent.error.refused": "Ein Gate hat dies abgelehnt. Ihre Richtlinie erlaubt das Hinzuf\xFCgen eines Agenten nicht.",
   "company.agent.needs-department": "Ein Agent geh\xF6rt zu einer Abteilung. F\xFCgen Sie zun\xE4chst unten eine Abteilung hinzu.",
-  "company.agents.no-authority": "Ein Agent handelt nur mit F\xE4higkeiten, die ihm gew\xE4hrt wurden. Das Erteilen von F\xE4higkeiten an einen Agenten ist noch nicht gebaut, sodass keiner dieser Agenten handeln kann.",
+  "company.agents.no-authority": "Ein Agent besitzt keine eigenen F\xE4higkeiten, und das Erteilen von F\xE4higkeiten ist noch nicht gebaut. Wenn einer eine Frage beantwortet, tut er das mit der Berechtigung der Person, die gefragt hat, und er liest nur das, was diese Person lesen darf.",
   "company.badge.halted": "Angehalten",
   "company.badge.active": "Aktiv",
   "company.badge.inactive": "Inaktiv",
@@ -11782,7 +14613,7 @@ var de_default = {
   "account.erased.what.heading": "Was genau passiert ist",
   "account.erased.halted": "Dieser Arbeitsbereich wurde angehalten, weil Sie die letzte Person darin waren, die etwas genehmigen konnte. Es l\xE4uft jetzt nichts mehr darin. Wer Zugang zu dem Konto hat, das daf\xFCr zahlt, kann ihn wieder starten.",
   "account.erased.sealed": "Ihre Adresse und Ihr Anzeigename wurden \xFCberschrieben, und der Schl\xFCssel, der Ihr Zustimmungsprotokoll lesbar machte, wurde zerst\xF6rt, sodass es von niemandem mehr gelesen werden kann, uns eingeschlossen. Bereits geschriebene Eintr\xE4ge im Audit-Trail bleiben, wie sie sind: Ein Audit-Trail, der umgeschrieben werden k\xF6nnte, w\xE4re keiner. Wir bewahren einen Eintrag dar\xFCber auf, dass eine Interaktion stattfand, wann, und unter wessen Autorit\xE4t, weil wir zeigen k\xF6nnen m\xFCssen, dass wir rechtm\xE4\xDFig gehandelt haben.",
-  "account.erased.suppression": "Wir bewahren au\xDFerdem einen geschl\xFCsselten Einweg-Hashwert Ihrer Adresse auf unserer Sperrliste auf, damit wir sie erkennen und uns weigern k\xF6nnen, Sie erneut zu kontaktieren. Dieser Hashwert ist das Einzige, was wir \xFCber Sie behalten, und er ist der Grund, warum Ihr Widerruf weiterhin eingehalten wird.",
+  "account.erased.suppression": "Wir bewahren au\xDFerdem einen geschl\xFCsselten Einweg-Hashwert Ihrer Adresse auf unserer Sperrliste auf, damit wir sie erkennen und uns weigern k\xF6nnen, Sie erneut zu kontaktieren. Er ist der Grund, warum Ihr Widerruf weiterhin eingehalten wird. Er ist nicht das Einzige, was wir behalten; was hiervon nicht abgedeckt ist, steht unten.",
   "account.erased.uncovered.label": "Was dies nicht abdeckt",
   "account.erased.history.title": "Verlauf, geschrieben bevor es das gab",
   "account.erased.history.body": "Eintr\xE4ge, die geschrieben wurden, bevor personenbezogene Felder je unter einem Schl\xFCssel verschl\xFCsselt wurden, liegen im Klartext vor, und der Audit-Trail kann von nichts umgeschrieben werden, und genau das macht ihn zu einem Audit-Trail. Diese Eintr\xE4ge bleiben, wie sie sind.",
@@ -11850,8 +14681,8 @@ var de_default = {
   "mailbox.lede.empty": "Der Posteingang von {account} ist leer.",
   "mailbox.lede.count": "Die neuesten {count} Nachrichten in {account}. Sortiert nach dem, was allein der Absender verr\xE4t; die Kopfzeilen werden in dem Moment gepr\xFCft, in dem Sie senden.",
   "mailbox.lede.dropped": "{count} konnten nicht gelesen werden und werden nicht angezeigt.",
-  "mailbox.consent.title": "Nichts wird gesendet, bis Sie auf Senden dr\xFCcken",
-  "mailbox.consent.body": "{brand} liest dieses Postfach unter der Berechtigung, die Sie bei Microsoft gew\xE4hrt haben, und jeder Lesevorgang steht im Protokoll. Es entwirft noch keine Antworten und beginnt nie von sich aus ein Gespr\xE4ch. Eine Antwort, die Sie hier schreiben, geht in den Thread, von Ihrer eigenen Adresse, und das Protokoll zeigt, wer wann auf Senden gedr\xFCckt hat. Archivieren verschiebt eine Nachricht in Ihrem eigenen Postfach, und nur ein Klick tut das.",
+  "mailbox.consent.title": "Nichts wird ohne einen Menschen gesendet",
+  "mailbox.consent.body": "{brand} liest dieses Postfach unter der Berechtigung, die Sie bei Microsoft gew\xE4hrt haben, und jeder Lesevorgang steht im Protokoll. Es kann eine Antwort f\xFCr Sie entwerfen, und der Entwurf wartet auf Ihre Freigabe, bevor etwas gesendet wird. Es beginnt nie von sich aus ein Gespr\xE4ch. Eine Antwort, die Sie hier schreiben, geht in den Thread, von Ihrer eigenen Adresse, und das Protokoll zeigt, wer wann auf Senden gedr\xFCckt hat. Archivieren verschiebt eine Nachricht in Ihrem eigenen Postfach, und nur ein Klick tut das.",
   "mailbox.triage.needs-reply": "Jemand hat geschrieben",
   "mailbox.triage.automated": "Von einer Maschine gesendet",
   "mailbox.triage.bulk": "Von einer Liste gesendet",
@@ -12633,7 +15464,7 @@ var de_default = {
   "toolCall.evidence.verified": "Die Antwort von {tool} auf {server}, aus dem Protokoll zur\xFCckgelesen",
   // ATT-11: what needs THIS person in their other workspaces.
   "inbox.elsewhere.heading": "Wartet anderswo auf Sie",
-  "inbox.elsewhere.body": "Unentschiedene Vorschl\xE4ge in Ihren anderen Arbeitsbereichen. Abgelehnte bleiben au\xDFen vor, weil keine Entscheidung von Ihnen sie bewegen w\xFCrde.",
+  "inbox.elsewhere.body": "Unentschiedene Vorschl\xE4ge in Ihren anderen Arbeitsbereichen und Schritte, die abgelehnt wurden, bevor sie liefen, und bei denen Sie die Ursache beheben m\xFCssen. Von einer Person abgelehnte bleiben au\xDFen vor, denn keine Entscheidung von Ihnen bewegt sie.",
   "inbox.elsewhere.count": "Braucht Sie",
   "inbox.elsewhere.atLeast": "Braucht Sie, mindestens",
   "inbox.elsewhere.more": "Sie sind in mehr Arbeitsbereichen, als diese Liste z\xE4hlt.",
@@ -12668,7 +15499,34 @@ var de_default = {
   "policies.record.all": "Alle F\xE4higkeiten",
   // EXEC-30
   "inbox.tried.heading": "Versucht und abgelehnt",
-  "inbox.tried.body": "Diese hatten die Berechtigung, und der Schritt wurde abgelehnt, bevor er lief. Beheben Sie die Ursache und schlagen Sie die Arbeit erneut vor: Dieselbe Aktion kann nicht wiederholt werden, denn ihr Versuch steht bereits als fehlgeschlagen im Protokoll."
+  "inbox.tried.body": "Diese hatten die Berechtigung, und der Schritt wurde abgelehnt, bevor er lief. Beheben Sie die Ursache und schlagen Sie die Arbeit erneut vor: Dieselbe Aktion kann nicht wiederholt werden, denn ihr Versuch steht bereits als fehlgeschlagen im Protokoll.",
+  // VER-17
+  "evidence.review.agrees": "Ein zweites Modell hat dies gelesen und festgestellt, dass es tut, was verlangt war",
+  "evidence.review.disagrees": "Ein zweites Modell hat dies gelesen und festgestellt, dass es nicht tut, was verlangt war",
+  "evidence.review.by": "Gelesen von",
+  "evidence.review.sameVendor": "Es stammt vom selben Anbieter wie das Modell, das die Arbeit gemacht hat, und ist damit keine Lekt\xFCre eines zweiten Anbieters.",
+  "evidence.review.cannotEstablish": "Die Lekt\xFCre durch ein Modell ist f\xFCr sich genommen kein Beweis, von wem sie auch stammt. Was ein Ergebnis hier feststellt, ist eine Tatsache, die jeder pr\xFCfen kann: ein Exit-Code, eine Antwort eines anderen Systems, eine Zeile in der Datenbank.",
+  // ATT-5
+  "account.quiet.heading": "Ruhezeiten",
+  "account.quiet.body": "Zwischen diesen Zeiten schreiben wir Ihnen keine E-Mail. Die Entscheidung wartet weiter hier, und Sie sehen sie, wenn Sie das n\xE4chste Mal nachsehen. Die Zeiten gelten in der Zeitzone dieses Arbeitsbereichs.",
+  "account.quiet.from": "Von",
+  "account.quiet.to": "Bis",
+  "account.quiet.save": "Ruhezeiten speichern",
+  "account.quiet.clear": "Ruhezeiten ausschalten",
+  "account.quiet.off": "Ruhezeiten sind aus. Wir d\xFCrfen Ihnen zu jeder Zeit schreiben.",
+  "account.quiet.set": "Zwischen {from} und {to} erhalten Sie keine E-Mail.",
+  "account.quiet.saved": "Ruhezeiten gespeichert.",
+  "account.quiet.cleared": "Ruhezeiten sind aus.",
+  "account.quiet.malformed": "Das war kein Zeitpaar, daher wurde nichts ge\xE4ndert.",
+  // ATT-8
+  "notification.summary.briefing.ready": "Ihr Morgenbericht ist fertig",
+  // EXEC-30
+  "decision.error.notRefused": "die wurde nicht abgelehnt, bevor sie lief, es gibt also nichts erneut vorzuschlagen",
+  "decision.error.noGoal": "dieser Vertrag hat kein Ziel mehr, f\xFCr das etwas vorgeschlagen werden k\xF6nnte",
+  "decision.error.notRepeatable": "diese Form l\xE4sst sich von hier aus nicht erneut vorschlagen; richten Sie die Arbeit noch einmal ein",
+  "decision.reproposed": "Erneut vorgeschlagen. Wartet auf eine Entscheidung.",
+  "inbox.tried.again": "Erneut vorschlagen",
+  "inbox.tried.againPending": "Wird erneut vorgeschlagen"
 };
 
 // ../../packages/content/src/messages/de.legal.ts
@@ -12705,6 +15563,8 @@ var de_legal_default = {
   "legal.privacy.purposes.pair5.detail": "Erf\xFCllung eines Vertrags mit Ihnen, Art. 6 Abs. 1 lit. b DSGVO. Der Text Ihrer Anfrage wird an einen Modellanbieter au\xDFerhalb der Schweiz und au\xDFerhalb des EWR \xFCbermittelt. Siehe internationale Daten\xFCbermittlungen.",
   "legal.privacy.purposes.pair6.term": "Messen, wie das Produkt arbeitet",
   "legal.privacy.purposes.pair6.detail": "Unser berechtigtes Interesse daran zu wissen, ob das Produkt funktioniert und ob f\xFCr eine Arbeit das richtige Modell gew\xE4hlt wurde, DSGVO Art. 6(1)(f). Es umfasst, welches Modell lief, die Art der Aufgabe, was sie kostete, welche Bildschirme geladen wurden und wie lange sie dauerten. Es enth\xE4lt keine Namen und keine Inhalte. Sie k\xF6nnen es unter Datennutzung abschalten, und ein Global-Privacy-Control-Signal Ihres Browsers beachten wir bei jeder Anfrage, auch wenn Sie das nicht tun.",
+  "legal.privacy.purposes.pair7.term": "Aufrufe einer Website z\xE4hlen, die wir f\xFCr ein Unternehmen hosten",
+  "legal.privacy.purposes.pair7.detail": "Unser berechtigtes Interesse daran, einem Unternehmen mitzuteilen, ob jemand die Website liest, die wir f\xFCr es hosten, Art. 6 Abs. 1 lit. f DSGVO. Wir z\xE4hlen Aufrufe von Websites auf orvay.app. Wir setzen kein Cookie und lesen keines. Wir speichern Ihre Adresse nicht, und wir hashen sie auch nicht, denn eine gehashte Adresse bleibt ein Weg, Sie herauszugreifen. Wir lesen den Browsernamen nur, um offensichtliche Roboter auszulassen, und behalten ihn nicht l\xE4nger. Wir erfassen, welche Website, ob die Anfrage eine Seite oder eine Datei betraf und ob sie erfolgreich war. Wir erfassen nicht, welche Seite. Heraus kommt eine Anzahl von Aufrufen, und sie identifiziert niemanden.",
   "legal.privacy.purposes.p1": "Es gibt keinen weiteren Zweck. Wir erstellen keine Profile von Besuchern, wir bilden keine Werbezielgruppen, und wir verkaufen niemandem etwas.",
   "legal.privacy.automated.heading": "Automatisierte Entscheidungen",
   "legal.privacy.automated.p1": "Nichts auf der \xF6ffentlichen Website ber\xFChrt Art. 22 DSGVO. Der Anmeldebildschirm ist eine andere Sache, und diese Erkl\xE4rung schwieg fr\xFCher dazu, daher folgt hier die vollst\xE4ndige Beschreibung.",
@@ -14472,6 +17332,7 @@ var fr_default = {
   "usage.phase.search": "Rechercher",
   "usage.phase.speech": "Parler",
   "usage.phase.console": "R\xE9pondre",
+  "usage.phase.browser": "Naviguer",
   "usage.phase.other": "Non enregistr\xE9",
   "usage.byGoal": "Par objectif",
   "usage.noGoal": "Rattach\xE9 \xE0 aucun objectif",
@@ -14578,6 +17439,10 @@ var fr_default = {
   "contract.reversible.yes": "Oui, chaque \xE9tape peut \xEAtre annul\xE9e",
   "contract.reversible.no": "Non. Au moins une \xE9tape ne peut plus \xEAtre annul\xE9e une fois ex\xE9cut\xE9e.",
   "contract.cites": "Cite",
+  "contract.reply.title": "Le texte qui serait envoy\xE9",
+  "contract.reply.pinned": "Ce texte exact est scell\xE9 dans la proposition. Si un seul caract\xE8re change, l'envoi est refus\xE9.",
+  "contract.reply.to": "\xC0",
+  "contract.reply.subject": "Objet",
   "contract.gates": "Ce que disent les gates",
   "contract.gates.note": "\xC9valu\xE9 maintenant, selon la politique actuelle de cette entreprise. Huit gates s'ex\xE9cutent dans un ordre fixe et le premier refus y met fin\xA0; une trace qui s'arr\xEAte t\xF4t est le pipeline qui s'arr\xEAte, pas une liste raccourcie.",
   "contract.conditions": "Conditions associ\xE9es",
@@ -15519,7 +18384,7 @@ var fr_default = {
   "verification.today.heading": "O\xF9 c'est vrai aujourd'hui",
   "verification.today.lead": "Un chemin, d\xE9crit exactement, parce qu'un chemin est ce qui existe.",
   "verification.today.publish": "Quand Orvay publie un site, un acteur le construit, un deuxi\xE8me le v\xE9rifie, et la preuve est une r\xE9ponse HTTP r\xE9cup\xE9r\xE9e par un tiers. Le hachage du corps est calcul\xE9 par le c\xF4t\xE9 qui l'a re\xE7u plut\xF4t que par le c\xF4t\xE9 qui l'a envoy\xE9.",
-  "verification.today.gap": "Un deuxi\xE8me chemin est jug\xE9 de la m\xEAme mani\xE8re\xA0: quand une publication para\xEEt, un acteur diff\xE9rent la relit et une fonction d\xE9cide si cela \xE9tablit le r\xE9sultat. Ce qui manque encore, c'est de demander \xE0 un second mod\xE8le de v\xE9rifier un premier\xA0: cette voie existe dans le code et rien ne l'appelle. Nommer ce qui est quoi est l'objet de cette page.",
+  "verification.today.gap": "Un deuxi\xE8me chemin est jug\xE9 de la m\xEAme mani\xE8re\xA0: quand une publication para\xEEt, un acteur diff\xE9rent la relit et une fonction d\xE9cide si cela \xE9tablit le r\xE9sultat. Un second mod\xE8le relit d\xE9sormais le travail \xE9crit au regard de l'objectif qui lui a \xE9t\xE9 fix\xE9, et la m\xEAme fonction dit ce que cela vaut\xA0: la lecture par un mod\xE8le est conserv\xE9e comme preuve et n'\xE9tablit rien \xE0 elle seule. Nommer ce qui est quoi est l'objet de cette page.",
   "verification.today.why": "C'est \xE9crit ici parce qu'une affirmation de cat\xE9gorie reposant sur un chemin est l'exact \xE9chec que ce produit existe pour refuser, et nous pr\xE9f\xE9rerions le dire plut\xF4t que d'\xEAtre d\xE9couvert.",
   "verification.field.heading": "Ce que tout le monde fait d'autre",
   "verification.field.lead": "Lire \xE0 partir de la documentation des fournisseurs en septembre 2026. O\xF9 un produit d\xE9crit sa propre v\xE9rification, c'est ce qu'il d\xE9crit.",
@@ -15879,7 +18744,7 @@ var fr_default = {
   "company.agent.error.task-class": "Choisissez l'une des classes de t\xE2che propos\xE9es.",
   "company.agent.error.refused": "Une porte a refus\xE9 cette action. Votre politique n'autorise pas l'ajout d'un agent.",
   "company.agent.needs-department": "Un agent appartient \xE0 un service. Commencez par ajouter un service ci-dessous.",
-  "company.agents.no-authority": "Un agent n'agit que avec les capacit\xE9s qui lui ont \xE9t\xE9 accord\xE9es. L'octroi de capacit\xE9s \xE0 un agent n'est pas encore construit, aucun d'entre eux ne peut donc agir.",
+  "company.agents.no-authority": "Un agent ne poss\xE8de aucune capacit\xE9 propre, et l'octroi de capacit\xE9s n'est pas encore construit. Lorsqu'un agent r\xE9pond \xE0 une question, il le fait avec l'autorisation de la personne qui a pos\xE9 la question, et il ne lit que ce que cette personne peut lire.",
   "company.badge.halted": "arr\xEAt\xE9",
   "company.badge.active": "actif",
   "company.badge.inactive": "inactif",
@@ -15950,8 +18815,8 @@ var fr_default = {
   "mailbox.lede.empty": "La bo\xEEte de r\xE9ception de {account} est vide.",
   "mailbox.lede.count": "Les {count} messages les plus r\xE9cents dans {account}. Class\xE9s d'apr\xE8s ce que l'exp\xE9diteur r\xE9v\xE8le \xE0 lui seul\xA0; les en-t\xEAtes sont v\xE9rifi\xE9s au moment o\xF9 vous envoyez.",
   "mailbox.lede.dropped": "{count} n'ont pas pu \xEAtre lus et ne sont pas affich\xE9s.",
-  "mailbox.consent.title": "Rien ne part avant que vous n'appuyiez sur Envoyer",
-  "mailbox.consent.body": "{brand} lit cette bo\xEEte mail sous l'autorisation que vous avez accord\xE9e chez Microsoft, et chaque lecture est consign\xE9e. Il ne r\xE9dige pas encore de r\xE9ponses et ne d\xE9marre jamais de conversation. Une r\xE9ponse que vous \xE9crivez ici part dans le fil, depuis votre propre adresse, et le registre indique qui a appuy\xE9 sur Envoyer et quand. Archiver d\xE9place un message dans votre propre bo\xEEte mail, et seul un appui fait cela.",
+  "mailbox.consent.title": "Rien ne part sans une personne",
+  "mailbox.consent.body": "{brand} lit cette bo\xEEte mail sous l'autorisation que vous avez accord\xE9e chez Microsoft, et chaque lecture est consign\xE9e. Il peut r\xE9diger une r\xE9ponse pour vous, et le brouillon attend votre approbation avant tout envoi. Il ne d\xE9marre jamais de conversation. Une r\xE9ponse que vous \xE9crivez ici part dans le fil, depuis votre propre adresse, et le registre indique qui a appuy\xE9 sur Envoyer et quand. Archiver d\xE9place un message dans votre propre bo\xEEte mail, et seul un appui fait cela.",
   "mailbox.triage.needs-reply": "Quelqu'un a \xE9crit",
   "mailbox.triage.automated": "Envoy\xE9 par une machine",
   "mailbox.triage.bulk": "Envoy\xE9 par une liste",
@@ -16305,7 +19170,7 @@ var fr_default = {
   "account.erased.what.heading": "Exactement ce qui s'est pass\xE9",
   "account.erased.halted": "Cet espace de travail a \xE9t\xE9 arr\xEAt\xE9, car vous \xE9tiez la derni\xE8re personne \xE0 pouvoir y approuver quoi que ce soit. Plus rien ne s\u2019y ex\xE9cute. Une personne ayant acc\xE8s au compte qui le paie peut le relancer.",
   "account.erased.sealed": "Votre adresse et votre nom affich\xE9 ont \xE9t\xE9 \xE9cras\xE9s, et la cl\xE9 qui rendait vos enregistrements de consentement lisibles a \xE9t\xE9 d\xE9truite, si bien que ces enregistrements ne peuvent plus \xEAtre lus par personne, nous y compris. Les entr\xE9es d\xE9j\xE0 \xE9crites dans le journal d'audit restent telles quelles\xA0: un journal d'audit qui pourrait \xEAtre r\xE9\xE9crit n'en serait pas un. Nous conservons la trace qu'une interaction a eu lieu, quand, et sous quelle autorit\xE9, parce que nous devons pouvoir d\xE9montrer que nous avons agi de fa\xE7on licite.",
-  "account.erased.suppression": "Nous conservons aussi un condens\xE9 \xE0 sens unique et \xE0 cl\xE9 de votre adresse sur notre liste de suppression, afin de pouvoir la reconna\xEEtre et de refuser de vous recontacter. Ce condens\xE9 est la seule chose que nous retenons \xE0 votre sujet, et c'est la raison pour laquelle votre retrait continue d'\xEAtre honor\xE9.",
+  "account.erased.suppression": "Nous conservons aussi un condens\xE9 \xE0 sens unique et \xE0 cl\xE9 de votre adresse sur notre liste de suppression, afin de pouvoir la reconna\xEEtre et de refuser de vous recontacter. C'est la raison pour laquelle votre retrait continue d'\xEAtre honor\xE9. Ce n'est pas la seule chose que nous conservons, et ce qui n'est pas couvert est indiqu\xE9 ci-dessous.",
   "account.erased.uncovered.label": "Ce que cela ne couvre pas",
   "account.erased.history.title": "Historique \xE9crit avant que cela n'existe",
   "account.erased.history.body": "Les entr\xE9es \xE9crites avant que les champs personnels n'aient jamais \xE9t\xE9 chiffr\xE9s sous une cl\xE9 sont en clair, et le journal d'audit ne peut \xEAtre r\xE9\xE9crit par rien, ce qui est justement ce qui en fait un journal d'audit. Ces entr\xE9es restent telles quelles.",
@@ -17010,7 +19875,7 @@ var fr_default = {
   "toolCall.evidence.verified": "La r\xE9ponse de {tool} sur {server}, relue depuis le registre",
   // ATT-11: what needs THIS person in their other workspaces.
   "inbox.elsewhere.heading": "En attente de vous ailleurs",
-  "inbox.elsewhere.body": "Propositions non tranch\xE9es dans vos autres espaces de travail. Les propositions refus\xE9es sont exclues, car aucune de vos d\xE9cisions ne les ferait avancer.",
+  "inbox.elsewhere.body": "Propositions non d\xE9cid\xE9es dans vos autres espaces de travail, et \xE9tapes refus\xE9es avant leur ex\xE9cution, dont vous devez corriger la cause. Celles qu'une personne a refus\xE9es sont exclues, car aucune d\xE9cision de votre part ne les ferait avancer.",
   "inbox.elsewhere.count": "A besoin de vous",
   "inbox.elsewhere.atLeast": "A besoin de vous, au moins",
   "inbox.elsewhere.more": "Vous appartenez \xE0 plus d'espaces de travail que cette liste n'en compte.",
@@ -17045,7 +19910,34 @@ var fr_default = {
   "policies.record.all": "Toutes les capacit\xE9s",
   // EXEC-30
   "inbox.tried.heading": "Tent\xE9 et refus\xE9",
-  "inbox.tried.body": "Ceux-ci avaient l'autorisation et l'\xE9tape a \xE9t\xE9 refus\xE9e avant son ex\xE9cution. Corrigez la cause et proposez le travail \xE0 nouveau\xA0: la m\xEAme action ne peut pas \xEAtre r\xE9essay\xE9e, car sa tentative figure d\xE9j\xE0 au registre comme ayant \xE9chou\xE9."
+  "inbox.tried.body": "Ceux-ci avaient l'autorisation et l'\xE9tape a \xE9t\xE9 refus\xE9e avant son ex\xE9cution. Corrigez la cause et proposez le travail \xE0 nouveau\xA0: la m\xEAme action ne peut pas \xEAtre r\xE9essay\xE9e, car sa tentative figure d\xE9j\xE0 au registre comme ayant \xE9chou\xE9.",
+  // VER-17
+  "evidence.review.agrees": "Un second mod\xE8le a lu ce travail et conclu qu'il fait ce qui \xE9tait demand\xE9",
+  "evidence.review.disagrees": "Un second mod\xE8le a lu ce travail et conclu qu'il ne fait pas ce qui \xE9tait demand\xE9",
+  "evidence.review.by": "Lu par",
+  "evidence.review.sameVendor": "Il vient du m\xEAme fournisseur que le mod\xE8le qui a fait le travail, ce n'est donc pas une lecture par un second fournisseur.",
+  "evidence.review.cannotEstablish": "La lecture par un mod\xE8le ne prouve rien \xE0 elle seule, quelle qu'en soit la source. Ce qui \xE9tablit un r\xE9sultat ici est un fait que chacun peut v\xE9rifier\xA0: un code de sortie, la r\xE9ponse d'un autre syst\xE8me, une ligne dans la base de donn\xE9es.",
+  // ATT-5
+  "account.quiet.heading": "Heures calmes",
+  "account.quiet.body": "Entre ces heures, nous ne vous \xE9crivons pas. La d\xE9cision vous attend toujours ici et vous la verrez \xE0 votre prochaine visite. Les heures sont lues dans le fuseau horaire de cet espace de travail.",
+  "account.quiet.from": "De",
+  "account.quiet.to": "Jusqu'\xE0",
+  "account.quiet.save": "Enregistrer les heures calmes",
+  "account.quiet.clear": "D\xE9sactiver les heures calmes",
+  "account.quiet.off": "Les heures calmes sont d\xE9sactiv\xE9es. Nous pouvons vous \xE9crire \xE0 toute heure.",
+  "account.quiet.set": "Vous ne recevez pas d'e-mail entre {from} et {to}.",
+  "account.quiet.saved": "Heures calmes enregistr\xE9es.",
+  "account.quiet.cleared": "Les heures calmes sont d\xE9sactiv\xE9es.",
+  "account.quiet.malformed": "Ce n'\xE9tait pas une paire d'heures, rien n'a donc chang\xE9.",
+  // ATT-8
+  "notification.summary.briefing.ready": "Votre point du matin est pr\xEAt",
+  // EXEC-30
+  "decision.error.notRefused": "celle-ci n'a pas \xE9t\xE9 refus\xE9e avant son ex\xE9cution, il n'y a donc rien \xE0 proposer de nouveau",
+  "decision.error.noGoal": "ce contrat n'a plus d'objectif auquel se rattacher",
+  "decision.error.notRepeatable": "cette forme ne peut pas \xEAtre propos\xE9e de nouveau d'ici\xA0; reconfigurez le travail",
+  "decision.reproposed": "Propos\xE9 de nouveau. En attente d\u2019une d\xE9cision.",
+  "inbox.tried.again": "Proposer de nouveau",
+  "inbox.tried.againPending": "Nouvelle proposition en cours"
 };
 
 // ../../packages/content/src/messages/fr.legal.ts
@@ -17082,6 +19974,8 @@ var fr_legal_default = {
   "legal.privacy.purposes.pair5.detail": "Ex\xE9cution d'un contrat avec vous, article 6, paragraphe 1, point b) du RGPD. Le texte de votre demande est envoy\xE9 \xE0 un fournisseur de mod\xE8le situ\xE9 hors de Suisse et hors de l'EEE. Voir les transferts internationaux.",
   "legal.privacy.purposes.pair6.term": "Mesurer le fonctionnement du produit",
   "legal.privacy.purposes.pair6.detail": "Notre int\xE9r\xEAt l\xE9gitime \xE0 savoir si le produit fonctionne et si le bon mod\xE8le a \xE9t\xE9 choisi pour un travail, RGPD art. 6(1)(f). Cela couvre quel mod\xE8le a tourn\xE9, le type de t\xE2che, ce qu\u2019elle a co\xFBt\xE9, quels \xE9crans ont \xE9t\xE9 charg\xE9s et le temps qu\u2019ils ont pris. Cela ne contient aucun nom et aucun contenu. Vous pouvez le d\xE9sactiver sous Usage des donn\xE9es, et nous respectons un signal Global Privacy Control envoy\xE9 par votre navigateur \xE0 chaque requ\xEAte, que vous le fassiez ou non.",
+  "legal.privacy.purposes.pair7.term": "Compter les requ\xEAtes vers un site web que nous h\xE9bergeons pour une entreprise",
+  "legal.privacy.purposes.pair7.detail": "Notre int\xE9r\xEAt l\xE9gitime \xE0 indiquer \xE0 une entreprise si quelqu'un lit le site web que nous h\xE9bergeons pour elle, RGPD art. 6, par. 1, point f). Nous comptons les requ\xEAtes vers les sites sur orvay.app. Nous ne d\xE9posons aucun cookie et n'en lisons aucun. Nous ne stockons pas votre adresse, et nous ne la hachons pas non plus, car une adresse hach\xE9e reste un moyen de vous distinguer. Nous lisons le nom du navigateur uniquement pour \xE9carter les robots \xE9vidents, et nous ne le conservons pas plus longtemps. Nous enregistrons quel site, si la requ\xEAte portait sur une page ou sur un fichier, et si elle a abouti. Nous n'enregistrons pas quelle page. Il en ressort un nombre de requ\xEAtes, et il n'identifie personne.",
   "legal.privacy.purposes.p1": "Il n'y a pas d'autre finalit\xE9. Nous ne profilons pas les visiteurs, ne constituons pas d'audiences publicitaires et ne vendons rien \xE0 personne.",
   "legal.privacy.automated.heading": "D\xE9cisions automatis\xE9es",
   "legal.privacy.automated.p1": "Rien sur le site public n'engage l'article 22 du RGPD. L'\xE9cran de connexion est une autre affaire, et cette politique restait auparavant silencieuse \xE0 ce sujet\xA0: la voici donc en d\xE9tail.",
@@ -18827,6 +21721,7 @@ var it_default = {
   "usage.phase.search": "Cercare",
   "usage.phase.speech": "Parlare",
   "usage.phase.console": "Rispondere",
+  "usage.phase.browser": "Navigare",
   "usage.phase.other": "Non registrato",
   "usage.byGoal": "Per obiettivo",
   "usage.noGoal": "Non legato a un obiettivo",
@@ -18933,6 +21828,10 @@ var it_default = {
   "contract.reversible.yes": "S\xEC, ogni passo pu\xF2 essere annullato",
   "contract.reversible.no": "No. Almeno un passo non pu\xF2 essere annullato una volta eseguito.",
   "contract.cites": "Cita",
+  "contract.reply.title": "Il testo che verrebbe inviato",
+  "contract.reply.pinned": "Questo testo esatto \xE8 sigillato nella proposta. Se cambia anche un solo carattere, l'invio viene rifiutato.",
+  "contract.reply.to": "A",
+  "contract.reply.subject": "Oggetto",
   "contract.gates": "Cosa dicono i gate",
   "contract.gates.note": "Valutato ora, secondo la politica attuale di questa azienda. Otto gate vengono eseguiti in ordine fisso e il primo rifiuto interrompe tutto; una traccia che si ferma presto \xE8 la pipeline che si ferma, non un elenco abbreviato.",
   "contract.conditions": "Condizioni allegate",
@@ -19804,7 +22703,7 @@ var it_default = {
   "verification.today.heading": "Dove \xE8 vero oggi",
   "verification.today.lead": "Un percorso, descritto esattamente, perch\xE9 un percorso \xE8 quello che esiste.",
   "verification.today.publish": "Quando Orvay pubblica un sito, un attore lo costruisce, un secondo lo controlla, e la prova \xE8 una risposta HTTP recuperata da un terzo. L'hash del corpo viene calcolato dal lato che lo ha ricevuto piuttosto che dal lato che lo ha inviato.",
-  "verification.today.gap": "Un secondo percorso \xE8 giudicato allo stesso modo: quando un post viene pubblicato, un attore diverso lo rilegge e una funzione decide se questo stabilisce l'esito. Quello che manca ancora \xE8 chiedere a un secondo modello di verificare un primo: quella via esiste nel codice e nulla la chiama. Dire quale \xE8 quale \xE8 lo scopo di questa pagina.",
+  "verification.today.gap": "Un secondo percorso \xE8 giudicato allo stesso modo: quando un post viene pubblicato, un attore diverso lo rilegge e una funzione decide se questo stabilisce l'esito. Un secondo modello ora legge il lavoro scritto rispetto all'obiettivo che gli era stato dato, e la stessa funzione risponde a quanto vale: la lettura di un modello \xE8 conservata come prova e da sola non accerta nulla. Dire quale \xE8 quale \xE8 lo scopo di questa pagina.",
   "verification.today.why": "\xC8 scritto qui perch\xE9 un'affermazione di categoria che riposa su un percorso \xE8 l'esatto errore che questo prodotto esiste per rifiutare, e preferiremmo dirlo piuttosto che essere scoperti.",
   "verification.field.heading": "Quello che tutti gli altri fanno",
   "verification.field.lead": "Legga dalla documentazione del fornitore a settembre 2026. Dove un prodotto descrive la propria verifica, \xE8 quello che descrive.",
@@ -20159,7 +23058,7 @@ var it_default = {
   "company.agent.error.task-class": "Scelga una delle classi di compito offerte.",
   "company.agent.error.refused": "Un gate ha rifiutato questa azione. La Sua politica non consente di aggiungere un agente.",
   "company.agent.needs-department": "Un agente appartiene a un reparto. Aggiunga prima un reparto, qui di seguito.",
-  "company.agents.no-authority": "Un agente agisce solo con le capacit\xE0 che gli sono state concesse. L'assegnazione di capacit\xE0 a un agente non \xE8 ancora stata realizzata, quindi nessuno di questi pu\xF2 agire.",
+  "company.agents.no-authority": "Un agente non possiede capacit\xE0 proprie e l'assegnazione di capacit\xE0 non \xE8 ancora stata realizzata. Quando un agente risponde a una domanda, lo fa con l'autorizzazione della persona che ha chiesto e legge solo ci\xF2 che quella persona pu\xF2 leggere.",
   "company.badge.halted": "fermato",
   "company.badge.active": "attivo",
   "company.badge.inactive": "inattivo",
@@ -20321,7 +23220,7 @@ var it_default = {
   "account.erased.what.heading": "Esattamente che cosa \xE8 successo",
   "account.erased.halted": "Questo spazio di lavoro \xE8 stato fermato, perch\xE9 lei era l\u2019ultima persona che poteva approvare qualcosa al suo interno. Ora non vi funziona pi\xF9 nulla. Chi ha accesso all\u2019account che lo paga pu\xF2 riavviarlo.",
   "account.erased.sealed": "Il Suo indirizzo e il nome visualizzato sono stati sovrascritti, e la chiave che rendeva leggibili i Suoi record di consenso \xE8 stata distrutta, cos\xEC quei record non possono pi\xF9 essere letti da nessuno, noi compresi. Le voci gi\xE0 scritte nella traccia di audit restano come sono: una traccia di audit che potesse essere riscritta non lo sarebbe. Conserviamo un record che un'interazione \xE8 avvenuta, quando, e sotto quale autorit\xE0, perch\xE9 dobbiamo poter dimostrare di aver agito in modo lecito.",
-  "account.erased.suppression": "Conserviamo anche un digest a senso unico e con chiave del Suo indirizzo nel nostro elenco di soppressione, in modo da poterlo riconoscere e rifiutarci di contattarLa di nuovo. Quel digest \xE8 l'unica cosa che conserviamo su di Lei, ed \xE8 il motivo per cui la Sua revoca resta rispettata.",
+  "account.erased.suppression": "Conserviamo anche un digest a senso unico e con chiave del Suo indirizzo nel nostro elenco di soppressione, in modo da poterlo riconoscere e rifiutarci di contattarLa di nuovo. \xC8 il motivo per cui la Sua revoca resta rispettata. Non \xE8 l'unica cosa che conserviamo, e ci\xF2 che questo non copre \xE8 indicato di seguito.",
   "account.erased.uncovered.label": "Ci\xF2 che questo non copre",
   "account.erased.history.title": "Storia scritta prima che questo esistesse",
   "account.erased.history.body": "Le voci scritte prima che i campi personali fossero mai cifrati sotto una chiave sono testo in chiaro, e la traccia di audit non pu\xF2 essere riscritta da nulla, ed \xE8 ci\xF2 che la rende una traccia di audit. Quelle voci restano come sono.",
@@ -20392,8 +23291,8 @@ var it_default = {
   "mailbox.lede.empty": "La casella di posta di {account} \xE8 vuota.",
   "mailbox.lede.count": "I {count} messaggi pi\xF9 recenti in {account}. Ordinati da ci\xF2 che il solo mittente rivela: le intestazioni vengono controllate al momento dell'invio.",
   "mailbox.lede.dropped": "{count} non hanno potuto essere letti e non sono mostrati.",
-  "mailbox.consent.title": "Nulla viene inviato finch\xE9 non preme Invia",
-  "mailbox.consent.body": "{brand} legge questa casella di posta in base alla concessione che ha dato presso Microsoft, e ogni lettura viene registrata. Non redige ancora risposte, e non avvia mai una conversazione. Una risposta scritta qui va nel thread, dal Suo stesso indirizzo, e il record mostra chi ha premuto Invia e quando. Archivia sposta un messaggio nella Sua stessa casella di posta, e solo una pressione lo fa.",
+  "mailbox.consent.title": "Niente viene inviato senza una persona",
+  "mailbox.consent.body": "{brand} legge questa casella di posta in base alla concessione che ha dato presso Microsoft, e ogni lettura viene registrata. Pu\xF2 redigere una risposta per Lei, e la bozza attende la Sua approvazione prima che venga inviato qualcosa. Non avvia mai una conversazione. Una risposta scritta qui va nel thread, dal Suo stesso indirizzo, e il record mostra chi ha premuto Invia e quando. Archivia sposta un messaggio nella Sua stessa casella di posta, e solo una pressione lo fa.",
   // The badge table and the explanation below it are two halves of one idea, so
   // they share the triage vocabulary and are keyed by the same senderTriage value.
   "mailbox.triage.needs-reply": "Qualcuno ha scritto",
@@ -21246,7 +24145,7 @@ var it_default = {
   "toolCall.evidence.verified": "La risposta di {tool} su {server}, riletta dal registro",
   // ATT-11: what needs THIS person in their other workspaces.
   "inbox.elsewhere.heading": "In attesa di lei altrove",
-  "inbox.elsewhere.body": "Proposte non ancora decise nei suoi altri spazi di lavoro. Quelle rifiutate sono escluse, perch\xE9 nessuna sua decisione le farebbe avanzare.",
+  "inbox.elsewhere.body": "Proposte non decise negli altri suoi spazi di lavoro e passaggi rifiutati prima di essere eseguiti, di cui deve correggere la causa. Quelli rifiutati da una persona restano fuori, perch\xE9 nessuna sua decisione li muoverebbe.",
   "inbox.elsewhere.count": "Ha bisogno di lei",
   "inbox.elsewhere.atLeast": "Ha bisogno di lei, almeno",
   "inbox.elsewhere.more": "Lei fa parte di pi\xF9 spazi di lavoro di quanti ne conti questo elenco.",
@@ -21281,7 +24180,34 @@ var it_default = {
   "policies.record.all": "Tutte le capacit\xE0",
   // EXEC-30
   "inbox.tried.heading": "Tentato e rifiutato",
-  "inbox.tried.body": "Questi avevano il permesso e il passaggio \xE8 stato rifiutato prima di essere eseguito. Correggi la causa e proponi di nuovo il lavoro: la stessa azione non pu\xF2 essere ritentata, perch\xE9 il suo tentativo \xE8 gi\xE0 registrato come fallito."
+  "inbox.tried.body": "Questi avevano il permesso e il passaggio \xE8 stato rifiutato prima di essere eseguito. Correggi la causa e proponi di nuovo il lavoro: la stessa azione non pu\xF2 essere ritentata, perch\xE9 il suo tentativo \xE8 gi\xE0 registrato come fallito.",
+  // VER-17
+  "evidence.review.agrees": "Un secondo modello ha letto questo lavoro e ha concluso che fa quanto richiesto",
+  "evidence.review.disagrees": "Un secondo modello ha letto questo lavoro e ha concluso che non fa quanto richiesto",
+  "evidence.review.by": "Letto da",
+  "evidence.review.sameVendor": "Viene dallo stesso fornitore del modello che ha svolto il lavoro, quindi non \xE8 una lettura di un secondo fornitore.",
+  "evidence.review.cannotEstablish": "La lettura di un modello non \xE8 una prova di per s\xE9, da chiunque provenga. Ci\xF2 che accerta un esito qui \xE8 un fatto che chiunque pu\xF2 controllare: un codice di uscita, la risposta di un altro sistema, una riga nel database.",
+  // ATT-5
+  "account.quiet.heading": "Ore di silenzio",
+  "account.quiet.body": "Tra queste ore non le inviamo e-mail. La decisione resta qui ad attenderla e la vedr\xE0 alla prossima occhiata. Le ore valgono nel fuso orario di questo spazio di lavoro.",
+  "account.quiet.from": "Dalle",
+  "account.quiet.to": "Alle",
+  "account.quiet.save": "Salva le ore di silenzio",
+  "account.quiet.clear": "Disattiva le ore di silenzio",
+  "account.quiet.off": "Le ore di silenzio sono disattivate. Possiamo scriverle a qualsiasi ora.",
+  "account.quiet.set": "Tra le {from} e le {to} non riceve e-mail.",
+  "account.quiet.saved": "Ore di silenzio salvate.",
+  "account.quiet.cleared": "Le ore di silenzio sono disattivate.",
+  "account.quiet.malformed": "Non era una coppia di ore, quindi non \xE8 cambiato nulla.",
+  // ATT-8
+  "notification.summary.briefing.ready": "Il suo riepilogo mattutino \xE8 pronto",
+  // EXEC-30
+  "decision.error.notRefused": "quella non \xE8 stata rifiutata prima di essere eseguita, quindi non c'\xE8 nulla da riproporre",
+  "decision.error.noGoal": "questo contratto non ha pi\xF9 un obiettivo a cui riferirsi",
+  "decision.error.notRepeatable": "questa forma non pu\xF2 essere riproposta da qui: imposti di nuovo il lavoro",
+  "decision.reproposed": "Riproposto. \xC8 in attesa di una decisione.",
+  "inbox.tried.again": "Riproponi",
+  "inbox.tried.againPending": "Riproposizione in corso"
 };
 
 // ../../packages/content/src/messages/it.legal.ts
@@ -21318,6 +24244,8 @@ var it_legal_default = {
   "legal.privacy.purposes.pair5.detail": "Esecuzione di un contratto con voi, GDPR art. 6(1)(b). Il testo della vostra richiesta viene inviato a un fornitore di modelli fuori dalla Svizzera e fuori dallo Spazio economico europeo. Vedere la sezione sui trasferimenti internazionali.",
   "legal.privacy.purposes.pair6.term": "Misurare come funziona il prodotto",
   "legal.privacy.purposes.pair6.detail": "Il nostro legittimo interesse a sapere se il prodotto funziona e se per un lavoro \xE8 stato scelto il modello giusto, GDPR art. 6(1)(f). Comprende quale modello ha girato, il tipo di compito, quanto \xE8 costato, quali schermate sono state caricate e quanto tempo hanno richiesto. Non contiene nomi n\xE9 contenuti. Potete disattivarlo sotto Uso dei dati, e rispettiamo un segnale Global Privacy Control inviato dal vostro browser a ogni richiesta, che lo facciate o no.",
+  "legal.privacy.purposes.pair7.term": "Contare le richieste a un sito web che ospitiamo per un'azienda",
+  "legal.privacy.purposes.pair7.detail": "Il nostro legittimo interesse a comunicare a un'azienda se qualcuno legge il sito web che ospitiamo per essa, GDPR art. 6, par. 1, lett. f). Contiamo le richieste ai siti su orvay.app. Non impostiamo alcun cookie e non ne leggiamo alcuno. Non memorizziamo il suo indirizzo, e non lo sottoponiamo nemmeno ad hash, perch\xE9 un indirizzo sottoposto ad hash resta un modo per individuarla. Leggiamo il nome del browser solo per escludere i robot evidenti, e non lo conserviamo pi\xF9 a lungo. Registriamo quale sito, se la richiesta riguardava una pagina o un file, e se \xE8 andata a buon fine. Non registriamo quale pagina. Ne esce un numero di richieste, e non identifica nessuno.",
   "legal.privacy.purposes.p1": "Non esiste alcuna altra finalit\xE0. Non profiliamo i visitatori, non costruiamo audience pubblicitarie e non vendiamo nulla a nessuno.",
   "legal.privacy.automated.heading": "Decisioni automatizzate",
   "legal.privacy.automated.p1": "Nulla sul sito pubblico coinvolge il GDPR art. 22. La schermata di accesso \xE8 una questione diversa, e questa informativa prima taceva al riguardo: eccola quindi per intero.",
@@ -23064,6 +25992,7 @@ var es_default = {
   "usage.phase.search": "Buscar",
   "usage.phase.speech": "Hablar",
   "usage.phase.console": "Responder",
+  "usage.phase.browser": "Navegar",
   "usage.phase.other": "Sin registrar",
   "usage.byGoal": "Por objetivo",
   "usage.noGoal": "Sin objetivo asociado",
@@ -23170,6 +26099,10 @@ var es_default = {
   "contract.reversible.yes": "S\xED, cada paso se puede deshacer",
   "contract.reversible.no": "No. Al menos un paso no se puede deshacer una vez ejecutado.",
   "contract.cites": "Cita",
+  "contract.reply.title": "El texto que se enviar\xEDa",
+  "contract.reply.pinned": "Este texto exacto queda sellado en la propuesta. Si cambia un solo car\xE1cter, se rechaza el env\xEDo.",
+  "contract.reply.to": "Para",
+  "contract.reply.subject": "Asunto",
   "contract.gates": "Qu\xE9 dicen los gates",
   "contract.gates.note": "Evaluado ahora, seg\xFAn la pol\xEDtica actual de esta empresa. Ocho gates se ejecutan en un orden fijo y el primer rechazo lo termina; una traza que se detiene pronto es la canalizaci\xF3n deteni\xE9ndose, no una lista recortada.",
   "contract.conditions": "Condiciones adjuntas",
@@ -24041,7 +26974,7 @@ var es_default = {
   "verification.today.heading": "Donde esto es cierto hoy",
   "verification.today.lead": "Una ruta, descrita exactamente, porque una ruta es lo que existe.",
   "verification.today.publish": "Cuando Orvay publica un sitio, un actor lo construye, un segundo lo comprueba, y la evidencia es una respuesta HTTP obtenida por un tercero. El hash de cuerpo se calcula del lado que lo recibi\xF3 en lugar del lado que lo envi\xF3.",
-  "verification.today.gap": "Una segunda v\xEDa se juzga igual: cuando se publica una entrada, un actor distinto la vuelve a leer y una funci\xF3n decide si eso establece el resultado. Lo que sigue faltando es pedir a un segundo modelo que verifique a un primero: esa ruta existe en el c\xF3digo y nada la llama. Decir cu\xE1l es cu\xE1l es el objeto de esta p\xE1gina.",
+  "verification.today.gap": "Una segunda v\xEDa se juzga igual: cuando se publica una entrada, un actor distinto la vuelve a leer y una funci\xF3n decide si eso establece el resultado. Un segundo modelo ahora lee el trabajo escrito frente al objetivo que se le dio, y la misma funci\xF3n responde cu\xE1nto vale eso: la lectura de un modelo se guarda como prueba y por s\xED sola no establece nada. Decir cu\xE1l es cu\xE1l es el objeto de esta p\xE1gina.",
   "verification.today.why": "Est\xE1 escrito aqu\xED porque una afirmaci\xF3n de categor\xEDa que descansa en una ruta es el fracaso exacto que este producto existe para rechazar, y preferimos decirlo que ser descubiertos.",
   "verification.field.heading": "Lo que todos los dem\xE1s hacen",
   "verification.field.lead": "L\xE9ase de la documentaci\xF3n del proveedor en septiembre de 2026. Donde un producto describe su propia verificaci\xF3n, esto es lo que describe.",
@@ -24359,7 +27292,7 @@ var es_default = {
   "company.agent.error.task-class": "Elija una de las clases de tarea ofrecidas.",
   "company.agent.error.refused": "Una puerta ha rechazado esto. Su pol\xEDtica no permite a\xF1adir un agente.",
   "company.agent.needs-department": "Un agente pertenece a un departamento. Primero, a\xF1ada un departamento m\xE1s abajo.",
-  "company.agents.no-authority": "Un agente act\xFAa solo con las capacidades que se le han otorgado. Otorgar capacidades a un agente a\xFAn no est\xE1 construido, as\xED que ninguno de estos puede actuar.",
+  "company.agents.no-authority": "Un agente no tiene capacidades propias, y otorgar capacidades a\xFAn no est\xE1 construido. Cuando uno responde a una pregunta, lo hace con la autorizaci\xF3n de la persona que pregunt\xF3, y solo lee lo que esa persona puede leer.",
   "company.badge.halted": "detenido",
   "company.badge.active": "activo",
   "company.badge.inactive": "inactivo",
@@ -24590,7 +27523,7 @@ var es_default = {
   "account.erased.what.heading": "Exactamente qu\xE9 ocurri\xF3",
   "account.erased.halted": "Este espacio de trabajo se ha detenido, porque usted era la \xFAltima persona que pod\xEDa aprobar algo en \xE9l. Ahora no se ejecuta nada dentro. Quien tenga acceso a la cuenta que lo paga puede volver a iniciarlo.",
   "account.erased.sealed": "Su direcci\xF3n y su nombre visible han sido sobrescritos, y la clave que hac\xEDa legibles sus registros de consentimiento ha sido destruida, de modo que esos registros no pueden volver a leerse por nadie, ni siquiera por nosotros. Las entradas ya escritas en la pista de auditor\xEDa permanecen como est\xE1n: una pista de auditor\xEDa que se pudiera reescribir no ser\xEDa tal cosa. Conservamos un registro de que ocurri\xF3 una interacci\xF3n, cu\xE1ndo, y bajo la autoridad de qui\xE9n, porque tenemos que poder demostrar que actuamos conforme a la ley.",
-  "account.erased.suppression": "Tambi\xE9n conservamos una huella con clave, de un solo sentido, de su direcci\xF3n, en nuestra lista de supresi\xF3n, para poder reconocerla y negarnos a volver a contactar con usted. Esa huella es lo \xFAnico que conservamos sobre usted, y es la raz\xF3n por la que su retirada se sigue respetando.",
+  "account.erased.suppression": "Tambi\xE9n conservamos una huella con clave, de un solo sentido, de su direcci\xF3n, en nuestra lista de supresi\xF3n, para poder reconocerla y negarnos a volver a contactar con usted. Es la raz\xF3n por la que su retirada se sigue respetando. No es lo \xFAnico que conservamos, y lo que esto no cubre se indica m\xE1s abajo.",
   "account.erased.uncovered.label": "Lo que esto no cubre",
   "account.erased.history.title": "Historial escrito antes de que esto existiera",
   "account.erased.history.body": "Las entradas escritas antes de que los campos personales se cifraran alguna vez bajo una clave son texto plano, y la pista de auditor\xEDa no puede ser reescrita por nada, que es lo que hace que sea una pista de auditor\xEDa. Esas entradas permanecen como est\xE1n.",
@@ -24661,8 +27594,8 @@ var es_default = {
   "mailbox.lede.empty": "La bandeja de entrada de {account} est\xE1 vac\xEDa.",
   "mailbox.lede.count": "Los {count} mensajes m\xE1s recientes de {account}. Ordenados seg\xFAn lo que revela solo el remitente; los encabezados se comprueban en el momento de enviar.",
   "mailbox.lede.dropped": "{count} no se pudieron leer y no se muestran.",
-  "mailbox.consent.title": "Nada se env\xEDa hasta que pulse Enviar",
-  "mailbox.consent.body": "{brand} lee este buz\xF3n bajo la concesi\xF3n que usted otorg\xF3 en Microsoft, y cada lectura queda registrada. Todav\xEDa no redacta respuestas y nunca inicia una conversaci\xF3n. Una respuesta que usted escriba aqu\xED se a\xF1ade al hilo, desde su propia direcci\xF3n, y el registro muestra qui\xE9n puls\xF3 Enviar y cu\xE1ndo. Archivar mueve un mensaje en su propio buz\xF3n, y solo una pulsaci\xF3n lo hace.",
+  "mailbox.consent.title": "Nada se env\xEDa sin una persona",
+  "mailbox.consent.body": "{brand} lee este buz\xF3n bajo la concesi\xF3n que usted otorg\xF3 en Microsoft, y cada lectura queda registrada. Puede redactar una respuesta para usted, y el borrador espera su aprobaci\xF3n antes de que se env\xEDe nada. Nunca inicia una conversaci\xF3n. Una respuesta que usted escriba aqu\xED se a\xF1ade al hilo, desde su propia direcci\xF3n, y el registro muestra qui\xE9n puls\xF3 Enviar y cu\xE1ndo. Archivar mueve un mensaje en su propio buz\xF3n, y solo una pulsaci\xF3n lo hace.",
   "mailbox.triage.needs-reply": "Alguien escribi\xF3",
   "mailbox.triage.automated": "Enviado por una m\xE1quina",
   "mailbox.triage.bulk": "Enviado por una lista",
@@ -25476,7 +28409,7 @@ var es_default = {
   "toolCall.evidence.verified": "La respuesta de {tool} en {server}, rele\xEDda desde el registro",
   // ATT-11: what needs THIS person in their other workspaces.
   "inbox.elsewhere.heading": "Esper\xE1ndole en otro sitio",
-  "inbox.elsewhere.body": "Propuestas sin decidir en sus otros espacios de trabajo. Las rechazadas quedan fuera, porque ninguna decisi\xF3n suya las har\xEDa avanzar.",
+  "inbox.elsewhere.body": "Propuestas sin decidir en sus otros espacios de trabajo y pasos rechazados antes de ejecutarse, cuya causa debe corregir. Los que una persona rechaz\xF3 quedan fuera, porque ninguna decisi\xF3n suya los mover\xEDa.",
   "inbox.elsewhere.count": "Le necesita",
   "inbox.elsewhere.atLeast": "Le necesita, al menos",
   "inbox.elsewhere.more": "Usted pertenece a m\xE1s espacios de trabajo de los que cuenta esta lista.",
@@ -25511,7 +28444,34 @@ var es_default = {
   "policies.record.all": "Todas las capacidades",
   // EXEC-30
   "inbox.tried.heading": "Intentado y rechazado",
-  "inbox.tried.body": "Estos ten\xEDan permiso y el paso se rechaz\xF3 antes de ejecutarse. Corrija la causa y proponga el trabajo de nuevo: la misma acci\xF3n no se puede reintentar, porque su intento ya consta en el registro como fallido."
+  "inbox.tried.body": "Estos ten\xEDan permiso y el paso se rechaz\xF3 antes de ejecutarse. Corrija la causa y proponga el trabajo de nuevo: la misma acci\xF3n no se puede reintentar, porque su intento ya consta en el registro como fallido.",
+  // VER-17
+  "evidence.review.agrees": "Un segundo modelo ley\xF3 este trabajo y concluy\xF3 que hace lo que se ped\xEDa",
+  "evidence.review.disagrees": "Un segundo modelo ley\xF3 este trabajo y concluy\xF3 que no hace lo que se ped\xEDa",
+  "evidence.review.by": "Le\xEDdo por",
+  "evidence.review.sameVendor": "Viene del mismo proveedor que el modelo que hizo el trabajo, as\xED que no es una lectura de un segundo proveedor.",
+  "evidence.review.cannotEstablish": "La lectura de un modelo no es prueba por s\xED sola, venga de quien venga. Lo que establece un resultado aqu\xED es un hecho que cualquiera puede comprobar: un c\xF3digo de salida, la respuesta de otro sistema, una fila en la base de datos.",
+  // ATT-5
+  "account.quiet.heading": "Horas de silencio",
+  "account.quiet.body": "Entre estas horas no le enviamos correo. La decisi\xF3n sigue esper\xE1ndole aqu\xED y la ver\xE1 la pr\xF3xima vez que mire. Las horas se leen en la zona horaria de este espacio de trabajo.",
+  "account.quiet.from": "Desde",
+  "account.quiet.to": "Hasta",
+  "account.quiet.save": "Guardar las horas de silencio",
+  "account.quiet.clear": "Desactivar las horas de silencio",
+  "account.quiet.off": "Las horas de silencio est\xE1n desactivadas. Podemos escribirle a cualquier hora.",
+  "account.quiet.set": "Entre las {from} y las {to} no recibe correo.",
+  "account.quiet.saved": "Horas de silencio guardadas.",
+  "account.quiet.cleared": "Las horas de silencio est\xE1n desactivadas.",
+  "account.quiet.malformed": "Eso no era un par de horas, as\xED que no cambi\xF3 nada.",
+  // ATT-8
+  "notification.summary.briefing.ready": "Su resumen matutino est\xE1 listo",
+  // EXEC-30
+  "decision.error.notRefused": "esa no se rechaz\xF3 antes de ejecutarse, as\xED que no hay nada que proponer de nuevo",
+  "decision.error.noGoal": "ese contrato ya no tiene un objetivo al que asociarse",
+  "decision.error.notRepeatable": "esa forma no se puede proponer de nuevo desde aqu\xED; configure el trabajo otra vez",
+  "decision.reproposed": "Propuesto de nuevo. Est\xE1 a la espera de una decisi\xF3n.",
+  "inbox.tried.again": "Proponer de nuevo",
+  "inbox.tried.againPending": "Proponiendo de nuevo"
 };
 
 // ../../packages/content/src/messages/es.legal.ts
@@ -25548,6 +28508,8 @@ var es_legal_default = {
   "legal.privacy.purposes.pair5.detail": "Ejecuci\xF3n de un contrato con usted, art. 6.1.b RGPD. El texto de su solicitud se env\xEDa a un proveedor de modelos fuera de Suiza y fuera del EEE. V\xE9ase transferencias internacionales.",
   "legal.privacy.purposes.pair6.term": "Medir c\xF3mo funciona el producto",
   "legal.privacy.purposes.pair6.detail": "Nuestro inter\xE9s leg\xEDtimo en saber si el producto funciona y si se eligi\xF3 el modelo adecuado para un trabajo, RGPD art. 6(1)(f). Abarca qu\xE9 modelo se ejecut\xF3, el tipo de tarea, cu\xE1nto cost\xF3, qu\xE9 pantallas se cargaron y cu\xE1nto tardaron. No contiene nombres ni contenido. Puede desactivarlo en Uso de los datos, y respetamos una se\xF1al Global Privacy Control de su navegador en cada solicitud, lo haga o no.",
+  "legal.privacy.purposes.pair7.term": "Contar las solicitudes a un sitio web que alojamos para una empresa",
+  "legal.privacy.purposes.pair7.detail": "Nuestro inter\xE9s leg\xEDtimo en decirle a una empresa si alguien lee el sitio web que alojamos para ella, RGPD art. 6, ap. 1, letra f). Contamos las solicitudes a los sitios en orvay.app. No establecemos ninguna cookie ni leemos ninguna. No almacenamos su direcci\xF3n, y tampoco le aplicamos hash, porque una direcci\xF3n con hash sigue siendo una forma de distinguirle. Leemos el nombre del navegador solo para dejar fuera a los robots evidentes, y no lo conservamos m\xE1s tiempo. Registramos qu\xE9 sitio, si la solicitud era de una p\xE1gina o de un archivo, y si tuvo \xE9xito. No registramos qu\xE9 p\xE1gina. Lo que sale es un n\xFAmero de solicitudes, y no identifica a nadie.",
   "legal.privacy.purposes.p1": "No existe ninguna otra finalidad. No elaboramos perfiles de visitantes, no creamos audiencias publicitarias y no vendemos nada a nadie.",
   "legal.privacy.automated.heading": "Decisiones automatizadas",
   "legal.privacy.automated.p1": "Nada en el sitio web p\xFAblico activa el art. 22 RGPD. La pantalla de inicio de sesi\xF3n es un asunto distinto y este aviso antes guardaba silencio al respecto, as\xED que aqu\xED est\xE1 por completo.",
@@ -27324,6 +30286,7 @@ var pt_default = {
   "usage.phase.search": "Pesquisar",
   "usage.phase.speech": "Falar",
   "usage.phase.console": "Responder",
+  "usage.phase.browser": "Navegar",
   "usage.phase.other": "N\xE3o registado",
   "usage.byGoal": "Por objetivo",
   "usage.noGoal": "Sem objetivo associado",
@@ -27430,6 +30393,10 @@ var pt_default = {
   "contract.reversible.yes": "Sim, cada passo pode ser desfeito",
   "contract.reversible.no": "N\xE3o. Pelo menos um passo n\xE3o pode ser desfeito depois de executado.",
   "contract.cites": "Cita",
+  "contract.reply.title": "O texto que seria enviado",
+  "contract.reply.pinned": "Este texto exato fica selado na proposta. Se mudar um \xFAnico car\xE1cter, o envio \xE9 recusado.",
+  "contract.reply.to": "Para",
+  "contract.reply.subject": "Assunto",
   "contract.gates": "O que dizem os gates",
   "contract.gates.note": "Avaliado agora, segundo a pol\xEDtica atual desta empresa. Oito gates correm numa ordem fixa e a primeira recusa termina tudo; um rasto que para cedo \xE9 o pipeline a parar, n\xE3o uma lista encurtada.",
   "contract.conditions": "Condi\xE7\xF5es associadas",
@@ -28305,7 +31272,7 @@ var pt_default = {
   "verification.today.heading": "Onde isto \xE9 verdadeiro hoje",
   "verification.today.lead": "Um caminho, descrito exatamente, porque um caminho \xE9 o que existe.",
   "verification.today.publish": "Quando Orvay publica um site, um ator o constr\xF3i, um segundo verifica-o, e as provas s\xE3o uma resposta HTTP obtida por um terceiro. O hash do corpo \xE9 calculado pelo lado que o recebeu em vez de pelo lado que o enviou.",
-  "verification.today.gap": "Um segundo caminho \xE9 julgado da mesma forma: quando uma publica\xE7\xE3o sai, um ator diferente volta a l\xEA-la e uma fun\xE7\xE3o decide se isso estabelece o resultado. O que ainda falta \xE9 pedir a um segundo modelo que verifique um primeiro: essa via existe no c\xF3digo e nada a chama. Dizer qual \xE9 qual \xE9 o objetivo desta p\xE1gina.",
+  "verification.today.gap": "Um segundo caminho \xE9 julgado da mesma forma: quando uma publica\xE7\xE3o sai, um ator diferente volta a l\xEA-la e uma fun\xE7\xE3o decide se isso estabelece o resultado. Um segundo modelo l\xEA agora o trabalho escrito face ao objetivo que lhe foi dado, e a mesma fun\xE7\xE3o responde quanto isso vale: a leitura de um modelo \xE9 guardada como prova e por si s\xF3 n\xE3o estabelece nada. Dizer qual \xE9 qual \xE9 o objetivo desta p\xE1gina.",
   "verification.today.why": "Est\xE1 escrito aqui porque uma afirma\xE7\xE3o de categoria apoiando-se num caminho \xE9 a falha exata que este produto existe para recusar, e preferir\xEDamos diz\xEA-lo a ser descobertos.",
   "verification.field.heading": "O que todos os outros fazem",
   "verification.field.lead": "Leia a partir da documenta\xE7\xE3o do fornecedor em setembro de 2026. Onde um produto descreve a sua pr\xF3pria verifica\xE7\xE3o, isto \xE9 o que descreve.",
@@ -28655,7 +31622,7 @@ var pt_default = {
   "company.agent.error.task-class": "Escolha uma das classes de tarefa oferecidas.",
   "company.agent.error.refused": "Uma porta recusou esta a\xE7\xE3o. A sua pol\xEDtica n\xE3o permite adicionar um agente.",
   "company.agent.needs-department": "Um agente pertence a um departamento. Comece por adicionar um departamento abaixo.",
-  "company.agents.no-authority": "Um agente actua apenas com as capacidades que lhe foram atribu\xEDdas. Atribuir capacidades a um agente ainda n\xE3o est\xE1 constru\xEDdo, portanto nenhum destes pode agir.",
+  "company.agents.no-authority": "Um agente n\xE3o possui capacidades pr\xF3prias, e atribuir capacidades ainda n\xE3o est\xE1 constru\xEDdo. Quando um agente responde a uma pergunta, f\xE1-lo com a autoriza\xE7\xE3o da pessoa que perguntou, e l\xEA apenas o que essa pessoa pode ler.",
   "company.badge.halted": "parado",
   "company.badge.active": "ativo",
   "company.badge.inactive": "inativo",
@@ -28820,7 +31787,7 @@ var pt_default = {
   "account.erased.what.heading": "Exatamente o que aconteceu",
   "account.erased.halted": "Este espa\xE7o de trabalho foi parado, porque era a \xFAltima pessoa que podia aprovar seja o que for dentro dele. J\xE1 n\xE3o corre nada l\xE1 dentro. Quem tiver acesso \xE0 conta que o paga pode voltar a inici\xE1-lo.",
   "account.erased.sealed": "O seu endere\xE7o e o nome apresentado foram substitu\xEDdos, e a chave que tornava os seus registos de consentimento leg\xEDveis foi destru\xEDda, por isso esses registos n\xE3o podem voltar a ser lidos por ningu\xE9m, incluindo n\xF3s. As entradas j\xE1 escritas na trilha de auditoria ficam como est\xE3o: uma trilha de auditoria que pudesse ser reescrita n\xE3o seria uma. Mantemos um registo de que uma intera\xE7\xE3o aconteceu, quando, e sob que autoridade, porque temos de poder mostrar que agimos de forma l\xEDcita.",
-  "account.erased.suppression": "Tamb\xE9m mantemos um resumo unidirecional e com chave do seu endere\xE7o na nossa lista de supress\xE3o, para que possamos reconhec\xEA-lo e recusar voltar a contact\xE1-lo. Esse resumo \xE9 a \xFAnica coisa que retemos sobre si, e \xE9 a raz\xE3o pela qual a sua revoga\xE7\xE3o continua a ser respeitada.",
+  "account.erased.suppression": "Tamb\xE9m mantemos um resumo unidirecional e com chave do seu endere\xE7o na nossa lista de supress\xE3o, para que possamos reconhec\xEA-lo e recusar voltar a contact\xE1-lo. \xC9 a raz\xE3o pela qual a sua revoga\xE7\xE3o continua a ser respeitada. N\xE3o \xE9 a \xFAnica coisa que retemos, e o que isto n\xE3o cobre est\xE1 indicado abaixo.",
   "account.erased.uncovered.label": "O que isto n\xE3o cobre",
   "account.erased.history.title": "Hist\xF3rico escrito antes de isto existir",
   "account.erased.history.body": "As entradas escritas antes de os campos pessoais alguma vez terem sido encriptados sob uma chave s\xE3o texto simples, e a trilha de auditoria n\xE3o pode ser reescrita por nada, o que \xE9 o que a torna uma trilha de auditoria. Essas entradas ficam como est\xE3o.",
@@ -28930,8 +31897,8 @@ var pt_default = {
   "mailbox.lede.empty": "A caixa de entrada de {account} est\xE1 vazia.",
   "mailbox.lede.count": "As {count} mensagens mais recentes em {account}. Ordenadas apenas pelo que o remetente revela; os cabe\xE7alhos s\xE3o verificados no momento em que envia.",
   "mailbox.lede.dropped": "{count} n\xE3o puderam ser lidas e n\xE3o s\xE3o mostradas.",
-  "mailbox.consent.title": "Nada \xE9 enviado at\xE9 premir Enviar",
-  "mailbox.consent.body": "O {brand} l\xEA esta caixa de correio ao abrigo da autoriza\xE7\xE3o que deu na Microsoft, e toda a leitura fica registada. Ainda n\xE3o rascunha respostas e nunca inicia uma conversa. Uma resposta escrita aqui entra na conversa, a partir do seu pr\xF3prio endere\xE7o, e o registo mostra quem premiu Enviar e quando. Arquivar move uma mensagem na sua pr\xF3pria caixa de correio, e s\xF3 acontece se premir o bot\xE3o.",
+  "mailbox.consent.title": "Nada \xE9 enviado sem uma pessoa",
+  "mailbox.consent.body": "O {brand} l\xEA esta caixa de correio ao abrigo da autoriza\xE7\xE3o que deu na Microsoft, e toda a leitura fica registada. Pode rascunhar uma resposta para si, e o rascunho aguarda a sua aprova\xE7\xE3o antes de algo ser enviado. Nunca inicia uma conversa. Uma resposta escrita aqui entra na conversa, a partir do seu pr\xF3prio endere\xE7o, e o registo mostra quem premiu Enviar e quando. Arquivar move uma mensagem na sua pr\xF3pria caixa de correio, e s\xF3 acontece se premir o bot\xE3o.",
   "mailbox.triage.needs-reply": "Algu\xE9m escreveu",
   "mailbox.triage.automated": "Enviada por uma m\xE1quina",
   "mailbox.triage.bulk": "Enviada por uma lista",
@@ -29738,7 +32705,7 @@ var pt_default = {
   "toolCall.evidence.verified": "A resposta de {tool} em {server}, relida a partir do registo",
   // ATT-11: what needs THIS person in their other workspaces.
   "inbox.elsewhere.heading": "\xC0 sua espera noutro s\xEDtio",
-  "inbox.elsewhere.body": "Propostas ainda n\xE3o decididas nos seus outros espa\xE7os de trabalho. As recusadas ficam de fora, porque nenhuma decis\xE3o sua as faria avan\xE7ar.",
+  "inbox.elsewhere.body": "Propostas por decidir nos seus outros espa\xE7os de trabalho e passos recusados antes de correrem, cuja causa tem de corrigir. Os que uma pessoa recusou ficam de fora, porque nenhuma decis\xE3o sua os moveria.",
   "inbox.elsewhere.count": "Precisa de si",
   "inbox.elsewhere.atLeast": "Precisa de si, pelo menos",
   "inbox.elsewhere.more": "Pertence a mais espa\xE7os de trabalho do que os que esta lista conta.",
@@ -29773,7 +32740,34 @@ var pt_default = {
   "policies.record.all": "Todas as capacidades",
   // EXEC-30
   "inbox.tried.heading": "Tentado e recusado",
-  "inbox.tried.body": "Estes tinham permiss\xE3o e o passo foi recusado antes de correr. Corrija a causa e proponha o trabalho novamente: a mesma a\xE7\xE3o n\xE3o pode ser repetida, porque a sua tentativa j\xE1 consta no registo como falhada."
+  "inbox.tried.body": "Estes tinham permiss\xE3o e o passo foi recusado antes de correr. Corrija a causa e proponha o trabalho novamente: a mesma a\xE7\xE3o n\xE3o pode ser repetida, porque a sua tentativa j\xE1 consta no registo como falhada.",
+  // VER-17
+  "evidence.review.agrees": "Um segundo modelo leu este trabalho e concluiu que faz o que foi pedido",
+  "evidence.review.disagrees": "Um segundo modelo leu este trabalho e concluiu que n\xE3o faz o que foi pedido",
+  "evidence.review.by": "Lido por",
+  "evidence.review.sameVendor": "Vem do mesmo fornecedor que o modelo que fez o trabalho, por isso n\xE3o \xE9 uma leitura de um segundo fornecedor.",
+  "evidence.review.cannotEstablish": "A leitura de um modelo n\xE3o \xE9 prova por si s\xF3, venha de quem vier. O que estabelece um resultado aqui \xE9 um facto que qualquer pessoa pode verificar: um c\xF3digo de sa\xEDda, a resposta de outro sistema, uma linha na base de dados.",
+  // ATT-5
+  "account.quiet.heading": "Horas de sil\xEAncio",
+  "account.quiet.body": "Entre estas horas n\xE3o lhe enviamos correio. A decis\xE3o continua \xE0 sua espera aqui e v\xEA-la-\xE1 da pr\xF3xima vez que olhar. As horas s\xE3o lidas no fuso hor\xE1rio deste espa\xE7o de trabalho.",
+  "account.quiet.from": "Das",
+  "account.quiet.to": "At\xE9",
+  "account.quiet.save": "Guardar as horas de sil\xEAncio",
+  "account.quiet.clear": "Desativar as horas de sil\xEAncio",
+  "account.quiet.off": "As horas de sil\xEAncio est\xE3o desativadas. Podemos escrever-lhe a qualquer hora.",
+  "account.quiet.set": "Entre as {from} e as {to} n\xE3o recebe correio.",
+  "account.quiet.saved": "Horas de sil\xEAncio guardadas.",
+  "account.quiet.cleared": "As horas de sil\xEAncio est\xE3o desativadas.",
+  "account.quiet.malformed": "N\xE3o era um par de horas, por isso nada mudou.",
+  // ATT-8
+  "notification.summary.briefing.ready": "O seu resumo da manh\xE3 est\xE1 pronto",
+  // EXEC-30
+  "decision.error.notRefused": "essa n\xE3o foi recusada antes de correr, por isso n\xE3o h\xE1 nada para propor de novo",
+  "decision.error.noGoal": "esse contrato j\xE1 n\xE3o tem um objetivo a que se ligar",
+  "decision.error.notRepeatable": "essa forma n\xE3o pode ser proposta de novo a partir daqui; configure o trabalho outra vez",
+  "decision.reproposed": "Proposto de novo. Est\xE1 \xE0 espera de uma decis\xE3o.",
+  "inbox.tried.again": "Propor de novo",
+  "inbox.tried.againPending": "A propor de novo"
 };
 
 // ../../packages/content/src/messages/pt.legal.ts
@@ -29810,6 +32804,8 @@ var pt_legal_default = {
   "legal.privacy.purposes.pair5.detail": "Execu\xE7\xE3o de um contrato consigo, art. 6(1)(b) do GDPR. O texto da sua solicita\xE7\xE3o \xE9 enviado a um fornecedor de modelo fora da Su\xED\xE7a e fora do EEE. Veja transfer\xEAncias internacionais.",
   "legal.privacy.purposes.pair6.term": "Medir como o produto funciona",
   "legal.privacy.purposes.pair6.detail": "O nosso interesse leg\xEDtimo em saber se o produto funciona e se foi escolhido o modelo certo para um trabalho, RGPD art. 6(1)(f). Abrange que modelo correu, o tipo de tarefa, quanto custou, que ecr\xE3s foram carregados e quanto tempo demoraram. N\xE3o cont\xE9m nomes nem conte\xFAdo. Pode deslig\xE1-lo em Utiliza\xE7\xE3o dos dados, e respeitamos um sinal Global Privacy Control do seu navegador em cada pedido, fa\xE7a-o ou n\xE3o.",
+  "legal.privacy.purposes.pair7.term": "Contar os pedidos a um s\xEDtio web que alojamos para uma empresa",
+  "legal.privacy.purposes.pair7.detail": "O nosso interesse leg\xEDtimo em dizer a uma empresa se algu\xE9m l\xEA o s\xEDtio web que alojamos para ela, RGPD art. 6.\xBA, n.\xBA 1, al\xEDnea f). Contamos os pedidos aos s\xEDtios em orvay.app. N\xE3o definimos qualquer cookie nem lemos nenhum. N\xE3o armazenamos o seu endere\xE7o, e tamb\xE9m n\xE3o lhe aplicamos hash, porque um endere\xE7o com hash continua a ser uma forma de o distinguir. Lemos o nome do navegador apenas para deixar de fora os rob\xF4s evidentes, e n\xE3o o conservamos mais tempo do que isso. Registamos que s\xEDtio, se o pedido era de uma p\xE1gina ou de um ficheiro, e se teve \xEAxito. N\xE3o registamos que p\xE1gina. O que sai \xE9 um n\xFAmero de pedidos, e n\xE3o identifica ningu\xE9m.",
   "legal.privacy.purposes.p1": "N\xE3o h\xE1 outra finalidade. N\xE3o criamos perfis de visitantes, n\xE3o constru\xEDmos audi\xEAncias publicit\xE1rias e n\xE3o vendemos nada a ningu\xE9m.",
   "legal.privacy.automated.heading": "Decis\xF5es automatizadas",
   "legal.privacy.automated.p1": "Nada no site p\xFAblico aciona o art. 22 do GDPR. O ecr\xE3 de in\xEDcio de sess\xE3o \xE9 uma quest\xE3o diferente, e este aviso costumava ser omisso a esse respeito, por isso aqui fica na \xEDntegra.",
@@ -31188,7 +34184,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "f72f1d37" : "unknown";
+var sourceCommit = true ? "7f748c4d" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
