@@ -106,6 +106,19 @@ var MEMBER = [
   "company.files:read:company",
   "contract:propose:company",
   "contract:approve:company",
+  /*
+      LETTING AN OUTSIDE AGENT DO WORK THAT WAS APPROVED (docs/plan/38). A copy of
+      `CLAIM_INTENT` in `apps/app/src/server/outside-execution.ts`.
+  
+      Member rather than admin, and for the reason approving is here: the person who
+      proposes and approves work is the one whose coding agent will do it. Claiming
+      widens nothing: the claim is admitted again against the contract's own
+      capabilities, through a key whose grants are a subset of this person's, so a
+      member hands an agent exactly the approved job and nothing beyond it. It is
+      `approval` at gate 7, and a key never approves its own claim, so a person
+      decides in the product first (or recorded a standing approval for it).
+    */
+  "contract:claim:company",
   "research:read:*",
   "draft:create:*",
   "analyze:*:company",
@@ -190,13 +203,44 @@ var MEMBER = [
   "workflow.task:answer:company",
   "workflow.version:draft:company",
   "workflow.run:dry_run:company",
-  "workflow.run:start:company"
+  "workflow.run:start:company",
+  /*
+      INSTALLING A PLAYBOOK ANOTHER COMPANY LISTED (docs/plan/40 §3.3). Copy of
+      `PLAYBOOK_INSTALL` in `apps/app/src/server/playbook-capabilities.ts`.
+  
+      Member, beside drafting, because an install IS a draft: the listed
+      definition is copied into a new lineage of this company and runs nothing
+      until somebody publishes it, which is the admin's `workflow.version:publish`.
+      It cannot name a capability the installer does not hold (the draft's own
+      overreach check), and every step is admitted against this company's own
+      grants when a run reaches it. `approval` in `DEFAULT_GRANTS` because what
+      arrives was written by another company, so it is recorded who brought it in.
+  
+      LISTING IS NOT HERE, NOR IN ADMIN: it shows the company's own work to every
+      other company, which is the company speaking about itself to people outside
+      it, and that stays with the owner through `*:*:*` as the welcome post's
+      consent does. Withdrawing a listing is in ADMIN, beside that post's cancel.
+      `20260928064100` moves the seats written from the previous presets.
+    */
+  "playbook.listing:install:company",
+  /*
+    COMPLAINING ABOUT A PLAYBOOK THE COMPANY INSTALLED (docs/plan/40 §3.5), beside
+    installing it, because the people who install and run a playbook are the ones
+    who find out it does not work. Copy of `PLAYBOOK_COMPLAIN` in
+    `apps/app/src/server/playbook-capabilities.ts`. It reaches nothing inside the
+    company and nobody outside it by name: the listing company is never told who
+    complained. `approval` in `DEFAULT_GRANTS`, so who filed it is recorded.
+    `20260928110200` moves the seats `20260928070100` left.
+  */
+  "playbook.listing:complain:company"
 ];
 var ADMIN = [
   "company:read:company",
   "company.files:read:company",
   "contract:propose:company",
   "contract:approve:company",
+  // An admin holds everything a member does; see MEMBER for why claiming is there.
+  "contract:claim:company",
   "research:read:*",
   "draft:create:*",
   "analyze:*:company",
@@ -219,6 +263,14 @@ var ADMIN = [
   "company.halt:engage:company",
   "company.halt:release:company",
   /*
+    PAUSING, TAKING OVER, RESUMING OR KILLING ONE INCIDENT, with the halt pair and
+    for the argument two entries down: stopping something must never be harder
+    than starting it, and an admin who can stop the whole company can stop one
+    piece of its work. `20260928020100` moves every seat written from the previous
+    preset to this one. String in `apps/app/src/server/incidents.ts`.
+  */
+  "incident:control:company",
+  /*
       STOPPING A WELCOME POST THAT HAS NOT GONE OUT, AND WHY ONLY THIS HALF.
   
       `company.announcement:consent:company` is NOT here. Agreeing that Orvay may
@@ -234,6 +286,14 @@ var ADMIN = [
       two lines up.
     */
   "company.announcement:cancel:company",
+  /*
+    WITHDRAWING A PLAYBOOK LISTING, for the argument the cancel above makes:
+    stopping something must never be harder than starting it. Listing one is
+    the owner's (MEMBER says why); taking it down stops new installs at once and
+    changes nothing any installer already holds. Copy of `PLAYBOOK_UNPUBLISH` in
+    `apps/app/src/server/playbook-capabilities.ts`.
+  */
+  "playbook.listing:unpublish:company",
   /*
       `company.brand:state:company` IS NOT HERE, AND THE REASON IS A MEASUREMENT.
   
@@ -438,7 +498,9 @@ var ADMIN = [
   "workflow.task:answer:company",
   "workflow.version:draft:company",
   "workflow.run:dry_run:company",
-  "workflow.run:start:company"
+  "workflow.run:start:company",
+  "playbook.listing:install:company",
+  "playbook.listing:complain:company"
 ];
 var OWNER = ["*:*:*"];
 var ROLES = Object.freeze({
@@ -490,6 +552,8 @@ var CONSENT_RULES = [
 ];
 
 // ../../packages/domain/src/contract.ts
+var ACTOR_KINDS = ["human", "agent", "system"];
+var EXECUTOR_KINDS = [...ACTOR_KINDS, "external"];
 var EVIDENCE_KINDS = [
   "http_response",
   "build_log",
@@ -875,6 +939,66 @@ var JFIF = ascii("JFIF\0");
 var ICC_PROFILE = ascii("ICC_PROFILE\0");
 var ADOBE = ascii("Adobe");
 var PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+// ../../packages/domain/src/attention.ts
+var HOUR_MS = 36e5;
+var DAY_MS = 24 * HOUR_MS;
+var SNOOZE_MS = { day: DAY_MS, week: 7 * DAY_MS };
+var HELD_STALE_MS = 6 * HOUR_MS;
+
+// ../../packages/domain/src/incident.ts
+var UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+var INCIDENT_SUBJECT_ID_PATTERN = Object.freeze({
+  agent: new RegExp(`^${UUID}$`, "u"),
+  // A child run's id carries its parent's: `workflow_runs_id_shape`.
+  workflow_run: new RegExp(`^${UUID}(/[a-z][a-z0-9_]{0,38}/[1-9][0-9]{0,5}){0,3}$`, "u"),
+  contract: /^[0-9a-f]{64}$/u,
+  handoff: new RegExp(`^${UUID}$`, "u"),
+  browser_session: new RegExp(`^${UUID}$`, "u"),
+  // An integration id, as `orvay.integration_connections.integration_id` holds it.
+  connection: /^[a-z][a-z0-9_-]{0,63}$/u
+});
+var FINAL_INCIDENT_STATES = Object.freeze(["resolved", "killed"]);
+var to = (state) => ({ ok: true, to: state });
+var refuse = (refusal) => ({ ok: false, refusal });
+var TRANSITIONS = {
+  open: {
+    pause: to("paused"),
+    take_over: refuse("not_paused"),
+    resume: refuse("not_paused"),
+    kill: to("killed"),
+    clear: to("resolved")
+  },
+  paused: {
+    pause: refuse("already_paused"),
+    take_over: to("taken_over"),
+    resume: to("resolved"),
+    kill: to("killed"),
+    clear: refuse("held_by_person")
+  },
+  taken_over: {
+    pause: refuse("already_paused"),
+    // A second person taking over changes the owner, which is a real change.
+    take_over: to("taken_over"),
+    resume: to("resolved"),
+    kill: to("killed"),
+    clear: refuse("held_by_person")
+  },
+  resolved: {
+    pause: refuse("final"),
+    take_over: refuse("final"),
+    resume: refuse("final"),
+    kill: refuse("final"),
+    clear: refuse("final")
+  },
+  killed: {
+    pause: refuse("final"),
+    take_over: refuse("final"),
+    resume: refuse("final"),
+    kill: refuse("final"),
+    clear: refuse("final")
+  }
+};
 
 // ../../packages/routes/src/index.ts
 var HOSTS = {
@@ -1451,6 +1575,29 @@ var COMPONENTS = [
     summary: "Reading the replies and mentions addressed to your Mastodon, Bluesky and X accounts, once somebody in your company starts reading an account, and telling the right people when one has waited past its time to answer.",
     budget: { staleAfterMs: 45 * MINUTE },
     notMeasuredWhy: "Nothing checks this from outside yet. If the reading stops, new replies and mentions stop appearing and nobody is told about late ones. The reply queue shows when each account was last read, which is the place to look."
+  },
+  {
+    id: "outside-execution",
+    /*
+          ADDED IN THE SAME CHANGE THAT SHIPPED THE SURFACE (§13c), NOT MEASURED.
+          docs/plan/38, mode A: an outside agent claims approved work through an API
+          key, reports what it did, and Orvay reads the world itself with the
+          company's own connection before the receipt says whether it was established.
+          The report path is the verification path for that work, which §13c names.
+    
+          WHY NOTHING WATCHES IT. A probe would have to hold a key that may claim, a
+          contract a person approved, and a company connection to read a pull request
+          with: a synthetic company doing real work in a real repository, which is a
+          product of its own. The measurable version is a mark the report path writes
+          when a check completes, read through a signed health endpoint; not built.
+    
+          The label names no vendor, on `comment-replies`' rule; the summary does.
+        */
+    group: "work",
+    label: "Work by outside agents",
+    summary: "Letting an agent you run yourself, such as a coding agent, do work a person approved, through an API key, and checking what it reports: Orvay reads the pull request on GitHub with your own connection before the receipt says whether the work was done.",
+    budget: { staleAfterMs: 45 * MINUTE },
+    notMeasuredWhy: "Nothing checks this from outside yet. If claiming or reporting stops working, the agent is refused with a code it can read, and work it reported stays unchecked in Orvay rather than showing here."
   }
 ];
 var readyMarker = (id) => `${id}-ready`;
@@ -1635,6 +1782,12 @@ var EXPERIMENTS = {
     id: "trust.consent_rules",
     changes: "a directed message shows the jurisdiction rule it was checked against, as decision support",
     graduatesWhen: "the rule table has been reviewed by counsel and the review is recorded in an ADR"
+  },
+  "billing.outcome_preview": {
+    id: "billing.outcome_preview",
+    changes: "an open decision shows what the work would cost if priced by verified outcome, beside what it costs today, and charges nothing",
+    // Counted from records that exist (contracts and their receipts); nothing records that a preview was shown.
+    graduatesWhen: "at least 200 decided contracts across enrolled companies that the eligibility rule accepts, and each class of work has its verified rate known within five points (Wilson half-width at 95%)"
   }
 };
 var ALL_EXPERIMENTS = Object.keys(EXPERIMENTS);
@@ -2679,7 +2832,7 @@ var PRODUCT_SOURCE = {
   "pricing.feature.scim.name": "Directory sync",
   "pricing.feature.scim.detail": "Your identity provider adds and removes people over SCIM 2.0, at a domain you proved for single sign-on. People only: groups are not synced, and roles stay yours to set.",
   "pricing.feature.byo_model_keys.name": "Your own model keys",
-  "pricing.feature.byo_model_keys.detail": "Bill model usage to your own vendor accounts instead of to your credit allowance.",
+  "pricing.feature.byo_model_keys.detail": "Run model calls on your own accounts with Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq or OpenRouter, billed by your provider and not from your credits, and choose to run on your own keys alone. Building and editing websites, voice, memory search and images stay on Orvay\u2019s keys, and a call still needs credits available to start.",
   "pricing.feature.voice.name": "In-app voice",
   "pricing.feature.voice.detail": "Answer a call in the browser, with a transcript as the record. Orvay answers calls and never places them, at any plan and by design.",
   "pricing.feature.integration_mcp.name": "Borrowed tools",
@@ -3099,14 +3252,16 @@ var PRODUCT_SOURCE = {
   */
   "brand.approve.submit": "Approve and schedule",
   "brand.approve.busy": "Scheduling it",
-  "brand.approve.done": "Approved and scheduled. Nothing goes out before {when}, and withdrawing the approval until then stops it.",
+  "brand.approve.done": "Approved and scheduled. Nothing goes out before {when}, and withdrawing the approval until then stops it. When it is due, the post waits on the approvals page until it is approved there too.",
   "brand.approve.claimed": "Another draft from this brief is already scheduled for that channel. One at a time.",
   "brand.approve.refused": "That could not be scheduled. The draft, its approval and the channel have to agree, and they did not.",
-  "brand.approve.scheduled": "Scheduled.",
+  "brand.approve.scheduled": "Scheduled. When it is due, the post waits on the approvals page until it is approved there too.",
   // Where a claimed slot stands, 2026-09-25 (ADR-0084 decision 10). English only, listed in TRANSLATION_DEFERRED.
   "brand.approve.published": "Published.",
   "brand.approve.stopped.picture": "Stopped: its picture was removed, so it will not be posted.",
   "brand.approve.stopped.optedOut": "Stopped: somebody it names asked not to be named, so it will not be posted.",
+  // A post the runner will not try again, 2026-09-28 (ADR-0103). English only, listed in TRANSLATION_DEFERRED.
+  "brand.approve.notPosted": "Not published. Every attempt to post it failed, so Orvay does not try it again. A brief allows one post per channel, so posting to this channel again needs a changed brief.",
   "brand.approve.stopped": "Stopped, so it will not be posted.",
   /*
     BRAND MEDIA, ADR-0084, 2026-09-23: one picture on a draft, uploaded or
@@ -3127,9 +3282,19 @@ var PRODUCT_SOURCE = {
   "brand.draft.image.remove": "Write the draft without the picture",
   "brand.draft.image.described": "Description: {alt}",
   "brand.draft.image.xWordsOnly": "X gets the words only. The picture stays here, because posting pictures to X is not available on this account.",
-  "brand.approve.exactly.words": "Approving posts these words, and nothing else.",
-  "brand.approve.exactly.wordsAndPicture": "Approving posts these words and this picture with its description, and nothing else. Changing either makes a new draft that needs its own approval.",
-  "brand.approve.exactly.wordsWithoutPicture": "Approving posts these words to X without the picture. Changing the words or the picture makes a new draft that needs its own approval.",
+  "brand.approve.exactly.words": "This approval covers these words, and nothing else.",
+  "brand.approve.exactly.wordsAndPicture": "This approval covers these words and this picture with its description, and nothing else. Changing either makes a new draft that needs its own approval.",
+  "brand.approve.exactly.wordsWithoutPicture": "This approval covers these words, going to X without the picture. Changing the words or the picture makes a new draft that needs its own approval.",
+  /*
+    WHAT THE YES DOES NOT DO, 2026-09-27. The sentences above read "Approving
+    posts these words", and it does not: when the slot falls due the publish
+    pass proposes a posting contract, and `postSocialFor` holds it until a
+    person approves THAT on the approvals page, where gate 7 can ask a public
+    post for a second person. English only, listed in TRANSLATION_DEFERRED.
+  */
+  "brand.approve.thenApprovals": "It is not posted yet. When it is due, the post waits on the approvals page, where the person approving confirms that a public post cannot be taken back.",
+  "brand.image.upload.choose": "Choose a picture",
+  "brand.image.upload.noneChosen": "No picture chosen",
   "brand.image.heading": "A picture for the next draft",
   "brand.image.origin.uploaded": "Uploaded",
   "brand.image.origin.generated": "Generated by a model",
@@ -3155,7 +3320,7 @@ var PRODUCT_SOURCE = {
   "brand.draft.image.removed": "This draft's picture was removed, so it can no longer be approved or posted. Write the draft again to post the words.",
   "brand.pictures.heading": "Pictures",
   "brand.pictures.none": "No pictures have been added yet.",
-  "brand.pictures.remove.explain": "Removing a picture deletes it from storage, takes it off every draft that carries it, and stops every scheduled post that would have carried it. A post that is being sent at that very moment may still go out with it. A post already published stays where it was posted, and you can delete it on the channel. This cannot be undone.",
+  "brand.pictures.remove.explain": "Removing a picture deletes it from storage, takes it off every draft that carries it, and stops every scheduled post that would have carried it. A post that is being sent at that very moment may still go out with it. A post already published stays where it was posted: you can delete it on the channel, or ask Orvay to delete it from the integrations page on a channel where Orvay can. This cannot be undone.",
   "brand.pictures.more": "Showing the newest {shown}. This company has {total} in all.",
   "brand.pictures.undescribed": "No draft describes this picture yet.",
   "brand.pictures.added": "Added {date}",
@@ -3398,6 +3563,32 @@ var PRODUCT_SOURCE = {
     */
   "notification.slack.escalated": "A decision in {company} has been waiting for a day.",
   "notification.slack.note": "Nothing is decided in Slack. The link opens {brand}, where a decision is recorded against the person who makes it.",
+  // 2026-09-28 escalation bundle, English only: what the checks FOUND, by the reason that decided the suggestion.
+  // A finding and never a verdict or a verb to press (slack-copy.test.ts holds these keys to that).
+  "notification.slack.found.approve": "{brand}'s checks found that this one can be undone, that past work of this kind by the same proposer held, and that it fits the credits left.",
+  "notification.slack.found.preflight_blocks": "{brand}'s checks found that the check of the plan would stop this one.",
+  "notification.slack.found.company_halted": "{brand}'s checks found that the company is halted, so nothing runs until somebody releases it.",
+  "notification.slack.found.allowance_exhausted": "{brand}'s checks found that there are not enough credits left for this one to run.",
+  "notification.slack.found.gates_refuse": "{brand}'s checks found that the gates refuse this one as things stand.",
+  "notification.slack.found.commitments_missing": "{brand}'s checks found that this one does not commit to what it changes, what it may cost or what counts as done.",
+  "notification.slack.found.undo_contradicts_plan": "{brand}'s checks found that the undo this one names contradicts its own plan.",
+  "notification.slack.found.state_changed_since_proposal": "{brand}'s checks found that what this one would change has moved since it was proposed.",
+  "notification.slack.found.current_state_unknown": "{brand}'s checks found that nobody knows what this one would change from.",
+  "notification.slack.found.cost_exceeds_allowance": "{brand}'s checks found that the most this one may cost is more than the credits left.",
+  "notification.slack.found.mostly_not_established": "{brand}'s checks found that most past work of this kind by the same proposer did not hold.",
+  "notification.slack.found.irreversible_and_untried": "{brand}'s checks found that this one cannot be undone, carries high risk, and comes from a proposer with no past work of this kind that held.",
+  "notification.slack.found.cannot_be_undone": "{brand}'s checks found that this one cannot be undone.",
+  "notification.slack.found.only_partly_undone": "{brand}'s checks found that this one can only partly be undone.",
+  "notification.slack.found.high_risk": "{brand}'s checks found that this one carries high risk.",
+  "notification.slack.found.cites_untrusted_context": "{brand}'s checks found that this one rests on material from outside the company.",
+  "notification.slack.found.preflight_raises": "{brand}'s checks found something in this one's plan to look at.",
+  "notification.slack.found.preflight_not_run": "{brand}'s checks found that the check of the plan has not been run on this one.",
+  "notification.slack.found.failed_before": "{brand}'s checks found that some past work of this kind by the same proposer did not hold.",
+  "notification.slack.found.no_track_record": "{brand}'s checks found that the proposer has no past work of this kind that held.",
+  "notification.slack.found.spends_company_money": "{brand}'s checks found that this one spends the company's own money, not credits.",
+  "notification.slack.found.cost_unchecked": "{brand}'s checks found that the cost of this one could not be compared with the credits left.",
+  "notification.slack.found.before_declared_not_read": "{brand}'s checks found that the values this one starts from are only what the proposal says.",
+  "notification.slack.found.no_citations": "{brand}'s checks found that this one cites nothing for its claims.",
   /*
       WHAT @ORVAY SAYS BACK, IN THE THREAD IT WAS ASKED IN.
   
@@ -3692,10 +3883,22 @@ var PRODUCT_SOURCE = {
   "console.source.title": "What this was built from",
   "console.source.ran": "Ran {tool}",
   "console.source.tools": "Called on tool servers you registered, in order:",
+  // How each call ended, one word per outcome (`TOOL_CALL_WORDS` in `app/console/framing.ts`); the
+  // row printed the code (`ok`, `gate_refused`). 2026-09-28, English only, in TRANSLATION_DEFERRED.
+  "console.source.call.ok": "answered",
+  "console.source.call.tool_error": "the server answered with an error",
+  "console.source.call.refused": "not run",
+  "console.source.call.not_offered": "not run: it was not offered for this question",
+  "console.source.call.gate_refused": "refused by the checks",
+  "console.source.call.proposed": "proposed, and waiting for a person",
+  "console.source.call.unknown": "how it ended was not recorded",
   "console.source.tools-untrusted": "These results were written by the servers you registered. Orvay fences them before a model sees them, and nothing in them can widen what Orvay is allowed to do.",
   "console.source.returned": "Returned: {count}",
   "console.source.read": "Read from memory: {count}",
   "console.source.none": "Recall found nothing, so this was written from your question alone.",
+  // The same empty recall under an answer that was given something else, 2026-09-28. English only,
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "console.source.none-memory": "Nothing in your memories matched this question.",
   "console.source.manage": "See and change what is remembered",
   // Backlog 92, 2026-09-13: a connected tool server whose tools were not offered for a question,
   // named in the fold by the label a person gave it, with why. `{why}` is one of the sentences
@@ -3713,6 +3916,13 @@ var PRODUCT_SOURCE = {
   "console.source.left-out.unreviewed": "Its list of tools has not been read and approved yet, so none of its tools were offered. The Integrations page shows the list, or what it needs first.",
   // 2026-09-23. English only, listed in TRANSLATION_DEFERRED.
   "console.source.left-out.signed-out": "Orvay cannot sign in to that tool server right now, so none of its tools were offered. The Integrations page says what it needs.",
+  // The connected accounts an answer was given, named in its fold, 2026-09-28. English only, every
+  // key listed in TRANSLATION_DEFERRED under the same date.
+  "console.source.connected.search-console": "Read your connected Google Search Console.",
+  "console.source.connected.google-ads": "Read your connected Google Ads account.",
+  "console.source.connected.youtube": "Read the newest comments on your connected YouTube channel.",
+  "console.source.connected.mailbox": "Read your connected mailbox.",
+  "console.source.connected-readonly": "Only read: nothing in these accounts was changed. Orvay fences what they hold before a model sees it, and nothing in it can widen what Orvay is allowed to do.",
   "console.keep": "Keep as a document",
   "console.keep.done": "Kept in your files.",
   // PRESSING IT TWICE IS THE COMMON CASE, and it used to read "Refused at
@@ -3820,6 +4030,28 @@ var PRODUCT_SOURCE = {
   // plural rule, and French takes the singular below two. §8b says it for
   // credits and it is the same problem.
   "support.unreadable": "Messages this version cannot display: {count}",
+  // A message with no words, 2026-09-27. English only, listed in TRANSLATION_DEFERRED.
+  "support.bodyEmpty": "This message has no words, only a picture or an attachment.",
+  "support.times.zone": "Times on this page are in {zone}.",
+  // The company's time zone after setup, 2026-09-27 (20260927100000). English only, deferred.
+  "settings.timeZone.title": "Time zone",
+  "timeZone.intro": "The time zone this company works in. The morning pass runs in its morning, and times on screens such as the support queue are shown in it.",
+  "timeZone.placeholder": "This company has not chosen a time zone yet, so it works in UTC.",
+  "timeZone.current": "This company works in {zone}.",
+  "timeZone.field.label": "Time zone",
+  "timeZone.field.hint": "The list is every zone your browser knows. The time shown below is the time there now.",
+  "timeZone.field.now": "The time there now:",
+  "timeZone.submit": "Save the time zone",
+  "timeZone.busy": "Saving the time zone",
+  "timeZone.saved": "Saved. This company now works in {zone}.",
+  "timeZone.error.invalid": "That is not a time zone this product knows. Choose one from the list.",
+  "timeZone.error.notPermitted": "You cannot change this company\u2019s time zone.",
+  "timeZone.error.unavailable": "The time zone could not be saved just now. Try again in a moment.",
+  // An authorized tool server that refused its sign-in on this render, 2026-09-27. English only, deferred.
+  "integrations.tool-server.authorized.renewing.title": "Its sign-in is being renewed",
+  "integrations.tool-server.authorized.renewing": "Another request is renewing this server\u2019s sign-in right now, so its tools are not shown on this load. Reload the page in a moment.",
+  "integrations.tool-server.authorized.refusedNow.title": "Its tools could not be read just now",
+  "integrations.tool-server.authorized.refusedNow": "The server refused the stored sign-in when this page asked for its tools, so they are not shown. Reload the page to try again, and connect again if it keeps happening.",
   "support.notWired": "A reply written here is sent to the customer through Intercom only after a person approves it on the approvals page. Only messages that came through Intercom can be answered from here.",
   "support.state.received": "New",
   "support.state.triaged": "Being looked at",
@@ -4326,7 +4558,7 @@ var PRODUCT_SOURCE = {
   "site.limits.card.no-customers.title": "No customers, so no proof of customers",
   "site.limits.card.no-customers.body": "There is no logo wall on this page because there are no logos to put on it, and no testimonials and no usage figures for the same reason. When there are, they will be named.",
   "site.limits.card.data-location.title": "Where the data is, said in full",
-  "site.limits.card.data-location.body": "Postgres runs in Zurich, in a project whose region is eu-central-2. Model inference does not run in Switzerland: prompts go to Anthropic and OpenAI, which process outside Switzerland and outside the EU. Switzerland is a third country holding an EU adequacy decision, not an EU or EEA member. A residency claim that leaves the second sentence out is the kind of half-truth this whole product exists to refuse.",
+  "site.limits.card.data-location.body": "Postgres runs in Zurich, in a project whose region is eu-central-2. Model inference does not run in Switzerland: prompts go to OpenAI, which processes them outside Switzerland and outside the EU. Switzerland is a third country holding an EU adequacy decision, not an EU or EEA member. A residency claim that leaves the second sentence out is the kind of half-truth this whole product exists to refuse.",
   "site.limits.card.privacy.title": "Privacy first, and no certificate claimed",
   "site.limits.card.privacy.body": "We hold no certification of any kind and claim none. What we can show you is what the code does: tenant isolation written as restrictive database policies that can only refuse, a hash chain you can recompute, and a recorded human approval on anything with a legal effect on a person.",
   "site.limits.card.representative.title": "A duty we owe and have not met",
@@ -5532,11 +5764,26 @@ var PRODUCT_SOURCE = {
   "inbox.tried.again": "Propose it again",
   "inbox.tried.againPending": "Proposing it again",
   // EXEC-30: an errand, not a verdict. Its own list, with the cause and what to do.
+  // A crossing nobody could confirm, 2026-09-27: its own list, never "Refused before it ran". English only, deferred.
+  "inbox.unconfirmed.heading": "Sent, and not confirmed",
+  "inbox.unconfirmed.body": "These crossed to the outside and Orvay could not confirm what happened, so nothing sends them again. Look on the other side, then record on each one whether it went out.",
+  "inbox.unconfirmed.badge": "Not confirmed",
+  "inbox.unconfirmed.record": "Record whether it went out",
+  "decision.error.awaitingWord": "This may already have gone out, so it cannot be proposed again. Record on its page whether it went out.",
+  "decision.error.wentOut": "A person recorded that this went out, so it is not proposed again.",
+  // A second approval by the same person, 2026-09-27. English only, deferred.
+  "decision.alreadyEndorsed": "You approved this already. It runs once somebody else approves it too.",
+  "decision.error.alreadyEndorsed": "You approved this already ({have} of {need} approvals recorded). It runs once somebody else approves it too.",
+  "inbox.wentOut": "Went out, recorded by {who}",
+  "inbox.wentOut.somebody": "a former member",
   "inbox.tried.heading": "Tried and refused",
   "inbox.tried.body": "These had permission and the step was refused before it ran. Fix the cause and propose the work again: the same action cannot be retried, because its attempt is already on the record as failed.",
   "inbox.refused": "refused",
   "inbox.checked": "checked by another actor",
   "inbox.notEstablished": "ran, not established",
+  // A run nobody checked, told apart from a check that did not hold, 2026-09-28. English only, listed in
+  // TRANSLATION_DEFERRED: product translations wait (the operator), though the privacy page names the word.
+  "inbox.notChecked": "not checked",
   "inbox.inspector.label": "About the selected proposal",
   "inbox.inspector.empty": "Choose a proposal to see what it would do.",
   "inbox.inspector.open": "Open the contract",
@@ -5560,6 +5807,8 @@ var PRODUCT_SOURCE = {
   "contract.capability": "Capability",
   "contract.reaches": "Reaches",
   "contract.reaches.nobody": "nobody outside this company",
+  // A public effect, whose audience nobody can count in advance (2026-09-27). English only, TRANSLATION_DEFERRED.
+  "contract.reaches.public": "anyone who can see the account",
   "contract.reaches.audience": "an audience of {count}",
   "contract.reaches.bearer": "consequence borne by {bearer}",
   "contract.bearer.own_company": "own company",
@@ -5758,6 +6007,8 @@ var PRODUCT_SOURCE = {
   // ADR-0062: the plan's limit on runs at once is reached. No number in the sentence, because a count needs a plural rule.
   "decision.error.busy": "The most your plan runs at once are already under way, so this has not started. Run it again when one of them finishes.",
   "studio.refused.publish-busy": "The most your plan runs at once are already under way, so this site was not published. Publish it again when one of them finishes.",
+  // 2026-09-28: a paused customer incident holds this publish, seen as it was announced. English only (TRANSLATION_DEFERRED).
+  "studio.refused.publish-held": "An incident has paused this work, so this site was not published. Resume it from the incident, which checks it again first.",
   // ADR-0065, 2026-09-17: a refusal about the moment (the allowance used up, a halt, a service not answering) leaves
   // an approval standing. The cause is recorded on the contract as why it waits; a person pressing Run reads it inside
   // `decision.error.waiting`. No count and no duration in any sentence. English only, listed in TRANSLATION_DEFERRED
@@ -5766,8 +6017,13 @@ var PRODUCT_SOURCE = {
   // so a promise here would be false for the rest. The decision page says what the pass does, where it does it.
   "decision.waiting.allowance": "The allowance for this period is used up.",
   "decision.waiting.halted": "The company is halted.",
+  // 2026-09-26: the agent that proposed the work is halted and the company is not. Its own sentence, because the
+  // one above would say the company is stopped. English only, listed in TRANSLATION_DEFERRED under the same date.
+  "decision.waiting.agentHalted": "The agent that proposed this is halted.",
   "decision.waiting.unavailable": "A service this work needs did not answer.",
   "decision.error.waiting": "This has not started. {reason} Run it again later.",
+  // 2026-09-28 customer incidents, English only, listed in TRANSLATION_DEFERRED.
+  "decision.error.incidentHeld": "An incident has paused this work, so it did not start. Resume it from the incident, which checks it again first.",
   "decision.waiting.title": "Waiting to run",
   "decision.waiting.body": "The approval stands. The unattended pass tries this again later, less often each time, and records it as refused if it still cannot start.",
   "decision.waiting.ended": "This was tried again on later passes and never started, so the approval has ended. Propose the work again if it should still happen. The last reason: {reason}",
@@ -5788,7 +6044,10 @@ var PRODUCT_SOURCE = {
   "decision.run": "Run it",
   "decision.running": "Running",
   "decision.halted": "Autonomy is halted. Release the halt before anything runs, including something you have already approved.",
-  "decision.run.note": "Running executes the plan and then hands the result to a different actor to check. No adapter is connected on this deployment, so the effect is simulated and every artifact it produces says so.",
+  // Chosen by where the contract crosses (the approvals page reads `routeFor`). The one sentence that stood here said
+  // every run was simulated, beside HubSpot calls recorded live (2026-09-27). English only, TRANSLATION_DEFERRED.
+  "decision.run.noteLive": "Running does what the plan says through the connected account, for real, and then a different actor checks the result. The record marks it live.",
+  "decision.run.noteDocument": "Running has a model write the result as a document, and then a different actor checks it. Nothing outside Orvay changes, and the document is marked simulated.",
   // Shown beside Run on an approved contract only: the unattended pass runs
   // approved work as its approver, so nobody has to stay. Not on an open one
   // the gates allow, which the pass does not pick up.
@@ -6012,6 +6271,171 @@ var PRODUCT_SOURCE = {
   "shell.halt.blocked.release": "Your role cannot release this stop. The team page shows who can.",
   "shell.halt.failed": "The halt did not change:",
   "shell.halt.reason.header": "Stopped from the header control, no reason given",
+  // Customer incidents, 2026-09-28. English only, listed in TRANSLATION_DEFERRED under the same date.
+  "incidents.title": "Incidents",
+  "incidents.lead": "Work that went wrong, newest first. Open one to pause it, hand it to a person, resume it after a check, or stop it for good.",
+  "incidents.empty.title": "No incidents",
+  "incidents.empty.body": "An action that never reported back, a live result nobody could confirm, a workflow stuck on a question or a refused connection would appear here.",
+  "incidents.list.opened": "Opened",
+  "incidents.list.subject": "About",
+  "incidents.kind.effect_abandoned": "An action never reported back",
+  "incidents.kind.compensation_failed": "An undo step failed",
+  "incidents.kind.verification_failed_live": "A live result could not be confirmed",
+  "incidents.kind.consent_revoked_in_flight": "Consent was withdrawn during an action",
+  "incidents.kind.workflow_stuck": "A workflow is stuck on a question",
+  "incidents.kind.connection_broken": "A connection was refused",
+  "incidents.severity.critical": "Critical",
+  "incidents.severity.high": "High",
+  "incidents.severity.low": "Low",
+  "incidents.state.open": "Open",
+  "incidents.state.paused": "Paused",
+  "incidents.state.taken_over": "Taken over",
+  "incidents.state.resolved": "Resolved",
+  "incidents.state.killed": "Stopped for good",
+  "incidents.subject.agent": "Agent",
+  "incidents.subject.workflow_run": "Workflow run",
+  "incidents.subject.contract": "Proposal",
+  "incidents.subject.handoff": "Handoff",
+  "incidents.subject.browser_session": "Browser session",
+  "incidents.subject.connection": "Connection",
+  "incidents.subject.missing": "It no longer exists.",
+  "incidents.subject.agent.halted": "Halted",
+  "incidents.subject.agent.running": "Not halted",
+  "incidents.subject.status": "Status",
+  "incidents.subject.browser.open": "Open the browser controls",
+  "incidents.subject.connection.open": "Open integrations",
+  "incidents.detail.back": "All incidents",
+  "incidents.detail.what": "What happened",
+  "incidents.detail.severity": "Severity",
+  "incidents.detail.state": "State",
+  "incidents.detail.opened": "Opened",
+  "incidents.detail.owner": "Taken over by",
+  "incidents.detail.subject.heading": "What it is about",
+  "incidents.detail.timeline.heading": "What the record shows",
+  "incidents.detail.timeline.empty": "No events about it are on the record yet.",
+  "incidents.detail.contracts.heading": "Work it affects",
+  "incidents.detail.contracts.empty": "No proposal waits on this.",
+  "incidents.detail.evidence.heading": "Evidence",
+  "incidents.detail.evidence.empty": "No evidence was captured for this work.",
+  "incidents.detail.evidence.live": "Live",
+  "incidents.detail.evidence.simulated": "Simulated",
+  "incidents.value.unknown": "Not recognised",
+  "incidents.value.run.running": "Running",
+  "incidents.value.run.waiting": "Waiting",
+  "incidents.value.run.blocked": "Blocked on a person",
+  "incidents.value.run.partial": "Partly done",
+  "incidents.value.run.verified": "Finished and checked",
+  "incidents.value.run.unverified": "Finished, not checked",
+  "incidents.value.run.failed": "Failed",
+  "incidents.value.run.cancelled": "Cancelled",
+  "incidents.value.decision.open": "Waiting for a decision",
+  "incidents.value.decision.approved": "Approved, not run yet",
+  "incidents.value.decision.refused": "Refused",
+  "incidents.value.decision.run": "Ran",
+  "incidents.value.handoff.queued": "Queued",
+  "incidents.value.handoff.claimed": "Picked up",
+  "incidents.value.handoff.running": "In progress",
+  "incidents.value.handoff.waiting_approval": "Waiting for an approval",
+  "incidents.value.handoff.finished": "Finished",
+  "incidents.value.handoff.refused": "Refused",
+  "incidents.value.handoff.revoked": "Cancelled",
+  "incidents.value.handoff.abandoned": "Abandoned",
+  "incidents.value.connection.never_checked": "Never checked",
+  "incidents.value.connection.verified": "Working",
+  "incidents.value.connection.refused": "Refused by the vendor",
+  "incidents.value.connection.unreachable": "Vendor not reachable",
+  "incidents.evidence.kind.http_response": "Web response",
+  "incidents.evidence.kind.build_log": "Build log",
+  "incidents.evidence.kind.test_report": "Test report",
+  "incidents.evidence.kind.screenshot": "Screenshot",
+  "incidents.evidence.kind.db_query": "Database query",
+  "incidents.evidence.kind.database_read": "Database read",
+  "incidents.evidence.kind.exit_code": "Exit code",
+  "incidents.evidence.kind.model_output": "Model output",
+  "incidents.evidence.kind.document": "Document",
+  "incidents.evidence.kind.webhook_receipt": "Webhook receipt",
+  "incidents.evidence.kind.metric_series": "Metric series",
+  "incidents.evidence.kind.diff": "Change set",
+  "incidents.evidence.kind.model_transcript": "Model transcript",
+  "incidents.event.signal": "Something was noticed",
+  "incidents.event.contract": "A proposal changed",
+  "incidents.event.policy": "A policy decision",
+  "incidents.event.approval": "A decision on a proposal",
+  "incidents.event.run": "Work ran",
+  "incidents.event.verification": "A check",
+  "incidents.event.evidence": "Evidence was recorded",
+  "incidents.event.outcome": "An outcome was recorded",
+  "incidents.event.halt": "A stop or a pause",
+  "incidents.event.budget": "Spend",
+  "incidents.event.effect": "An action with another service",
+  "incidents.event.heartbeat": "A scheduled pass",
+  "incidents.event.incident": "The incident itself",
+  "incidents.event.memory": "Something learned or set aside",
+  "incidents.event.archive": "The record was archived",
+  "incidents.event.workflow": "A workflow step",
+  "incidents.event.saas": "A connected tool",
+  "incidents.event.browser": "A remote browser",
+  "incidents.event.receipt": "A receipt was issued",
+  "incidents.event.autonomy": "Autonomy changed",
+  "incidents.event.trust": "A trust proposal",
+  "incidents.event.experiment": "An experiment",
+  "incidents.event.other": "Something else",
+  "incidents.stopped.workflow_run_already_stopped": "The workflow run had already stopped, so nothing more was cancelled.",
+  "incidents.detail.revalidation.heading": "Last check before resuming",
+  "incidents.detail.revalidation.none": "Nobody has tried to resume it yet.",
+  "incidents.detail.revalidation.passed": "Passed. Every check held.",
+  "incidents.detail.revalidation.failed": "Refused. Resuming waits until these are fixed:",
+  "incidents.revalidation.company_halted": "The company is halted.",
+  "incidents.revalidation.subject_gone": "What this is about no longer exists.",
+  "incidents.revalidation.run_not_live": "The workflow run was cancelled or finished while it was paused.",
+  "incidents.revalidation.contract_missing": "A proposal it affects is gone.",
+  "incidents.revalidation.contract_hash_changed": "A proposal it affects changed after it was approved.",
+  "incidents.revalidation.contract_superseded": "A proposal it affects was replaced by a newer one.",
+  "incidents.revalidation.admission_refused": "A proposal it affects is refused at the {gate} gate: {reason}.",
+  "incidents.revalidation.connection_refused": "The {connection} connection was refused at its last check.",
+  "incidents.revalidation.connection_unverified": "The {connection} connection has not verified since.",
+  "incidents.revalidation.too_much_work": "It affects more open work than one resume can check (more than {ceiling} proposals). Nothing was released. Clear some of that work first, or stop this for good.",
+  "incidents.controls.heading": "Controls",
+  "incidents.controls.lead": "Pausing stops new work from starting: a paused workflow run takes no next step, paused work does not run from the approvals page or the overnight pass, and a paused agent is halted. Work already under way with another service is not recalled, and a replacement proposal somebody drafts is new work that the pause does not hold. Resuming checks the work again first against the current policy, grants, consent and allowance, and refuses if anything no longer holds.",
+  "incidents.controls.pause": "Pause",
+  "incidents.controls.take_over": "Take over",
+  "incidents.controls.resume": "Resume after a check",
+  "incidents.controls.kill": "Stop for good",
+  "incidents.controls.busy": "Working",
+  "incidents.controls.notAllowed": "Your role cannot control incidents. The team page shows who can.",
+  "incidents.controls.doneTitle": "Done",
+  "incidents.controls.failedTitle": "Not done",
+  "incidents.controls.why.final": "This incident has ended.",
+  "incidents.controls.why.already_paused": "It is already paused.",
+  "incidents.controls.why.not_paused": "Pause it first.",
+  "incidents.controls.why.held_by_person": "A person is holding it.",
+  "incidents.controls.why.use_browser_controls": "A browser session has its own controls.",
+  "incidents.controls.why.nothing_to_pause": "A connection cannot be paused. This ends when it verifies again.",
+  "incidents.controls.why.nothing_to_kill": "Disconnect it on the integrations page instead.",
+  "incidents.controls.why.owned_by_another": "Someone else took this over. Take it over yourself first.",
+  "incidents.controls.done.pause": "Paused.",
+  "incidents.controls.done.take_over": "It is yours now.",
+  "incidents.controls.done.resume": "Checked and resumed.",
+  "incidents.controls.done.kill": "Stopped for good.",
+  "incidents.controls.error.notFound": "That incident was not found.",
+  "incidents.controls.error.gate": "Refused at the {gate} gate: {reason}.",
+  "incidents.controls.error.revalidation": "Not resumed. A check before resuming failed, and the reasons are listed under the last check.",
+  "incidents.controls.error.signedOut": "You are not signed in to a company.",
+  "incidents.subsystem.approvals_stand": "An approval this run holds could not be taken back, so the run was not stopped.",
+  "incidents.subsystem.no_compensation": "This work already ran and has no undo step.",
+  "incidents.subsystem.not_approved": "This proposal was never approved. Refuse it on its own page instead.",
+  "incidents.subsystem.superseded": "A newer proposal replaced this one.",
+  "incidents.subsystem.not_found": "The work was not found.",
+  "incidents.subsystem.other": "The work could not be stopped this way.",
+  "incidents.stopped.agent_halted": "The agent stays halted and its queued handoffs were cancelled.",
+  "incidents.stopped.workflow_run_cancelled": "The workflow run was cancelled and any approval it held was taken back.",
+  "incidents.stopped.contract_work_withdrawn": "The work was withdrawn by its undo step.",
+  "incidents.stopped.contract_approval_withdrawn": "The approval was taken back, so the work never runs.",
+  "incidents.stopped.handoff_family_cancelled": "The handoff and everything handed on from it were cancelled.",
+  "incidents.reason.pause": "Paused from an incident.",
+  "incidents.reason.take_over": "Taken over from an incident.",
+  "incidents.reason.resume": "Resumed from an incident after a check.",
+  "incidents.reason.kill": "Stopped for good from an incident.",
   "shell.dialog.close": "Close",
   "shell.theme.label": "Dark mode",
   // USE-15: the page says when the browser has no connection. The platform can
@@ -6608,6 +7032,15 @@ var PRODUCT_SOURCE = {
   "mcp.tool.orvay_propose_contract": "Propose work against a goal. It passes the gates before anything happens.",
   "mcp.tool.orvay_approve_decision": "Approve one contract. A reason is required and is recorded.",
   "mcp.tool.orvay_reject_decision": "Refuse one contract. A reason is required and is recorded.",
+  // 2026-09-28 outside agents reach the lifecycle, English only, listed in TRANSLATION_DEFERRED.
+  "mcp.tool.orvay_get_receipts": "The signed receipts of one contract, and where the keys that check them are published.",
+  "mcp.tool.orvay_preview_admission": "What the gates would decide for this key about each capability you name. Nothing is written.",
+  "mcp.tool.orvay_create_goal": "Set a goal for the company, so work can be proposed against it.",
+  "mcp.tool.orvay_withdraw_work": "Withdraw work that already ran, through the undo its contract promised. A reason is required and is recorded.",
+  // Outside executors, 2026-09-28 (docs/plan/38), English only, listed in TRANSLATION_DEFERRED.
+  "mcp.tool.orvay_propose_pull_request": "Propose a pull request that this key will open itself once a person approves it. It passes the gates before anything happens.",
+  "mcp.tool.orvay_claim_contract": "Claim one approved contract for this key. Answers a grant for that work alone, usable once, for fifteen minutes.",
+  "mcp.tool.orvay_report_run": "Report what this key did with its grant. Orvay then checks the result itself, and the receipt says whether it was established.",
   /*
       API KEYS, THE SCREEN THAT MAKES THE VERSIONED API USABLE.
   
@@ -6675,6 +7108,8 @@ var PRODUCT_SOURCE = {
   "settings.keys.list.heading": "Your keys",
   "settings.keys.list.empty": "No keys yet. A program needs one to reach your company.",
   "settings.keys.list.never-used": "never used",
+  // When a key last reached Orvay. 2026-09-28, English only, listed in TRANSLATION_DEFERRED.
+  "settings.keys.list.last-used": "last used {date}",
   "settings.keys.list.revoked": "revoked",
   "settings.keys.revoke.submit": "Revoke",
   "settings.keys.create.pending": "Creating the key",
@@ -6691,6 +7126,21 @@ var PRODUCT_SOURCE = {
   "settings.keys.error.exceeds": "A key cannot do more than you can. Ask for the permission yourself first.",
   // The single sign-on settings (2026-09-22). English only, every key listed
   // in TRANSLATION_DEFERRED under the same date.
+  // A company names its own website after setup, 2026-09-27 (20260927050000). English only, listed in TRANSLATION_DEFERRED.
+  "settings.website.title": "Your website",
+  "website.intro": "The address of the website your company runs. Work {product} does for you reads it as your company\u2019s own material, and a connected analytics tool reports traffic for this site.",
+  "website.current": "Your website is {host}.",
+  "website.fromSetup": "Your website is {host}, from the address given at setup.",
+  "website.none": "No website is named yet.",
+  "website.field.label": "Website address",
+  "website.field.hint": "A hostname such as example.com. A path or a leading https:// is dropped.",
+  "website.submit": "Save",
+  "website.busy": "Saving",
+  "website.saved": "Saved. Your website is {host}.",
+  "website.cleared": "Removed. The address given at setup is used again, if there was one.",
+  "website.error.invalid": "That is not a public website address. Write a hostname such as example.com.",
+  "website.error.notPermitted": "Your role does not include naming the company\u2019s website.",
+  "website.error.unavailable": "The website could not be saved just now. Nothing was changed.",
   // A site at its owner's domain, 2026-09-24. English only, listed in TRANSLATION_DEFERRED.
   "settings.domain.title": "Your domain",
   "settings.domain.lead": "Your published site can answer at a domain you own, such as www.example.com, as well as at its orvay.app address.",
@@ -6843,6 +7293,59 @@ var PRODUCT_SOURCE = {
   "settings.sso.toggle.on": "Turn on",
   "settings.sso.toggle.pending": "Changing",
   "settings.sso.edit": "Change provider details",
+  // A company's own model keys, 2026-09-26 (ADR-0095). English only, listed in TRANSLATION_DEFERRED.
+  "settings.models.title": "Your own model keys",
+  "settings.models.lead": "On Max 3, your company\u2019s text model calls can run on its own accounts with Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq or OpenRouter. Your provider bills those calls directly, so they use none of your credits. Each call goes to the best model for the work among the providers you hold keys for and ours, unless you choose below to use only your own.",
+  "settings.models.limits": "Building and editing your website, voice, memory search and images still run on Orvay\u2019s keys and use credits. A call on your key is never moved to Orvay\u2019s account: if your key stops working, the work waits and this page says so. A call also needs credits available to start, because they are held while it runs; when it runs on your key, they are given back.",
+  "settings.models.key.failing": "The last call on this key did not go through {when}: {why}. Work that runs on it waits until it answers again, or until you replace it.",
+  "settings.models.failure.error": "the provider refused it or failed",
+  "settings.models.failure.timeout": "the provider did not answer in time",
+  "settings.models.failure.rate_limited": "the provider asked us to slow down",
+  "settings.models.failure.refused": "the provider declined the request",
+  "settings.models.failure.other": "the answer could not be used",
+  "settings.models.metered": "Calls on your keys this billing period: about {amount} at list price. Your provider\u2019s invoice is the figure that counts.",
+  "settings.models.vendor.anthropic": "Anthropic",
+  "settings.models.vendor.openai": "OpenAI",
+  // ADR-0096: six more providers a company may bring a key for, each with where it says it processes data.
+  "settings.models.vendor.google": "Google Gemini",
+  "settings.models.vendor.mistral": "Mistral",
+  "settings.models.vendor.xai": "xAI",
+  "settings.models.vendor.deepseek": "DeepSeek",
+  "settings.models.vendor.groq": "Groq",
+  "settings.models.vendor.openrouter": "OpenRouter",
+  "settings.models.where.google": "Google may store or cache what it receives in any country where it runs facilities, and has no EU-only endpoint for this API.",
+  "settings.models.where.mistral": "Sent to Mistral\u2019s EU endpoint, which Mistral serves from data centres in EU and EFTA countries at 1.1 times its list price.",
+  "settings.models.where.xai": "xAI may route a request between its regions and does not guarantee where it is processed. It has no EU endpoint.",
+  "settings.models.where.deepseek": "DeepSeek collects, processes and stores what it receives in the People\u2019s Republic of China.",
+  "settings.models.where.groq": "Groq keeps customer data in the United States.",
+  "settings.models.where.openrouter": "OpenRouter passes each call to a provider that serves the model, and does not guarantee a region.",
+  "settings.models.add.heading": "Add a key",
+  "settings.models.add.vendor": "Provider",
+  "settings.models.add.all-held": "Your company holds a key for every provider we support.",
+  "settings.models.only.heading": "Only your company\u2019s keys",
+  "settings.models.only.label": "Run every text model call on your company\u2019s own keys",
+  "settings.models.only.hint": "A call none of your providers can serve waits and says so, rather than running on our account. Building and editing your website, voice, memory search and images still use our providers.",
+  "settings.models.only.submit": "Save",
+  "settings.models.only.on": "Every text model call runs on your company\u2019s own keys.",
+  "settings.models.only.off": "Each call runs on the best model for the work: on your key where you hold one for that provider, on ours otherwise.",
+  "settings.models.only.no-key": "Add a key first. With none, every text model call would wait.",
+  "settings.models.only.waiting": "Your company\u2019s text model work is waiting: you chose to use only your own keys, and none is connected.",
+  "settings.models.key.label": "{vendor} API key",
+  "settings.models.key.hint": "Stored encrypted. Only the last four characters are ever shown again.",
+  "settings.models.key.current": "Key ending {hint}, added {when}.",
+  "settings.models.submit.add": "Save key",
+  "settings.models.submit.replace": "Replace key",
+  "settings.models.submit.pending": "Saving",
+  "settings.models.remove": "Remove key",
+  "settings.models.remove.pending": "Removing",
+  "settings.models.saved": "Saved. {vendor} calls now run on your key.",
+  "settings.models.removed": "Removed. {vendor} calls run on Orvay\u2019s key again, and the stored key was destroyed.",
+  "settings.models.error.shape": "That does not look like an API key.",
+  "settings.models.error.wrong-vendor": "That looks like a key for a different provider.",
+  "settings.models.error.plan": "Your own model keys are included in Max 3.",
+  "settings.models.error.refused": "You do not have permission to change your company\u2019s model keys.",
+  "settings.models.error.unavailable": "That did not go through. Try again in a moment.",
+  "settings.models.not-entitled": "Your own model keys are part of Max 3. A key already stored stays listed here and is not used on your plan.",
   // -------------------------------------------------------------------------
   // THE CHROME'S FOUR SECTIONS, AND THE PAGES UNDER THEM (2026-09-05)
   //
@@ -6931,7 +7434,7 @@ var PRODUCT_SOURCE = {
   "trust.holds.mfa.term": "No second factor",
   "trust.holds.mfa.detail": "No TOTP, no passkeys, no hardware keys. A password and an email address are the whole of it today. Single sign-on exists only on the largest plan.",
   "trust.holds.inference.term": "Model inference is not in Switzerland",
-  "trust.holds.inference.detail": "Your database is in Zurich. The models that read from it run at Anthropic and OpenAI, outside the country. A residency claim that omits this sentence is not a residency claim.",
+  "trust.holds.inference.detail": "Your database is in Zurich. The models that read from it run at OpenAI, outside the country. A residency claim that omits this sentence is not a residency claim.",
   "trust.where.heading": "Where the data is",
   "trust.where.lead": "Four stores, named, with the difference between a guarantee and a preference kept visible.",
   "trust.where.database.term": "Company data",
@@ -6939,7 +7442,7 @@ var PRODUCT_SOURCE = {
   "trust.where.evidence.term": "Evidence",
   "trust.where.evidence.detail": "Cloudflare R2, pinned to the EU jurisdiction. Pinned is a guarantee. The other buckets carry a location hint, which is a preference, and we do not describe one as the other.",
   "trust.where.inference.term": "Model calls",
-  "trust.where.inference.detail": "Anthropic and OpenAI, direct, with no gateway in between. What is sent is the context a task needs, and untrusted text is fenced before it reaches a model.",
+  "trust.where.inference.detail": "OpenAI, direct, with no gateway in between. What is sent is the context a task needs, and untrusted text is fenced before it reaches a model.",
   "trust.where.mail.term": "Mail",
   // NO SECOND ADDRESS ON THE PAGE. This named the no-reply sender, which is a
   // real address and still the wrong thing to publish: `controller-contact.test.ts`
@@ -7429,7 +7932,6 @@ var PRODUCT_SOURCE = {
   "delegations.form.submit": "Decide in advance",
   "delegations.form.submitting": "Recording",
   "delegations.ok.title": "Recorded",
-  "delegations.ok.recorded": "{capability} may run without asking until {until}. Recorded in the trail.",
   "delegations.refused.title": "Not recorded",
   "delegations.refused.gate": "Refused at the {gate} gate: {reason}.",
   "delegations.refused.halted": "Autonomy is halted. Nothing can be decided in advance while the company is stopped.",
@@ -7440,7 +7942,6 @@ var PRODUCT_SOURCE = {
   "delegations.refused.forbidden": "{capability} is forbidden for this company, and forbidden is absolute.",
   "delegations.refused.bound": "Choose how long and how many times from the lists.",
   "delegations.refused.rationale": "Say why, in at most {max} characters.",
-  "delegations.refused.already_live": "{capability} is already decided in advance by {name}. Take that back first.",
   "delegations.row.decided": "Decided by {name} on {date}",
   "delegations.row.until": "Until {date}",
   "delegations.row.uses": {
@@ -7454,12 +7955,86 @@ var PRODUCT_SOURCE = {
   "delegations.status.revoked": "Taken back",
   "delegations.revoke.submit": "Take back",
   "delegations.revoke.submitting": "Taking back",
-  "delegations.revoke.sr": "the decision on {capability}",
   "delegations.revoke.ok.title": "Taken back",
-  "delegations.revoke.ok.revoked": "{capability} stops for a person again from now on.",
   "delegations.revoke.ok.already": "That decision had already been taken back.",
   "delegations.revoke.refused.title": "Not taken back",
   "delegations.revoke.refused.not_found": "That decision is not in this company.",
+  // 2026-09-28 standing approvals, English only (TRANSLATION_DEFERRED). A standing approval
+  // capped by the day, the total, the credits per piece of work, how far the work can be undone
+  // and whose work it is. The `plural` keys are read with `plural()`; the credit ones select their
+  // form on the amount, because French takes the singular below two (§8b).
+  "delegations.heading": "Work Orvay may do without asking",
+  "delegations.lead.standing": "Choose a kind of work and the limits it stays inside. Orvay checks every limit before it acts, and anything outside them still asks you.",
+  "delegations.form.kind.label": "Kind of work",
+  "delegations.form.perDay.label": "At most, each day",
+  "delegations.form.perDay.none": "No daily limit",
+  "delegations.form.perDay.option": {
+    one: "{count} a day",
+    other: "{count} a day"
+  },
+  "delegations.form.total.label": "At most, in total",
+  "delegations.form.total.none": "No total limit, with a daily limit",
+  "delegations.form.total.option": {
+    one: "{count} in total",
+    other: "{count} in total"
+  },
+  "delegations.form.spend.label": "At most, for each piece of work",
+  "delegations.form.spend.none": "No cap on credits",
+  "delegations.form.spend.option": {
+    one: "{credits} credits",
+    other: "{credits} credits"
+  },
+  "delegations.form.spend.hint": "A cap covers only work whose cost is known before it starts. Anything else still asks you.",
+  "delegations.form.undo.label": "How far it can be undone",
+  "delegations.form.undo.none": "No limit on how far it can be undone",
+  "delegations.form.undo.reversible": "Only work that can be undone",
+  "delegations.form.undo.compensatable": "Work that can be undone or put right afterwards",
+  "delegations.form.undo.hint": "A limit here covers only work Orvay plans as a contract, where it works out how far the work can be undone. Work it cannot judge, and work that cannot be undone, still asks you.",
+  "delegations.form.proposer.label": "Whose work",
+  "delegations.form.proposer.any": "Anybody who proposes it",
+  "delegations.form.sentence.label": "What you are deciding",
+  "delegations.sentence.lead": "Orvay may do this without asking you: {work}.",
+  "delegations.sentence.lead.past": "Orvay was allowed to do this without asking you: {work}.",
+  "delegations.sentence.limits": "Only within these limits: {limits}.",
+  "delegations.sentence.perDay": {
+    one: "up to {count} a day",
+    other: "up to {count} a day"
+  },
+  "delegations.sentence.total": {
+    one: "{count} in total",
+    other: "{count} in total"
+  },
+  "delegations.sentence.spend": {
+    one: "at most {credits} credits each",
+    other: "at most {credits} credits each"
+  },
+  "delegations.sentence.undo.reversible": "only work that can be undone",
+  "delegations.sentence.undo.compensatable": "only work that can be undone or put right afterwards",
+  "delegations.sentence.undo.partial": "only work that can be put right, even if people outside already saw it",
+  "delegations.sentence.proposer": "only work {proposer} proposes",
+  "delegations.sentence.band.low": "only at low risk",
+  "delegations.sentence.band.medium": "at medium risk or lower",
+  "delegations.sentence.band.high": "at high risk or lower",
+  "delegations.sentence.band.critical": "at any risk",
+  "delegations.sentence.until": "until {date}",
+  "delegations.sentence.limits.past": "Its limits were: {limits}.",
+  "delegations.sentence.ended.revoked": "It was taken back on {date}.",
+  "delegations.sentence.ended.expired": "It ended on {date}.",
+  "delegations.sentence.ended.spent": "Every use it allowed has been used.",
+  "delegations.ok.recordedWork": "Until {until}, Orvay may do this without asking you, within the limits you chose: {work}. Recorded in the trail.",
+  "delegations.revoke.ok.revokedWork": "From now on, your usual rules decide whether this asks you first: {work}.",
+  "delegations.revoke.srWork": "the decision on this work: {work}",
+  "delegations.refused.alreadyLiveWork": "{name} already decided this in advance: {work}. Take that back first.",
+  "delegations.row.why": "Why: {rationale}",
+  "delegations.proposer.agentGone": "an agent no longer in this company",
+  "delegations.proposer.personGone": "a person no longer in this company",
+  "delegations.row.usedOf": "Uses so far: {used} of {total}. Today: {today}.",
+  "delegations.row.used": "Uses so far: {used}. Today: {today}.",
+  "delegations.refused.list": "Choose every limit from its list.",
+  "delegations.refused.missingBound": "Choose a total limit or a daily limit. With neither, nothing bounds how much it does before it ends.",
+  "delegations.refused.notUndoable": "A standing approval never covers work that cannot be undone. Choose one of the listed limits.",
+  "delegations.refused.spendTooSmall": "A cap on credits must be at least one hundredth of a credit.",
+  "delegations.refused.proposer": "Choose an agent from the list. That one is not active in this company.",
   // -------------------------------------------------------------------------
   // THE INTEGRATION CATEGORIES.
   //
@@ -7538,7 +8113,7 @@ var PRODUCT_SOURCE = {
   "company.funnels.error.steps": "A funnel has between one and {limit} steps.",
   "company.funnels.error.stepLength": "Each step needs words, and at most {chars} characters of them.",
   "company.funnels.error.notAFunnel": "That funnel is not in this company.",
-  "company.funnels.error.gate": "Refused at {gate}. {reason}",
+  "company.funnels.error.gate": "Refused at the {gate} gate: {reason}.",
   "company.funnels.error.halted": "{brand} is halted for this company, so nothing was saved.",
   "company.funnels.error.source": "That analytics tool is not one this company has connected, so it was not saved.",
   "company.agent.task-class": "task class {taskClass}",
@@ -7642,6 +8217,47 @@ var PRODUCT_SOURCE = {
     it is, and the listbox itself already conveys the length.
   */
   "rooms.say.mention-status": "Names are listed. Use the arrow keys to choose one, or Escape to dismiss.",
+  // 2026-09-28 goal and department rooms, and holding, cancelling and stopping work in a room.
+  // English only, listed in TRANSLATION_DEFERRED under the same date.
+  "rooms.for.goal": "This room is for the goal",
+  "rooms.for.department": "This room is for the department",
+  "rooms.create.for.label": "What this room is for",
+  "rooms.create.for.hint": "Optional. An agent asked in a room for a goal is told that goal, and in a room for a department, the department\u2019s open goals. Leave the name empty to use the goal or the department as the name.",
+  "rooms.create.for.nothing": "Nothing in particular",
+  "rooms.create.for.goal": "Goal: {goal}",
+  "rooms.create.for.department": "Department: {department}",
+  "rooms.error.purposeNotFound": "That is not a goal or department you can open a room for. A goal has to still be open.",
+  "rooms.goal.summary": "Rooms for this goal",
+  "rooms.goal.none": "You are not in a room for this goal yet.",
+  "rooms.goal.name": "Room name",
+  "rooms.goal.hint": "It starts as the goal itself, and you can change it. An agent asked in the room is told this goal.",
+  "rooms.goal.submit": "Open a room for this goal",
+  // Not under `rooms.tasks.state.`, which mirrors the table's eight states (handoff-state-parity.test.ts): a hold is a timestamp, not a state.
+  "rooms.tasks.onHold": "Held",
+  "rooms.tasks.hold": "Hold this ask",
+  "rooms.tasks.release": "Release the hold",
+  "rooms.tasks.hold.hint": "A held ask is not picked up until the hold is released. If the agent is working on it now, that answer is not posted and the work so far still costs credits. Releasing the hold puts the ask back in the queue, and it runs again only if it has been tried fewer than three times.",
+  "rooms.tasks.release.halted": "The company is stopped, so this hold cannot be released yet. Release the company first.",
+  "rooms.tasks.held": "The ask for {agent} is held. Nothing picks it up until the hold is released.",
+  "rooms.tasks.released": "The ask for {agent} is released and waits to be picked up.",
+  "rooms.tasks.unchanged": "Nothing changed. The ask was already in that state.",
+  "rooms.tasks.over": "That ask is already over, so there is nothing left to stop.",
+  "rooms.tasks.cancel": "Cancel this ask",
+  "rooms.tasks.cancel.confirm": "Cancelling stops this ask and anything it handed on, and it cannot be started again. An answer the agent is writing now is not posted, and what it used so far still costs credits.",
+  "rooms.tasks.cancel.yes": "Yes, cancel it",
+  "rooms.tasks.cancel.keep": "Keep it",
+  "rooms.tasks.cancelled": "The ask for {agent} is cancelled. It will not run.",
+  "rooms.tasks.stopped": "The ask was held or cancelled, or {agent} was stopped, while it worked, so its answer was not posted.",
+  "rooms.tasks.notAllowed": "Only somebody who may hand work to an agent from this room can hold or cancel it.",
+  "rooms.tasks.run.held": "This ask is held. Release the hold to run it.",
+  "rooms.tasks.run.agentStopped": "{agent} is stopped. Release the agent to run this ask.",
+  "rooms.agents.title": "Agents in this room",
+  "rooms.agents.hint": "Stopping an agent stops it everywhere in the company, not only in this room. An answer it is writing is not posted, and its asks wait. Releasing it lets them be picked up again, except an ask already tried three times.",
+  "rooms.agents.notAllowed": "Stopping or releasing an agent needs permission to stop the company, and you do not have it.",
+  "rooms.agents.notInRoom": "That agent is not in this room.",
+  "rooms.agents.reason.stop": "Stopped from a room, no reason given",
+  "rooms.agents.reason.release": "Released from a room, no reason given",
+  "rooms.live.watching": "This page updates on its own while an agent has an ask here.",
   "company.agent.skill.label": "What this agent may look at",
   "company.agent.skill.hint": "A skill narrows which tools this agent may be offered. It never widens what it may do: every use is checked against the capabilities of whoever runs the ask.",
   "company.agent.skill.submit": "Save skill",
@@ -7796,7 +8412,7 @@ var PRODUCT_SOURCE = {
   // The other exports and the two refusals that were inline English, 2026-09-23.
   // English only, listed in TRANSLATION_DEFERRED.
   "account.export.halted": "This company is stopped. Taking a copy writes a line to the audit trail, so it counts as a change and the stop covers it. Release the stop from the header, then export.",
-  "account.export.not-in-role": "Your role in this company does not include this export. Somebody who holds it can run it for you, or add {capability} to your role on the Team page.",
+  "account.export.not-in-role": "Your role in this company does not include this export. Somebody who holds it can run it for you, or add \u201C{capability}\u201D to your role on the Team page.",
   "account.export.more.heading": "The rest of what you made here",
   "account.export.more.download": "Download",
   "account.export.more.workflows.label": "Workflow definitions",
@@ -8289,6 +8905,150 @@ var PRODUCT_SOURCE = {
   "approvals.empty.action": "Set a goal",
   "approvals.open.heading": "Waiting on you",
   "approvals.settled.heading": "Already decided",
+  // 2026-09-28 escalation bundle, English only (TRANSLATION_DEFERRED): the handoff at the top of an open decision.
+  "approvals.bundle.title": "Handoff",
+  "approvals.bundle.lead": "Everything needed to decide this, in one place. Each fact says where it came from: read back by {brand}, stated by the proposer, worked out by {brand} from the plan, or not available.",
+  "approvals.bundle.unreadable": "The handoff could not be put together just now. Everything below is still what the record holds.",
+  "approvals.bundle.source.verified": "Verified",
+  "approvals.bundle.source.claimed": "Stated by the proposer",
+  "approvals.bundle.source.derived": "Worked out by {brand}",
+  "approvals.bundle.source.missing": "Not available",
+  "approvals.bundle.from.proposer": "the proposal",
+  "approvals.bundle.from.orvay.record": "the record",
+  "approvals.bundle.from.orvay.state_read": "read just now",
+  "approvals.bundle.from.orvay.gates": "the gates, asked just now",
+  "approvals.bundle.from.orvay.plan": "the plan",
+  "approvals.bundle.from.orvay.preflight": "the check of the plan",
+  "approvals.bundle.from.orvay.receipts": "the receipts",
+  "approvals.bundle.from.orvay.verifier": "the independent check",
+  "approvals.bundle.from.orvay.track_record": "the proposer's past work",
+  "approvals.bundle.from.orvay.allowance": "the credits left, read just now",
+  "approvals.bundle.from.orvay.suggestion": "fixed rules, not a model",
+  "approvals.bundle.row.objective": "Objective",
+  "approvals.bundle.row.history": "History",
+  "approvals.bundle.row.stateDiff": "What changes",
+  "approvals.bundle.row.evidence": "Evidence",
+  "approvals.bundle.row.uncertainty": "Not known",
+  "approvals.bundle.row.options": "Options",
+  "approvals.bundle.row.recommended": "Suggested step",
+  "approvals.bundle.row.costRisk": "Cost and risk",
+  "approvals.bundle.row.recovery": "Recovery",
+  "approvals.bundle.link.record": "Open the record",
+  "approvals.bundle.link.preview": "Open the preview",
+  "approvals.bundle.link.decision": "Go to the decision",
+  "approvals.bundle.link.gates": "Open the gates",
+  "approvals.bundle.history.proposed": "Proposed",
+  "approvals.bundle.history.replaces": "Replaces an earlier proposal",
+  "approvals.bundle.history.revision_requested": "Sent back for changes",
+  "approvals.bundle.history.escalated": "Handed on",
+  "approvals.bundle.history.endorsed": "Endorsed",
+  "approvals.bundle.history.commented": "Comments",
+  "approvals.bundle.state.declared": "The proposal said",
+  "approvals.bundle.evidence.citation": "Cites",
+  "approvals.bundle.evidence.untrusted": "From outside the company",
+  "approvals.bundle.evidence.grounded": "Found on record",
+  "approvals.bundle.evidence.check": "Will be checked by",
+  "approvals.bundle.evidence.verification.held": "Checked independently, and it held",
+  "approvals.bundle.evidence.verification.failed": "Checked independently, and it did not hold",
+  "approvals.bundle.evidence.receipt.established": "A receipt says it held",
+  "approvals.bundle.evidence.receipt.notEstablished": "A receipt says it did not hold",
+  "approvals.bundle.evidence.receipt.simulated": "Simulated run",
+  "approvals.bundle.missing.expected_changes_undeclared": "The proposal does not say what it will change.",
+  "approvals.bundle.missing.before_value_unknown": "Nobody stated the current value, and nothing could read it.",
+  "approvals.bundle.missing.after_value_unknown": "The proposal does not say what the value becomes.",
+  "approvals.bundle.missing.max_cost_unknown": "The proposal states no limit on what it may cost.",
+  "approvals.bundle.missing.success_predicate_undeclared": "The proposal does not say what counts as done for this check.",
+  "approvals.bundle.missing.no_citations": "The proposal cites nothing for its claims.",
+  "approvals.bundle.missing.not_run_yet": "Nothing has run, so nothing has been checked yet.",
+  "approvals.bundle.missing.preflight_not_run": "The check of the plan has not been run.",
+  "approvals.bundle.missing.no_track_record": "The proposer has no past work of this kind on record.",
+  "approvals.bundle.missing.allowance_unread": "The cost could not be compared with the credits left.",
+  "approvals.bundle.missing.accountability_unrecorded": "Part of who stands behind this is not on record.",
+  "approvals.bundle.missing.unrecognised": "Something the preview could not state, named by a code this page does not know.",
+  "approvals.bundle.concern.before_changed_since_proposal": "The current value is not what the proposal said it was.",
+  "approvals.bundle.concern.before_declared_not_read": "Current values are only what the proposal said. Nothing could read them.",
+  "approvals.bundle.concern.cites_untrusted_context": "The proposal rests on material from outside the company.",
+  "approvals.bundle.concern.preflight_blocks": "The check of the plan would stop it.",
+  "approvals.bundle.concern.preflight_raises": "The check of the plan found something to look at.",
+  "approvals.bundle.concern.undo_contradicts_irreversible": "An undo is named for a step the plan says cannot be undone.",
+  "approvals.bundle.concern.failed_before": "Past work of this kind by the same proposer did not hold.",
+  "approvals.bundle.uncertainty.none": "Nothing here is marked unknown.",
+  "approvals.bundle.option.gates_refuse": "Closed: the gates refuse it as things stand.",
+  "approvals.bundle.option.company_halted": "Closed: the company is halted.",
+  "approvals.bundle.suggests": "{brand} suggests",
+  "approvals.bundle.suggests.note": "A suggestion worked out from fixed rules, not a decision. Nothing happens until somebody decides below.",
+  "approvals.bundle.because": "Because",
+  "approvals.bundle.step.approve": "Approve it.",
+  "approvals.bundle.step.approve_once_with_limit": "Approve this one only, within its stated limits.",
+  "approvals.bundle.step.revise": "Send it back for changes.",
+  "approvals.bundle.step.refuse": "Refuse it.",
+  "approvals.bundle.step.ask_someone": "Get a second view before deciding.",
+  "approvals.bundle.reason.company_halted": "The company is halted, so nothing runs until somebody releases it.",
+  "approvals.bundle.reason.allowance_exhausted": "There are not enough credits left for it to run.",
+  "approvals.bundle.reason.gates_refuse": "The gates refuse it as things stand.",
+  "approvals.bundle.reason.commitments_missing": "It does not commit to what it changes, what it may cost or what counts as done.",
+  "approvals.bundle.reason.undo_contradicts_plan": "Its undo contradicts its own plan.",
+  "approvals.bundle.reason.state_changed_since_proposal": "What it would change has moved since it was proposed.",
+  "approvals.bundle.reason.current_state_unknown": "Nobody knows what it would change from.",
+  "approvals.bundle.reason.cost_exceeds_allowance": "The most it may cost is more than the credits left.",
+  "approvals.bundle.reason.mostly_not_established": "Most past work of this kind by the same proposer did not hold.",
+  "approvals.bundle.reason.irreversible_and_untried": "It cannot be undone, the risk is high, and the proposer has no past work of this kind that held.",
+  "approvals.bundle.reason.cannot_be_undone": "It cannot be undone.",
+  "approvals.bundle.reason.only_partly_undone": "It can only partly be undone.",
+  "approvals.bundle.reason.high_risk": "The risk is high.",
+  "approvals.bundle.reason.cites_untrusted_context": "It rests on material from outside the company.",
+  "approvals.bundle.reason.failed_before": "Some past work of this kind by the same proposer did not hold.",
+  "approvals.bundle.reason.no_track_record": "The proposer has no past work of this kind that held.",
+  "approvals.bundle.reason.spends_company_money": "It spends the company's own money, not credits.",
+  "approvals.bundle.reason.cost_unchecked": "Its cost could not be compared with the credits left.",
+  "approvals.bundle.reason.can_be_undone": "It can be undone.",
+  "approvals.bundle.reason.established_before": "Past work of this kind by the same proposer held.",
+  "approvals.bundle.reason.within_allowance": "The most it may cost fits the credits left.",
+  "approvals.bundle.cost.risk": "Risk",
+  "approvals.bundle.cost.irreversibleSteps": "Steps nothing can undo",
+  "approvals.bundle.cost.audience": "Reaches",
+  "approvals.bundle.cost.bearer": "Borne by",
+  "approvals.bundle.cost.maxCost": "At most",
+  "approvals.bundle.cost.allowance.fits": "Fits the credits left",
+  "approvals.bundle.cost.allowance.exceeds": "More than the credits left",
+  "approvals.bundle.cost.allowance.not_metered": "The company's own money, not credits",
+  "approvals.bundle.cost.gates": "The gates now",
+  "approvals.bundle.recovery.none": "The plan has no steps.",
+  // 2026-09-28 outcome preview, English only (TRANSLATION_DEFERRED): what verified-outcome pricing would
+  // charge for an open decision, for a company in `billing.outcome_preview`. Nothing is charged this way.
+  "approvals.outcome.title": "If this were priced by verified outcome",
+  "approvals.outcome.lead": "A preview, shown because this company turned it on. It changes nothing about this decision.",
+  "approvals.outcome.notice.title": "Nothing is charged this way",
+  "approvals.outcome.notice.body": "The work is metered in credits as usual, whether or not it is verified. Nothing on this panel is charged.",
+  "approvals.outcome.eligible": "Eligible",
+  "approvals.outcome.eligible.yes": "Yes: whether it worked would be settled by a check, not a judgement.",
+  "approvals.outcome.eligible.no": "No",
+  "approvals.outcome.reason.no_success_criterion": "A check it names has no committed test of success, so nothing mechanical would decide whether it worked.",
+  "approvals.outcome.reason.verifier_not_independent": "Nothing commits the check to someone other than whoever does the work.",
+  "approvals.outcome.reason.criterion_needs_judgement": "Whether it worked could only be judged, and a judgement is not a verified outcome.",
+  "approvals.outcome.reason.criterion_is_a_metric": "Success is a number moving, and a number that moved does not show this work moved it.",
+  "approvals.outcome.reason.no_committed_maximum": "It does not commit to the most it may cost.",
+  "approvals.outcome.reason.commits_no_spend": "It commits to using no credits, so there is nothing to price.",
+  "approvals.outcome.reason.terms_contradict_themselves": "Its own terms contradict each other.",
+  "approvals.outcome.reason.price_above_committed_maximum": "This kind of work costs more per verified result than the most this approval can use.",
+  "approvals.outcome.price": "Outcome price",
+  "approvals.outcome.price.from": "Would be paid only if the check verified the outcome. Worked out from what this kind of work used here per verified result.",
+  "approvals.outcome.price.notEligible": "Not worked out, because this work is not eligible.",
+  "approvals.outcome.price.neverVerified": "None of these runs was verified, so no price would cover them.",
+  "approvals.outcome.realCost": "Real cost",
+  "approvals.outcome.realCost.from": "What this kind of work used per run on average, verified or not.",
+  "approvals.outcome.maximum": "Most this approval can use",
+  "approvals.outcome.maximum.from": "The most the proposal commits to, which approving it binds.",
+  "approvals.outcome.maximum.none": "Not committed",
+  "approvals.outcome.history.short": "Not enough history yet",
+  "approvals.outcome.otherCurrency": "Recorded in another currency, so not shown in credits",
+  "approvals.outcome.class": "Kind of work",
+  "approvals.outcome.window": "Looked back",
+  "approvals.outcome.runs": "Runs of this kind",
+  "approvals.outcome.verified": "Verified",
+  "approvals.outcome.needed": "Runs needed",
+  "approvals.outcome.unreadable.title": "The outcome price preview could not be read",
+  "approvals.outcome.unreadable.body": "Nothing else on this page is affected. Reload the page to try again.",
   // The long tail: small surfaces, one or three strings each.
   "files.add-note.title": "What happens to a file you add",
   "files.add-note.body": "{brand} checks the type and the size, and nothing else. It is not a virus scanner and nothing reads the contents looking for anything. A folder keeps its structure, and a .zip is unpacked so the files inside it are kept rather than the archive. Files are kept in object storage in the EU and are used as context by the work this company runs.",
@@ -8300,6 +9060,10 @@ var PRODUCT_SOURCE = {
   "unsubscribe.submit": "Unsubscribe me",
   "error.boundary.title": "This page could not be loaded",
   "error.boundary.retry": "Try again",
+  // Orvay was deployed while the page was open (`error.tsx`, `isStaleDeployment`), 2026-09-27. English only.
+  "error.boundary.updated.title": "Orvay was updated while this page was open",
+  "error.boundary.updated.still-works": "Nothing you entered here was saved. Reload the page to get the new version, then enter it again. Everything else in your company is unchanged.",
+  "error.boundary.reload": "Reload the page",
   "home.open-trail": "open the full trail and check the chain",
   "policies.grant.forbidden": "Forbidden, and absolute. Nothing on this screen can take it back.",
   "policies.grant.not-changed": "Not changed",
@@ -8480,7 +9244,7 @@ var PRODUCT_SOURCE = {
       into a customer's connection works. It names the account X answered with,
       because "wrong account" without saying which is unactionable.
     */
-  "integrations.error.x-needs-four-keys": "X needs four values, one per line: the API key, the API key secret, the access token and the access token secret.",
+  "integrations.error.x-needs-four-keys": "X needs all four keys: the API key, the API key secret, the access token and the access token secret.",
   "integrations.error.x-needs-handle": "X needs the account handle as well as the keys.",
   "integrations.error.x-wrong-account": "Those keys belong to {named}, which is not the account you entered. Connect the account the keys are for, or use keys for this one.",
   /*
@@ -8504,7 +9268,22 @@ var PRODUCT_SOURCE = {
     the wrong places". That is the most expensive sentence to omit on this form.
   */
   "integrations.field.x.label": "Your handle",
-  "integrations.field.x.hint": "For example newonorvay, without the at sign. Paste the four keys one per line, in this order: API key, API key secret, access token, access token secret.",
+  "integrations.field.x.hint": "For example newonorvay, without the at sign.",
+  /*
+    X's four keys, one field each (2026-09-26). The single field asked for "one
+    per line" and a browser deletes line breaks from a single-line input, so X
+    could not be connected. The hints say where X shows each value, because X
+    shows the two secrets once, when they are generated. English only, listed in
+    TRANSLATION_DEFERRED under the same date.
+  */
+  "integrations.field.x.apiKey.label": "API key",
+  "integrations.field.x.apiKey.hint": "In the X developer console, open your app and then Keys and Tokens. Under OAuth 1.0 Keys, regenerate the Consumer Key: X shows the API key and its secret once.",
+  "integrations.field.x.apiKeySecret.label": "API key secret",
+  "integrations.field.x.apiKeySecret.hint": "Shown once, together with the API key.",
+  "integrations.field.x.accessToken.label": "Access token",
+  "integrations.field.x.accessToken.hint": "Under OAuth 1.0 Keys, regenerate the Access Token after the Consumer Key, with read and write permission. X shows the token and its secret once.",
+  "integrations.field.x.accessTokenSecret.label": "Access token secret",
+  "integrations.field.x.accessTokenSecret.hint": "Shown once, together with the access token.",
   "integrations.error.no-adapter": "No adapter exists for that integration.",
   "integrations.error.verify-unreachable": "Nothing was stored: {reason}. Your credential is unchanged and untouched.",
   "integrations.error.gate-refused": "refused at the {gate} gate: {reason}",
@@ -8615,6 +9394,9 @@ var PRODUCT_SOURCE = {
   "integrations.grant.confirm": "I understand this grant may include more than reading, and I want to continue.",
   "integrations.error.tool-server-no-declared-scope": "That server lists none of the permissions {brand} needs for this connector, so nothing was connected.",
   "integrations.tool-server.authorized": "Connected through {issuer}, {when}. The grant is sealed under a key that is destroyed when you remove this server.",
+  // A grant wider than Orvay asked for, 2026-09-27 (20260927090000). The count is a value, not a noun.
+  "integrations.tool-server.grantedBeyond.title": "It granted more than {brand} asked for",
+  "integrations.tool-server.grantedBeyond": "Connected through {issuer}, {when}. Permissions granted beyond what {brand} asked for: {count}. {brand} uses only what it asked for, but the stored grant carries all of them. To narrow it, remove this server and connect again, choosing fewer permissions if {issuer} offers the choice.",
   "integrations.tool-server.no-account-needed": "This server answers without an account, so there is nothing to connect.",
   "integrations.tool-server.reauth-required.title": "Needs a new sign-in",
   "integrations.tool-server.reauth-required": "The grant for this server stopped working, so nothing is asked of it any more. Connect it again to continue.",
@@ -8697,9 +9479,34 @@ var PRODUCT_SOURCE = {
   "mailbox.send.in-flight": "Not sent again. This reply was started in the last few minutes and may still be on its way. Check the thread before sending it a second time.",
   "mailbox.send.not-connected": "Not sent. No mailbox is connected.",
   "mailbox.send.reason": "Not sent. {reason}",
+  // 2026-09-26: stopping one agent from the company page. English only, listed in TRANSLATION_DEFERRED under the
+  // same date.
+  "company.agent.halt.heading": "Stop one agent",
+  "company.agent.halt.hint": "A stopped agent proposes nothing, and nothing it already proposed runs, until it is released. Work waiting for it stays waiting. The rest of the company keeps working.",
+  "company.agent.halt.engage": "Stop {agent}",
+  "company.agent.halt.release": "Release {agent}",
+  "company.agent.halt.state.working": "Working.",
+  "company.agent.halt.state.stopped": "Stopped. Nothing it proposed runs until it is released.",
+  "company.agent.halt.engaged": "{agent} is stopped.",
+  "company.agent.halt.released": "{agent} is released and can work again.",
+  "company.agent.halt.unchanged": "Nothing changed. The agent may already be in that state, so reload the page to see it.",
+  // 2026-09-28 customer incidents, English only, listed in TRANSLATION_DEFERRED.
+  "company.agent.halt.heldByIncident": "An incident is holding this agent. Resume it from the incident, which checks its work first.",
+  "company.agent.halt.refused": "Your role cannot stop or release an agent. The team page shows who can.",
+  "company.agent.halt.reason": "Stopped from the company page, no reason given",
+  "company.agent.halt.reason.release": "Released from the company page, no reason given",
+  // 2026-09-26: the header's release had recorded the STOP's default reason. English only, deferred.
+  "shell.halt.reason.header.release": "Released from the header control, no reason given",
+  // 2026-09-26: the reply left and writing its record failed afterwards. English only, listed in
+  // TRANSLATION_DEFERRED under the same date.
+  "mailbox.send.sentUnrecorded": "Sent to {to} from your own mailbox. Orvay could not write the record of it afterwards, so the send has no run on record and nobody checked the thread for it.",
   "mailbox.archive.bad-destination": "That is not a place a message can be filed.",
   "mailbox.archive.archived": "Moved to Archive in your mailbox. Put back is the same move the other way.",
   "mailbox.archive.restored": "Moved back to the inbox.",
+  "mailbox.archive.trashed": "Moved to the trash in your mailbox, where your mail provider keeps it until its trash is emptied. Put back is the same move the other way.",
+  "mailbox.file.archive": "Archive",
+  "mailbox.file.trash": "Move to trash",
+  "mailbox.file.moving": "Moving",
   "mailbox.archive.gate-refused": "Not moved: refused at the {gate} gate ({reason}).",
   "mailbox.archive.not-found": "Not moved. The mailbox no longer has that message.",
   "mailbox.archive.not-connected": "Not moved. No mailbox is connected.",
@@ -8906,6 +9713,10 @@ var PRODUCT_SOURCE = {
   // single rule is chosen; the page shows the rule for each jurisdiction the table covers.
   "autonomy.experiment.consent_rules.does": "A proposed message to a person shows the consent rule for each jurisdiction the table covers, and what the records say under each. Decision support, not legal advice.",
   "autonomy.experiment.consent_rules.graduates": "the rule table has been reviewed by counsel, and the review is written down",
+  // 2026-09-28 outcome preview, English only (TRANSLATION_DEFERRED).
+  "autonomy.experiment.outcome_preview.name": "Outcome pricing preview",
+  "autonomy.experiment.outcome_preview.does": "An open decision shows what the work would cost if it were priced by verified outcome, beside what it costs today. Nothing is charged this way.",
+  "autonomy.experiment.outcome_preview.graduates": "at least 200 decided proposals, across the companies trying it, that would qualify for outcome pricing, with the verified rate of each kind of work known to within five points",
   // 2026-09-23, docs/plan/31-trust-layer.md: the trust panel on the decision page. What an
   // approver agrees to, the check before it runs, the receipts, and who stands behind each
   // link. Every unknown is said as unknown. English only, listed in TRANSLATION_DEFERRED
@@ -9015,6 +9826,18 @@ var PRODUCT_SOURCE = {
   "contract.receipts.signature": "Signature",
   "contract.receipts.signed": "Signed",
   "contract.receipts.key": "Key",
+  "contract.withdraw.title": "Withdraw this work",
+  "contract.withdraw.body": "The document stops being used as past work, and what this run taught the company is set aside, so no later work relies on it. The document stays on the record. What was set aside is not learned again from work until a person states it.",
+  "contract.withdraw.submit": "Withdraw the work",
+  "contract.withdraw.busy": "Withdrawing",
+  "contract.withdraw.withdrawn": "This work was withdrawn. Later work does not rely on it.",
+  "decision.ok.workWithdrawn": "Withdrawn. Later work no longer relies on this document or on what it taught.",
+  "decision.error.withdraw.notRun": "Nothing has run for this work yet, so there is nothing to withdraw.",
+  "decision.error.withdraw.notWithdrawable": "This work does not carry a withdrawal.",
+  "decision.error.withdraw.refused": "Withdrawing it was refused. Your role may not allow setting aside what the company learned.",
+  "contract.receipts.keyCheck.checks": "Checks against the key this service publishes.",
+  "contract.receipts.keyCheck.key_unpublished": "The key that signed it is no longer published, so nobody outside can check it.",
+  "contract.receipts.keyCheck.fails": "Does not check against the key this service publishes.",
   "contract.receipts.unsigned": "Unsigned. No signing key was set up when it was issued, so it cannot be checked against a key. It is still recorded.",
   "contract.receipts.stages": "Stages recorded",
   "contract.receipts.outcome": "Outcome",
@@ -9092,7 +9915,7 @@ var PRODUCT_SOURCE = {
   "contract.shadow.title": "What this would do to the numbers",
   "contract.shadow.lead": "A projection from records Orvay already holds, shown because this company turned on the Shadow company experiment.",
   "contract.shadow.notice.title": "A projection, not a forecast",
-  "contract.shadow.notice.body": "It is computed from records Orvay already holds and nothing else: the credits your organization's plan includes and has used this period, the budget of the goal it serves if it has one, and the outcomes this proposer's work of this kind has recorded. The same records always give the same figures. It shows what they imply if the assumptions below hold. It does not say what will happen.",
+  "contract.shadow.notice.body": "It is computed from records Orvay already holds and nothing else: the credits your organization's plan includes and has used this period, the budget of the goal it serves if it has one, the outcomes this proposer's work of this kind has recorded, and, for work that reaches people, the latest funnel reading from your Zenovay and the latest revenue reading from your Stripe. The same records give the same figures, except that a reading from your connected tools is left out once it is more than three days old. It shows what they imply if the assumptions below hold. It does not say what will happen.",
   "contract.shadow.notice.decides": "It decides nothing. The spending check in the gates on this page is what allows or refuses the cost, and it does not read this projection.",
   "contract.shadow.why": "Projected because",
   "contract.shadow.why.risk": "its risk is high or critical",
@@ -9106,6 +9929,7 @@ var PRODUCT_SOURCE = {
   "contract.shadow.metric.goal_budget": "Credits left in this goal's budget",
   "contract.shadow.metric.success": "Chance its check establishes the outcome",
   "contract.shadow.metric.conversions": "People expected to convert",
+  "contract.shadow.metric.mrr": "Monthly recurring revenue, in the currency Stripe collects it in",
   "contract.shadow.metric.other": "A figure this page cannot show yet",
   "contract.shadow.now": "Now",
   "contract.shadow.after": "If it runs",
@@ -9137,11 +9961,36 @@ var PRODUCT_SOURCE = {
   "contract.shadow.missing.goal_budget.no_goal": "The proposal is not linked to a goal, so no goal budget applies.",
   "contract.shadow.missing.goal_budget.no_ceiling": "Its goal has no spending ceiling, so there is no goal budget to project against.",
   "contract.shadow.missing.history_too_small": "Fewer than {needed} outcomes of this work by this proposer are on record, so no chance of success is projected.",
-  "contract.shadow.missing.funnel.none_defined": "No funnel is written down for this company, so who would convert is not projected.",
-  "contract.shadow.missing.funnel.no_reading": "A funnel is written down, but no reading of its numbers is recorded, so who would convert is not projected.",
+  "contract.shadow.missing.funnel.no_reading": "No funnel reading from Zenovay is on record. Orvay takes one each day once Zenovay is connected and its traffic and funnel analysis tools may run without a person, so who would convert is not projected.",
+  "contract.shadow.missing.funnel.unreadable": "The latest funnel reading on record cannot be read, so who would convert is not projected.",
+  "contract.shadow.missing.funnel.none_listed": "Zenovay lists no funnel for your site, so who would convert is not projected.",
+  "contract.shadow.missing.funnel.none_usable": "None of the funnels Zenovay lists for your site has two or more steps whose visitor counts never rise from one step to the next, so who would convert is not projected.",
+  "contract.shadow.missing.funnel_stale": "The latest funnel reading was taken {age}. A reading older than three days is not used, so who would convert is not projected.",
+  "contract.shadow.missing.funnel_empty": "Zenovay counted no visitor at the funnel's first step in the last 30 days, so no conversion rate is measured and who would convert is not projected.",
   "contract.shadow.missing.funnel_invalid": "The funnel's recorded numbers cannot be used, so who would convert is not projected.",
-  "contract.shadow.missing.subscriptions": "No stored reading holds recurring revenue together with a count of subscriptions, so revenue is not projected.",
-  "contract.shadow.missing.subscriptions_empty": "No subscriptions are recorded, so revenue is not projected.",
+  "contract.shadow.missing.subscriptions.no_reading": "No revenue reading from Stripe is on record. Orvay takes one each day once Stripe is connected and its read tools may run without a person, so revenue is not projected.",
+  "contract.shadow.missing.subscriptions.not_counted": "The latest Stripe reading was taken before Orvay counted subscriptions in it, so revenue is not projected until the next one.",
+  "contract.shadow.missing.subscriptions.several_currencies": "Your recurring revenue is in more than one currency, and one cannot be added to another, so revenue is not projected.",
+  "contract.shadow.missing.subscriptions.uncountable": "An invoice in your recurring revenue names no subscription, so the subscriptions cannot be counted and revenue is not projected.",
+  "contract.shadow.missing.subscriptions.unreadable": "The latest Stripe reading on record cannot be read, so revenue is not projected.",
+  "contract.shadow.missing.subscriptions.test_mode": "The Stripe account Orvay reads is in test mode, so its subscriptions are not your revenue and revenue is not projected. Connect an account with live payments to change this.",
+  "contract.shadow.missing.subscriptions.capped": "The latest Stripe reading stopped before it had read every invoice of the eight weeks it covers, so recurring revenue and the subscription count would both be too low, and revenue is not projected.",
+  "contract.shadow.missing.subscriptions_stale": "The latest Stripe reading was taken {age}. A reading older than three days is not used, so revenue is not projected.",
+  "contract.shadow.missing.subscriptions_empty": "The latest Stripe reading counts no subscription paying recurring revenue, so revenue is not projected.",
+  "contract.shadow.missing.subscriptions_invalid": "The latest Stripe reading holds a count that cannot be real, so revenue is not projected.",
+  "contract.shadow.readings": "Read from your connected tools",
+  "contract.shadow.readings.lead": "Orvay reads these from your own accounts once a day, and uses a reading only while it is at most three days old.",
+  "contract.shadow.reading.funnel": "Funnel in Zenovay",
+  "contract.shadow.reading.funnel.rule": "Of the funnels Zenovay lists for your site, the one with the most visitors counted at its first step is used, whether or not it is about this work.",
+  "contract.shadow.reading.funnel.counts": "The rate used is the count at the last step divided by the count at the first. That the last step counts only visitors who passed the first is assumed, not confirmed.",
+  "contract.shadow.reading.funnel.capped": "Zenovay lists more funnels than Orvay reads in a day, so the choice was made among the first ten by their identifier.",
+  "contract.shadow.reading.site": "Site",
+  "contract.shadow.reading.entered": "Visitors Zenovay counted at its first step, last 30 days",
+  "contract.shadow.reading.completed": "Visitors Zenovay counted at its last step, last 30 days",
+  "contract.shadow.reading.subscriptions": "Subscriptions your recurring revenue rests on, in Stripe",
+  "contract.shadow.reading.subscriptions.means": "Counted from every paid invoice of the eight weeks before Stripe was read whose billing period covers that day. A trial, or a yearly plan paid before those eight weeks, is not counted.",
+  "contract.shadow.reading.currency": "Currency",
+  "contract.shadow.reading.read": "Read",
   "contract.consent.title": "Consent rules for this message",
   "contract.consent.lead": "Shown because this company turned on the consent rules experiment.",
   "contract.consent.notice.title": "Decision support, not legal advice",
@@ -9217,6 +10066,149 @@ var PRODUCT_SOURCE = {
   "capability.haltRelease.label": "Release a stop and let agents run again.",
   "capability.connect.label": "Connect an outside service.",
   "capability.disconnect.label": "Disconnect an outside service.",
+  // 2026-09-28 capability names, English only, listed in TRANSLATION_DEFERRED. What each
+  // capability is CALLED where a person chooses one or reads a decision about one: a short verb
+  // phrase with no full stop, because it is a menu item first. The sentences above say what a
+  // capability lets a person do on the team screen; these name it. Mapped from the capability by
+  // `apps/app/src/server/capability-words.ts`, the one owner.
+  "capability.name.research.read": "Read source material for a piece of work",
+  "capability.name.draft.create": "Write a draft for a person to review",
+  "capability.name.analyze.any": "Analyse the records this company holds",
+  "capability.name.contract.propose": "Propose work for this company",
+  "capability.name.company.read": "See this company",
+  "capability.name.contract.approve": "Approve or refuse proposed work",
+  "capability.name.contract.claim": "Hand approved work to an agent you run yourself, through an API key",
+  "capability.name.company.profile.rename": "Rename the company",
+  "capability.name.company.profile.site": "Say which website is the company\u2019s own",
+  "capability.name.company.profile.timezone": "Change the company\u2019s time zone",
+  "capability.name.company.data.configure": "Choose what Orvay may learn from this company",
+  "capability.name.company.department.create": "Add a department",
+  "capability.name.company.agent.create": "Add an agent, with no permissions yet",
+  "capability.name.company.agent.grant": "Give one of your agents a new permission",
+  "capability.name.room.create": "Open a room",
+  "capability.name.room.read": "Read a room",
+  "capability.name.room.thread.post": "Post in a room",
+  "capability.name.room.member.manage": "Choose who is in a room",
+  "capability.name.room.handoff.create": "Hand work to an agent from a room",
+  "capability.name.room.handoff.delegate": "Let an agent pass work from a room to another agent",
+  "capability.name.social.post.create": "Post on your social accounts",
+  "capability.name.communicate.public.outbound.initiate": "Publish something in public that may name somebody else",
+  "capability.name.company.memory.forget": "Make Orvay forget something it learned",
+  "capability.name.company.memory.learn": "Turn a conversation into company memory",
+  "capability.name.consent.record.capture": "Record that somebody agreed to receive email",
+  "capability.name.consent.record.revoke": "Record that somebody no longer wants email",
+  "capability.name.company.announcement.consent": "Agree to a public welcome post that names this company",
+  "capability.name.company.announcement.cancel": "Cancel a public post that names this company",
+  "capability.name.company.brand.state": "Describe your brand",
+  "capability.name.company.brand.image.remove": "Delete a brand picture for good",
+  "capability.name.company.halt.engage": "Stop every agent in this company",
+  "capability.name.company.halt.release": "Let agents run again after a stop",
+  "capability.name.incident.control": "Pause, take over, resume or stop work that went wrong",
+  "capability.name.policy.change": "Change the rules for what Orvay may do",
+  "capability.name.member.invite": "Invite somebody to this company",
+  "capability.name.member.grant": "Change what other members may do",
+  "capability.name.member.remove": "Remove a member, and revoke their API keys",
+  "capability.name.policy.delegation.record": "Decide in advance what Orvay may do without asking",
+  "capability.name.policy.delegation.revoke": "Take back a decision made in advance",
+  "capability.name.api.key.mint": "Create an API key",
+  "capability.name.api.key.revoke": "Revoke an API key",
+  "capability.name.company.sso.configure": "Set up single sign-on",
+  "capability.name.integration.connect": "Connect an outside service",
+  "capability.name.integration.disconnect": "Disconnect an outside service",
+  "capability.name.slack.identity.link": "Link your own Slack user to your seat",
+  "capability.name.mailbox.read": "Read the connected mailbox",
+  "capability.name.mailbox.file": "Archive a message in the connected mailbox, or move it back",
+  "capability.name.mailbox.draft": "Put a reply in your email drafts",
+  "capability.name.mailbox.send.configure": "Choose whether email replies wait for a person",
+  "capability.name.company.fixes.configure": "Choose which repository Orvay proposes changes to",
+  "capability.name.company.funnel.configure": "Write down how your customers arrive",
+  "capability.name.billing.manage": "Manage the plan and billing",
+  "capability.name.organization.company.create": "Add another company to this organization",
+  "capability.name.company.data.export": "Export a copy of all this company\u2019s data",
+  "capability.name.company.data.erase": "Erase personal data for good",
+  "capability.name.company.files.read": "Read the company\u2019s files",
+  "capability.name.company.files.write": "Upload or delete the company\u2019s files",
+  "capability.name.company.files.share": "Share a file by link with somebody who has no account",
+  "capability.name.site.draft.any": "Build and change drafts of your website",
+  "capability.name.site.source.export": "Download your website\u2019s source",
+  "capability.name.communicate.email.outbound.send": "Send an email to a list of people",
+  "capability.name.communicate.email.inbound.respond": "Reply to an email somebody sent you",
+  "capability.name.github.pr.create": "Open a pull request on your code",
+  "capability.name.github.pr.close": "Close a pull request on your code",
+  "capability.name.github.pr.merge": "Merge a pull request on your code",
+  "capability.name.ads.campaign.publish": "Publish an ad campaign",
+  "capability.name.deploy.create": "Deploy to production",
+  "capability.name.stripe.refund.create": "Refund a payment through Stripe",
+  "capability.name.site.page.publish": "Publish your website",
+  "capability.name.playbook.listing.publish": "List a workflow for every other company to see and install",
+  "capability.name.playbook.listing.unpublish": "Withdraw a workflow your company listed",
+  "capability.name.playbook.listing.install": "Install another company\u2019s listed workflow as a draft",
+  "capability.name.playbook.listing.complain": "Complain about a playbook your company installed",
+  "capability.name.site.page.unpublish": "Take your website down",
+  "capability.name.site.domain.connect": "Connect a domain to your website",
+  "capability.name.site.domain.remove": "Remove a domain from your website",
+  "capability.name.browser.site.authorize": "Authorize a site for browser sessions",
+  "capability.name.browser.session.act": "Act for you on a site, in a remote browser",
+  "capability.name.browser.session.view": "Watch a live browser session",
+  "capability.name.browser.session.control": "Take over a browser session yourself",
+  "capability.name.browser.file.transfer": "Move a file between this company and a site, in a browser session",
+  "capability.name.browser.vault.import": "Import a site\u2019s passwords and cookies for browser sessions",
+  "capability.name.browser.vault.revoke": "Delete an imported sign in for a site",
+  "capability.name.workflow.version.draft": "Draft a workflow",
+  "capability.name.workflow.version.publish": "Publish a new version of a workflow",
+  "capability.name.workflow.run.start": "Start a workflow run",
+  "capability.name.workflow.run.dry_run": "Rehearse a workflow, with no real effect",
+  "capability.name.workflow.run.cancel": "Cancel a workflow run",
+  "capability.name.workflow.trigger.pause": "Pause what starts a workflow",
+  "capability.name.workflow.trigger.resume": "Resume what starts a workflow",
+  "capability.name.workflow.run.resolve": "Settle a stuck workflow run, by marking it done or trying again",
+  "capability.name.workflow.run.migrate": "Move a workflow run onto another version",
+  "capability.name.workflow.task.answer": "Answer a task a workflow gave you",
+  "capability.name.workflow.version.export": "Export a workflow\u2019s definition",
+  "capability.name.workflow.run.export": "Export the record of a workflow run",
+  "capability.name.saas.mapping.record": "Record that two accounts belong to one customer",
+  "capability.name.saas.mapping.resolve": "Resolve a conflict between a customer\u2019s accounts",
+  "capability.name.saas.expectation.declare": "Declare an expected event",
+  "capability.name.saas.rule.propose": "Propose a rule from a correction",
+  "capability.name.saas.rule.review": "Accept or reject a proposed rule",
+  "capability.name.saas.remedy.entitlement.repair": "Change what a customer can use in your product, to match what they bought",
+  "capability.name.saas.remedy.access.provision": "Give a customer access in your product",
+  "capability.name.saas.remedy.owner.notify": "Tell a member about a customer\u2019s problem",
+  "capability.name.saas.context.export": "Export your workflows, customer links, expected events and rules",
+  "capability.name.saas.experiment.propose": "Propose an experiment",
+  "capability.name.saas.usage_cap.set": "Set a budget for automated work",
+  "capability.name.research.lead.record": "Record a sales lead",
+  "capability.name.research.lead.read": "Read recorded sales leads",
+  "capability.name.support.ticket.read": "Read support tickets",
+  "capability.name.support.ticket.assign": "Assign a support ticket",
+  "capability.name.support.ticket.update": "Change a support ticket\u2019s deadline or state, or close it",
+  "capability.name.support.ticket.reply": "Reply to a support ticket",
+  "capability.name.analytics.search.read": "Read your Google Search Console numbers",
+  "capability.name.social.youtube.comments.read": "Read comments on your YouTube videos",
+  "capability.name.communicate.youtube.inbound.respond": "Reply to a comment on your YouTube videos",
+  "capability.name.ads.report.read": "Read your Google Ads reports",
+  "capability.name.social.inbox.read": "Read replies and mentions on your social accounts",
+  "capability.name.social.inbox.triage": "Sort and close replies and mentions on your social accounts",
+  "capability.name.communicate.mention.inbound.respond": "Reply to somebody who mentioned you on social media",
+  "capability.name.social.x.posts.read": "Read your own posts on X",
+  "capability.name.social.x.search.read": "Search recent public posts on X",
+  "capability.name.social.post.delete": "Delete one of your own posts on X",
+  "capability.name.social.bluesky.posts.read": "Read your own posts on Bluesky",
+  "capability.name.social.post.delete.bluesky": "Delete one of your own posts on Bluesky",
+  "capability.name.social.mastodon.posts.read": "Read your own posts on Mastodon",
+  "capability.name.social.post.delete.mastodon": "Delete one of your own posts on Mastodon",
+  "capability.name.social.post.delete.youtube": "Delete a reply Orvay posted on your YouTube channel",
+  // A tool on a tool server the company connected, composed at call time as
+  // `mcp.<server>.<tool>:invoke:company`. `{tool}` is the tool's own name with its separators
+  // turned to spaces; `{server}` is the catalogue's name for the server, or the one the company gave it.
+  "capability.name.mcpTool": "Use \u201C{tool}\u201D on {server}",
+  // A capability nothing above names: said in words, with its id kept apart for a muted line.
+  // Every tool on one connected tool server, the pattern `mcp.<server>.*:invoke:company`. Exactly as
+  // wide as the rule: never named as one tool.
+  "capability.name.mcpServer": "Use any tool on {server}",
+  // The catch-all rule every company's policy ends in, `*:*:*`.
+  "capability.name.catchAll": "Anything no other rule here covers",
+  "capability.name.unnamed": "A permission this screen cannot name yet",
   // pages
   "suspended.meta.network": "Connection blocked",
   "suspended.temporary.title": "Account temporarily restricted",
@@ -9365,6 +10357,188 @@ var PRODUCT_SOURCE = {
   "briefing.cost.summary": "{credits} credits in this window.",
   "briefing.cost.link": "Open usage",
   "briefing.not-settled": "not settled",
+  // 2026-09-28, a brief line is words the page resolves rather than English built on the
+  // server, and an actor is named by what it is, never by its id. English only, every key
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "briefing.line.no-contract": "Work with no contract on file",
+  "briefing.run.running": "still running",
+  "briefing.run.succeeded": "succeeded",
+  "briefing.run.failed": "failed",
+  "briefing.run.halted": "halted",
+  "briefing.run.refused": "refused",
+  "briefing.run.waiting": "waiting to start",
+  "briefing.run.unrecognised": "in a state this page does not recognise",
+  "briefing.ran.money.unreported": "nobody reported what it cost",
+  "briefing.ran.money.unrecorded": "the charge for it did not save",
+  "briefing.checked.who": "checked by {verifier}, run by {executor}",
+  "briefing.checked.held": "it held",
+  "briefing.checked.failed": "it did not hold",
+  "actor.system.planner": "{brand}\u2019s planner",
+  "actor.system.executor": "{brand}\u2019s executor",
+  "actor.system.verifier": "{brand}\u2019s verifier",
+  "actor.system": "{brand}",
+  "actor.person": "a person",
+  "actor.person.another": "a different person",
+  "actor.agent": "an agent",
+  "actor.agent.another": "a different agent",
+  "actor.unrecognised": "an actor {brand} cannot name",
+  // 2026-09-28, a refusal is words: which gate, and why, never a code (found on production). Each
+  // reason is a clause with no full stop of its own, because it fills a slot after a colon, inside
+  // brackets and before a full stop the template adds. English only, every key listed in
+  // TRANSLATION_DEFERRED under the same date.
+  "gate.name.authenticate": "authentication",
+  "gate.name.scope": "scope",
+  "gate.name.halt": "halt",
+  "gate.name.entitlement": "entitlement",
+  "gate.name.authorization": "authorization",
+  "gate.name.consent": "consent",
+  "gate.name.policy": "policy",
+  "gate.name.budget": "budget",
+  "gate.name.unrecognised": "unnamed",
+  "inbox.gate.unrecognised": "A gate this page cannot name",
+  "inbox.refusedAtGate": "Refused at the {gate} gate",
+  "refusal.reason.actor_unverified": "who asked could not be confirmed, so sign in again and try once more",
+  "refusal.reason.actor_unknown": "whoever asked is not known to this company",
+  "refusal.reason.world_mismatch": "it was checked against a different company from the one it is for, so nothing was decided; try again",
+  "refusal.reason.not_a_member": "whoever asked is not a member of this company",
+  "refusal.reason.membership_inactive": "whoever asked no longer has an active membership in this company",
+  "refusal.reason.halted": "a halt is on, so nothing runs until someone releases it",
+  "refusal.reason.proposer_halted": "the agent that proposed it is halted, so its work waits until someone releases the halt",
+  "refusal.reason.plan_excludes_feature": "your plan does not include this",
+  "refusal.reason.quota_exhausted": "your plan\u2019s allowance for this is used up",
+  "refusal.reason.plan_limit_reached": "it would go past a limit your plan sets",
+  "refusal.reason.consent_absent": "nobody it would reach is on record as agreeing to be contacted this way",
+  "refusal.reason.consent_revoked": "a person it would reach withdrew their agreement to be contacted this way",
+  "refusal.reason.consent_insufficient": "what a person it would reach agreed to does not cover this kind of contact",
+  "refusal.reason.consent_unread": "whether a person it would reach agreed was not checked, so it cannot go ahead",
+  "refusal.reason.consent_too_many_recipients": "it names more people than one decision can check; split it into smaller groups",
+  "refusal.reason.consent_not_pinned": "the agreement it was proposed under is no longer the one on record, so it needs proposing again",
+  "refusal.reason.recipient_outside_scope": "it would write to somebody other than the person it was allowed to answer",
+  "refusal.reason.allowance_exhausted": "the credits for this period are used up",
+  "refusal.reason.capability_not_granted": "the permission it needs has not been granted",
+  "refusal.reason.capability_forbidden": "your policy forbids it, and no approval releases that",
+  "refusal.reason.environment_not_allowed": "your policy does not allow it where it would run",
+  "refusal.reason.blast_radius_exceeded": "it would reach more people than your policy allows one action to reach",
+  "refusal.reason.spend_ceiling_exceeded": "it would cost more than your policy allows one action to cost",
+  "refusal.reason.malformed_intent": "the request was not formed correctly, so nothing was decided",
+  "refusal.reason.contract_expired": "the proposal is too old to act on; propose it again",
+  "refusal.reason.action_prohibited": "what it would do never runs here, whatever anybody approves",
+  "refusal.reason.contract_malformed": "the proposal contradicts itself, so it cannot run as written; propose it again",
+  "refusal.reason.autonomy_shadow": "the agent that proposed it is still being observed, so its proposals are not acted on yet",
+  "refusal.reason.autonomy_suggest_only": "the agent that proposed it may only suggest; a person can do it themselves",
+  "refusal.reason.autonomy_sandbox_only": "the agent that proposed it may act only in a sandbox, not in production",
+  "refusal.reason.requires_approval": "it needs a person\u2019s approval first",
+  "refusal.reason.unrecognised": "the reason it gave is not one this page can describe",
+  "delegations.refused.signedOut": "Nothing was recorded, because you are not signed in to this company.",
+  "delegations.refused.unavailable": "Nothing was recorded. Try again in a moment.",
+  "contract.check.method.mechanical": "a mechanical check",
+  "contract.check.method.judged": "a judgement, not a mechanical check",
+  "contract.accountability.policy.gateName": "the {gate} gate",
+  "policies.governance.self.allowed_with_record": "Someone can approve their own request, and the record shows the same person asked and approved.",
+  "policies.governance.self.forbidden": "Nobody can approve their own request. Somebody else has to.",
+  "policies.governance.quorum": {
+    one: "An action that stops for a person needs {count} person to approve it.",
+    other: "An action that stops for a person needs {count} people to approve it."
+  },
+  "policies.governance.breakGlass.disabled": "There is no emergency override, so nothing skips an approval.",
+  "policies.governance.breakGlass.enabled_with_mandatory_review": "A company this size is meant to have an emergency override, reviewed after every use. {brand} does not offer one yet, so nothing skips an approval.",
+  "policies.governance.derived": "These follow from the size of the company rather than a setting: a one-person company must be able to approve its own actions or it can approve nothing at all, and more than one approval is asked for only once there are enough people for it to mean something. Changing them means adding people, not editing a setting.",
+  // 2026-09-28, what happened on Home in words, never the record's type (found on production).
+  // English only, every key listed in TRANSLATION_DEFERRED under the same date.
+  "home.event.signal.observed": "Something was noted",
+  "home.event.contract.proposed": "Work was proposed",
+  "home.event.contract.superseded": "A proposal was replaced",
+  "home.event.policy.decided": "The gates decided on a proposal",
+  "home.event.approval.requested": "An approval was asked for",
+  "home.event.approval.granted": "Work was approved",
+  "home.event.approval.denied": "Work was refused",
+  "home.event.approval.expired": "An approval ran out",
+  "home.event.approval.revision_requested": "Changes to a proposal were asked for",
+  "home.event.approval.escalated_by_person": "A decision was passed to someone else",
+  "home.event.approval.withdrawn": "An approval was withdrawn",
+  "home.event.run.started": "Work started",
+  "home.event.run.step.completed": "A step of the work finished",
+  "home.event.run.failed": "Work failed",
+  "home.event.run.compensated": "Work was undone",
+  "home.event.run.succeeded": "Work finished",
+  "home.event.verification.completed": "Work was checked",
+  "home.event.evidence.captured": "Evidence was kept",
+  "home.event.outcome.measured": "A result was measured",
+  "home.event.halt.engaged": "Autonomy was halted",
+  "home.event.halt.released": "The halt was released",
+  "home.event.policy.changed": "A policy changed",
+  "home.event.budget.reserved": "Credits were set aside",
+  "home.event.budget.settled": "Credits were spent",
+  "home.event.budget.refused": "Spending was refused",
+  "home.event.effect.pending": "An outside action began",
+  "home.event.effect.settled": "An outside action finished",
+  "home.event.effect.abandoned": "An outside action was given up",
+  "home.event.heartbeat.observed": "A regular check ran",
+  "home.event.incident.raised": "A problem was raised",
+  "home.event.incident.resolved": "A problem was resolved",
+  "home.event.memory.forgotten": "Something remembered was set aside",
+  "home.event.memory.corrected": "Something remembered was corrected",
+  "home.event.archive.sealed": "Part of the record was sealed",
+  "home.event.workflow.run.started": "A workflow started",
+  "home.event.workflow.step.started": "A workflow step started",
+  "home.event.workflow.step.resumed": "A workflow step resumed",
+  "home.event.workflow.step.completed": "A workflow step finished",
+  "home.event.workflow.step.failed": "A workflow step failed",
+  "home.event.workflow.step.outcome_unknown": "A workflow step ended without a known result",
+  "home.event.workflow.step.reconciled": "A workflow step\u2019s result was settled",
+  "home.event.workflow.step.blocked": "A workflow step waited for something",
+  "home.event.workflow.step.unblocked": "A workflow step could go on",
+  "home.event.workflow.step.timed_out": "A workflow step ran out of time",
+  "home.event.workflow.step.skipped": "A workflow step was skipped",
+  "home.event.workflow.step.verified": "A workflow step was checked",
+  "home.event.workflow.event.received": "A workflow was told something happened",
+  "home.event.workflow.run.exception": "A workflow needed attention",
+  "home.event.workflow.exception.resolved": "A workflow problem was resolved",
+  "home.event.workflow.run.cancelled": "A workflow was stopped",
+  "home.event.workflow.run.completed": "A workflow finished",
+  "home.event.workflow.run.migrated": "A workflow moved to a newer version",
+  "home.event.workflow.version.drafted": "A workflow version was drafted",
+  "home.event.workflow.version.published": "A workflow version was published",
+  "home.event.workflow.version.retired": "A workflow version was retired",
+  "home.event.workflow.trigger.fired": "A workflow was started by its trigger",
+  "home.event.workflow.trigger.paused": "A workflow trigger was paused",
+  "home.event.workflow.trigger.resumed": "A workflow trigger was resumed",
+  "home.event.saas.mapping.linked": "Two records were linked",
+  "home.event.saas.mapping.conflict_resolved": "A conflict between records was settled",
+  "home.event.saas.expectation.declared": "An expectation was set",
+  "home.event.saas.expectation.missed": "An expectation was missed",
+  "home.event.saas.rule.proposed": "A rule was proposed",
+  "home.event.saas.rule.reviewed": "A rule was reviewed",
+  "home.event.saas.rule.retired": "A rule was retired",
+  "home.event.saas.remedy.proposed": "A fix was proposed",
+  "home.event.saas.remedy.verified": "A fix was checked",
+  "home.event.saas.remedy.rolled_back": "A fix was undone",
+  "home.event.saas.usage_cap.set": "A usage limit was set",
+  "home.event.browser.vault.imported": "Saved sign-ins were imported",
+  "home.event.browser.vault.revoked": "Saved sign-ins were removed",
+  "home.event.browser.session.opened": "A browser was opened",
+  "home.event.browser.session.closed": "A browser was closed",
+  "home.event.browser.control.changed": "Control of a browser changed hands",
+  "home.event.browser.handoff.raised": "A browser asked for a person",
+  "home.event.browser.session.slept": "A browser was put to sleep",
+  "home.event.browser.session.woken": "A browser was woken",
+  "home.event.browser.file.transferred": "A file moved through a browser",
+  "home.event.browser.site.authorized": "A site was allowed in the browser",
+  "home.event.browser.site.revoked": "A site was no longer allowed in the browser",
+  "home.event.browser.account.verified": "A browser account was confirmed",
+  "home.event.contract.preflighted": "A proposal was checked before it ran",
+  "home.event.receipt.issued": "A receipt was issued",
+  "home.event.autonomy.demoted": "An agent was given less autonomy",
+  "home.event.autonomy.promoted": "An agent was given more autonomy",
+  "home.event.trust.proposal.signed": "A change in trust was signed",
+  "home.event.trust.proposal.rejected": "A change in trust was turned down",
+  "home.event.experiment.enrolled": "Work joined an experiment",
+  "home.event.experiment.withdrawn": "Work left an experiment",
+  "home.event.playbook.listing.published": "A workflow was listed as a playbook",
+  "home.event.playbook.listing.withdrawn": "A playbook listing was withdrawn",
+  "home.event.playbook.complaint.filed": "A complaint about a playbook was filed",
+  "home.event.playbook.complaint.withdrawn": "A complaint about a playbook was withdrawn",
+  "home.event.unrecognised": "Something happened that this page cannot describe",
   "account.push.unsupported.title": "This browser cannot show notifications",
   "account.push.unsupported.body": "Orvay cannot wake this browser when it is closed. Email still works.",
   "account.push.blocked.title": "Notifications are blocked here",
@@ -9614,6 +10788,16 @@ var PRODUCT_SOURCE = {
   "pullRequest.evidence.verifierGet": "orvay.verifier: GET https://api.github.com/repos/{repo}/pulls/{number}",
   "pullRequest.why.wrongBranch": "GitHub reports that pull request on branch {head}, not {branch}",
   "pullRequest.why.notConfirmed": "GitHub would not confirm the pull request ({status})",
+  // Outside executors, 2026-09-28 (docs/plan/38, mode A). English only, every key listed in TRANSLATION_DEFERRED
+  // under the same date.
+  "outsideExecution.contract.citation": "a pull request an outside agent asked to open, through an API key",
+  "outsideExecution.check.doesNotEstablish": "that the change is correct, which files it changes, that anybody has read it, or anything else the outside agent reported",
+  "outsideExecution.evidence.notRead": "orvay.verifier: nothing was read, because the report named no pull request in the repository this work was approved for",
+  "outsideExecution.why.notThisStep": "the report named no pull request in the repository this work was approved for",
+  "outsideExecution.why.noConnection": "Orvay could not read GitHub with this company\u2019s connection, so nothing was checked",
+  "outsideExecution.run.reportedFailed": "The outside agent reported that this step failed.",
+  "outsideExecution.run.notReported": "The outside agent that claimed this work did not report before its grant expired. Whether it did anything is unknown, and nothing was retried.",
+  "decision.error.outsideExecutor": "An outside agent does this work with its own access, once it claims it through the API. Orvay does not run it here.",
   // R5.4, checking a pull request again: what GitHub says about it later, one
   // sentence per fact, so the notice and the record both say which were established.
   "decision.recheck.title": "What checking again found",
@@ -9748,8 +10932,37 @@ var PRODUCT_SOURCE = {
   "social.post.reconnect": "Nothing was posted. The {account} connection has expired or was revoked, and only connecting {account} again on the integrations page can renew it.",
   "social.post.vendorAnswerOnly": "It was published. {account} does not let Orvay read a post back, so this address is {account}'s own answer and nothing independent has checked it.",
   "notification.summary.approval.escalated": "A decision has been waiting for a day",
+  // 2026-09-28 escalation bundle, English only: what the checks found, completed by the mail as `{summary} in {company}.`
+  "notification.summary.approval.escalated.approve": "A decision that can be undone, fits the credits left and follows past work of this kind that held has waited a day",
+  "notification.summary.approval.escalated.preflight_blocks": "A decision the check of the plan would stop has waited a day",
+  "notification.summary.approval.escalated.company_halted": "A decision that cannot run while the company is halted has waited a day",
+  "notification.summary.approval.escalated.allowance_exhausted": "A decision there are not enough credits left to run has waited a day",
+  "notification.summary.approval.escalated.gates_refuse": "A decision the gates refuse as things stand has waited a day",
+  "notification.summary.approval.escalated.commitments_missing": "A decision that does not commit to what it changes, costs or counts as done has waited a day",
+  "notification.summary.approval.escalated.undo_contradicts_plan": "A decision whose undo contradicts its own plan has waited a day",
+  "notification.summary.approval.escalated.state_changed_since_proposal": "A decision whose starting point has moved since it was proposed has waited a day",
+  "notification.summary.approval.escalated.current_state_unknown": "A decision whose starting point nobody knows has waited a day",
+  "notification.summary.approval.escalated.cost_exceeds_allowance": "A decision that may cost more than the credits left has waited a day",
+  "notification.summary.approval.escalated.mostly_not_established": "A decision from a proposer whose past work of this kind mostly did not hold has waited a day",
+  "notification.summary.approval.escalated.irreversible_and_untried": "A decision that cannot be undone, carries high risk and has no past work of this kind behind it has waited a day",
+  "notification.summary.approval.escalated.cannot_be_undone": "A decision that cannot be undone has waited a day",
+  "notification.summary.approval.escalated.only_partly_undone": "A decision that can only partly be undone has waited a day",
+  "notification.summary.approval.escalated.high_risk": "A decision that carries high risk has waited a day",
+  "notification.summary.approval.escalated.cites_untrusted_context": "A decision that rests on material from outside the company has waited a day",
+  "notification.summary.approval.escalated.preflight_raises": "A decision in which the check of the plan found something to look at has waited a day",
+  "notification.summary.approval.escalated.preflight_not_run": "A decision the check of the plan has not been run on has waited a day",
+  "notification.summary.approval.escalated.failed_before": "A decision from a proposer with some past work of this kind that did not hold has waited a day",
+  "notification.summary.approval.escalated.no_track_record": "A decision from a proposer with no past work of this kind that held has waited a day",
+  "notification.summary.approval.escalated.spends_company_money": "A decision that spends the company's own money has waited a day",
+  "notification.summary.approval.escalated.cost_unchecked": "A decision whose cost could not be compared with the credits left has waited a day",
+  "notification.summary.approval.escalated.before_declared_not_read": "A decision whose starting values are only what the proposal says has waited a day",
+  "notification.summary.approval.escalated.no_citations": "A decision that cites nothing for its claims has waited a day",
   // ATT-8: the daily briefing, in a line the product wrote rather than a count.
   "notification.summary.briefing.ready": "Your morning briefing is ready",
+  // 2026-09-28: the morning letter says whether anything needs you (docs/plan/37). English only.
+  "notification.summary.briefing.needs": "Something needs you this morning. Your inbox has only what does.",
+  "notification.summary.briefing.critical": "Something critical needs you this morning. Open your inbox first.",
+  "notification.summary.briefing.quiet": "Nothing needs you this morning. Your briefing says what ran overnight and what was checked.",
   // -------------------------------------------------------------------------
   // The second factor: the challenge at sign-in, and the enrolment in account
   // settings. CLAUDE.md 6a listed "no MFA, no TOTP" until this shipped.
@@ -10311,7 +11524,7 @@ var PRODUCT_SOURCE = {
   "integrations.mastodon.error.unreachable": "That instance did not answer, so nothing was registered there. Check the hostname and try again.",
   "integrations.mastodon.error.not-an-instance": "That host did not answer as a Mastodon instance, so nothing was registered there.",
   "integrations.mastodon.error.register": "That instance would not register {brand}, so there is nowhere to sign in yet. You can paste an access token below instead.",
-  "integrations.mastodon.status.connected": "Your instance granted access and the token is stored encrypted. It was asked for permission to post statuses and to read your account, and for nothing else.",
+  "integrations.mastodon.status.connected": "Your instance granted access and the token is stored encrypted. It was asked for permission to post statuses, to read who the account is and to read its notifications, which is where replies and mentions arrive, and for nothing else.",
   "integrations.mastodon.status.declined": "You cancelled at your instance, so nothing was granted and nothing was stored.",
   "integrations.mastodon.status.state": "The reply from your instance did not belong to the attempt this browser started, so it was not read. Start again from this page.",
   "integrations.mastodon.status.no-code": "Your instance answered without a code, so there was nothing to exchange. Start again from this page.",
@@ -10322,6 +11535,9 @@ var PRODUCT_SOURCE = {
   "integrations.mastodon.status.unresolved": "Your instance could not be looked up when the sign-in came back, so nothing was exchanged and nothing was stored. Try again in a few minutes.",
   "integrations.ok.mastodon-revoked": "Disconnected. {instance} confirmed the token is revoked, and the key and the stored credential were both destroyed.",
   "integrations.ok.mastodon-unrevoked": "Disconnected. The key and the stored credential were both destroyed, but {instance} did not confirm the token is revoked. Remove {brand} from the authorized apps in your account settings there.",
+  // Row 187 (e): a grant Orvay minted through Google's OAuth goes back to Google before the shred.
+  "integrations.ok.google-revoked": "Disconnected. Google confirmed the access is revoked, and the key and the stored credential were both destroyed.",
+  "integrations.ok.google-unrevoked": "Disconnected. The key and the stored credential were both destroyed, but Google did not confirm the access is revoked. Remove {brand} from the third-party connections in your Google Account.",
   // The GitHub row leading with the App where this deployment holds one.
   "integrations.githubApp.lead": "Install the {brand} GitHub App on the repositories you choose. {brand} stores only the installation and the account it was verified against, and asks GitHub for a one-hour token limited to one repository each time it opens a pull request.",
   "integrations.githubApp.tokenFallback": "Or paste a personal access token instead. A token is not limited to the repositories an installer chose: it reaches whatever its owner granted, and it stays valid until the expiry its owner set rather than for one hour.",
@@ -10432,6 +11648,131 @@ var PRODUCT_SOURCE = {
   "inbox.elsewhere.count": "Needs you",
   "inbox.elsewhere.atLeast": "Needs you, at least",
   "inbox.elsewhere.more": "You are in more workspaces than this list counts.",
+  // 2026-09-28, company health on Home (docs/plan/37). English only.
+  "home.health.heading": "Company health, last {days} days",
+  "home.health.autonomous": "Verified work nobody had to approve",
+  "home.health.autonomous.note": "Work a standing approval covered counts. Work a person approved does not.",
+  "home.health.ofTotal": "{part} of {whole}",
+  "home.health.verified": "Verified success rate",
+  "home.health.interval": "likely between {low} and {high}",
+  "home.health.waited": "Time work waited on a person",
+  "home.health.minutes": "{minutes} min",
+  "home.health.waited.note": "An estimate from how long approvals took, not time anybody spent.",
+  "home.health.spend": "Spent on work done without asking",
+  "home.health.credits": "credits",
+  "home.health.uncosted": "Runs whose cost was not recorded: {count}.",
+  "home.health.goals": "Goals with verified work",
+  "home.health.goals.measured": "Measured and moved: {moved} of {measured}. A move is not proof the work caused it.",
+  "home.health.undoable": "Work that ran and cannot be fully undone",
+  "home.health.rollback": "Work that can be rolled back",
+  "home.health.drift": "Change in verified success since the period before",
+  "home.health.points": "{points} points",
+  "home.health.drift.significant": "More than chance would explain.",
+  "home.health.drift.noise": "Within what chance would explain.",
+  "home.health.ladder": "Where autonomy stands",
+  "home.health.ladder.none": "Nothing has moved on the autonomy ladder yet. What runs without asking is set by your policies.",
+  "home.health.standing": "Standing approvals in force",
+  "home.health.standing.ending": "Ending within a week: {count}.",
+  "home.health.unauthored": "Grants with no recorded author",
+  "home.health.open": "How these are measured",
+  "home.health.openPolicies": "Open policies",
+  "home.health.why.noActions": "Nothing ran in this period.",
+  "home.health.why.noPrevious": "Nothing ran in the period before, so there is nothing to compare.",
+  "home.health.why.noWait": "Nothing waited for an approval.",
+  "home.health.why.notYet": "Not enough yet to say.",
+  // 2026-09-28, the attention inbox (docs/plan/37): only what needs a person, in six
+  // categories, with done and snooze keyed to the state an item was in. English only,
+  // every key listed in TRANSLATION_DEFERRED under the same date.
+  "attention.lead": "Only what needs a person: incidents, decisions, work that stopped, unusual spend, proposals to ask you less often, and real changes in your numbers. Work that ran and held up is on the record, not here.",
+  "attention.counts.label": "What is on this list",
+  "attention.category.incident.heading": "Incidents",
+  "attention.category.incident.lead": "Something went wrong and a person has to handle it. Open an incident to pause, take over, resume or stop what it concerns.",
+  "attention.category.incident.short": "Incidents",
+  "attention.category.decision.heading": "Decisions",
+  "attention.category.decision.lead": "Work waiting for a yes or a no.",
+  "attention.category.decision.short": "Decisions",
+  "attention.category.exception.heading": "Stopped work",
+  "attention.category.exception.lead": "Work that stopped and cannot continue on its own.",
+  "attention.category.exception.short": "Stopped",
+  "attention.category.spend.heading": "Unusual spend",
+  "attention.category.spend.lead": "Credits behaving differently from usual.",
+  "attention.category.spend.short": "Spend",
+  "attention.category.promotion.heading": "Autonomy",
+  "attention.category.promotion.lead": "Proposals to ask you less often, and places where Orvay stepped back.",
+  "attention.category.promotion.short": "Autonomy",
+  "attention.category.signal.heading": "Changes in your numbers",
+  "attention.category.signal.lead": "A real change in a source you connected. A change is not a cause.",
+  "attention.category.signal.short": "Numbers",
+  "attention.empty.title": "Nothing needs you",
+  "attention.empty.body": "When work stops, money moves unusually or something goes wrong, it appears here. Everything else runs, is checked and is on the record.",
+  "attention.empty.action": "See what ran",
+  "attention.severity.critical": "Critical",
+  "attention.severity.high": "Important",
+  "attention.unattended": "Running without anyone, as your policies allow: {count}.",
+  "attention.unattended.link": "Open the approvals queue",
+  "attention.aside.summary": "Set aside: {count}",
+  "attention.aside.note": "An item you set aside comes back by itself when its situation changes, and a snooze ends after a week at most.",
+  "attention.aside.done": "Done",
+  "attention.aside.day": "Snooze a day",
+  "attention.aside.week": "Snooze a week",
+  "attention.aside.pending": "Saving",
+  "attention.aside.bringBack": "Bring back",
+  "attention.aside.bringBack.pending": "Bringing it back",
+  "attention.aside.state.done": "Marked done",
+  "attention.aside.state.snoozed": "Snoozed",
+  "attention.aside.error.refused": "That item cannot be set aside that way.",
+  "attention.aside.error.unavailable": "That could not be saved. Try again in a moment.",
+  "attention.spend.exhausted.title": "This period's credits are used up",
+  "attention.spend.exhausted.body": "New work that costs credits is refused until the period ends on {date}.",
+  "attention.spend.nearly.title": "Nine tenths of this period's credits are used",
+  "attention.spend.nearly.body": "{percent} used. The period ends on {date}.",
+  "attention.spend.pace.title": "At this pace the credits run out before the period ends",
+  "attention.spend.pace.body": "At the rate so far they run out around {date}. The period ends on {end}.",
+  "attention.spend.held.title": "Credits are held by work that has not finished",
+  "attention.spend.held.body": "Credits were set aside for work that started at {when} and has not finished. Check that it is still running.",
+  "attention.spend.over.title": "Work cost more than its approved limit",
+  "attention.spend.over.body": "It was approved for at most {committed} credits and cost {actual}.",
+  "attention.spend.over.bodyOther": "It cost more than the most its approval allowed, in {currency}.",
+  "attention.spend.day.title": "Yesterday cost more than that weekday usually does",
+  "attention.spend.day.body": "{observed} credits, against about {expected} on the same weekday in recent weeks.",
+  "attention.spend.open": "Open usage",
+  "attention.spend.openContract": "Open the work",
+  "attention.promotion.proposal.title": "A proposal to ask you less often",
+  "attention.promotion.proposal.body": "Nothing changes until somebody signs it. It covers this kind of work:",
+  "attention.promotion.demotion.title": "Orvay stepped back",
+  "attention.promotion.demotion.body": "This kind of work waits for a person again, because recent runs did not hold up:",
+  "attention.promotion.open": "Open autonomy",
+  "attention.signal.change.title": "A change in your numbers",
+  "attention.signal.up": "Above what recent weeks predicted.",
+  "attention.signal.down": "Below what recent weeks predicted.",
+  "attention.signal.upBy": "{percent} above what recent weeks predicted.",
+  "attention.signal.downBy": "{percent} below what recent weeks predicted.",
+  "attention.signal.fault.title": "Numbers that may be wrong",
+  "attention.signal.fault.body": "The readings from this source look broken, so anything based on them is doubtful.",
+  "attention.signal.source": "From {source}",
+  "attention.signal.open": "See it on Home",
+  // 2026-09-28, from the production pass over the attention inbox. English only.
+  "inbox.refusedByGates": "Refused by the gates",
+  "inbox.refused.body": "{gate} refuses it as things stand. No approval releases a refusal: refuse it, or fix what the gate needs and propose it again.",
+  "inbox.refused.bodyUnnamed": "The gates refuse it as things stand. No approval releases a refusal: refuse it, or fix what they need and propose it again.",
+  "inbox.gate.authenticate": "The authentication gate",
+  "inbox.gate.scope": "The scope gate",
+  "inbox.gate.halt": "The halt gate",
+  "inbox.gate.entitlement": "The entitlement gate",
+  "inbox.gate.authorization": "The authorization gate",
+  "inbox.gate.consent": "The consent gate",
+  "inbox.gate.policy": "The policy gate",
+  "inbox.gate.budget": "The budget gate",
+  "home.health.goals.unmeasured": "No goal has a measured number yet.",
+  "attention.incident.open": "Open the incident",
+  "home.health.incidents": "Incidents open now",
+  "home.health.incidents.critical": "Critical: {count}.",
+  "attention.when": "Since {when}",
+  "attention.brief.heading": "What needs you",
+  "attention.brief.none": "Nothing needs you right now.",
+  "attention.brief.open": "Open your inbox",
+  "attention.brief.link": "Read the morning brief",
+  "inbox.needs.takeover.open": "Open the browser",
   // G3.13 / ADR-0072 D11, 2026-09-17: the one list that answers "what needs me". A proposal
   // waiting in the queue and a workflow run that stopped are produced by different machinery
   // and a person does not care which, so they are one list here. English only, every key
@@ -10975,8 +12316,17 @@ var PRODUCT_SOURCE = {
   "workflows.dryRun.lead": "Every scenario, simulated. Nothing is admitted, no connector is reached and no money is reserved.",
   "workflows.dryRun.passed": "Passed",
   "workflows.dryRun.failed": "Failed",
-  "workflows.dryRun.result": "Scenario {id} ended {outcome}.",
-  "workflows.dryRun.problem": "Problem: {code}",
+  // One message per outcome and per problem (`workflows/actions.ts`), never a state or a code in a template.
+  "workflows.dryRun.outcome.succeeded": "Scenario \u201C{id}\u201D succeeded.",
+  "workflows.dryRun.outcome.failed": "Scenario \u201C{id}\u201D failed.",
+  "workflows.dryRun.outcome.exception": "Scenario \u201C{id}\u201D stopped on a problem it could not get past.",
+  "workflows.dryRun.outcome.stalled": "Scenario \u201C{id}\u201D stopped with nothing left it could do.",
+  "workflows.dryRun.problem.expectedSuccess": "The scenario expects the run to succeed, and it did not.",
+  "workflows.dryRun.problem.expectedFailure": "The scenario expects the run to fail, and it did not.",
+  "workflows.dryRun.problem.stepNotReached": "The scenario expects the run to reach step \u201C{step}\u201D, and it never did.",
+  "workflows.dryRun.problem.stalled": "The run stopped before it ended, waiting on something the scenario never provides.",
+  // The interpreter never yields a live instruction in a dry run, so this is a fault of ours, not of the scenario.
+  "workflows.dryRun.problem.liveInstruction": "The dry run stopped where the run would have done something for real. A dry run never does, so nothing was sent, and this is a fault in Orvay rather than in your scenario.",
   "workflows.publish.submit": "Publish",
   "workflows.publish.busy": "Publishing",
   "workflows.publish.doneTitle": "Published",
@@ -11061,6 +12411,158 @@ var PRODUCT_SOURCE = {
   "workflows.error.gate": "Refused at the {gate} gate: {reason}",
   "workflows.error.unavailable": "That did not finish: {reason}",
   "workflows.error.signedOut": "You are signed out. Sign in and try again.",
+  "workflows.playbooks.link": "Playbooks other companies listed",
+  // ---------------------------------------------------------------------------
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): a company lists a published
+  // workflow version for other companies, withdraws it, and installs one as a
+  // fork. No rate is shown yet (plan 40 §3.1), and the index says so in words.
+  // English only for now, every key listed in TRANSLATION_DEFERRED under the
+  // same date.
+  // ---------------------------------------------------------------------------
+  "playbooks.title": "Playbooks",
+  "playbooks.lead": "Workflows other Orvay companies chose to list. Installing one copies it into your company as a new workflow draft. It runs nothing until you publish it, and each of its steps is checked against your own permissions and policy when it runs.",
+  "playbooks.empty.title": "Nothing is listed yet",
+  "playbooks.empty.body": "When a company lists one of its published workflows, it appears here. You can list one of yours from its workflow page.",
+  "playbooks.listing.by": "Listed by {company}",
+  "playbooks.listing.anonymous": "Listed by a company that chose not to show its name",
+  "playbooks.listing.yours": "Listed by your company",
+  "playbooks.listing.listedAt": "Listed",
+  "playbooks.listing.steps": "Steps",
+  "playbooks.listing.version": "Version",
+  "playbooks.rate": "Not enough runs yet to show a rate.",
+  // Statistics above the cohort, 2026-09-28 (docs/plan/40 §4 step 3). English only, listed in TRANSLATION_DEFERRED.
+  "playbooks.stats.heading": "Runs in companies that installed it",
+  "playbooks.stats.cohort": "These figures appear only once at least thirty ended runs are counted, from companies whose organizations were set up by at least five different people. Counts are rounded down to a multiple of five and shares to the nearest five points. No company is named in them, and a company\u2019s runs count only for playbooks it installed from another person\u2019s company.",
+  "playbooks.stats.undecided": "No rate is shown yet: it needs more runs with an outcome, spread across more people.",
+  "playbooks.stats.atLeast": "{count}+",
+  "playbooks.stats.companies.term": "Companies that ran it",
+  "playbooks.stats.companies.means": "Companies that installed it and ran it, other than the company that listed it and companies set up by the same person.",
+  "playbooks.stats.runs.term": "Ended runs",
+  "playbooks.stats.runs.means": "Runs in those companies that finished or were stopped. Dry runs are not counted.",
+  "playbooks.stats.decided.term": "Runs with an outcome",
+  "playbooks.stats.decided.means": "Runs that failed, or that a check decided. A run somebody stopped before any check failed has no outcome, and the two rates below are shares of these runs.",
+  "playbooks.stats.verified.term": "Verified",
+  "playbooks.stats.verified.means": "The run succeeded and an independent check confirmed each change it made. It means the playbook\u2019s own checks passed in the companies that ran it, not that it suits your company.",
+  "playbooks.stats.failed.term": "Failed",
+  "playbooks.stats.failed.means": "The run failed, or a check found that the work was not done.",
+  // Complaints, 2026-09-28 (docs/plan/40 §4 step 4). English only, listed in TRANSLATION_DEFERRED.
+  "playbooks.stats.installs.term": "Companies that installed it",
+  "playbooks.stats.installs.means": "Companies that hold a copy, other than the company that listed it and companies set up by the same person.",
+  "playbooks.stats.complaints.term": "Complaints",
+  "playbooks.stats.complaints.means": "The share of the companies that installed it with a complaint that stands. A complaint is a report by one of those companies, not a finding by Orvay.",
+  "playbooks.reason.does_not_work": "It does not work",
+  "playbooks.reason.not_as_described": "It does not do what its description says",
+  "playbooks.reason.unexpected_actions": "It acts in ways its listing does not make clear",
+  "playbooks.reason.personal_data": "It contains personal data or a credential",
+  "playbooks.reason.prohibited_use": "It is for a use Orvay\u2019s terms do not allow",
+  "playbooks.complain.lead": "Your company installed this playbook, so it can complain about it once, choosing a reason. The company that listed it is never told which company complained.",
+  "playbooks.complain.reasonLabel": "Reason",
+  "playbooks.complain.submit": "File a complaint",
+  "playbooks.complain.busy": "Filing",
+  "playbooks.complain.doneTitle": "Complaint filed",
+  "playbooks.complain.done": "Your company\u2019s complaint is filed. It stands until you withdraw it.",
+  "playbooks.complain.failTitle": "Not filed",
+  "playbooks.complain.notListed": "This playbook is not listed now, so it cannot take a new complaint.",
+  "playbooks.complain.notInstalled": "Only a company that installed this playbook can complain about it.",
+  "playbooks.complain.notRun": "Your company can complain about this playbook once a run of its copy has ended. A dry run does not count.",
+  "playbooks.complain.own": "Your company listed this playbook, so it cannot complain about it.",
+  "playbooks.complain.already": "Your company already has a complaint about this playbook.",
+  "playbooks.complain.badReason": "Choose one of the reasons in the list.",
+  "playbooks.complain.notPermitted": "Complaining about a playbook needs a permission you do not hold here.",
+  "playbooks.complain.halted": "Your company is halted, so no complaint can be filed until the halt is released. A complaint already filed can still be withdrawn.",
+  "playbooks.complain.filed": "Your company has a complaint about this playbook: {reason}.",
+  "playbooks.complaints.heading": "Complaints your company filed",
+  "playbooks.complaints.lead": "Each one stands until you withdraw it. The companies that listed these playbooks are not told who complained.",
+  "playbooks.complaints.notListed": "A playbook that is not listed now",
+  "playbooks.complaints.filedAt": "Filed",
+  "playbooks.complaints.withdraw": "Withdraw complaint",
+  "playbooks.complaints.busy": "Withdrawing",
+  "playbooks.complaints.doneTitle": "Complaint withdrawn",
+  "playbooks.complaints.done": "Withdrawn. It no longer counts.",
+  "playbooks.complaints.failTitle": "Not withdrawn",
+  "playbooks.complaints.notFiled": "Your company has no complaint about this playbook.",
+  "playbooks.hidden.title": "Hidden from other companies",
+  "playbooks.hidden.body": "Companies that installed it complained, from organizations set up by at least three different people and from at least one fifth of the companies that installed it, so Orvay hides it: nobody can install it, and copies already installed are not touched. It is shown again only when enough complaints are withdrawn. You can also list a new version, which starts as a new listing with no complaints. There is no review by a person yet.",
+  "playbooks.hidden.reasons": "Reasons given: {reasons}.",
+  "playbooks.hidden.indexLead": "Complaints hid these listings of your company from other companies. Open one to see why.",
+  // Remix, 2026-09-28 (docs/plan/40 §4 step 4). English only, listed in TRANSLATION_DEFERRED.
+  "playbooks.remix.from": "Adapted from",
+  "playbooks.remix.fromUnlisted": "Adapted from a playbook that is not listed now.",
+  "playbooks.requirements.heading": "What it needs",
+  "playbooks.requirements.capabilities": "Permissions its steps ask for",
+  "playbooks.requirements.toolServers": "Tool servers it calls",
+  "playbooks.requirements.hosts": "Sites it acts on in a browser",
+  "playbooks.requirements.eventSources": "Deliveries it starts from or waits for",
+  "playbooks.requirements.features": "Plan features",
+  "playbooks.requirements.none": "None",
+  "playbooks.ceiling.heading": "How far it can be undone",
+  "playbooks.ceiling.lead": "Its least reversible step:",
+  "playbooks.compat.heading": "In your company, read now",
+  "playbooks.compat.lead": "Read just now against your permissions, your tool servers and your plan. It is not a promise: permissions and connections change, and every step is checked again when it runs.",
+  "playbooks.compat.allowed": "allowed",
+  "playbooks.compat.approval": "asks for approval",
+  "playbooks.compat.refused": "refused here",
+  "playbooks.compat.missingToolServer": "Not connected here: {server}",
+  "playbooks.compat.missingFeature": "Not on your plan: {feature}",
+  "playbooks.compat.unchecked": "Not checked here: which deliveries your company receives, and which sites it has authorized for a browser.",
+  "playbooks.compat.ready": "Nothing above is refused here or missing.",
+  "playbooks.compat.notReady": "Something above is refused here or missing, so a run would stop at that step.",
+  "playbooks.install.heading": "Install",
+  "playbooks.install.submit": "Install as a draft",
+  "playbooks.install.busy": "Installing",
+  "playbooks.install.doneTitle": "Installed",
+  "playbooks.install.done": "Installed as the workflow {lineage}. It is a draft: read it, change what you need, and publish it when it is right for your company.",
+  "playbooks.install.failTitle": "Not installed",
+  "playbooks.install.notListed": "This playbook is no longer listed, so it cannot be installed.",
+  "playbooks.install.already": "Your company already installed this playbook as the workflow {lineage}.",
+  "playbooks.install.noLineage": "Your company already uses every name this workflow could be installed under.",
+  "playbooks.install.installedAs": "Installed in your company as {lineage}.",
+  "playbooks.install.open": "Open the workflow",
+  "playbooks.install.notPermitted": "Installing needs a permission you do not hold here.",
+  "playbooks.install.halted": "Your company is halted, so nothing can be installed until the halt is released.",
+  "playbooks.withdraw.submit": "Withdraw this listing",
+  "playbooks.withdraw.busy": "Withdrawing",
+  "playbooks.withdraw.doneTitle": "Withdrawn",
+  "playbooks.withdraw.done": "Withdrawn. Nobody can install it from now on. Copies already installed stay with the companies that installed them.",
+  "playbooks.withdraw.failTitle": "Not withdrawn",
+  "playbooks.withdraw.notListed": "This version is not listed.",
+  "playbooks.publish.heading": "List as a playbook",
+  "playbooks.publish.lead": "Listing shows this published version to every other Orvay company: all of its steps, its name and the description you write here. They can install a copy of it and change their copy. Withdrawing stops new installs. Copies already installed stay with the companies that installed them.",
+  "playbooks.publish.checks": "Before it is listed, Orvay refuses it if any text in it or in the description holds a credential, an email address, a phone number or the full name of one of your members, if a step is assigned to a named member, types a credential your company saved in Orvay or runs another workflow, or if its name or description is refused by our terms. Anything else it holds is shown as written, so read it first.",
+  "playbooks.publish.descriptionLabel": "Description",
+  "playbooks.publish.descriptionHint": "What it does and when it helps, in 10 to 500 characters. Other companies read this.",
+  "playbooks.publish.showAuthorLabel": "Show the company name on the listing",
+  "playbooks.publish.submit": "List this version",
+  "playbooks.publish.busy": "Listing",
+  "playbooks.publish.doneTitle": "Listed",
+  "playbooks.publish.done": "Listed. Other companies can read and install it from Playbooks.",
+  "playbooks.publish.failTitle": "Not listed",
+  "playbooks.publish.refused": "It was not listed, for these reasons:",
+  "playbooks.publish.notFound": "That version is not one of your company\u2019s.",
+  "playbooks.publish.notPublished": "Only a published version can be listed.",
+  "playbooks.publish.already": "This version is already listed.",
+  // 2026-09-28 review of the playbook remix: a version another company listed first. English only, in TRANSLATION_DEFERRED.
+  "playbooks.publish.listedByAnother": "Another company listed this exact version first, so it cannot be listed again. Change your copy, publish the change, then list that version.",
+  "playbooks.publish.notPermitted": "Listing a playbook needs a permission you do not hold. By default only the owner holds it.",
+  "playbooks.publish.halted": "Your company is halted, so nothing can be listed until the halt is released. A listing can still be withdrawn.",
+  "playbooks.publish.listed": "This version is listed as a playbook.",
+  "playbooks.publish.named": "The company name is shown on the listing.",
+  "playbooks.publish.anonymous": "The company name is not shown on the listing.",
+  "playbooks.publish.viewIndex": "See it in Playbooks",
+  "playbooks.problem.literal.credential": "A credential is written at {path}.",
+  "playbooks.problem.literal.email": "An email address is written at {path}.",
+  "playbooks.problem.literal.phone": "A phone number is written at {path}.",
+  "playbooks.problem.literal.member_name": "The name of one of your members is written at {path}.",
+  "playbooks.problem.description.credential": "The description holds a credential.",
+  "playbooks.problem.description.email": "The description holds an email address.",
+  "playbooks.problem.description.phone": "The description holds a phone number.",
+  "playbooks.problem.description.member_name": "The description holds the name of one of your members.",
+  "playbooks.problem.member_assignee": "Step {step} is assigned to a named member. Assign it to the owner or to a role.",
+  "playbooks.problem.vault_item": "Step {step} types a credential your company saved in Orvay.",
+  "playbooks.problem.subworkflow": "Step {step} runs another workflow, which only your company holds.",
+  "playbooks.problem.prohibited.name": "Its name is refused by our terms.",
+  "playbooks.problem.prohibited.description": "The description is refused by our terms.",
+  "playbooks.problem.description_length": "The description must be between 10 and 500 characters.",
   // ---------------------------------------------------------------------------
   // Usage and cost (ADR-0073 D10, D11). What the automated work used this month,
   // in CREDITS, and how often a person had to step in. Our metered dollars, the
@@ -11199,6 +12701,10 @@ var PRODUCT_SOURCE = {
   "notification.headline.workflow.notice": "A workflow has a message for you",
   "notification.headline.workflow.task": "A workflow is waiting for your answer",
   "notification.headline.workflow.exception": "A workflow stopped and needs a person",
+  // 2026-09-28 customer incidents, English only, listed in TRANSLATION_DEFERRED.
+  "notification.headline.incident.opened": "Something went wrong with the company's work",
+  "notification.headline.incident.critical": "Something went wrong that may reach people outside the company",
+  "notification.summary.incident.critical": "An incident needs a person: open it to pause the work, take it over or stop it.",
   // ---------------------------------------------------------------------------
   // The context screens (ADR-0073 D1, D2, D3, D5, D6): who a customer is across
   // your systems, what you expect to happen and by when, and the review of a
@@ -11667,6 +13173,11 @@ var PRODUCT_SOURCE = {
   "social.post.image.orphaned": "Nothing was posted. {account} took the picture and then refused the post, so the picture is attached to no post. It is not public, and Orvay will not try again on its own.",
   "social.post.image.unknown": "The picture reached {account} and the request that would have posted it did not complete, so Orvay cannot tell whether the post went out. It was not posted again. Look at the {account} account before doing anything.",
   "social.post.unknown": "The request that would have posted this to {account} did not complete, so Orvay cannot tell whether the post went out. It was not posted again. Look at the {account} account before doing anything.",
+  // A post whose vendor did not answer keeps its approval, 2026-09-27 (ADR-0103). English only, listed in TRANSLATION_DEFERRED.
+  "social.post.notAnswered": "{account} did not answer, so nothing was posted. The approval stands, and the post can be tried again in a few minutes.",
+  "social.post.notNow": "{account} answered {status}, which asks for the post to wait, so nothing was posted. The approval stands, and the post can be tried again in a few minutes.",
+  "social.post.anotherAttemptFailed": "Another attempt at this post finished a moment ago without posting it. The approval stands, and the post can be tried again in a few minutes.",
+  "social.post.attemptsUsed": "Every attempt at this post failed before anything was posted, so Orvay does not try it again. Check the {account} connection under Integrations.",
   "social.post.resume.unconfirmed": "An earlier attempt at this post started and never reported back, and {account} cannot be asked whether it went out, so it was not posted again. Look at the {account} account: if the post is not there, publish it by hand. Orvay will not post it a second time.",
   "toolCall.run.resumeUnconfirmed": "An earlier attempt to call {tool} on {server} started and never reported back, and the server cannot be asked whether the call ran, so it was not called again. Check {server}: if the call did not happen there, make it by hand. Orvay will not call it a second time.",
   "mailbox.reply.resume.otherWords": "An earlier attempt at this reply started and never reported back, and the conversation now holds a message from this mailbox that is not the approved reply. Orvay cannot tell whether the reply went, so it was not sent again. Look at the conversation in the mailbox: if the reply is not there, send it by hand. Orvay will not send it a second time.",
@@ -11709,7 +13220,7 @@ var PRODUCT_SOURCE = {
   "activity.unread.inbox-overdue.open": "Open it in the reply queue",
   "support.replies.link": "Replies and mentions on your social accounts",
   "support.replies.why": "What people write to your Mastodon, Bluesky and X accounts, with the one reply you may send each.",
-  "socialInbox.lead": "What people write to your company on Mastodon, Bluesky and X: replies to your posts, and posts that mention your account. Nothing else is read, and nothing is searched for.",
+  "socialInbox.lead": "What people write to your company on Mastodon, Bluesky and X: replies to your posts, and posts that mention your account. The inbox reads nothing else. Searching X is something you do yourself on the integrations page, and nothing from a search lands here.",
   "socialInbox.limits": "Each message has an owner and a time to answer by. A reply is written by a person, waits on the approvals page until somebody approves those exact words, and is sent once. Messages are removed {days} days after Orvay reads them.",
   "socialInbox.accounts.heading": "Accounts",
   "socialInbox.account.notConnected": "{vendor} is not connected.",
@@ -11815,6 +13326,15 @@ var PRODUCT_SOURCE = {
   "contract.social.from": "From {author}",
   "contract.social.messageMissing": "The message this answers was removed or is no longer here.",
   "contract.social.yourWords": "The reply",
+  // The post itself on the approvals page, 2026-09-27. English only, listed in TRANSLATION_DEFERRED.
+  "contract.post.title": "The post on {vendor}",
+  "contract.post.vendorUnknown": "a channel the proposal does not name",
+  "contract.post.pinned": "These are the exact words that get posted, sealed into the proposal. Changing them needs a new proposal and a new approval.",
+  "contract.post.words": "The words",
+  "contract.post.wordsMissing": "The proposal carries no words, so running it is refused rather than posting nothing.",
+  "contract.post.picture": "The picture",
+  "contract.post.pictureDescribed": "Posted with a picture described as: {alt}",
+  "contract.post.pictureMalformed": "The proposal names a picture it does not fully describe, so running it is refused rather than posting the words without it.",
   "brand.inbox.heading": "Replies and mentions answered",
   "brand.inbox.lead": "Of the replies and mentions that arrived in the last {days} days:",
   "brand.inbox.inTime": "Answered in time",
@@ -11823,11 +13343,118 @@ var PRODUCT_SOURCE = {
   "brand.inbox.closed": "Closed without a reply",
   "brand.inbox.open": "Still inside the time to answer",
   "brand.inbox.noCause": "These are counts of what happened. They do not say why, or what a reply changed.",
-  "brand.inbox.unavailable": "The answered counts could not be read just now."
+  "brand.inbox.unavailable": "The answered counts could not be read just now.",
+  // X: the company’s own posts, a search, and deleting one post, 2026-09-26 (ADR-0097). English only,
+  // listed in TRANSLATION_DEFERRED under the same date.
+  "integrations.x.posts.title": "Your posts on X",
+  "integrations.x.posts.show": "Show your recent posts",
+  "integrations.x.posts.showWhy": "X charges your X developer account for every post it returns, so Orvay reads them only when you ask, at most 100 at a time.",
+  "integrations.x.posts.summary": "Posts read: {posts}. Likes: {likes}, reposts: {reposts}, replies: {replies}.",
+  "integrations.x.metrics": "Likes: {likes}, reposts: {reposts}, replies: {replies}, quotes: {quotes}.",
+  "integrations.x.metric.views": "Views: {views}.",
+  "integrations.x.metric.unknown": "not given",
+  "integrations.x.posts.top": "The most engaging posts on this page",
+  "integrations.x.posts.empty": "X returned no posts for your account.",
+  "integrations.x.posts.older": "Read older posts",
+  "integrations.x.posts.delete": "Ask to delete",
+  "integrations.x.post.by": "{author}, {date}.",
+  "integrations.x.post.open": "Open on X",
+  "integrations.x.search.title": "Search X",
+  "integrations.x.search.lead": "Public posts from the last seven days, which is as far back as X searches. X charges your X developer account for every post it returns, at most 100 per search. Orvay shows the results to you and keeps none of them.",
+  "integrations.x.search.label": "Search recent posts",
+  "integrations.x.search.hint": "Words, a handle or a hashtag, in X\u2019s own search syntax. At most {max} characters.",
+  "integrations.x.search.submit": "Search X",
+  "integrations.x.search.empty": "Type something to search for.",
+  "integrations.x.search.tooLong": "A search is at most {max} characters, so nothing was searched.",
+  "integrations.x.search.none": "X found no public posts from the last seven days for that search.",
+  "integrations.x.search.more": "Show more results",
+  "integrations.x.search.busy": "Searching",
+  "integrations.x.search.busyReason": "Orvay is asking X for posts that match",
+  "integrations.x.error.title": "Nothing was proposed",
+  "integrations.x.error.notOurs": "X has no such post on your connected account, so there is nothing to delete.",
+  "integrations.x.error.notConnected": "Connect your X account first.",
+  "integrations.x.error.reconnect": "X no longer accepts the keys Orvay holds. Connect X again with new keys.",
+  "integrations.x.error.unavailable": "Orvay could not reach its own records, so nothing was done. Try again in a moment.",
+  "integrations.x.error.payment": "X refused because your X developer account has no credit left. Add credit in the X developer portal, then try again.",
+  "integrations.x.error.rateLimited": "X asked Orvay to wait before asking again. Try again in fifteen minutes.",
+  "integrations.x.error.unreachable": "X did not answer, so nothing could be read this time. Reload the page to try again.",
+  "xDelete.contract.objective": "Delete this post on X: {url}",
+  "xDelete.contract.claim": "A member of the company asked to delete one of its own posts on X.",
+  "xDelete.contract.citation": "The post on the company\u2019s own X account, as X returned it: {url}",
+  "xDelete.contract.verification": "X\u2019s public embed no longer finds the post, asked with no credential by a different actor.",
+  "contract.xDelete.title": "The post that will be deleted on X",
+  "contract.xDelete.lead": "Deleting cannot be undone. X keeps nothing of a deleted post, and its replies and reposts go with it. Copies or screenshots somebody already made stay where they are.",
+  "contract.xDelete.post": "The post",
+  "contract.xDelete.open": "Open it on X",
+  "xDelete.approval.rationale": "Ran an approved deletion from the decision page",
+  "xDelete.run.refusedByPerson": "Somebody refused this deletion, so nothing was deleted.",
+  "xDelete.run.notADeletion": "This is not a deletion a person asked for, so Orvay will not run it.",
+  "xDelete.run.inFlight": "This deletion is already running. Wait a moment, then look again.",
+  "xDelete.run.unknown": "The request that would have deleted this post did not complete, so Orvay cannot tell whether it is gone. Press Run again: deleting a post that is already gone changes nothing.",
+  "xDelete.run.otherAccount": "The X account connected now is not the one that published this post, so nothing was deleted.",
+  "xDelete.run.failed": "The post could not be deleted.",
+  "xDelete.run.notRecorded": "It was deleted, and Orvay could not record the run.",
+  "xDelete.run.notVerified": "It was deleted, and a second look could not yet confirm it is gone.",
+  // Deleting the company's own post on a channel other than X, 2026-09-28 (ADR-0105). {channel} is the
+  // channel's name, a proper noun. English only, every key listed in TRANSLATION_DEFERRED under the same date.
+  "ownPostDelete.contract.objective": "Delete this post on {channel}: {url}",
+  "ownPostDelete.contract.claim": "A member of the company asked to delete one of its own posts on {channel}.",
+  "ownPostDelete.contract.citation": "The post on the company\u2019s own {channel} account, as {channel} returned it: {url}",
+  "ownPostDelete.contract.verification": "{channel} no longer shows the post publicly, asked with no credential by a different actor.",
+  "ownPostDelete.contract.verification.youtube": "YouTube no longer returns the reply when a different actor asks with the company\u2019s own connection.",
+  "ownPostDelete.run.otherAccount": "The {channel} account connected now is not the one that published this post, so nothing was deleted.",
+  "contract.ownPostDelete.title": "The post that will be deleted on {channel}",
+  "contract.ownPostDelete.lead": "Deleting cannot be undone. Replies and reposts lose the post they point to, and copies somebody already made stay where they are, including any kept by services that read {channel} publicly.",
+  "contract.ownPostDelete.gone": "{channel} no longer has this post on your connected account, so there is nothing left to delete.",
+  "contract.ownPostDelete.unreadable": "Orvay could not ask {channel} for the post\u2019s words just now. The link below opens it on {channel}.",
+  "contract.ownPostDelete.open": "Open it on {channel}",
+  "integrations.ownPosts.title": "Your posts on {channel}",
+  "integrations.ownPosts.empty": "{channel} returned no posts for your account.",
+  "integrations.ownPosts.open": "Open on {channel}",
+  "integrations.ownPosts.error.notOurs": "{channel} has no such post on your connected account, so there is nothing to delete.",
+  "integrations.ownPosts.error.notConnected": "Connect your {channel} account first.",
+  "integrations.ownPosts.error.reconnect": "{channel} no longer accepts the sign in Orvay holds. Connect {channel} again.",
+  "integrations.ownPosts.error.rateLimited": "{channel} asked Orvay to wait before asking again. Try again in a few minutes.",
+  "integrations.ownPosts.error.unreachable": "{channel} did not answer, so nothing could be read this time. Reload the page to try again.",
+  "integrations.ownPosts.error.refused": "{channel} refused this request, so nothing was read or proposed.",
+  "integrations.mastodon.posts.showWhy": "Anybody can read these on your instance, so Orvay reads them without your sign in, only when you ask, at most 40 at a time, and keeps none of them.",
+  "integrations.youtube.answered.delete": "Ask to delete Orvay\u2019s reply",
+  "integrations.youtube.hide": "Ask to hide this comment",
+  "integrations.youtube.error.notOnChannel": "That comment is not under one of your connected channel\u2019s videos, or your channel wrote it itself, so Orvay will not hide it.",
+  "commentHide.contract.objective": "Hide this comment on YouTube: {url}",
+  "commentHide.contract.claim": "A member of the company asked to hide a comment somebody else wrote under one of its YouTube videos.",
+  "commentHide.contract.citation": "The comment under the company\u2019s own video, as YouTube returned it: {url}",
+  "commentHide.contract.verification": "YouTube returns the comment as hidden, or not at all, when a different actor asks with the company\u2019s own connection.",
+  "contract.commentHide.title": "The comment that will be hidden on YouTube",
+  "contract.commentHide.lead": "Hiding takes this comment off your video for everybody who watches it. Its author is not banned, and Orvay does not bring a hidden comment back.",
+  "contract.commentHide.comment": "The comment",
+  "contract.commentHide.gone": "YouTube no longer shows this comment, so there is nothing left to hide.",
+  "capability.name.social.comment.hide.youtube": "Hide a comment somebody else wrote under your YouTube video",
+  "integrations.youtube.error.notOwnReply": "That is not a reply Orvay posted on your connected channel, or YouTube no longer has it, so there is nothing to delete.",
+  "integrations.bluesky.posts.showWhy": "Anybody can read these on Bluesky, so reading them costs nothing. Orvay reads them only when you ask, at most 50 at a time, and keeps none of them.",
+  "decision.ok.xDeleted": "Deleted: {url}. A second look found it gone.",
+  "decision.ok.xDeletedNote": "Deleted: {url}. {why}",
+  "decision.ok.xAlreadyDeleted": "That post is already deleted: {url}",
+  "decision.error.xStillPublic": "X answered that it deleted the post, and a second look still finds it public: {url}. Open it on X and look before doing anything else.",
+  "integrations.x.error.plan": "Your plan does not include this, so nothing was read or proposed.",
+  "integrations.x.error.allowance": "Your company has used its allowance for now, so nothing was read or proposed.",
+  "integrations.x.error.seat": "Your seat does not include this, so nothing was read or proposed.",
+  "integrations.x.error.halted": "Your company is halted, so nothing was read or proposed.",
+  "integrations.x.error.policy": "Your company\u2019s policy refused this, so nothing was read or proposed. The policies page says what it allows.",
+  "integrations.x.error.forbidden": "X refused this for your X developer account, so nothing was read. Your X plan may not include it.",
+  "integrations.x.error.xRefused": "X refused this request, so nothing was read. If it was a search, check the words and search again.",
+  "contract.xDelete.gone": "X no longer has this post on your connected account, so there is nothing left to delete.",
+  "contract.xDelete.unreadable": "Orvay could not ask X for the post\u2019s words just now. The link below opens it on X."
 };
 
 // ../../packages/content/src/legal.ts
 var LEGAL_UPDATED = {
+  // Moved 2026-09-28, also: rights, the sentence on a post already published names Bluesky beside
+  // X as a channel where a member asks Orvay to delete the company's own post and a person approves
+  // each deletion (ADR-0105). Enforced by the runner's own approval requirement, as for X.
+  // The same day it also names Mastodon, and a reply Orvay posted on YouTube, as ADR-0105 adds them.
+  // And gains a paragraph under what we collect for Google Search Console, Google Ads and YouTube, including the
+  // Limited Use statement Google requires, and hiding a comment somebody else wrote (ADR-0105 decision 11).
   // Moved 2026-09-24: what we collect gained the replies and mentions a company's
   // Mastodon, Bluesky and X accounts receive once a member starts reading them,
   // and how long we keep them gained the 90-day removal and removal on request
@@ -11847,8 +13474,56 @@ var LEGAL_UPDATED = {
   // Moved 2026-09-25: a single sign-on session's lifetime, what an employer's
   // identity provider gives us, that the product asks for a name (ADR-0092), and
   // what an employer's directory may do over SCIM (ADR-0093).
-  privacy: "2026-09-25",
-  terms: "2026-08-27",
+  // Moved 2026-09-26: a company can run model calls on its own key for Anthropic, OpenAI and, since ADR-0096, six more
+  // (ADR-0095). The transfers line says under whose agreement those calls go, and the
+  // recipients section says that vendor is not one of our service providers.
+  // Moved 2026-09-26 again (ADR-0097): what we collect says a member can read one page of the
+  // company's own X posts or search recent X posts, shown and kept nowhere, and the erasure right
+  // says a post on X can be deleted from Orvay, where a member asks and a person approves.
+  // Moved 2026-09-27: the transfers section says TypeSafe AI receives data since that day (the notice hold lifted).
+  // Moved 2026-09-28: who else sees it says what listing a workflow as a playbook shows every
+  // other company, what Orvay refuses in a listing and what it cannot recognise (docs/plan/40).
+  // Moved 2026-09-28: what we collect says Orvay keeps what an outside agent reports about approved work it did
+  // through an API key (the step, the outcome, the reference and a bounded note), as the agent's claim and not as
+  // proof, that Orvay checks the result itself, and that the note reaches no model (docs/plan/38). Enforced by
+  // `orvay.execution_reports` (the note's bound) and `tests/schema/report-text-fenced.test.ts` (no model reads it).
+  // Changed again the same day, before it shipped, so the date stands: the paragraph says a reported failure is not
+  // checked, that the reference reaches the audit trail and the export while the note reaches neither, and no longer
+  // says a person approved the work where the company may have decided in advance (a key never approves itself).
+  // And again the same day, still before it shipped: Orvay keeps no note from an outside agent (none is read, and
+  // one could not have been erased), so the paragraph names the reference as the only text kept, and a note is refused.
+  // And once more, before it shipped: Orvay TRIES the check, and one that does not finish keeps nothing, shows the
+  // work as not checked (`apps/app/src/server/check-words.ts`) and is not tried again on its own.
+  // And again, before it shipped: a report that arrives while the company is halted is recorded and NOT checked,
+  // because a halted company opens no connection (`reportThroughKey`, plan 38 §9.3 item 3); the sentence says so.
+  // Changed again the same day, so the date stands: who else sees it gained what is counted
+  // across companies for a playbook (runs of installed copies, outside the listing company's
+  // organization), the totals shown, and the cohort of five organizations and thirty runs below
+  // which nothing is shown (docs/plan/40 §4 step 3, migration 20260928110000).
+  // Changed again the same day, so the date stands: that paragraph now also names how many
+  // companies installed it and the share with a complaint standing, and says no complaint is
+  // shown on its own (docs/plan/40 §4 step 4, migration 20260928110100).
+  // Corrected after review, before it shipped: the cohort counts the PEOPLE who set up the
+  // organizations (five), not organizations; figures are published rounded (counts down to a multiple
+  // of five, shares to five points); no share of runs while one person carries more than a third of
+  // them; and a company counts only for playbooks installed from another person's company.
+  privacy: "2026-09-28",
+  // Moved 2026-09-26: model calls on a key a company connected are billed by that
+  // vendor and not taken from credits (ADR-0095).
+  // Moved 2026-09-28: a new section on playbooks a company lists (what becomes visible, per
+  // version, withdrawal, the refusals and their limits, a copy runs under the installer's own
+  // policy), and the acceptable-use checks count the listing's name and description (docs/plan/40).
+  // Changed again the same day, so the date stands: the playbooks section gained who may complain
+  // and with what, that the listing company is never told who, and when Orvay hides a listing,
+  // with no review by a person yet (docs/plan/40 §4 step 4, migration 20260928110100).
+  // Changed again the same day, so the date stands: a listed copy of an installed playbook names
+  // the playbook it came from, which its company cannot change (the same migration, `derived_from`).
+  // Corrected the same day after review, before it shipped: a version another company listed first is
+  // refused, so an unedited copy cannot be listed (`orvay.playbook_listings_first_lister`).
+  // Corrected again after review, before it shipped: a complaint needs an ended run of the copy, the
+  // hiding rule counts the PEOPLE who set up the complaining organizations rather than organizations,
+  // and a hidden listing comes back only by withdrawals (or the listing company lists a new version).
+  terms: "2026-09-28",
   imprint: "2026-08-20",
   // Moved 2026-09-23: four recipients were missing while three already held a
   // production key (Fish Audio, Brave Search, Browser Use) and the fourth had
@@ -11866,10 +13541,15 @@ var LEGAL_UPDATED = {
   // and says the key was deleted and the code removed. And Brave's row says searches
   // before 25 September had nothing removed, not 23: the removal reached production
   // with the release of 25 September, and the page described the branch before that.
-  subprocessors: "2026-09-25",
+  // Moved 2026-09-26: a new last section, providers a company connects with its own key
+  // (ADR-0095): not our sub-processors, no notice period, never mixed with our accounts.
+  // Moved 2026-09-27: TypeSafe AI's status says it has received data since that day.
+  subprocessors: "2026-09-27",
   // Moved 2026-09-23: the sub-processor clause stops claiming every contract is
   // at least as strong as this one, and names Brave's exclusion of queries.
-  dpa: "2026-09-23",
+  // Moved 2026-09-26: the annex's nature and purpose names a company's own key, and the
+  // sub-processor and transfer sections say a vendor on it is not one we engage (ADR-0095).
+  dpa: "2026-09-26",
   security: "2026-08-20"
 };
 var CONTROLLER = {
@@ -11982,7 +13662,25 @@ var PRIVACY_NOTICE = {
         },
         {
           kind: "text",
-          text: "If your company connects a Mastodon, Bluesky or X account to Orvay and a member of the company starts reading it, Orvay reads the replies to that account\u2019s posts and the posts that mention the account, and nothing else. For each one it keeps the author\u2019s handle, display name and account identifier, the text exactly as they wrote it, the address of the post and of the post it answers, and when it arrived. On Mastodon, a post shown only to the author\u2019s followers or to the people it names is not kept. Nothing is searched for, and no account other than the company\u2019s own is read."
+          text: "If your company connects a Mastodon, Bluesky or X account to Orvay and a member of the company starts reading it, Orvay reads the replies to that account\u2019s posts and the posts that mention the account, and nothing else. For each one it keeps the author\u2019s handle, display name and account identifier, the text exactly as they wrote it, the address of the post and of the post it answers, and when it arrived. On Mastodon, a post shown only to the author\u2019s followers or to the people it names is not kept. This reading covers the company\u2019s own account and nothing else, and a search, described next, adds nothing to it."
+        },
+        // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+        {
+          kind: "text",
+          text: "If your company connects an X account, a member of the company can also ask Orvay to show one page of that account\u2019s own posts with the numbers X publishes for them, or to search X for public posts from the last seven days that match words the member types. A search can return posts by anybody, including people who never wrote to the company. Orvay shows the result to that member and keeps none of it: not the posts, not who wrote them, and not the words searched for, which go to X. When a member asks to delete one of the company\u2019s own posts, the request keeps the post\u2019s address, not its words. The company decides what to search for and why, and Orvay runs the search on its instruction. X charges the company\u2019s own X developer account for every post it returns."
+        },
+        {
+          kind: "text",
+          text: "The same company setting covers one more use. While it is on, Orvay may send the task and the goal of work the company\u2019s agents have already done, together with the company\u2019s name, to a model provider a second time, to check whether a new version of our instructions to the model does that work at least as well as the version it replaces. Nothing the original work read is sent, because it was never kept. Orvay keeps none of the text that comes back: only which piece of work it was, whether each answer passed, which model gave it and what it cost. We run this only for a company we name when we start it, never for a company that has turned the setting off, and the company is not charged for it."
+        },
+        {
+          kind: "text",
+          text: "If your company connects Google Search Console, Google Ads or YouTube, a member can ask Orvay to show that account\u2019s search performance, its ad accounts\u2019 figures, or the newest comments on the channel\u2019s videos, and a question in the console that names one of them has that data read for the answer. What is read is shown to the member, or sent to the text model with the question, and is kept only as far as the answer written from it repeats it. When a member proposes a reply to a YouTube comment, the name of the person who wrote the comment and their words are kept with the reply\u2019s record, because the person approving the reply reads them. Orvay posts a reply, deletes a reply it posted, or hides a comment somebody else wrote under one of the company\u2019s videos only after a person approves that one action. The access Google grants is stored encrypted, and disconnecting destroys it. Orvay\u2019s use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements."
+        },
+        // Appended 2026-09-28 (docs/plan/38, outside executors), never inserted (§7a).
+        {
+          kind: "text",
+          text: "If your company lets an agent it runs itself, such as a coding agent, use an API key to do work that a person in your company approved, or that your company decided in advance may go ahead without asking, Orvay keeps what that agent reports afterwards: which step it says it did, whether it says the step worked, and the reference it gives, which can only be the address of what it did, such as a pull request. Orvay keeps no note and no other text from the agent: a report that carries a note is refused. The report is kept as the agent\u2019s account and never as proof. When the agent says the step worked, Orvay tries to check the result itself with the connection your company made, and keeps what it found beside the report. If that check does not finish, or your company is halted when the report arrives, Orvay keeps nothing about it, shows the work as not checked, and does not check it again on its own. When the agent says the step failed, Orvay records that as the agent\u2019s account and checks nothing. The reference is also written into your company\u2019s audit trail, so it is part of your company\u2019s data export."
         }
       ]
     },
@@ -12066,6 +13764,22 @@ var PRIVACY_NOTICE = {
         {
           kind: "text",
           text: "We disclose personal data to nobody else. If an authority compelled disclosure we would follow the law, and we would tell you unless we were forbidden from telling you."
+        },
+        // Appended 2026-09-26 (ADR-0095), never inserted: `pN` is positional (§7a).
+        {
+          kind: "text",
+          text: "A model vendor your company connects with its own key is not one of our service providers. It is named on the sub-processor page under providers you connect with your own key, with what we send it."
+        },
+        // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+        {
+          kind: "text",
+          text: "If your company lists a workflow as a playbook, what it lists is visible to every other company that uses Orvay and to the people in those companies: the workflow\u2019s steps and settings as written, its name, the description written for the listing, and your company\u2019s name only if it chose to show it. Who in your company listed it is not shown. We refuse a listing whose text contains an email address or a phone number in the forms we recognise, a credential we recognise, or the full name of a member of your company as Orvay records it. Other personal data can still appear in a listing if a company writes it there, such as a customer\u2019s name, a member\u2019s recorded name shorter than three letters, or a postal address. The terms of service require companies not to list a workflow that contains information about a person. A company can withdraw a listing at any time, and copies other companies installed before then stay with them."
+        },
+        // Appended 2026-09-28 (docs/plan/40 §4 step 3), never inserted: `pN` is positional (§7a).
+        // What `orvay.playbook_statistics` (migration 20260928110000) aggregates, and its cohort.
+        {
+          kind: "text",
+          text: "If your company installs a playbook that another company listed, it counts towards statistics shown with that playbook to every company on Orvay, including the one that listed it: how many companies installed it, how many ran it, how many runs ended, of the runs with an outcome the share that an independent check verified and the share that failed, and the share of the companies that installed it with a complaint standing. Only those totals are shown, with counts rounded down to a multiple of five and shares rounded to the nearest five percentage points. No single run or complaint is shown, and no company is named in them. They are shown only once the runs counted come from companies whose organizations were set up by at least five different people and number at least thirty, and the shares of runs only once the runs with an outcome reach the same threshold on their own and no one person\u2019s companies account for more than a third of the runs. A company counts only for playbooks it installed from a company whose organization was set up by a different person, never for a workflow it wrote itself, and a dry run, which changes nothing, is never counted."
         }
       ]
     },
@@ -12098,7 +13812,7 @@ var PRIVACY_NOTICE = {
             },
             {
               term: "Model prompts, voice and decisions",
-              detail: "Text sent to a model goes to OpenAI and is processed in the United States, outside Switzerland and outside the EEA. Anthropic receives nothing today. In voice mode, the sound of your voice goes to OpenAI as well. Safeguard: OpenAI\u2019s data processing addendum, under which our contract is with OpenAI Ireland Ltd., which passes the data outside the EEA and Switzerland on the standard contractual clauses or an adequacy decision; we are not a party to those clauses. From a start date at least 30 days after we notify customers, TypeSafe AI in the United States also receives the start of a piece of work given to an agent, a website brief and the conversation about it, pages read while researching, a message posted in a room and, where your company lets Orvay decide on mailbox replies, your company\u2019s name, the email being answered and the drafted reply. Safeguard: the standard contractual clauses in its data processing addendum, which has no Swiss addendum. Web searches go to Brave Search and browser sessions to Browser Use, both in the United States, and each has its own line below. Your waitlist address is never part of any of this."
+              detail: "Text sent to a model goes to OpenAI and is processed in the United States, outside Switzerland and outside the EEA. Under our own accounts, Anthropic receives nothing today. If your company connects its own key for Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq or OpenRouter, the text model calls your company\u2019s work makes go to that vendor under your company\u2019s own agreement with it, apart from the ones the sub-processor page names, and are processed where that agreement says. That vendor is then your company\u2019s provider rather than ours, and the transfer rests on your company\u2019s agreement with it, not on ours. In voice mode, the sound of your voice goes to OpenAI as well. Safeguard: OpenAI\u2019s data processing addendum, under which our contract is with OpenAI Ireland Ltd., which passes the data outside the EEA and Switzerland on the standard contractual clauses or an adequacy decision; we are not a party to those clauses. Since 27 September 2026, TypeSafe AI in the United States also receives the start of a piece of work given to an agent, a website brief and the conversation about it, pages read while researching, a message posted in a room and, where your company lets Orvay decide on mailbox replies, your company\u2019s name, the email being answered and the drafted reply. Safeguard: the standard contractual clauses in its data processing addendum, which has no Swiss addendum. Web searches go to Brave Search and browser sessions to Browser Use, both in the United States, and each has its own line below. Your waitlist address is never part of any of this."
             },
             {
               term: "Web searches",
@@ -12185,7 +13899,7 @@ var PRIVACY_NOTICE = {
             },
             {
               term: "Erasure",
-              detail: "Ask us to delete your data and we will. GDPR Art. 17. Where the audit chain prevents removing a record, we destroy the personal data inside it and leave the remainder, which can still show that something happened and can no longer show what it said. The operator does this by hand. A picture a company added to its posts can be removed on its brand page, which deletes the picture from storage. Orvay does not delete a post already published. The company can delete it on the channel. The record of a post already prepared keeps the picture's description, because that record is never changed."
+              detail: "Ask us to delete your data and we will. GDPR Art. 17. Where the audit chain prevents removing a record, we destroy the personal data inside it and leave the remainder, which can still show that something happened and can no longer show what it said. The operator does this by hand. A picture a company added to its posts can be removed on its brand page, which deletes the picture from storage. A post already published is deleted by the company: on the channel itself, or, for a post on X, Bluesky or Mastodon or a reply Orvay posted on YouTube, from Orvay, where a member asks and a person approves each deletion. The record of a post already prepared keeps the picture's description, because that record is never changed."
             },
             {
               term: "Restriction",
@@ -12388,7 +14102,7 @@ var TERMS_OF_SERVICE = {
         },
         {
           kind: "text",
-          text: "Two checks enforce the line above, and it is worth knowing exactly what they are so you do not mistake them for more. The name and the web address you give us are checked against a short list of terms when you set up, before we fetch anything. Separately, an agent refuses to work on a goal that asks for one of these things. Neither is a review of everything you do, neither reads your data, and neither is a substitute for you knowing what you are running."
+          text: "Three checks enforce the line above, and it is worth knowing exactly what they are so you do not mistake them for more. The name and the web address you give us are checked against a short list of terms when you set up, before we fetch anything. Separately, an agent refuses to work on a goal that asks for one of these things. And the name and the description of a workflow your company lists as a playbook are checked against the same list before it is listed. None of them is a review of everything you do, none of them reads your data, and none of them is a substitute for you knowing what you are running."
         }
       ]
     },
@@ -12441,6 +14155,61 @@ var TERMS_OF_SERVICE = {
         }
       ]
     },
+    /*
+      PLAYBOOKS, ADDED 2026-09-28 (docs/plan/40 §4 step 2). What listing a workflow
+      version makes visible to every other company, that it is chosen per version,
+      what withdrawing does and does not do, and the refusals `listingProblemsOf` in
+      `apps/app/src/server/playbook-listing.ts` actually makes, with their limits
+      (§7a rules 1 and 2). The public fields are the columns `orvay.listed_playbooks`
+      returns (migration 20260928064000).
+    */
+    {
+      id: "playbooks",
+      heading: "Playbooks your company lists",
+      blocks: [
+        {
+          kind: "text",
+          text: "Your company can list a published version of one of its workflows as a playbook, so that other companies on Orvay can install a copy of it. Listing is decided for each version separately, and nothing is listed unless somebody with the permission to list does it. By default only the owner has that permission."
+        },
+        {
+          kind: "text",
+          text: "Listing a version makes it visible to every other company that uses Orvay and to the people in those companies: all of its steps and settings as they are written, its name, the description written for the listing, an identifier of the version, and when it was listed. Your company\u2019s name is shown with it only if you choose that when you list it. Who in your company listed it is not shown."
+        },
+        {
+          kind: "text",
+          text: "Before a version is listed, Orvay refuses to list it if any text in it or in its description contains a credential of a kind we recognise, an email address, a phone number written in one of the usual international or national forms, or the full name of a member of your company as Orvay records it, in any letter case. Orvay also refuses a version with a step that is assigned to a named member, types a credential your company saved in Orvay, or runs another of your company\u2019s workflows, and it checks the name and the description against the short list of terms described in the section on what you may not do."
+        },
+        {
+          kind: "text",
+          text: "Those checks have limits. Anything they do not recognise is shown as written, for example a name Orvay does not hold, such as a customer\u2019s, a name spelled differently from our record, a recorded name shorter than three letters, a postal address, or an email address or a phone number written in some other way. Do not list a workflow that contains information about a person, and read a version before you list it."
+        },
+        {
+          kind: "text",
+          text: "You can withdraw a listing at any time. From then on nobody can install it. Copies that other companies installed before you withdrew it stay with those companies, and we do not remove or change them."
+        },
+        {
+          kind: "text",
+          text: "Installing a playbook copies it into the installing company as a new workflow that belongs to that company. Listing a version does not make anything run in another company: a copy runs only after the company that installed it publishes it, and then under that company\u2019s own permissions, policy and approvals. A version you publish or list later does not change a copy already installed."
+        },
+        // Appended 2026-09-28 (docs/plan/40 §4 step 4), never inserted: `pN` is positional (§7a).
+        // Complaints (`fileComplaint`, `orvay.playbook_complaints`) and the hiding rule
+        // (`orvay.playbook_listing_standing`, migration 20260928110100).
+        {
+          kind: "text",
+          text: "A company that installed a playbook can file a complaint about it once a run of its copy has ended (a dry run does not count), choosing one reason from a fixed list: it does not work, it does not do what its description says, it acts in ways its listing does not make clear, it contains personal data or a credential, or it is for a use these terms do not allow. A complaint carries no text of its own. A company has at most one complaint standing about each playbook, and can withdraw it at any time. The company that listed the playbook is never told which company complained. The share of the companies that installed it with a complaint standing is shown with the playbook\u2019s other statistics, and only when those are shown."
+        },
+        {
+          kind: "text",
+          text: "Orvay hides a playbook from other companies while complaints about it stand from companies whose organizations were set up by at least three different people, and from at least one fifth of the companies that installed it. Several organizations set up by one person count as one. Companies in the listing company\u2019s own organization, or in another organization set up by the same person as that one, are not counted, either as companies that installed it or for their complaints. While it is hidden nobody can install it, copies already installed are not changed, and the company that listed it sees on its own listing that it is hidden and which of the reasons above were given, never which company gave them. There is no review by a person yet. A hidden playbook is shown again only when enough complaints are withdrawn. The listing company can withdraw the listing at any time, and can list a new version of the workflow, which is a new listing with no complaints."
+        },
+        // Appended 2026-09-28 (docs/plan/40 §4 step 4), never inserted: `pN` is positional (§7a).
+        // Remix: `derived_from`, set by the listing guard (migration 20260928110100), shown by `RemixSource`.
+        {
+          kind: "text",
+          text: "A company that installed a playbook can edit its copy, publish it and list it as a playbook of its own. Orvay refuses to list a version that another company listed first, even after that listing is withdrawn, so an installed copy that is still exactly that version cannot be listed. For any other copy, Orvay records, from the copy itself, which playbook it was installed from, and the listing shows that it was adapted from that playbook: by name while it can be installed, and otherwise by an identifier of its version. The company that lists the copy cannot remove or change that record. A copy listed again passes every check described above, against the members of its own company, and the runs and complaints of the companies that install it count towards its own statistics, not those of the playbook it came from."
+        }
+      ]
+    },
     {
       id: "availability",
       heading: "Availability",
@@ -12462,6 +14231,11 @@ var TERMS_OF_SERVICE = {
         {
           kind: "text",
           text: "Nothing is charged today. When plans go on sale, the price, what it includes and every limit will be stated on the pricing page before you pay, not after. Quota is measured in what your usage actually costs us, and credits are how that is displayed. The free plan stops when its allowance is gone and never runs up a bill."
+        },
+        // Appended 2026-09-26 (ADR-0095), never inserted: `pN` is positional (§7a).
+        {
+          kind: "text",
+          text: "Model calls made on a key your company connected are billed to your company by that vendor and are not taken from your credits."
         }
       ]
     },
@@ -12710,6 +14484,42 @@ var SUB_PROCESSOR_NOTICE = {
           text: "We give customers at least 30 days notice by email before a new sub-processor starts processing their personal data, and you may object in writing during that period on reasonable data protection grounds. If we cannot resolve the objection you may terminate the affected service without penalty. That commitment is part of the data processing agreement, not a courtesy."
         }
       ]
+    },
+    // Appended 2026-09-26 (ADR-0095), after the last section, never inserted (§7a).
+    {
+      id: "own-key",
+      heading: "Providers you connect with your own key",
+      blocks: [
+        {
+          kind: "text",
+          text: "If your company connects its own key for Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq or OpenRouter, the text model calls your company\u2019s work makes go to that vendor under your company\u2019s own agreement with it. Building and editing your website, voice, memory search and images stay on our accounts. That vendor processes the calls as your company\u2019s provider, not as ours, so it is not on the list above, and connecting one does not start the 30 days notice: your company chose it."
+        },
+        {
+          kind: "text",
+          text: "We send it the same text we would send on our own accounts, prepared the same way. What the vendor keeps, for how long, and what else it may do with it is set by your company\u2019s agreement with that vendor, not by ours. A request to us to erase data reaches what we hold, and not what the vendor holds under your company\u2019s key."
+        },
+        {
+          kind: "text",
+          text: "We never mix the two. A call your company\u2019s key pays for is not sent on our account, and a call on our account is not sent with your company\u2019s key. If your company\u2019s key stops working, the work waits and says so rather than moving to our account."
+        },
+        {
+          kind: "text",
+          text: "Every call your company\u2019s work makes to a vendor it has not connected a key for still goes on our account, to the providers on the list above."
+        },
+        {
+          kind: "text",
+          text: "We keep your company\u2019s key sealed and use it only for your company\u2019s calls. Disconnecting it destroys our copy. It does not cancel the key at the vendor, which you do in the vendor\u2019s own console."
+        },
+        // Appended 2026-09-26 (ADR-0096), never inserted (§7a).
+        {
+          kind: "text",
+          text: "If your company chooses to run on its own keys alone, every text model call its work makes goes to a provider it connected a key for, and a call none of them can serve waits and says so rather than going to the providers on the list above. Building and editing your website, voice, memory search and images still use the providers on the list above."
+        },
+        {
+          kind: "text",
+          text: "A call on a Mistral key goes to Mistral\u2019s EU endpoint, which Mistral serves from data centres in EU and EFTA countries. A call on an OpenRouter key goes to OpenRouter, which passes it to a provider that serves the model, in a region OpenRouter does not guarantee."
+        }
+      ]
     }
   ]
 };
@@ -12754,7 +14564,7 @@ var DATA_PROCESSING_AGREEMENT = {
             },
             {
               term: "Nature and purpose",
-              detail: "Storage, retrieval, transmission to the sub-processors on the published list, and submission to model vendors where you instruct an agent to do work that needs one."
+              detail: "Storage, retrieval, transmission to the sub-processors on the published list, and submission to model vendors where you instruct an agent to do work that needs one, either on our accounts or, where you connect your own key, on yours."
             },
             {
               term: "Categories of data subject",
@@ -12845,6 +14655,11 @@ var DATA_PROCESSING_AGREEMENT = {
         {
           kind: "text",
           text: "Each sub-processor is bound by a written contract with data protection obligations no weaker than these, except Brave Search for the search queries we send it, which its agreement excludes; what we remove from a query before it is sent is on the sub-processor page. Where one fails to meet them, we remain fully liable to you for its performance. Art. 28(4) GDPR."
+        },
+        // Appended 2026-09-26 (ADR-0095), never inserted: `pN` is positional (§7a).
+        {
+          kind: "text",
+          text: "A model vendor you connect with your own key is not a sub-processor we engage. You engage it under your own agreement with it, and by connecting the key you instruct us to send it the model calls the sub-processor page describes (Art. 28(3)(a) GDPR). The authorisation, the notice period and the obligations above apply to the sub-processors we engage, and not to it."
         }
       ]
     },
@@ -12859,6 +14674,11 @@ var DATA_PROCESSING_AGREEMENT = {
         {
           kind: "text",
           text: "Switzerland holds an adequacy decision from the European Commission, so a transfer from the EEA to our database in Zurich needs no further instrument."
+        },
+        // Appended 2026-09-26 (ADR-0095), never inserted: `pN` is positional (§7a).
+        {
+          kind: "text",
+          text: "A transfer to a model vendor you connected with your own key rests on your agreement with that vendor, not on ours."
         }
       ]
     },
@@ -13112,7 +14932,14 @@ var LEGAL_SOURCE = {
   "legal.privacy.collected.p8": "If your employer connects its own identity provider to Orvay for single sign-on, signing in through it gives us your work email address, and your name when the provider sends one. The provider confirms who you are, so you give us no password. If your employer has allowed it, your first sign-in through its provider creates your account and a seat in your employer\u2019s company with the permissions of a member, and we record that you joined.",
   "legal.privacy.collected.p9": "Inside the product we ask what to call you, and you cannot work there without a name, because the people in your company see it beside the work you propose and the decisions you take. You can change it at any time from your account.",
   "legal.privacy.collected.p10": "If your employer also connects its employee directory to Orvay, the directory can create your account and your seat in the same way, change the name your colleagues see, and switch your seat off. We keep the identifier the directory uses for you so that it can find you again, and it is cleared with your other details if your personal data is erased. Once your seat is switched off, you can no longer open that company in Orvay.",
-  "legal.privacy.collected.p11": "If your company connects a Mastodon, Bluesky or X account to Orvay and a member of the company starts reading it, Orvay reads the replies to that account\u2019s posts and the posts that mention the account, and nothing else. For each one it keeps the author\u2019s handle, display name and account identifier, the text exactly as they wrote it, the address of the post and of the post it answers, and when it arrived. On Mastodon, a post shown only to the author\u2019s followers or to the people it names is not kept. Nothing is searched for, and no account other than the company\u2019s own is read.",
+  "legal.privacy.collected.p11": "If your company connects a Mastodon, Bluesky or X account to Orvay and a member of the company starts reading it, Orvay reads the replies to that account\u2019s posts and the posts that mention the account, and nothing else. For each one it keeps the author\u2019s handle, display name and account identifier, the text exactly as they wrote it, the address of the post and of the post it answers, and when it arrived. On Mastodon, a post shown only to the author\u2019s followers or to the people it names is not kept. This reading covers the company\u2019s own account and nothing else, and a search, described next, adds nothing to it.",
+  // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+  "legal.privacy.collected.p12": "If your company connects an X account, a member of the company can also ask Orvay to show one page of that account\u2019s own posts with the numbers X publishes for them, or to search X for public posts from the last seven days that match words the member types. A search can return posts by anybody, including people who never wrote to the company. Orvay shows the result to that member and keeps none of it: not the posts, not who wrote them, and not the words searched for, which go to X. When a member asks to delete one of the company\u2019s own posts, the request keeps the post\u2019s address, not its words. The company decides what to search for and why, and Orvay runs the search on its instruction. X charges the company\u2019s own X developer account for every post it returns.",
+  // Appended 2026-09-26 (the replay, docs/plan/31 item 10), never inserted (§7a).
+  "legal.privacy.collected.p13": "The same company setting covers one more use. While it is on, Orvay may send the task and the goal of work the company\u2019s agents have already done, together with the company\u2019s name, to a model provider a second time, to check whether a new version of our instructions to the model does that work at least as well as the version it replaces. Nothing the original work read is sent, because it was never kept. Orvay keeps none of the text that comes back: only which piece of work it was, whether each answer passed, which model gave it and what it cost. We run this only for a company we name when we start it, never for a company that has turned the setting off, and the company is not charged for it.",
+  "legal.privacy.collected.p14": "If your company connects Google Search Console, Google Ads or YouTube, a member can ask Orvay to show that account\u2019s search performance, its ad accounts\u2019 figures, or the newest comments on the channel\u2019s videos, and a question in the console that names one of them has that data read for the answer. What is read is shown to the member, or sent to the text model with the question, and is kept only as far as the answer written from it repeats it. When a member proposes a reply to a YouTube comment, the name of the person who wrote the comment and their words are kept with the reply\u2019s record, because the person approving the reply reads them. Orvay posts a reply, deletes a reply it posted, or hides a comment somebody else wrote under one of the company\u2019s videos only after a person approves that one action. The access Google grants is stored encrypted, and disconnecting destroys it. Orvay\u2019s use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+  // Appended 2026-09-28 (docs/plan/38, outside executors), never inserted (§7a).
+  "legal.privacy.collected.p15": "If your company lets an agent it runs itself, such as a coding agent, use an API key to do work that a person in your company approved, or that your company decided in advance may go ahead without asking, Orvay keeps what that agent reports afterwards: which step it says it did, whether it says the step worked, and the reference it gives, which can only be the address of what it did, such as a pull request. Orvay keeps no note and no other text from the agent: a report that carries a note is refused. The report is kept as the agent\u2019s account and never as proof. When the agent says the step worked, Orvay tries to check the result itself with the connection your company made, and keeps what it found beside the report. If that check does not finish, or your company is halted when the report arrives, Orvay keeps nothing about it, shows the work as not checked, and does not check it again on its own. When the agent says the step failed, Orvay records that as the agent\u2019s account and checks nothing. The reference is also written into your company\u2019s audit trail, so it is part of your company\u2019s data export.",
   "legal.privacy.purposes.heading": "Why we process it, and on what basis",
   "legal.privacy.purposes.pair1.term": "Writing to you when Orvay launches",
   "legal.privacy.purposes.pair1.detail": "Your consent. GDPR Art. 6(1)(a), and consent under the revFADP. You gave it by submitting the form under the sentence we showed you, and we store that sentence word for word so the basis can be checked rather than asserted.",
@@ -13135,6 +14962,12 @@ var LEGAL_SOURCE = {
   "legal.privacy.recipients.heading": "Who else sees it",
   "legal.privacy.recipients.p1": "We use service providers. Each one is named in the sub-processor list, with what it receives, where it processes and the safeguard the transfer rests on.",
   "legal.privacy.recipients.p2": "We disclose personal data to nobody else. If an authority compelled disclosure we would follow the law, and we would tell you unless we were forbidden from telling you.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a).
+  "legal.privacy.recipients.p3": "A model vendor your company connects with its own key is not one of our service providers. It is named on the sub-processor page under providers you connect with your own key, with what we send it.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p4": "If your company lists a workflow as a playbook, what it lists is visible to every other company that uses Orvay and to the people in those companies: the workflow\u2019s steps and settings as written, its name, the description written for the listing, and your company\u2019s name only if it chose to show it. Who in your company listed it is not shown. We refuse a listing whose text contains an email address or a phone number in the forms we recognise, a credential we recognise, or the full name of a member of your company as Orvay records it. Other personal data can still appear in a listing if a company writes it there, such as a customer\u2019s name, a member\u2019s recorded name shorter than three letters, or a postal address. The terms of service require companies not to list a workflow that contains information about a person. A company can withdraw a listing at any time, and copies other companies installed before then stay with them.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 3), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p5": "If your company installs a playbook that another company listed, it counts towards statistics shown with that playbook to every company on Orvay, including the one that listed it: how many companies installed it, how many ran it, how many runs ended, of the runs with an outcome the share that an independent check verified and the share that failed, and the share of the companies that installed it with a complaint standing. Only those totals are shown, with counts rounded down to a multiple of five and shares rounded to the nearest five percentage points. No single run or complaint is shown, and no company is named in them. They are shown only once the runs counted come from companies whose organizations were set up by at least five different people and number at least thirty, and the shares of runs only once the runs with an outcome reach the same threshold on their own and no one person\u2019s companies account for more than a third of the runs. A company counts only for playbooks it installed from a company whose organization was set up by a different person, never for a workflow it wrote itself, and a dry run, which changes nothing, is never counted.",
   "legal.privacy.transfers.heading": "Where the data goes",
   "legal.privacy.transfers.p1": "Switzerland is not in the European Union and not in the European Economic Area. It is a third country holding an adequacy decision from the European Commission, and one from the United Kingdom. A transfer from the EEA or the UK to us therefore rests on adequacy and needs no further instrument.",
   "legal.privacy.transfers.pair1.term": "Waitlist addresses, and every other database record",
@@ -13150,7 +14983,7 @@ var LEGAL_SOURCE = {
   "legal.privacy.transfers.pair4.term": "Handling the request itself",
   "legal.privacy.transfers.pair4.detail": "Our code runs at the network edge, worldwide, so the request that renders a page may execute close to you rather than in Europe. Safeguard: the standard contractual clauses in the provider agreement.",
   "legal.privacy.transfers.pair5.term": "Model prompts, voice and decisions",
-  "legal.privacy.transfers.pair5.detail": "Text sent to a model goes to OpenAI and is processed in the United States, outside Switzerland and outside the EEA. Anthropic receives nothing today. In voice mode, the sound of your voice goes to OpenAI as well. Safeguard: OpenAI\u2019s data processing addendum, under which our contract is with OpenAI Ireland Ltd., which passes the data outside the EEA and Switzerland on the standard contractual clauses or an adequacy decision; we are not a party to those clauses. From a start date at least 30 days after we notify customers, TypeSafe AI in the United States also receives the start of a piece of work given to an agent, a website brief and the conversation about it, pages read while researching, a message posted in a room and, where your company lets Orvay decide on mailbox replies, your company\u2019s name, the email being answered and the drafted reply. Safeguard: the standard contractual clauses in its data processing addendum, which has no Swiss addendum. Web searches go to Brave Search and browser sessions to Browser Use, both in the United States, and each has its own line below. Your waitlist address is never part of any of this.",
+  "legal.privacy.transfers.pair5.detail": "Text sent to a model goes to OpenAI and is processed in the United States, outside Switzerland and outside the EEA. Under our own accounts, Anthropic receives nothing today. If your company connects its own key for Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq or OpenRouter, the text model calls your company\u2019s work makes go to that vendor under your company\u2019s own agreement with it, apart from the ones the sub-processor page names, and are processed where that agreement says. That vendor is then your company\u2019s provider rather than ours, and the transfer rests on your company\u2019s agreement with it, not on ours. In voice mode, the sound of your voice goes to OpenAI as well. Safeguard: OpenAI\u2019s data processing addendum, under which our contract is with OpenAI Ireland Ltd., which passes the data outside the EEA and Switzerland on the standard contractual clauses or an adequacy decision; we are not a party to those clauses. Since 27 September 2026, TypeSafe AI in the United States also receives the start of a piece of work given to an agent, a website brief and the conversation about it, pages read while researching, a message posted in a room and, where your company lets Orvay decide on mailbox replies, your company\u2019s name, the email being answered and the drafted reply. Safeguard: the standard contractual clauses in its data processing addendum, which has no Swiss addendum. Web searches go to Brave Search and browser sessions to Browser Use, both in the United States, and each has its own line below. Your waitlist address is never part of any of this.",
   // Appended 2026-09-23, never inserted: `pairN` is positional (§7a).
   "legal.privacy.transfers.pair6.term": "Web searches",
   "legal.privacy.transfers.pair6.detail": "The words of a search are sent to Brave Search and processed in the United States. Before a query is sent, we remove email addresses, phone numbers written in the usual forms, credentials we recognise, and the names of the members of your company as Orvay records them. A name Orvay does not hold, such as a customer\u2019s or a stranger\u2019s, is sent as written, and if nothing is left, nothing is sent. Brave keeps a record of the queries for up to 90 days. Safeguard: none. Brave\u2019s data processing addendum excludes search queries, so no transfer instrument covers them.",
@@ -13176,7 +15009,7 @@ var LEGAL_SOURCE = {
   "legal.privacy.rights.pair2.term": "Rectification",
   "legal.privacy.rights.pair2.detail": "Tell us what is wrong and we will correct it. GDPR Art. 16, revFADP Art. 32.",
   "legal.privacy.rights.pair3.term": "Erasure",
-  "legal.privacy.rights.pair3.detail": "Ask us to delete your data and we will. GDPR Art. 17. Where the audit chain prevents removing a record, we destroy the personal data inside it and leave the remainder, which can still show that something happened and can no longer show what it said. The operator does this by hand. A picture a company added to its posts can be removed on its brand page, which deletes the picture from storage. Orvay does not delete a post already published. The company can delete it on the channel. The record of a post already prepared keeps the picture's description, because that record is never changed.",
+  "legal.privacy.rights.pair3.detail": "Ask us to delete your data and we will. GDPR Art. 17. Where the audit chain prevents removing a record, we destroy the personal data inside it and leave the remainder, which can still show that something happened and can no longer show what it said. The operator does this by hand. A picture a company added to its posts can be removed on its brand page, which deletes the picture from storage. A post already published is deleted by the company: on the channel itself, or, for a post on X, Bluesky or Mastodon or a reply Orvay posted on YouTube, from Orvay, where a member asks and a person approves each deletion. The record of a post already prepared keeps the picture's description, because that record is never changed.",
   "legal.privacy.rights.pair4.term": "Restriction",
   "legal.privacy.rights.pair4.detail": "Ask us to stop processing while something is disputed and we will. GDPR Art. 18.",
   "legal.privacy.rights.pair5.term": "Portability",
@@ -13250,7 +15083,7 @@ var LEGAL_SOURCE = {
   "legal.terms.acceptable-use.item6": "Upload personal data you have no lawful basis to hold.",
   "legal.terms.acceptable-use.item7": "Run a business we will not work for: sexual content or sexual services, anything that sexualises a child, malware and intrusion tooling, fraud, the sale of weapons or controlled substances, or targeted harassment of a person. This is a refusal about the work, not a judgement about you, and it applies whatever the law where you are says.",
   "legal.terms.acceptable-use.p1": "We may suspend an account that is doing any of this. Where we can, we will tell you first and give you a chance to put it right. Where the harm is immediate we will suspend first and explain afterwards.",
-  "legal.terms.acceptable-use.p2": "Two checks enforce the line above, and it is worth knowing exactly what they are so you do not mistake them for more. The name and the web address you give us are checked against a short list of terms when you set up, before we fetch anything. Separately, an agent refuses to work on a goal that asks for one of these things. Neither is a review of everything you do, neither reads your data, and neither is a substitute for you knowing what you are running.",
+  "legal.terms.acceptable-use.p2": "Three checks enforce the line above, and it is worth knowing exactly what they are so you do not mistake them for more. The name and the web address you give us are checked against a short list of terms when you set up, before we fetch anything. Separately, an agent refuses to work on a goal that asks for one of these things. And the name and the description of a workflow your company lists as a playbook are checked against the same list before it is listed. None of them is a review of everything you do, none of them reads your data, and none of them is a substitute for you knowing what you are running.",
   "legal.terms.your-instructions.heading": "What your agents do is your responsibility",
   "legal.terms.your-instructions.p1": "You decide what your agents may do. You set the goals, grant the capabilities, approve the actions that need approval, and set the budget. An action taken inside the authority you granted is your action, not ours.",
   "legal.terms.your-instructions.p2": "This is not a disclaimer bolted on afterwards. The product is built so that the authority is explicit and the record shows who granted it. Read what you approve, because the approval record is the evidence that you did.",
@@ -13265,11 +15098,26 @@ var LEGAL_SOURCE = {
   "legal.terms.ip.pair4.term": "Feedback",
   "legal.terms.ip.pair4.detail": "If you send us an idea for the product we may use it without owing you anything. Do not send us anything confidential as feedback.",
   "legal.terms.ip.p1": "Exporting your personal data is a right, so it is free on every plan including the free one. Exporting a generated website is a product feature, and it is part of what a paid plan buys. We keep those two apart deliberately, and we say which is which on the pricing page rather than after you have paid.",
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): what listing a workflow makes public.
+  "legal.terms.playbooks.heading": "Playbooks your company lists",
+  "legal.terms.playbooks.p1": "Your company can list a published version of one of its workflows as a playbook, so that other companies on Orvay can install a copy of it. Listing is decided for each version separately, and nothing is listed unless somebody with the permission to list does it. By default only the owner has that permission.",
+  "legal.terms.playbooks.p2": "Listing a version makes it visible to every other company that uses Orvay and to the people in those companies: all of its steps and settings as they are written, its name, the description written for the listing, an identifier of the version, and when it was listed. Your company\u2019s name is shown with it only if you choose that when you list it. Who in your company listed it is not shown.",
+  "legal.terms.playbooks.p3": "Before a version is listed, Orvay refuses to list it if any text in it or in its description contains a credential of a kind we recognise, an email address, a phone number written in one of the usual international or national forms, or the full name of a member of your company as Orvay records it, in any letter case. Orvay also refuses a version with a step that is assigned to a named member, types a credential your company saved in Orvay, or runs another of your company\u2019s workflows, and it checks the name and the description against the short list of terms described in the section on what you may not do.",
+  "legal.terms.playbooks.p4": "Those checks have limits. Anything they do not recognise is shown as written, for example a name Orvay does not hold, such as a customer\u2019s, a name spelled differently from our record, a recorded name shorter than three letters, a postal address, or an email address or a phone number written in some other way. Do not list a workflow that contains information about a person, and read a version before you list it.",
+  "legal.terms.playbooks.p5": "You can withdraw a listing at any time. From then on nobody can install it. Copies that other companies installed before you withdrew it stay with those companies, and we do not remove or change them.",
+  "legal.terms.playbooks.p6": "Installing a playbook copies it into the installing company as a new workflow that belongs to that company. Listing a version does not make anything run in another company: a copy runs only after the company that installed it publishes it, and then under that company\u2019s own permissions, policy and approvals. A version you publish or list later does not change a copy already installed.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 4), never inserted: `pN` is positional (§7a).
+  "legal.terms.playbooks.p7": "A company that installed a playbook can file a complaint about it once a run of its copy has ended (a dry run does not count), choosing one reason from a fixed list: it does not work, it does not do what its description says, it acts in ways its listing does not make clear, it contains personal data or a credential, or it is for a use these terms do not allow. A complaint carries no text of its own. A company has at most one complaint standing about each playbook, and can withdraw it at any time. The company that listed the playbook is never told which company complained. The share of the companies that installed it with a complaint standing is shown with the playbook\u2019s other statistics, and only when those are shown.",
+  "legal.terms.playbooks.p8": "Orvay hides a playbook from other companies while complaints about it stand from companies whose organizations were set up by at least three different people, and from at least one fifth of the companies that installed it. Several organizations set up by one person count as one. Companies in the listing company\u2019s own organization, or in another organization set up by the same person as that one, are not counted, either as companies that installed it or for their complaints. While it is hidden nobody can install it, copies already installed are not changed, and the company that listed it sees on its own listing that it is hidden and which of the reasons above were given, never which company gave them. There is no review by a person yet. A hidden playbook is shown again only when enough complaints are withdrawn. The listing company can withdraw the listing at any time, and can list a new version of the workflow, which is a new listing with no complaints.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 4, remix), never inserted: `pN` is positional (§7a).
+  "legal.terms.playbooks.p9": "A company that installed a playbook can edit its copy, publish it and list it as a playbook of its own. Orvay refuses to list a version that another company listed first, even after that listing is withdrawn, so an installed copy that is still exactly that version cannot be listed. For any other copy, Orvay records, from the copy itself, which playbook it was installed from, and the listing shows that it was adapted from that playbook: by name while it can be installed, and otherwise by an identifier of its version. The company that lists the copy cannot remove or change that record. A copy listed again passes every check described above, against the members of its own company, and the runs and complaints of the companies that install it count towards its own statistics, not those of the playbook it came from.",
   "legal.terms.availability.heading": "Availability",
   "legal.terms.availability.p1": "We promise no uptime. There is no service level agreement, no guaranteed support response time, and one person operating the service. When we can offer those, we will write them down and charge for them.",
   "legal.terms.availability.p2": "We may change or withdraw features. If a change removes something you rely on, we will give you notice and, where the change is material, a way out.",
   "legal.terms.money.heading": "Money",
   "legal.terms.money.p1": "Nothing is charged today. When plans go on sale, the price, what it includes and every limit will be stated on the pricing page before you pay, not after. Quota is measured in what your usage actually costs us, and credits are how that is displayed. The free plan stops when its allowance is gone and never runs up a bill.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a).
+  "legal.terms.money.p2": "Model calls made on a key your company connected are billed to your company by that vendor and are not taken from your credits.",
   "legal.terms.warranty.heading": "What we do not promise",
   "legal.terms.warranty.p1": "The service is provided as it is. So far as Swiss law permits, we give no warranty that it will be uninterrupted or error free, that it is fit for a particular purpose, or that any output is correct.",
   "legal.terms.warranty.p2": "Verification is an independence mechanism, not an oracle. A verified result means a second actor checked the first one and the evidence was recorded. It does not mean the outcome is guaranteed correct, and we do not sell it as one.",
@@ -13355,6 +15203,16 @@ var LEGAL_SOURCE = {
   "legal.subprocessors.list.heading": "The list",
   "legal.subprocessors.changes.heading": "Changing the list",
   "legal.subprocessors.changes.p1": "We give customers at least 30 days notice by email before a new sub-processor starts processing their personal data, and you may object in writing during that period on reasonable data protection grounds. If we cannot resolve the objection you may terminate the affected service without penalty. That commitment is part of the data processing agreement, not a courtesy.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a).
+  "legal.subprocessors.own-key.heading": "Providers you connect with your own key",
+  "legal.subprocessors.own-key.p1": "If your company connects its own key for Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq or OpenRouter, the text model calls your company\u2019s work makes go to that vendor under your company\u2019s own agreement with it. Building and editing your website, voice, memory search and images stay on our accounts. That vendor processes the calls as your company\u2019s provider, not as ours, so it is not on the list above, and connecting one does not start the 30 days notice: your company chose it.",
+  "legal.subprocessors.own-key.p2": "We send it the same text we would send on our own accounts, prepared the same way. What the vendor keeps, for how long, and what else it may do with it is set by your company\u2019s agreement with that vendor, not by ours. A request to us to erase data reaches what we hold, and not what the vendor holds under your company\u2019s key.",
+  "legal.subprocessors.own-key.p3": "We never mix the two. A call your company\u2019s key pays for is not sent on our account, and a call on our account is not sent with your company\u2019s key. If your company\u2019s key stops working, the work waits and says so rather than moving to our account.",
+  "legal.subprocessors.own-key.p4": "Every call your company\u2019s work makes to a vendor it has not connected a key for still goes on our account, to the providers on the list above.",
+  "legal.subprocessors.own-key.p5": "We keep your company\u2019s key sealed and use it only for your company\u2019s calls. Disconnecting it destroys our copy. It does not cancel the key at the vendor, which you do in the vendor\u2019s own console.",
+  // Appended 2026-09-26 (ADR-0096), never inserted (§7a).
+  "legal.subprocessors.own-key.p6": "If your company chooses to run on its own keys alone, every text model call its work makes goes to a provider it connected a key for, and a call none of them can serve waits and says so rather than going to the providers on the list above. Building and editing your website, voice, memory search and images still use the providers on the list above.",
+  "legal.subprocessors.own-key.p7": "A call on a Mistral key goes to Mistral\u2019s EU endpoint, which Mistral serves from data centres in EU and EFTA countries. A call on an OpenRouter key goes to OpenRouter, which passes it to a provider that serves the model, in a region OpenRouter does not guarantee.",
   /**
    * The entries themselves, keyed by `SubProcessor.id` in the section slot.
    *
@@ -13432,7 +15290,7 @@ var LEGAL_SOURCE = {
   "legal.dpa.subject-matter.pair2.term": "Duration",
   "legal.dpa.subject-matter.pair2.detail": "For as long as your account exists, and after that only for as long as it takes to return or destroy the data.",
   "legal.dpa.subject-matter.pair3.term": "Nature and purpose",
-  "legal.dpa.subject-matter.pair3.detail": "Storage, retrieval, transmission to the sub-processors on the published list, and submission to model vendors where you instruct an agent to do work that needs one.",
+  "legal.dpa.subject-matter.pair3.detail": "Storage, retrieval, transmission to the sub-processors on the published list, and submission to model vendors where you instruct an agent to do work that needs one, either on our accounts or, where you connect your own key, on yours.",
   "legal.dpa.subject-matter.pair4.term": "Categories of data subject",
   "legal.dpa.subject-matter.pair4.detail": "Your staff, your contacts, and anyone else whose data you choose to put in.",
   "legal.dpa.subject-matter.pair5.term": "Categories of personal data",
@@ -13467,9 +15325,13 @@ var LEGAL_SOURCE = {
   "legal.dpa.subprocessors.p1": "You give general authorisation for us to engage sub-processors, under Art. 28(2) and 28(3)(d) GDPR. The current list is published, and it names each one, what it receives, where it processes and the safeguard the transfer rests on.",
   "legal.dpa.subprocessors.p2": "We give you at least 30 days notice by email before a new sub-processor starts processing your personal data. You may object in writing within that period on reasonable data protection grounds. If we cannot resolve your objection you may terminate the affected part of the service without penalty, and we refund any prepaid fee for the unused period.",
   "legal.dpa.subprocessors.p3": "Each sub-processor is bound by a written contract with data protection obligations no weaker than these, except Brave Search for the search queries we send it, which its agreement excludes; what we remove from a query before it is sent is on the sub-processor page. Where one fails to meet them, we remain fully liable to you for its performance. Art. 28(4) GDPR.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a).
+  "legal.dpa.subprocessors.p4": "A model vendor you connect with your own key is not a sub-processor we engage. You engage it under your own agreement with it, and by connecting the key you instruct us to send it the model calls the sub-processor page describes (Art. 28(3)(a) GDPR). The authorisation, the notice period and the obligations above apply to the sub-processors we engage, and not to it.",
   "legal.dpa.transfers.heading": "International transfers",
   "legal.dpa.transfers.p1": "Where a sub-processor is outside Switzerland and the European Economic Area, the transfer relies on the safeguard named for it in the sub-processor list. For the model vendors the instrument is the standard contractual clauses. We do not rely on a framework certification.",
   "legal.dpa.transfers.p2": "Switzerland holds an adequacy decision from the European Commission, so a transfer from the EEA to our database in Zurich needs no further instrument.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a).
+  "legal.dpa.transfers.p3": "A transfer to a model vendor you connected with your own key rests on your agreement with that vendor, not on ours.",
   "legal.dpa.data-subject-requests.heading": "Helping you answer data subjects",
   "legal.dpa.data-subject-requests.p1": "We help you meet a data subject request, taking into account the nature of the processing. Art. 28(3)(e) GDPR.",
   "legal.dpa.data-subject-requests.p2": "Where the product can answer it, you can answer it yourself. Your contacts, uploads, consent records and audit trail are exportable in a machine readable format on every plan, including the free one, because portability is a right and not a feature.",
@@ -13607,7 +15469,7 @@ var LEGAL_SOURCE = {
   "legal.subprocessors.typesafe.location1": "United States, which its privacy policy names as where the service is hosted",
   "legal.subprocessors.typesafe.location2": "Its data processing addendum names no processing location",
   "legal.subprocessors.typesafe.safeguard": "TypeSafe AI, Inc. is based in the United States. Its data processing addendum applies the standard contractual clauses to transfers from the EU, with the UK addendum for the UK. For Switzerland it says only that disputes go to Swiss courts and that the Swiss Federal Data Protection and Information Commissioner is the competent authority. It has no Swiss addendum.",
-  "legal.subprocessors.typesafe.statusDetail": "Its key is set on the website generation Worker, which sends it nothing before a start date set on that Worker. We set that date no earlier than 30 days after telling customers about it, as our data processing agreement requires. Before that date, and whenever it does not answer, a question about work, a website or a room goes to a text model instead, and a mailbox reply waiting on its decision waits for a person. It is listed now, before it receives anything, so that this page and our notice describe the same list.",
+  "legal.subprocessors.typesafe.statusDetail": "Its key is set on the website generation Worker, which has sent it the data above since 27 September 2026. Whenever it does not answer, a question about work, a website or a room goes to a text model instead, and a mailbox reply waiting on its decision waits for a person.",
   "legal.subprocessors.fish.service": "Speech synthesis and transcription. Until 25 September 2026 it read an answer aloud in voice mode when a live conversation could not be opened, and it could transcribe speech on a deployment with no OpenAI key. It does neither now.",
   "legal.subprocessors.fish.data1": "Until 25 September 2026, the text of an answer Orvay read aloud to you. That text could name people and figures from your company records, and nothing in it was removed before it was sent",
   "legal.subprocessors.fish.data2": "Until 25 September 2026, the recording of what you said in voice mode, only on a deployment that had no OpenAI key to transcribe it with",
@@ -13798,7 +15660,7 @@ var de_default = {
   "pricing.feature.scim.name": "Verzeichnissynchronisation",
   "pricing.feature.scim.detail": "Ihr Identit\xE4tsanbieter f\xFCgt \xFCber SCIM 2.0 Personen hinzu und entfernt sie, an einer Domain, die Sie f\xFCr Single Sign-on nachgewiesen haben. Nur Personen: Gruppen werden nicht synchronisiert, und die Rollen legen weiterhin Sie fest.",
   "pricing.feature.byo_model_keys.name": "Ihre eigenen Modellschl\xFCssel",
-  "pricing.feature.byo_model_keys.detail": "Rechnen Sie die Modellnutzung \xFCber Ihre eigenen Anbieterkonten ab statt \xFCber Ihr Credit-Guthaben.",
+  "pricing.feature.byo_model_keys.detail": "F\xFChren Sie Modellaufrufe \xFCber Ihre eigenen Konten bei Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq oder OpenRouter aus, abgerechnet von Ihrem Anbieter und nicht \xFCber Ihre Credits, und lassen Sie sie auf Wunsch nur \xFCber Ihre eigenen Schl\xFCssel laufen. Das Erstellen und Bearbeiten von Websites, der Sprachmodus, die Suche im Unternehmensged\xE4chtnis und Bilder bleiben auf den Schl\xFCsseln von Orvay, und ein Aufruf braucht zum Start weiterhin verf\xFCgbare Credits.",
   "pricing.feature.voice.name": "In-App-Sprache",
   "pricing.feature.voice.detail": "Nehmen Sie einen Anruf im Browser entgegen, mit einem Transkript als Nachweis. Orvay nimmt Anrufe entgegen und t\xE4tigt niemals selbst einen Anruf, in jedem Plan und mit Absicht.",
   "pricing.feature.integration_mcp.name": "Ausgeliehene Werkzeuge",
@@ -14108,7 +15970,7 @@ var de_default = {
   "site.limits.card.no-customers.title": "Keine Kunden, also kein Kundennachweis",
   "site.limits.card.no-customers.body": "Es gibt auf dieser Seite keine Logowand, weil es keine Logos gibt, die man dort zeigen k\xF6nnte, und aus demselben Grund keine Erfahrungsberichte und keine Nutzungszahlen. Sobald es sie gibt, werden sie genannt.",
   "site.limits.card.data-location.title": "Wo die Daten sind, vollst\xE4ndig gesagt",
-  "site.limits.card.data-location.body": "Postgres l\xE4uft in Z\xFCrich, in einem Projekt mit der Region eu-central-2. Die Modellinferenz l\xE4uft nicht in der Schweiz: Prompts gehen an Anthropic und OpenAI, die au\xDFerhalb der Schweiz und au\xDFerhalb der EU verarbeiten. Die Schweiz ist ein Drittland mit einem Angemessenheitsbeschluss der Europ\xE4ischen Kommission, kein Mitglied der Europ\xE4ischen Union oder des Europ\xE4ischen Wirtschaftsraums. Eine Standortaussage, die den zweiten Satz weglie\xDFe, w\xE4re genau die Art von Halbwahrheit, die dieses ganze Produkt zur\xFCckweisen soll.",
+  "site.limits.card.data-location.body": "Postgres l\xE4uft in Z\xFCrich, in einem Projekt mit der Region eu-central-2. Die Modellinferenz l\xE4uft nicht in der Schweiz: Prompts gehen an OpenAI und werden au\xDFerhalb der Schweiz und au\xDFerhalb der EU verarbeitet. Die Schweiz ist ein Drittland mit einem Angemessenheitsbeschluss der Europ\xE4ischen Kommission, kein Mitglied der Europ\xE4ischen Union oder des Europ\xE4ischen Wirtschaftsraums. Eine Standortaussage, die den zweiten Satz weglie\xDFe, w\xE4re genau die Art von Halbwahrheit, die dieses ganze Produkt zur\xFCckweisen soll.",
   "site.limits.card.privacy.title": "Datenschutz zuerst, und kein Zertifikat behauptet",
   "site.limits.card.privacy.body": "Wir besitzen keine Zertifizierung irgendeiner Art und behaupten auch keine. Was wir Ihnen zeigen k\xF6nnen, ist, was der Code tut: Mandantentrennung, geschrieben als restriktive Datenbankrichtlinien, die nur ablehnen k\xF6nnen, eine Hash-Kette, die Sie selbst neu berechnen k\xF6nnen, und eine aufgezeichnete menschliche Genehmigung bei allem, was eine rechtliche Wirkung auf eine Person hat.",
   "site.limits.card.representative.title": "Eine Pflicht, die wir schulden und noch nicht erf\xFCllt haben",
@@ -15259,7 +17121,6 @@ var de_default = {
   "decision.run": "Ausf\xFChren",
   "decision.running": "L\xE4uft",
   "decision.halted": "Die Autonomie ist angehalten. Heben Sie den Halt auf, bevor etwas l\xE4uft, auch bereits Genehmigtes.",
-  "decision.run.note": "Ausf\xFChren f\xFChrt den Plan aus und \xFCbergibt das Ergebnis dann einem anderen Akteur zur Pr\xFCfung. In dieser Bereitstellung ist kein Adapter verbunden, daher ist die Wirkung simuliert, und jedes erzeugte Artefakt sagt das.",
   "decision.refused.title": "Das wurde abgelehnt",
   "decision.recheck": "Erneut pr\xFCfen",
   "decision.rechecking": "Wird gepr\xFCft",
@@ -15907,7 +17768,7 @@ var de_default = {
   "trust.holds.mfa.term": "Kein zweiter Faktor",
   "trust.holds.mfa.detail": "Kein TOTP, keine Passkeys, keine Hardware-Schl\xFCssel. Ein Passwort und eine E-Mail-Adresse sind heute das Ganze davon. Single Sign-On existiert nur im gr\xF6\xDFten Plan.",
   "trust.holds.inference.term": "Modellinferenz ist nicht in der Schweiz",
-  "trust.holds.inference.detail": "Ihre Datenbank ist in Z\xFCrich. Die Modelle, die darin lesen, werden bei Anthropic und OpenAI ausgef\xFChrt, au\xDFerhalb des Landes. Eine Standortaussage, die diesen Satz wegl\xE4sst, ist keine Standortaussage.",
+  "trust.holds.inference.detail": "Ihre Datenbank ist in Z\xFCrich. Die Modelle, die darin lesen, werden bei OpenAI ausgef\xFChrt, au\xDFerhalb des Landes. Eine Standortaussage, die diesen Satz wegl\xE4sst, ist keine Standortaussage.",
   "trust.where.heading": "Wo die Daten sind",
   "trust.where.lead": "Vier Speicher, benannt, wobei der Unterschied zwischen einer Garantie und einer Vorliebe sichtbar bleibt.",
   "trust.where.database.term": "Unternehmensdaten",
@@ -15915,7 +17776,7 @@ var de_default = {
   "trust.where.evidence.term": "Nachweise",
   "trust.where.evidence.detail": "Cloudflare R2, an die EU-Gerichtsbarkeit gebunden. Gebunden ist eine Garantie. Die anderen Eimer tragen einen Standort-Hinweis, der eine Vorliebe ist, und wir beschreiben einen nicht als den anderen.",
   "trust.where.inference.term": "Modellaufrufe",
-  "trust.where.inference.detail": "Anthropic und OpenAI, direkt, ohne Gateway dazwischen. Was gesendet wird, ist der Kontext, den eine Aufgabe braucht, und nicht vertrauensw\xFCrdiger Text wird eingez\xE4unt, bevor er ein Modell erreicht.",
+  "trust.where.inference.detail": "OpenAI, direkt, ohne Gateway dazwischen. Was gesendet wird, ist der Kontext, den eine Aufgabe braucht, und nicht vertrauensw\xFCrdiger Text wird eingez\xE4unt, bevor er ein Modell erreicht.",
   "trust.where.mail.term": "E-Mail",
   "trust.where.mail.detail": "Gesendet durch Cloudflare von einer Adresse auf unserer eigenen Domain. Mandanten-E-Mail verl\xE4sst nie eine Orvay-Domain, was eher eine Ruf-Entscheidung als eine technische ist.",
   "trust.separation.heading": "Wie ein Unternehmen von einem anderen getrennt wird",
@@ -16213,7 +18074,6 @@ var de_default = {
   "delegations.form.submit": "Im Voraus entscheiden",
   "delegations.form.submitting": "Wird aufgezeichnet",
   "delegations.ok.title": "Aufgezeichnet",
-  "delegations.ok.recorded": "{capability} darf bis {until} ohne Nachfrage laufen. Im Protokoll aufgezeichnet.",
   "delegations.refused.title": "Nicht aufgezeichnet",
   "delegations.refused.gate": "Am Tor {gate} abgelehnt: {reason}.",
   "delegations.refused.halted": "Die Autonomie ist angehalten. Solange das Unternehmen gestoppt ist, kann nichts im Voraus entschieden werden.",
@@ -16224,7 +18084,6 @@ var de_default = {
   "delegations.refused.forbidden": "{capability} ist f\xFCr dieses Unternehmen verboten, und verboten ist absolut.",
   "delegations.refused.bound": "W\xE4hlen Sie aus den Listen, wie lange und wie oft.",
   "delegations.refused.rationale": "Sagen Sie warum, in h\xF6chstens {max} Zeichen.",
-  "delegations.refused.already_live": "{capability} wurde von {name} bereits im Voraus entschieden. Nehmen Sie das zuerst zur\xFCck.",
   "delegations.row.decided": "Entschieden von {name} am {date}",
   "delegations.row.until": "Bis {date}",
   "delegations.row.uses": {
@@ -16238,9 +18097,7 @@ var de_default = {
   "delegations.status.revoked": "Zur\xFCckgenommen",
   "delegations.revoke.submit": "Zur\xFCcknehmen",
   "delegations.revoke.submitting": "Wird zur\xFCckgenommen",
-  "delegations.revoke.sr": "die Entscheidung zu {capability}",
   "delegations.revoke.ok.title": "Zur\xFCckgenommen",
-  "delegations.revoke.ok.revoked": "{capability} h\xE4lt von jetzt an wieder f\xFCr einen Menschen an.",
   "delegations.revoke.ok.already": "Diese Entscheidung war bereits zur\xFCckgenommen.",
   "delegations.revoke.refused.title": "Nicht zur\xFCckgenommen",
   "delegations.revoke.refused.not_found": "Diese Entscheidung geh\xF6rt nicht zu diesem Unternehmen.",
@@ -17463,7 +19320,12 @@ var de_legal_default = {
   "legal.privacy.collected.p8": "Wenn Ihr Arbeitgeber seinen eigenen Identit\xE4tsanbieter f\xFCr Single Sign-On mit Orvay verbindet, erhalten wir bei der Anmeldung dar\xFCber Ihre gesch\xE4ftliche E-Mail-Adresse, und Ihren Namen, wenn der Anbieter ihn mitschickt. Der Anbieter best\xE4tigt, wer Sie sind, deshalb geben Sie uns kein Passwort. Wenn Ihr Arbeitgeber es erlaubt hat, legt Ihre erste Anmeldung \xFCber seinen Anbieter Ihr Konto und einen Platz im Unternehmen Ihres Arbeitgebers mit den Berechtigungen eines Mitglieds an, und wir halten fest, dass Sie beigetreten sind.",
   "legal.privacy.collected.p9": "Im Produkt fragen wir, wie wir Sie nennen sollen, und ohne Namen k\xF6nnen Sie dort nicht arbeiten, weil die Personen in Ihrem Unternehmen ihn neben der Arbeit sehen, die Sie vorschlagen, und neben den Entscheidungen, die Sie treffen. Sie k\xF6nnen ihn jederzeit in Ihrem Konto \xE4ndern.",
   "legal.privacy.collected.p10": "Wenn Ihr Arbeitgeber auch sein Mitarbeiterverzeichnis mit Orvay verbindet, kann das Verzeichnis Ihr Konto und Ihren Platz auf dieselbe Weise anlegen, den Namen \xE4ndern, den Ihre Kolleginnen und Kollegen sehen, und Ihren Platz deaktivieren. Wir behalten die Kennung, die das Verzeichnis f\xFCr Sie verwendet, damit es Sie wiederfinden kann, und sie wird zusammen mit Ihren anderen Angaben gel\xF6scht, wenn Ihre personenbezogenen Daten gel\xF6scht werden. Sobald Ihr Platz deaktiviert ist, k\xF6nnen Sie dieses Unternehmen in Orvay nicht mehr \xF6ffnen.",
-  "legal.privacy.collected.p11": "Wenn Ihr Unternehmen ein Mastodon-, Bluesky- oder X-Konto mit Orvay verbindet und ein Mitglied des Unternehmens beginnt, es zu lesen, liest Orvay die Antworten auf die Beitr\xE4ge dieses Kontos und die Beitr\xE4ge, die das Konto erw\xE4hnen, und sonst nichts. Zu jedem davon speichert es den Handle, den Anzeigenamen und die Kontokennung der Person, die ihn geschrieben hat, den Text genau so, wie sie ihn geschrieben hat, die Adresse des Beitrags und des Beitrags, auf den er antwortet, und wann er eingegangen ist. Auf Mastodon wird ein Beitrag, der nur den Followern der Person oder den darin genannten Personen angezeigt wird, nicht gespeichert. Es wird nach nichts gesucht, und kein anderes Konto als das eigene des Unternehmens wird gelesen.",
+  "legal.privacy.collected.p11": "Wenn Ihr Unternehmen ein Mastodon-, Bluesky- oder X-Konto mit Orvay verbindet und ein Mitglied des Unternehmens beginnt, es zu lesen, liest Orvay die Antworten auf die Beitr\xE4ge dieses Kontos und die Beitr\xE4ge, die das Konto erw\xE4hnen, und sonst nichts. Zu jedem davon speichert es den Handle, den Anzeigenamen und die Kontokennung der Person, die ihn geschrieben hat, den Text genau so, wie sie ihn geschrieben hat, die Adresse des Beitrags und des Beitrags, auf den er antwortet, und wann er eingegangen ist. Auf Mastodon wird ein Beitrag, der nur den Followern der Person oder den darin genannten Personen angezeigt wird, nicht gespeichert. Dieses Lesen betrifft nur das eigene Konto des Unternehmens, und eine Suche, die im n\xE4chsten Absatz beschrieben ist, f\xFCgt ihm nichts hinzu.",
+  // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+  "legal.privacy.collected.p12": "Wenn Ihr Unternehmen ein X-Konto verbindet, kann ein Mitglied des Unternehmens Orvay au\xDFerdem bitten, eine Seite mit den eigenen Beitr\xE4gen dieses Kontos und den Zahlen anzuzeigen, die X dazu ver\xF6ffentlicht, oder X nach \xF6ffentlichen Beitr\xE4gen der letzten sieben Tage zu durchsuchen, die zu W\xF6rtern passen, die das Mitglied eingibt. Eine Suche kann Beitr\xE4ge von jeder Person liefern, auch von Personen, die dem Unternehmen nie geschrieben haben. Orvay zeigt das Ergebnis diesem Mitglied und speichert nichts davon: weder die Beitr\xE4ge noch, wer sie geschrieben hat, noch die gesuchten W\xF6rter, die an X gehen. Bittet ein Mitglied darum, einen der eigenen Beitr\xE4ge des Unternehmens zu l\xF6schen, beh\xE4lt die Anfrage die Adresse des Beitrags, nicht seinen Text. Das Unternehmen entscheidet, wonach und warum gesucht wird, und Orvay f\xFChrt die Suche auf seine Anweisung aus. X berechnet jeden Beitrag, den X zur\xFCckgibt, dem eigenen X-Entwicklerkonto des Unternehmens.",
+  "legal.privacy.collected.p13": "Dieselbe Einstellung des Unternehmens deckt noch eine weitere Nutzung ab. Solange sie eingeschaltet ist, darf Orvay die Aufgabe und das Ziel einer Arbeit, die die Agenten des Unternehmens bereits erledigt haben, zusammen mit dem Namen des Unternehmens ein zweites Mal an einen Modellanbieter senden, um zu pr\xFCfen, ob eine neue Fassung unserer Anweisungen an das Modell diese Arbeit mindestens so gut erledigt wie die Fassung, die sie ersetzt. Nichts von dem, was die urspr\xFCngliche Arbeit gelesen hat, wird gesendet, denn es wurde nie aufbewahrt. Von dem, was zur\xFCckkommt, bewahrt Orvay keinen Text auf, sondern nur, um welche Arbeit es ging, ob jede Antwort bestanden hat, welches Modell sie gegeben hat und was sie gekostet hat. Wir tun das nur f\xFCr ein Unternehmen, das wir beim Start ausdr\xFCcklich benennen, nie f\xFCr ein Unternehmen, das die Einstellung ausgeschaltet hat, und dem Unternehmen wird daf\xFCr nichts berechnet.",
+  "legal.privacy.collected.p14": "Wenn Ihr Unternehmen Google Search Console, Google Ads oder YouTube verbindet, kann ein Mitglied Orvay bitten, die Suchleistung dieses Kontos, die Zahlen seiner Werbekonten oder die neuesten Kommentare zu den Videos des Kanals anzuzeigen, und f\xFCr eine Frage in der Konsole, die eines davon nennt, werden diese Daten f\xFCr die Antwort gelesen. Was gelesen wird, wird dem Mitglied angezeigt oder mit der Frage an das Textmodell gesendet und nur so weit aufbewahrt, wie die daraus geschriebene Antwort es wiedergibt. Schl\xE4gt ein Mitglied eine Antwort auf einen YouTube-Kommentar vor, werden der Name der Person, die den Kommentar geschrieben hat, und ihre Worte beim Datensatz der Antwort aufbewahrt, weil die Person, die die Antwort genehmigt, sie liest. Orvay ver\xF6ffentlicht eine Antwort, l\xF6scht eine Antwort, die Orvay ver\xF6ffentlicht hat, oder blendet einen Kommentar aus, den jemand anderes unter einem Video des Unternehmens geschrieben hat, erst, nachdem eine Person genau diese eine Handlung genehmigt hat. Der Zugriff, den Google gew\xE4hrt, wird verschl\xFCsselt gespeichert, und das Trennen der Verbindung zerst\xF6rt ihn. Die Nutzung und Weitergabe von Informationen, die Orvay \xFCber Google-APIs erh\xE4lt, h\xE4lt sich an die Google API Services User Data Policy, einschlie\xDFlich der Anforderungen zur eingeschr\xE4nkten Nutzung (Limited Use).",
+  "legal.privacy.collected.p15": "Wenn Ihr Unternehmen einem Agenten, den es selbst betreibt, etwa einem Coding-Agenten, erlaubt, \xFCber einen API-Schl\xFCssel eine Arbeit auszuf\xFChren, die eine Person in Ihrem Unternehmen genehmigt hat oder f\xFCr die Ihr Unternehmen im Voraus entschieden hat, dass sie ohne R\xFCckfrage erfolgen darf, bewahrt Orvay auf, was dieser Agent danach meldet: welchen Schritt er nach eigener Angabe ausgef\xFChrt hat, ob dieser Schritt nach seiner Angabe gelungen ist, und den Verweis, den er angibt, der nur die Adresse dessen sein kann, was er getan hat, etwa eines Pull Requests. Orvay bewahrt keine Notiz und keinen anderen Text des Agenten auf: Eine Meldung, die eine Notiz enth\xE4lt, wird abgelehnt. Die Meldung wird als Darstellung des Agenten aufbewahrt und nie als Beweis. Meldet der Agent, dass der Schritt gelungen ist, versucht Orvay, das Ergebnis selbst \xFCber die Verbindung zu pr\xFCfen, die Ihr Unternehmen eingerichtet hat, und bewahrt neben der Meldung auf, was es dabei festgestellt hat. Wird diese Pr\xFCfung nicht abgeschlossen oder ist Ihr Unternehmen angehalten, wenn die Meldung eingeht, bewahrt Orvay nichts dar\xFCber auf, zeigt die Arbeit als nicht gepr\xFCft an und pr\xFCft sie nicht von sich aus erneut. Meldet der Agent, dass der Schritt fehlgeschlagen ist, h\xE4lt Orvay das als Darstellung des Agenten fest und pr\xFCft nichts. Der Verweis wird au\xDFerdem in das Pr\xFCfprotokoll Ihres Unternehmens geschrieben und ist deshalb Teil des Datenexports Ihres Unternehmens.",
   "legal.privacy.purposes.heading": "Warum wir sie verarbeiten und auf welcher Grundlage",
   "legal.privacy.purposes.pair1.term": "Ihnen zu schreiben, wenn Orvay startet",
   "legal.privacy.purposes.pair1.detail": "Ihre Einwilligung. Art. 6 Abs. 1 lit. a DSGVO, sowie die Einwilligung nach revDSG. Sie haben sie durch das Absenden des Formulars unter dem Ihnen angezeigten Satz erteilt, und wir speichern diesen Satz wortgetreu, damit die Grundlage \xFCberpr\xFCft und nicht nur behauptet werden kann.",
@@ -17486,6 +19348,11 @@ var de_legal_default = {
   "legal.privacy.recipients.heading": "Wer sie sonst noch sieht",
   "legal.privacy.recipients.p1": "Wir setzen Dienstleister ein. Jeder ist in der Liste der Unterauftragsverarbeiter genannt, mit Angabe dessen, was er erh\xE4lt, wo er verarbeitet und auf welche Garantie sich die \xDCbermittlung st\xFCtzt.",
   "legal.privacy.recipients.p2": "Wir geben personenbezogene Daten an niemanden sonst weiter. W\xFCrde eine Beh\xF6rde die Offenlegung erzwingen, w\xFCrden wir dem Gesetz folgen, und wir w\xFCrden Sie informieren, sofern es uns nicht untersagt w\xE4re.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.privacy.recipients.p3": "Ein Modellanbieter, den Ihr Unternehmen mit einem eigenen Schl\xFCssel verbindet, ist keiner unserer Dienstleister. Er ist auf der Seite der Unterauftragsverarbeiter unter den Anbietern genannt, die Sie mit Ihrem eigenen Schl\xFCssel verbinden, mit Angabe dessen, was wir ihm senden.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p4": "Wenn Ihr Unternehmen einen Workflow als Playbook bereitstellt, ist das Bereitgestellte f\xFCr jedes andere Unternehmen, das Orvay nutzt, und f\xFCr die Menschen in diesen Unternehmen sichtbar: die Schritte und Einstellungen des Workflows so, wie sie geschrieben sind, sein Name, die f\xFCr die Bereitstellung geschriebene Beschreibung und der Name Ihres Unternehmens, aber nur, wenn es sich f\xFCr dessen Anzeige entschieden hat. Wer in Ihrem Unternehmen ihn bereitgestellt hat, wird nicht angezeigt. Wir lehnen eine Bereitstellung ab, deren Text eine E-Mail-Adresse oder eine Telefonnummer in den Schreibweisen, die wir erkennen, Zugangsdaten, die wir erkennen, oder den vollst\xE4ndigen Namen eines Mitglieds Ihres Unternehmens, wie Orvay ihn gespeichert hat, enth\xE4lt. Andere personenbezogene Daten k\xF6nnen dennoch in einer Bereitstellung erscheinen, wenn ein Unternehmen sie dort hineinschreibt, etwa der Name eines Kunden, ein gespeicherter Mitgliedsname mit weniger als drei Buchstaben oder eine Postanschrift. Die Nutzungsbedingungen verbieten Unternehmen, einen Workflow bereitzustellen, der Informationen \xFCber eine Person enth\xE4lt. Ein Unternehmen kann eine Bereitstellung jederzeit zur\xFCckziehen, und Kopien, die andere Unternehmen vorher installiert haben, bleiben bei ihnen.",
+  "legal.privacy.recipients.p5": "Wenn Ihr Unternehmen ein Playbook installiert, das ein anderes Unternehmen bereitgestellt hat, flie\xDFt es in Statistiken ein, die mit diesem Playbook jedem Unternehmen auf Orvay angezeigt werden, auch dem, das es bereitgestellt hat: wie viele Unternehmen es installiert haben, wie viele es ausgef\xFChrt haben, wie viele Ausf\xFChrungen beendet wurden, bezogen auf die Ausf\xFChrungen mit einem Ergebnis der Anteil, den eine unabh\xE4ngige Pr\xFCfung best\xE4tigt hat, und der Anteil, der fehlgeschlagen ist, sowie der Anteil der Unternehmen, die es installiert haben und deren Beschwerde besteht. Angezeigt werden nur diese Summen, wobei Anzahlen auf ein Vielfaches von f\xFCnf abgerundet und Anteile auf das n\xE4chste Vielfache von f\xFCnf Prozentpunkten gerundet werden. Keine einzelne Ausf\xFChrung und keine einzelne Beschwerde wird angezeigt, und kein Unternehmen wird darin genannt. Sie werden erst angezeigt, wenn die gez\xE4hlten Ausf\xFChrungen von Unternehmen stammen, deren Organisationen von mindestens f\xFCnf verschiedenen Personen eingerichtet wurden, und es mindestens drei\xDFig sind, und die Anteile der Ausf\xFChrungen erst, wenn die Ausf\xFChrungen mit einem Ergebnis diese Schwelle f\xFCr sich allein erreichen und auf die Unternehmen keiner einzelnen Person mehr als ein Drittel der Ausf\xFChrungen entf\xE4llt. Ein Unternehmen z\xE4hlt nur f\xFCr Playbooks, die es von einem Unternehmen installiert hat, dessen Organisation eine andere Person eingerichtet hat, nie f\xFCr einen Workflow, den es selbst geschrieben hat, und ein Probelauf, der nichts \xE4ndert, wird nie gez\xE4hlt.",
   "legal.privacy.transfers.heading": "Wohin die Daten gehen",
   "legal.privacy.transfers.p1": "Die Schweiz geh\xF6rt weder der Europ\xE4ischen Union noch dem Europ\xE4ischen Wirtschaftsraum an. Sie ist ein Drittland mit einem Angemessenheitsbeschluss der Europ\xE4ischen Kommission sowie einem des Vereinigten K\xF6nigreichs. Eine \xDCbermittlung aus dem EWR oder dem Vereinigten K\xF6nigreich an uns st\xFCtzt sich daher auf die Angemessenheit und bedarf keines weiteren Instruments.",
   "legal.privacy.transfers.pair1.term": "Wartelisten-Adressen und jeder andere Datenbankeintrag",
@@ -17497,7 +19364,7 @@ var de_legal_default = {
   "legal.privacy.transfers.pair4.term": "Die Bearbeitung der Anfrage selbst",
   "legal.privacy.transfers.pair4.detail": "Unser Code l\xE4uft weltweit am Netzwerkrand, sodass die Anfrage, die eine Seite darstellt, in Ihrer N\xE4he statt in Europa ausgef\xFChrt werden kann. Garantie: die Standardvertragsklauseln in der Vereinbarung mit dem Anbieter.",
   "legal.privacy.transfers.pair5.term": "Modell-Prompts, Sprache und Entscheidungen",
-  "legal.privacy.transfers.pair5.detail": "An ein Modell gesendeter Text geht an OpenAI und wird in den Vereinigten Staaten verarbeitet, au\xDFerhalb der Schweiz und au\xDFerhalb des EWR. Anthropic erh\xE4lt derzeit nichts. Im Sprachmodus geht auch der Klang Ihrer Stimme an OpenAI. Garantie: der Auftragsverarbeitungszusatz von OpenAI, nach dem unser Vertragspartner die OpenAI Ireland Ltd. ist, die die Daten auf Grundlage der Standardvertragsklauseln oder eines Angemessenheitsbeschlusses nach au\xDFerhalb des EWR und der Schweiz \xFCbermittelt; wir sind nicht Partei dieser Klauseln. Ab einem Startdatum, das mindestens 30 Tage nach unserer Mitteilung an die Kunden liegt, erh\xE4lt au\xDFerdem TypeSafe AI in den Vereinigten Staaten den Anfang einer einem Agenten \xFCbertragenen Arbeit, die Vorgaben f\xFCr eine Website und das Gespr\xE4ch dar\xFCber, bei einer Recherche gelesene Seiten, eine in einem Raum gepostete Nachricht und, wenn Ihr Unternehmen Orvay \xFCber Antworten im Postfach entscheiden l\xE4sst, den Namen Ihres Unternehmens, die beantwortete E-Mail und die entworfene Antwort. Garantie: die Standardvertragsklauseln im Auftragsverarbeitungszusatz dieses Anbieters, der keinen Schweizer Zusatz hat. Websuchen gehen an Brave Search und Browsersitzungen an Browser Use, beide in den Vereinigten Staaten, und f\xFCr jede gibt es unten eine eigene Zeile. Ihre Wartelisten-Adresse ist niemals Teil davon.",
+  "legal.privacy.transfers.pair5.detail": "An ein Modell gesendeter Text geht an OpenAI und wird in den Vereinigten Staaten verarbeitet, au\xDFerhalb der Schweiz und au\xDFerhalb des EWR. Auf unseren eigenen Konten erh\xE4lt Anthropic derzeit nichts. Verbindet Ihr Unternehmen einen eigenen Schl\xFCssel f\xFCr Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq oder OpenRouter, gehen die Aufrufe von Textmodellen, die die Arbeit Ihres Unternehmens ausl\xF6st, an diesen Anbieter, im Rahmen der eigenen Vereinbarung Ihres Unternehmens mit ihm, ausgenommen die Aufrufe, die die Seite der Unterauftragsverarbeiter nennt, und werden dort verarbeitet, wo diese Vereinbarung es vorsieht. Dieser Anbieter ist dann der Anbieter Ihres Unternehmens und nicht unserer, und die \xDCbermittlung st\xFCtzt sich auf diese Vereinbarung, nicht auf unsere. Im Sprachmodus geht auch der Klang Ihrer Stimme an OpenAI. Garantie: der Auftragsverarbeitungszusatz von OpenAI, nach dem unser Vertragspartner die OpenAI Ireland Ltd. ist, die die Daten auf Grundlage der Standardvertragsklauseln oder eines Angemessenheitsbeschlusses nach au\xDFerhalb des EWR und der Schweiz \xFCbermittelt; wir sind nicht Partei dieser Klauseln. Seit dem 27. September 2026 erh\xE4lt au\xDFerdem TypeSafe AI in den Vereinigten Staaten den Anfang einer einem Agenten \xFCbertragenen Arbeit, die Vorgaben f\xFCr eine Website und das Gespr\xE4ch dar\xFCber, bei einer Recherche gelesene Seiten, eine in einem Raum gepostete Nachricht und, wenn Ihr Unternehmen Orvay \xFCber Antworten im Postfach entscheiden l\xE4sst, den Namen Ihres Unternehmens, die beantwortete E-Mail und die entworfene Antwort. Garantie: die Standardvertragsklauseln im Auftragsverarbeitungszusatz dieses Anbieters, der keinen Schweizer Zusatz hat. Websuchen gehen an Brave Search und Browsersitzungen an Browser Use, beide in den Vereinigten Staaten, und f\xFCr jede gibt es unten eine eigene Zeile. Ihre Wartelisten-Adresse ist niemals Teil davon.",
   "legal.privacy.transfers.p2": "Fragen Sie uns, auf welches Instrument sich ein bestimmter Anbieter st\xFCtzt, und wir senden Ihnen zu, was dieser Anbieter ver\xF6ffentlicht.",
   "legal.privacy.retention.heading": "Wie lange wir sie aufbewahren",
   "legal.privacy.retention.p1": "Das Einwilligungsregister wird ausschlie\xDFlich fortgeschrieben. Jeder Datensatz ist durch einen Hash mit dem vorangehenden verkettet, sodass das Entfernen eines Eintrags den Nachweis zerst\xF6ren w\xFCrde, dass die verbleibenden Eintr\xE4ge unver\xE4ndert sind. Eine Abmeldung schreibt daher einen Widerruf auf Ihren Datensatz, statt ihn zu l\xF6schen.",
@@ -17512,7 +19379,7 @@ var de_legal_default = {
   "legal.privacy.rights.pair2.term": "Berichtigung",
   "legal.privacy.rights.pair2.detail": "Teilen Sie uns mit, was falsch ist, und wir berichtigen es. Art. 16 DSGVO, Art. 32 revDSG.",
   "legal.privacy.rights.pair3.term": "L\xF6schung",
-  "legal.privacy.rights.pair3.detail": "Bitten Sie uns, Ihre Daten zu l\xF6schen, und wir tun es. Art. 17 DSGVO. Wo die Pr\xFCfkette das Entfernen eines Datensatzes verhindert, vernichten wir die darin enthaltenen personenbezogenen Daten und lassen den Rest bestehen, der weiterhin zeigen kann, dass etwas geschehen ist, aber nicht mehr, was es besagte. Der Betreiber erledigt dies von Hand. Ein Bild, das ein Unternehmen seinen Beitr\xE4gen hinzugef\xFCgt hat, l\xE4sst sich auf seiner Markenseite entfernen, wodurch das Bild aus dem Speicher gel\xF6scht wird. Orvay l\xF6scht keinen bereits ver\xF6ffentlichten Beitrag. Das Unternehmen kann ihn auf dem Kanal l\xF6schen. Der Datensatz eines bereits vorbereiteten Beitrags beh\xE4lt die Beschreibung des Bildes, weil dieser Datensatz nie ge\xE4ndert wird.",
+  "legal.privacy.rights.pair3.detail": "Bitten Sie uns, Ihre Daten zu l\xF6schen, und wir tun es. Art. 17 DSGVO. Wo die Pr\xFCfkette das Entfernen eines Datensatzes verhindert, vernichten wir die darin enthaltenen personenbezogenen Daten und lassen den Rest bestehen, der weiterhin zeigen kann, dass etwas geschehen ist, aber nicht mehr, was es besagte. Der Betreiber erledigt dies von Hand. Ein Bild, das ein Unternehmen seinen Beitr\xE4gen hinzugef\xFCgt hat, l\xE4sst sich auf seiner Markenseite entfernen, wodurch das Bild aus dem Speicher gel\xF6scht wird. Einen bereits ver\xF6ffentlichten Beitrag l\xF6scht das Unternehmen: auf dem Kanal selbst oder, bei einem Beitrag auf X, Bluesky oder Mastodon oder einer Antwort, die Orvay auf YouTube ver\xF6ffentlicht hat, aus Orvay heraus, wo ein Mitglied darum bittet und eine Person jede L\xF6schung genehmigt. Der Datensatz eines bereits vorbereiteten Beitrags beh\xE4lt die Beschreibung des Bildes, weil dieser Datensatz nie ge\xE4ndert wird.",
   "legal.privacy.rights.pair4.term": "Einschr\xE4nkung",
   "legal.privacy.rights.pair4.detail": "Bitten Sie uns, die Verarbeitung w\xE4hrend eines Streitfalls einzustellen, und wir tun es. Art. 18 DSGVO.",
   "legal.privacy.rights.pair5.term": "Daten\xFCbertragbarkeit",
@@ -17587,11 +19454,24 @@ var de_legal_default = {
   "legal.terms.ip.pair4.term": "Feedback",
   "legal.terms.ip.pair4.detail": "Wenn Sie uns eine Idee f\xFCr das Produkt schicken, d\xFCrfen wir sie verwenden, ohne Ihnen etwas daf\xFCr zu schulden. Senden Sie uns nichts Vertrauliches als Feedback.",
   "legal.terms.ip.p1": "Der Export Ihrer personenbezogenen Daten ist ein Recht, daher ist er auf jedem Plan kostenlos, einschlie\xDFlich des kostenlosen. Der Export einer generierten Website ist eine Produktfunktion und Teil dessen, was ein kostenpflichtiger Plan kauft. Wir halten diese beiden bewusst auseinander und sagen auf der Preisseite, was was ist, statt erst nachdem Sie bezahlt haben.",
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): what listing a workflow makes public.
+  "legal.terms.playbooks.heading": "Playbooks, die Ihr Unternehmen bereitstellt",
+  "legal.terms.playbooks.p1": "Ihr Unternehmen kann eine ver\xF6ffentlichte Version eines seiner Workflows als Playbook bereitstellen, damit andere Unternehmen auf Orvay eine Kopie davon installieren k\xF6nnen. \xDCber die Bereitstellung wird f\xFCr jede Version einzeln entschieden, und nichts wird bereitgestellt, ohne dass es jemand mit der Berechtigung dazu tut. Standardm\xE4\xDFig hat nur der Inhaber diese Berechtigung.",
+  "legal.terms.playbooks.p2": "Die Bereitstellung einer Version macht sie f\xFCr jedes andere Unternehmen, das Orvay nutzt, und f\xFCr die Menschen in diesen Unternehmen sichtbar: alle ihre Schritte und Einstellungen so, wie sie geschrieben sind, ihren Namen, die f\xFCr die Bereitstellung geschriebene Beschreibung, eine Kennung der Version und den Zeitpunkt der Bereitstellung. Der Name Ihres Unternehmens wird nur dann mit ihr angezeigt, wenn Sie das bei der Bereitstellung w\xE4hlen. Wer in Ihrem Unternehmen sie bereitgestellt hat, wird nicht angezeigt.",
+  "legal.terms.playbooks.p3": "Bevor eine Version bereitgestellt wird, lehnt Orvay die Bereitstellung ab, wenn irgendein Text in ihr oder in ihrer Beschreibung Zugangsdaten enth\xE4lt, die wir erkennen, eine E-Mail-Adresse, eine Telefonnummer in einer der \xFCblichen internationalen oder nationalen Schreibweisen oder den vollst\xE4ndigen Namen eines Mitglieds Ihres Unternehmens, wie Orvay ihn gespeichert hat, in jeder Gro\xDF- und Kleinschreibung. Orvay lehnt au\xDFerdem eine Version mit einem Schritt ab, der einem namentlich bestimmten Mitglied zugewiesen ist, Zugangsdaten eingibt, die Ihr Unternehmen in Orvay gespeichert hat, oder einen anderen Workflow Ihres Unternehmens ausf\xFChrt, und gleicht den Namen und die Beschreibung mit der kurzen Liste von Begriffen ab, die im Abschnitt dar\xFCber beschrieben ist, was Sie nicht tun d\xFCrfen.",
+  "legal.terms.playbooks.p4": "Diese Pr\xFCfungen haben Grenzen. Alles, was sie nicht erkennen, wird so angezeigt, wie es geschrieben ist, zum Beispiel ein Name, den Orvay nicht gespeichert hat, etwa der eines Kunden, ein Name, der anders geschrieben ist als in unserem Datensatz, ein gespeicherter Name mit weniger als drei Buchstaben, eine Postanschrift oder eine E-Mail-Adresse oder Telefonnummer in einer anderen Schreibweise. Stellen Sie keinen Workflow bereit, der Informationen \xFCber eine Person enth\xE4lt, und lesen Sie eine Version, bevor Sie sie bereitstellen.",
+  "legal.terms.playbooks.p5": "Sie k\xF6nnen eine Bereitstellung jederzeit zur\xFCckziehen. Danach kann niemand sie mehr installieren. Kopien, die andere Unternehmen installiert haben, bevor Sie die Bereitstellung zur\xFCckgezogen haben, bleiben bei diesen Unternehmen, und wir entfernen oder \xE4ndern sie nicht.",
+  "legal.terms.playbooks.p6": "Wer ein Playbook installiert, kopiert es als neuen Workflow in das installierende Unternehmen, und dieser Workflow geh\xF6rt diesem Unternehmen. Die Bereitstellung einer Version f\xFChrt nicht dazu, dass in einem anderen Unternehmen etwas l\xE4uft: Eine Kopie l\xE4uft erst, nachdem das Unternehmen, das sie installiert hat, sie ver\xF6ffentlicht, und dann unter dessen eigenen Berechtigungen, Richtlinien und Genehmigungen. Eine Version, die Sie sp\xE4ter ver\xF6ffentlichen oder bereitstellen, \xE4ndert eine bereits installierte Kopie nicht.",
+  "legal.terms.playbooks.p7": "Ein Unternehmen, das ein Playbook installiert hat, kann eine Beschwerde dar\xFCber einreichen, sobald eine Ausf\xFChrung seiner Kopie beendet ist (ein Probelauf z\xE4hlt nicht), und w\xE4hlt daf\xFCr einen Grund aus einer festen Liste: Es funktioniert nicht, es tut nicht, was seine Beschreibung sagt, es handelt auf eine Weise, die seine Bereitstellung nicht deutlich macht, es enth\xE4lt personenbezogene Daten oder Zugangsdaten, oder es dient einem Zweck, den diese Bedingungen nicht erlauben. Eine Beschwerde enth\xE4lt keinen eigenen Text. Ein Unternehmen hat zu jedem Playbook h\xF6chstens eine bestehende Beschwerde und kann sie jederzeit zur\xFCckziehen. Dem Unternehmen, das das Playbook bereitgestellt hat, wird nie mitgeteilt, welches Unternehmen sich beschwert hat. Der Anteil der Unternehmen, die es installiert haben und deren Beschwerde besteht, wird mit den \xFCbrigen Statistiken des Playbooks angezeigt, und nur dann, wenn diese angezeigt werden.",
+  "legal.terms.playbooks.p8": "Orvay verbirgt ein Playbook vor anderen Unternehmen, solange Beschwerden dar\xFCber von Unternehmen bestehen, deren Organisationen von mindestens drei verschiedenen Personen eingerichtet wurden, und von mindestens einem F\xFCnftel der Unternehmen, die es installiert haben. Mehrere Organisationen, die eine Person eingerichtet hat, z\xE4hlen als eine. Unternehmen in der eigenen Organisation des bereitstellenden Unternehmens oder in einer anderen Organisation, die dieselbe Person eingerichtet hat wie diese, werden weder als installierende Unternehmen noch mit ihren Beschwerden gez\xE4hlt. Solange es verborgen ist, kann niemand es installieren, bereits installierte Kopien werden nicht ver\xE4ndert, und das Unternehmen, das es bereitgestellt hat, sieht bei seiner eigenen Bereitstellung, dass es verborgen ist und welche der oben genannten Gr\xFCnde angegeben wurden, aber nie, welches Unternehmen sie angegeben hat. Eine \xDCberpr\xFCfung durch eine Person gibt es noch nicht. Ein verborgenes Playbook wird nur wieder angezeigt, wenn gen\xFCgend Beschwerden zur\xFCckgezogen werden. Das bereitstellende Unternehmen kann die Bereitstellung jederzeit zur\xFCckziehen und eine neue Version des Workflows bereitstellen, die eine neue Bereitstellung ohne Beschwerden ist.",
+  "legal.terms.playbooks.p9": "Ein Unternehmen, das ein Playbook installiert hat, kann seine Kopie bearbeiten, ver\xF6ffentlichen und als eigenes Playbook bereitstellen. Orvay lehnt es ab, eine Version bereitzustellen, die ein anderes Unternehmen zuerst bereitgestellt hat, auch nachdem diese Bereitstellung zur\xFCckgezogen wurde. Eine installierte Kopie, die noch genau diese Version ist, kann daher nicht bereitgestellt werden. Bei jeder anderen Kopie h\xE4lt Orvay anhand der Kopie selbst fest, von welchem Playbook sie installiert wurde, und die Bereitstellung zeigt, dass sie von diesem Playbook abgeleitet ist: mit dessen Namen, solange es installiert werden kann, und sonst mit einer Kennung seiner Version. Das Unternehmen, das die Kopie bereitstellt, kann diese Angabe weder entfernen noch \xE4ndern. Eine erneut bereitgestellte Kopie durchl\xE4uft jede oben beschriebene Pr\xFCfung, bezogen auf die Mitglieder ihres eigenen Unternehmens, und die Ausf\xFChrungen und Beschwerden der Unternehmen, die sie installieren, z\xE4hlen zu ihren eigenen Statistiken, nicht zu denen des Playbooks, von dem sie stammt.",
   "legal.terms.availability.heading": "Verf\xFCgbarkeit",
   "legal.terms.availability.p1": "Wir sagen keine Verf\xFCgbarkeit zu. Es gibt keine Service-Level-Vereinbarung, keine garantierte Support-Reaktionszeit, und eine einzige Person, die den Dienst betreibt. Sobald wir das anbieten k\xF6nnen, halten wir es schriftlich fest und stellen es in Rechnung.",
   "legal.terms.availability.p2": "Wir k\xF6nnen Funktionen \xE4ndern oder entfernen. Entfernt eine \xC4nderung etwas, auf das Sie sich verlassen, geben wir Ihnen Bescheid und, wo die \xC4nderung wesentlich ist, einen Ausweg.",
   "legal.terms.money.heading": "Geld",
   "legal.terms.money.p1": "Heute wird nichts berechnet. Sobald Pl\xE4ne verkauft werden, stehen der Preis, was er enth\xE4lt und jede Begrenzung vor Ihrer Zahlung auf der Preisseite, nicht danach. Das Kontingent bemisst sich daran, was Ihre Nutzung uns tats\xE4chlich kostet, und Credits sind die Art, wie das dargestellt wird. Der kostenlose Plan endet, wenn sein Guthaben aufgebraucht ist, und erzeugt niemals eine Rechnung.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.terms.money.p2": "Modellaufrufe \xFCber einen Schl\xFCssel, den Ihr Unternehmen verbunden hat, stellt Ihrem Unternehmen dieser Anbieter in Rechnung, und sie werden nicht von Ihren Credits abgezogen.",
   "legal.terms.warranty.heading": "Was wir nicht versprechen",
   "legal.terms.warranty.p1": "Der Dienst wird bereitgestellt, wie er ist. Soweit das Schweizer Recht dies zul\xE4sst, \xFCbernehmen wir keine Gew\xE4hr daf\xFCr, dass er unterbrechungsfrei oder fehlerfrei ist, dass er f\xFCr einen bestimmten Zweck geeignet ist oder dass eine Ausgabe korrekt ist.",
   "legal.terms.warranty.p2": "Verifizierung ist ein Unabh\xE4ngigkeitsmechanismus, kein Orakel. Ein verifiziertes Ergebnis bedeutet, dass ein zweiter Akteur den ersten \xFCberpr\xFCft hat und der Nachweis protokolliert wurde. Es bedeutet nicht, dass das Ergebnis garantiert richtig ist, und wir verkaufen es nicht als solches.",
@@ -17657,6 +19537,15 @@ var de_legal_default = {
   "legal.subprocessors.list.heading": "Die Liste",
   "legal.subprocessors.changes.heading": "\xC4nderung der Liste",
   "legal.subprocessors.changes.p1": "Wir informieren Kunden mindestens 30 Tage im Voraus per E-Mail, bevor ein neuer Unterauftragsverarbeiter mit der Verarbeitung ihrer personenbezogenen Daten beginnt, und Sie k\xF6nnen innerhalb dieser Frist aus vertretbaren datenschutzrechtlichen Gr\xFCnden schriftlich widersprechen. K\xF6nnen wir den Widerspruch nicht ausr\xE4umen, k\xF6nnen Sie den betroffenen Dienst ohne Vertragsstrafe k\xFCndigen. Diese Zusage ist Teil des Auftragsverarbeitungsvertrags, keine Kulanz.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.subprocessors.own-key.heading": "Anbieter, die Sie mit Ihrem eigenen Schl\xFCssel verbinden",
+  "legal.subprocessors.own-key.p1": "Verbindet Ihr Unternehmen einen eigenen Schl\xFCssel f\xFCr Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq oder OpenRouter, gehen die Aufrufe von Textmodellen, die die Arbeit Ihres Unternehmens ausl\xF6st, an diesen Anbieter, im Rahmen der eigenen Vereinbarung Ihres Unternehmens mit ihm. Das Erstellen und Bearbeiten Ihrer Website, der Sprachmodus, die Suche im Unternehmensged\xE4chtnis und Bilder bleiben auf unseren Konten. Dieser Anbieter verarbeitet die Aufrufe als Anbieter Ihres Unternehmens, nicht als unserer, deshalb steht er nicht in der Liste oben, und wenn Ihr Unternehmen einen verbindet, informieren wir nicht 30 Tage im Voraus: Ihr Unternehmen hat ihn gew\xE4hlt.",
+  "legal.subprocessors.own-key.p2": "Wir senden ihm denselben Text, den wir auf unseren eigenen Konten senden w\xFCrden, auf dieselbe Weise vorbereitet. Was der Anbieter beh\xE4lt, wie lange und was er sonst damit tun darf, legt die Vereinbarung Ihres Unternehmens mit diesem Anbieter fest, nicht unsere. Ein L\xF6schantrag an uns erreicht, was wir speichern, und nicht, was der Anbieter unter dem Schl\xFCssel Ihres Unternehmens speichert.",
+  "legal.subprocessors.own-key.p3": "Wir vermischen die beiden nie. Ein Aufruf, den der Schl\xFCssel Ihres Unternehmens bezahlt, wird nicht \xFCber unser Konto gesendet, und ein Aufruf \xFCber unser Konto wird nicht mit dem Schl\xFCssel Ihres Unternehmens gesendet. Funktioniert der Schl\xFCssel Ihres Unternehmens nicht mehr, wartet die Arbeit und sagt das, statt auf unser Konto zu wechseln.",
+  "legal.subprocessors.own-key.p4": "Jeder Aufruf, den die Arbeit Ihres Unternehmens an einen Anbieter richtet, f\xFCr den es keinen Schl\xFCssel verbunden hat, l\xE4uft weiterhin \xFCber unser Konto, an die Anbieter in der Liste oben.",
+  "legal.subprocessors.own-key.p5": "Wir bewahren den Schl\xFCssel Ihres Unternehmens versiegelt auf und verwenden ihn nur f\xFCr die Aufrufe Ihres Unternehmens. Das Trennen zerst\xF6rt unsere Kopie. Beim Anbieter wird der Schl\xFCssel dadurch nicht widerrufen, das tun Sie in der Konsole des Anbieters.",
+  "legal.subprocessors.own-key.p6": "W\xE4hlt Ihr Unternehmen, nur \xFCber seine eigenen Schl\xFCssel zu arbeiten, geht jeder Aufruf eines Textmodells, den die Arbeit Ihres Unternehmens ausl\xF6st, an einen Anbieter, f\xFCr den es einen Schl\xFCssel verbunden hat, und ein Aufruf, den keiner von ihnen bedienen kann, wartet und sagt das, statt an die Anbieter in der Liste oben zu gehen. Das Erstellen und Bearbeiten Ihrer Website, der Sprachmodus, die Suche im Unternehmensged\xE4chtnis und Bilder nutzen weiterhin die Anbieter in der Liste oben.",
+  "legal.subprocessors.own-key.p7": "Ein Aufruf \xFCber einen Mistral-Schl\xFCssel geht an den EU-Endpunkt von Mistral, den Mistral aus Rechenzentren in EU- und EFTA-Staaten bedient. Ein Aufruf \xFCber einen OpenRouter-Schl\xFCssel geht an OpenRouter, das ihn an einen Anbieter weiterleitet, der das Modell bedient, in einer Region, die OpenRouter nicht garantiert.",
   "legal.subprocessors.cloudflare.service": "Bedient jede Anfrage. Workers-Rechenleistung, R2-Objektspeicher, Hyperdrive-Datenbank-Pooling, Durable Objects, Workflows, DNS, Anfrageprotokollierung sowie die E-Mail-Route, die Betreiberwarnungen versendet.",
   "legal.subprocessors.cloudflare.data1": "Anfragemetadaten zu jedem Besuch, einschlie\xDFlich IP-Adresse, User-Agent und der angeforderten Seite",
   "legal.subprocessors.cloudflare.data2": "Eine Wartelisten-\xDCbermittlung, w\xE4hrend sie zur Datenbank unterwegs ist",
@@ -17717,7 +19606,7 @@ var de_legal_default = {
   "legal.dpa.subject-matter.pair2.term": "Dauer",
   "legal.dpa.subject-matter.pair2.detail": "F\xFCr die Dauer des Bestehens Ihres Kontos, und danach nur so lange, wie es dauert, die Daten zur\xFCckzugeben oder zu vernichten.",
   "legal.dpa.subject-matter.pair3.term": "Art und Zweck",
-  "legal.dpa.subject-matter.pair3.detail": "Speicherung, Abruf, \xDCbermittlung an die in der ver\xF6ffentlichten Liste genannten Unterauftragsverarbeiter sowie \xDCbermittlung an Modellanbieter, wenn Sie einen Agenten mit einer Arbeit beauftragen, die dies erfordert.",
+  "legal.dpa.subject-matter.pair3.detail": "Speicherung, Abruf, \xDCbermittlung an die in der ver\xF6ffentlichten Liste genannten Unterauftragsverarbeiter sowie \xDCbermittlung an Modellanbieter, wenn Sie einen Agenten mit einer Arbeit beauftragen, die dies erfordert, entweder \xFCber unsere Konten oder, wenn Sie Ihren eigenen Schl\xFCssel verbinden, \xFCber Ihre.",
   "legal.dpa.subject-matter.pair4.term": "Kategorien betroffener Personen",
   "legal.dpa.subject-matter.pair4.detail": "Ihre Mitarbeiter, Ihre Kontakte und jede weitere Person, deren Daten Sie einbringen.",
   "legal.dpa.subject-matter.pair5.term": "Kategorien personenbezogener Daten",
@@ -17747,9 +19636,13 @@ var de_legal_default = {
   "legal.dpa.subprocessors.p1": "Sie erteilen uns die allgemeine Genehmigung, Unterauftragsverarbeiter einzusetzen, gem\xE4\xDF Art. 28 Abs. 2 und Art. 28 Abs. 3 lit. d DSGVO. Die aktuelle Liste ist ver\xF6ffentlicht und nennt jeden Einzelnen mit Angabe dessen, was er erh\xE4lt, wo er verarbeitet und auf welche Garantie sich die \xDCbermittlung st\xFCtzt.",
   "legal.dpa.subprocessors.p2": "Wir informieren Sie mindestens 30 Tage im Voraus per E-Mail, bevor ein neuer Unterauftragsverarbeiter mit der Verarbeitung Ihrer personenbezogenen Daten beginnt. Sie k\xF6nnen innerhalb dieser Frist aus vertretbaren datenschutzrechtlichen Gr\xFCnden schriftlich widersprechen. K\xF6nnen wir Ihren Widerspruch nicht ausr\xE4umen, k\xF6nnen Sie den betroffenen Teil des Dienstes ohne Vertragsstrafe k\xFCndigen, und wir erstatten jede vorausbezahlte Geb\xFChr f\xFCr den ungenutzten Zeitraum.",
   "legal.dpa.subprocessors.p3": "Jeder Unterauftragsverarbeiter ist durch einen schriftlichen Vertrag mit Datenschutzpflichten gebunden, die nicht schw\xE4cher sind als diese, ausgenommen Brave Search f\xFCr die Suchanfragen, die wir an Brave senden, denn sein Auftragsverarbeitungszusatz schlie\xDFt sie aus; was wir vor dem Senden aus einer Suchanfrage entfernen, steht auf der Seite mit den Unterauftragsverarbeitern. Erf\xFCllt einer sie nicht, haften wir Ihnen gegen\xFCber weiterhin uneingeschr\xE4nkt f\xFCr seine Leistung. Art. 28 Abs. 4 DSGVO.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.subprocessors.p4": "Ein Modellanbieter, den Sie mit Ihrem eigenen Schl\xFCssel verbinden, ist kein Unterauftragsverarbeiter, den wir einsetzen. Sie setzen ihn im Rahmen Ihrer eigenen Vereinbarung mit ihm ein, und mit dem Verbinden des Schl\xFCssels weisen Sie uns an, ihm die Modellaufrufe zu senden, die die Seite der Unterauftragsverarbeiter beschreibt (Art. 28 Abs. 3 lit. a DSGVO). Die Genehmigung, die Frist und die Pflichten oben gelten f\xFCr die Unterauftragsverarbeiter, die wir einsetzen, und nicht f\xFCr ihn.",
   "legal.dpa.transfers.heading": "Internationale Daten\xFCbermittlungen",
   "legal.dpa.transfers.p1": "Befindet sich ein Unterauftragsverarbeiter au\xDFerhalb der Schweiz und des Europ\xE4ischen Wirtschaftsraums, st\xFCtzt sich die \xDCbermittlung auf die f\xFCr ihn in der Liste der Unterauftragsverarbeiter genannte Garantie. Bei den Modellanbietern sind die Standardvertragsklauseln das Instrument. Wir st\xFCtzen uns nicht auf eine Rahmenzertifizierung.",
   "legal.dpa.transfers.p2": "Die Schweiz verf\xFCgt \xFCber einen Angemessenheitsbeschluss der Europ\xE4ischen Kommission, sodass eine \xDCbermittlung aus dem EWR an unsere Datenbank in Z\xFCrich keines weiteren Instruments bedarf.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.transfers.p3": "Eine \xDCbermittlung an einen Modellanbieter, den Sie mit Ihrem eigenen Schl\xFCssel verbunden haben, st\xFCtzt sich auf Ihre Vereinbarung mit diesem Anbieter, nicht auf unsere.",
   "legal.dpa.data-subject-requests.heading": "Unterst\xFCtzung bei der Beantwortung von Anfragen betroffener Personen",
   "legal.dpa.data-subject-requests.p1": "Wir unterst\xFCtzen Sie bei der Erf\xFCllung einer Anfrage einer betroffenen Person unter Ber\xFCcksichtigung der Art der Verarbeitung. Art. 28 Abs. 3 lit. e DSGVO.",
   "legal.dpa.data-subject-requests.p2": "Wo das Produkt sie beantworten kann, k\xF6nnen Sie sie selbst beantworten. Ihre Kontakte, Uploads, Einwilligungsdatens\xE4tze und Ihr Pr\xFCfprotokoll sind auf jedem Plan, einschlie\xDFlich des kostenlosen, in einem maschinenlesbaren Format exportierbar, weil die Daten\xFCbertragbarkeit ein Recht ist und keine Funktion.",
@@ -17842,7 +19735,7 @@ var de_legal_default = {
   "legal.subprocessors.github.safeguard": "GitHub ist in den Vereinigten Staaten niedergelassen und geh\xF6rt Microsoft. \xDCbermittlungen st\xFCtzen sich auf die Standardvertragsklauseln in dessen Bedingungen. W\xE4hlen Sie stattdessen ein Passwort, erreichen GitHub \xFCberhaupt keine Daten.",
   "legal.subprocessors.github.statusDetail": "Wird nur erreicht, wenn Sie die Schaltfl\xE4che dr\xFCcken. Durch das \xD6ffnen der Anmeldeseite wird nichts an GitHub gesendet, und dieser Eintrag fehlte bis zum 20. August 2026 auf dieser Liste, w\xE4hrend die Schaltfl\xE4che bereits auf dem Bildschirm zu sehen war.",
   "legal.terms.acceptable-use.item7": "Ein Unternehmen betreiben, f\xFCr das wir nicht arbeiten: sexuelle Inhalte oder sexuelle Dienstleistungen, alles, was ein Kind sexualisiert, Malware und Werkzeuge zum Eindringen in Systeme, Betrug, der Verkauf von Waffen oder kontrollierten Substanzen oder gezielte Bel\xE4stigung einer Person. Das ist eine Weigerung, die die Arbeit betrifft, und kein Urteil \xFCber Sie, und sie gilt unabh\xE4ngig davon, was das Recht dort sagt, wo Sie sind.",
-  "legal.terms.acceptable-use.p2": "Zwei Pr\xFCfungen setzen die obige Regel durch, und es lohnt sich, genau zu wissen, welche das sind, damit Sie sie nicht f\xFCr mehr halten, als sie sind. Der Name und die Webadresse, die Sie uns nennen, werden bei der Einrichtung mit einer kurzen Liste von Begriffen abgeglichen, bevor wir etwas abrufen. Davon unabh\xE4ngig weigert sich ein Agent, an einem Ziel zu arbeiten, das eines dieser Dinge verlangt. Keine der beiden ist eine \xDCberpr\xFCfung von allem, was Sie tun, keine liest Ihre Daten, und keine nimmt Ihnen ab, zu wissen, was Sie betreiben.",
+  "legal.terms.acceptable-use.p2": "Drei Pr\xFCfungen setzen die obige Regel durch, und es lohnt sich, genau zu wissen, welche das sind, damit Sie sie nicht f\xFCr mehr halten, als sie sind. Der Name und die Webadresse, die Sie uns nennen, werden bei der Einrichtung mit einer kurzen Liste von Begriffen abgeglichen, bevor wir etwas abrufen. Davon unabh\xE4ngig weigert sich ein Agent, an einem Ziel zu arbeiten, das eines dieser Dinge verlangt. Au\xDFerdem werden der Name und die Beschreibung eines Workflows, den Ihr Unternehmen als Playbook bereitstellt, vor der Bereitstellung mit derselben Liste abgeglichen. Keine davon ist eine \xDCberpr\xFCfung von allem, was Sie tun, keine liest Ihre Daten, und keine nimmt Ihnen ab, zu wissen, was Sie betreiben.",
   // -------------------------------------------------------------------------
   // MACHINE TRANSLATION, 2026-09-23, NOT YET REVIEWED BY A PERSON.
   //
@@ -17891,7 +19784,7 @@ var de_legal_default = {
   "legal.subprocessors.typesafe.location1": "Vereinigte Staaten, die seine Datenschutzerkl\xE4rung als den Ort nennt, an dem der Dienst gehostet wird",
   "legal.subprocessors.typesafe.location2": "Sein Auftragsverarbeitungszusatz nennt keinen Verarbeitungsort",
   "legal.subprocessors.typesafe.safeguard": "TypeSafe AI, Inc. hat seinen Sitz in den Vereinigten Staaten. Sein Auftragsverarbeitungszusatz wendet auf \xDCbermittlungen aus der EU die Standardvertragsklauseln an, f\xFCr das Vereinigte K\xF6nigreich mit dem britischen Zusatz. Zur Schweiz sagt er nur, dass Streitigkeiten vor Schweizer Gerichte geh\xF6ren und dass der Eidgen\xF6ssische Datenschutz- und \xD6ffentlichkeitsbeauftragte (ED\xD6B) die zust\xE4ndige Beh\xF6rde ist. Einen Schweizer Zusatz hat er nicht.",
-  "legal.subprocessors.typesafe.statusDetail": "Sein Schl\xFCssel ist auf dem Worker zur Website-Generierung hinterlegt, der ihm vor einem auf diesem Worker festgelegten Startdatum nichts sendet. Wir legen dieses Datum fr\xFChestens 30 Tage nach der Information unserer Kunden fest, wie es unser Auftragsverarbeitungsvertrag verlangt. Vor diesem Datum und immer dann, wenn es nicht antwortet, geht eine Frage zu einer Arbeit, einer Website oder einem Raum stattdessen an ein Textmodell, und eine Antwort im Postfach, die auf seine Entscheidung wartet, wartet auf eine Person. Es steht schon jetzt auf der Liste, bevor es etwas erh\xE4lt, damit diese Seite und unsere Mitteilung dieselbe Liste beschreiben.",
+  "legal.subprocessors.typesafe.statusDetail": "Sein Schl\xFCssel ist auf dem Worker zur Website-Generierung hinterlegt, der ihm die oben genannten Daten seit dem 27. September 2026 sendet. Immer dann, wenn es nicht antwortet, geht eine Frage zu einer Arbeit, einer Website oder einem Raum stattdessen an ein Textmodell, und eine Antwort im Postfach, die auf seine Entscheidung wartet, wartet auf eine Person.",
   "legal.subprocessors.fish.service": "Sprachsynthese und Transkription. Bis zum 25. September 2026 las es im Sprachmodus eine Antwort vor, wenn sich kein Live-Gespr\xE4ch \xF6ffnen lie\xDF, und es konnte in einem Deployment ohne OpenAI-Schl\xFCssel Sprache transkribieren. Heute tut es keines von beiden.",
   "legal.subprocessors.fish.data1": "Bis zum 25. September 2026 der Text einer Antwort, die Orvay Ihnen vorlas. Dieser Text konnte Personen und Zahlen aus Ihren Unternehmensdaten nennen, und nichts darin wurde vor dem Senden entfernt",
   "legal.subprocessors.fish.data2": "Bis zum 25. September 2026 die Aufnahme dessen, was Sie im Sprachmodus sagten, nur in einem Deployment, das keinen OpenAI-Schl\xFCssel f\xFCr die Transkription hatte",
@@ -18092,7 +19985,7 @@ var fr_default = {
   "pricing.feature.scim.name": "Synchronisation d'annuaire",
   "pricing.feature.scim.detail": "Votre fournisseur d'identit\xE9 ajoute et retire des personnes via SCIM 2.0, sur un domaine dont vous avez prouv\xE9 la possession pour l'authentification unique. Uniquement des personnes\xA0: les groupes ne sont pas synchronis\xE9s, et c'est vous qui fixez les r\xF4les.",
   "pricing.feature.byo_model_keys.name": "Vos propres cl\xE9s de mod\xE8le",
-  "pricing.feature.byo_model_keys.detail": "Facturez l'utilisation des mod\xE8les sur vos propres comptes fournisseurs plut\xF4t que sur votre budget de cr\xE9dits.",
+  "pricing.feature.byo_model_keys.detail": "Ex\xE9cutez les appels de mod\xE8les sur vos propres comptes Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq ou OpenRouter, factur\xE9s par votre fournisseur et non sur vos cr\xE9dits, et choisissez de n\u2019utiliser que vos propres cl\xE9s. La cr\xE9ation et la modification de sites web, la voix, la recherche dans la m\xE9moire et les images restent sur les cl\xE9s d\u2019Orvay, et un appel a toujours besoin de cr\xE9dits disponibles pour d\xE9marrer.",
   "pricing.feature.integration_mcp.name": "Outils emprunt\xE9s",
   "pricing.feature.integration_mcp.detail": "Enregistrez les serveurs d'outils que votre entreprise utilise d\xE9j\xE0, et laissez Orvay appeler leurs outils selon votre politique, une approbation par outil. Les connecteurs du catalogue propre \xE0 Orvay ne sont pas d\xE9compt\xE9s de votre plan. Un serveur d'outils personnalis\xE9 est un serveur que vous enregistrez par son adresse, et le nombre qu'un plan en contient se trouve dans le tableau ci-dessus.",
   "pricing.feature.voice.name": "Voix int\xE9gr\xE9e",
@@ -18396,7 +20289,7 @@ var fr_default = {
   "site.limits.card.no-customers.title": "Aucun client, donc aucune preuve de client",
   "site.limits.card.no-customers.body": "Il n'y a pas de mur de logos sur cette page car il n'y a pas de logos \xE0 y mettre, et pas de t\xE9moignages ni de chiffres d'utilisation pour la m\xEAme raison. Quand il y en aura, ils seront nomm\xE9s.",
   "site.limits.card.data-location.title": "O\xF9 se trouvent les donn\xE9es, dit en entier",
-  "site.limits.card.data-location.body": "Postgres fonctionne \xE0 Zurich, dans un projet dont la r\xE9gion est eu-central-2. L'inf\xE9rence des mod\xE8les ne se d\xE9roule pas en Suisse\xA0: les invites partent vers Anthropic et OpenAI, qui les traitent hors de Suisse et hors de l'Union europ\xE9enne. La Suisse est un pays tiers b\xE9n\xE9ficiant d'une d\xE9cision d'ad\xE9quation de l'Union europ\xE9enne, pas un \xC9tat membre de l'Union europ\xE9enne ni de l'Espace \xE9conomique europ\xE9en. Une affirmation de r\xE9sidence qui omet la seconde phrase est pr\xE9cis\xE9ment le genre de demi-v\xE9rit\xE9 que ce produit existe pour refuser.",
+  "site.limits.card.data-location.body": "Postgres fonctionne \xE0 Zurich, dans un projet dont la r\xE9gion est eu-central-2. L'inf\xE9rence des mod\xE8les ne se d\xE9roule pas en Suisse\xA0: les invites partent vers OpenAI, qui les traite hors de Suisse et hors de l'Union europ\xE9enne. La Suisse est un pays tiers b\xE9n\xE9ficiant d'une d\xE9cision d'ad\xE9quation de l'Union europ\xE9enne, pas un \xC9tat membre de l'Union europ\xE9enne ni de l'Espace \xE9conomique europ\xE9en. Une affirmation de r\xE9sidence qui omet la seconde phrase est pr\xE9cis\xE9ment le genre de demi-v\xE9rit\xE9 que ce produit existe pour refuser.",
   "site.limits.card.privacy.title": "La confidentialit\xE9 d'abord, et aucune certification revendiqu\xE9e",
   "site.limits.card.privacy.body": "Nous ne d\xE9tenons aucune certification d'aucune sorte et n'en revendiquons aucune. Ce que nous pouvons vous montrer, c'est ce que le code fait\xA0: une isolation des clients \xE9crite sous forme de politiques de base de donn\xE9es restrictives qui ne peuvent que refuser, une cha\xEEne de hachage que vous pouvez recalculer, et une approbation humaine enregistr\xE9e sur toute action ayant un effet l\xE9gal sur une personne.",
   "site.limits.card.representative.title": "Une obligation que nous devons et n'avons pas remplie",
@@ -19560,7 +21453,6 @@ var fr_default = {
   "decision.run": "Ex\xE9cuter",
   "decision.running": "En cours",
   "decision.halted": "L'autonomie est arr\xEAt\xE9e. Levez l'arr\xEAt avant que quoi que ce soit ne s'ex\xE9cute, y compris ce que vous avez d\xE9j\xE0 approuv\xE9.",
-  "decision.run.note": "Ex\xE9cuter applique le plan puis confie le r\xE9sultat \xE0 un autre acteur pour v\xE9rification. Aucun adaptateur n'est connect\xE9 sur ce d\xE9ploiement, l'effet est donc simul\xE9 et chaque artefact produit le dit.",
   "decision.refused.title": "Ceci a \xE9t\xE9 refus\xE9",
   "decision.recheck": "V\xE9rifier \xE0 nouveau",
   "decision.rechecking": "V\xE9rification",
@@ -20241,7 +22133,7 @@ var fr_default = {
   "trust.holds.mfa.term": "Aucun deuxi\xE8me facteur",
   "trust.holds.mfa.detail": "Pas de TOTP, pas de cl\xE9s de passage, pas de cl\xE9s mat\xE9rielles. Un mot de passe et une adresse e-mail, c'est tout pour l'instant. L'authentification unique existe uniquement sur le plus grand plan.",
   "trust.holds.inference.term": "L'inf\xE9rence du mod\xE8le n'est pas en Suisse",
-  "trust.holds.inference.detail": "Votre base de donn\xE9es est \xE0 Zurich. Les mod\xE8les qui la lisent s'ex\xE9cutent chez Anthropic et OpenAI, en dehors du pays. Une affirmation de r\xE9sidence qui omet cette phrase n'est pas une affirmation de r\xE9sidence.",
+  "trust.holds.inference.detail": "Votre base de donn\xE9es est \xE0 Zurich. Les mod\xE8les qui la lisent s'ex\xE9cutent chez OpenAI, en dehors du pays. Une affirmation de r\xE9sidence qui omet cette phrase n'est pas une affirmation de r\xE9sidence.",
   "trust.where.heading": "O\xF9 se trouvent les donn\xE9es",
   "trust.where.lead": "Quatre magasins, nomm\xE9s, avec la diff\xE9rence entre une garantie et une pr\xE9f\xE9rence maintenue visible.",
   "trust.where.database.term": "Donn\xE9es de l'entreprise",
@@ -20249,7 +22141,7 @@ var fr_default = {
   "trust.where.evidence.term": "Preuves",
   "trust.where.evidence.detail": "Cloudflare R2, \xE9pingl\xE9 \xE0 la juridiction de l'UE. \xC9pingl\xE9 est une garantie. Les autres buckets portent un indice de localisation, qui est une pr\xE9f\xE9rence, et nous ne d\xE9crivons pas l'un comme l'autre.",
   "trust.where.inference.term": "Appels de mod\xE8le",
-  "trust.where.inference.detail": "Anthropic et OpenAI, directement, sans passerelle entre les deux. Ce qui est envoy\xE9 est le contexte dont une t\xE2che a besoin, et le texte non approuv\xE9 est cl\xF4tur\xE9 avant d'atteindre un mod\xE8le.",
+  "trust.where.inference.detail": "OpenAI, directement, sans passerelle interm\xE9diaire. Ce qui est envoy\xE9 est le contexte dont une t\xE2che a besoin, et le texte non approuv\xE9 est cl\xF4tur\xE9 avant d'atteindre un mod\xE8le.",
   "trust.where.mail.term": "Courrier",
   "trust.where.mail.detail": "Envoy\xE9 via Cloudflare depuis une adresse sur notre propre domaine. Le courrier des locataires ne quitte jamais un domaine Orvay, ce qui est une d\xE9cision de r\xE9putation plut\xF4t qu'une d\xE9cision technique.",
   "trust.separation.heading": "Comment une entreprise est tenue \xE0 l'\xE9cart d'une autre",
@@ -20654,7 +22546,6 @@ var fr_default = {
   "delegations.form.submit": "D\xE9cider \xE0 l'avance",
   "delegations.form.submitting": "Enregistrement en cours",
   "delegations.ok.title": "Enregistr\xE9",
-  "delegations.ok.recorded": "{capability} peut s'ex\xE9cuter sans demander jusqu'au {until}. Consign\xE9 dans le journal.",
   "delegations.refused.title": "Non enregistr\xE9",
   "delegations.refused.gate": "Refus\xE9 \xE0 la porte {gate}\xA0: {reason}.",
   "delegations.refused.halted": "L'autonomie est suspendue. Rien ne peut \xEAtre d\xE9cid\xE9 \xE0 l'avance tant que l'entreprise est arr\xEAt\xE9e.",
@@ -20665,7 +22556,6 @@ var fr_default = {
   "delegations.refused.forbidden": "{capability} est interdite pour cette entreprise, et interdit est absolu.",
   "delegations.refused.bound": "Choisissez dans les listes la dur\xE9e et le nombre de fois.",
   "delegations.refused.rationale": "Dites pourquoi, en {max} caract\xE8res au plus.",
-  "delegations.refused.already_live": "{capability} a d\xE9j\xE0 \xE9t\xE9 d\xE9cid\xE9e \xE0 l'avance par {name}. Retirez d'abord cette d\xE9cision.",
   "delegations.row.decided": "D\xE9cid\xE9 par {name} le {date}",
   "delegations.row.until": "Jusqu'au {date}",
   "delegations.row.uses": {
@@ -20680,9 +22570,7 @@ var fr_default = {
   "delegations.status.revoked": "Retir\xE9",
   "delegations.revoke.submit": "Retirer",
   "delegations.revoke.submitting": "Retrait en cours",
-  "delegations.revoke.sr": "la d\xE9cision sur {capability}",
   "delegations.revoke.ok.title": "Retir\xE9",
-  "delegations.revoke.ok.revoked": "{capability} s'arr\xEAte de nouveau pour une personne \xE0 partir de maintenant.",
   "delegations.revoke.ok.already": "Cette d\xE9cision avait d\xE9j\xE0 \xE9t\xE9 retir\xE9e.",
   "delegations.revoke.refused.title": "Non retir\xE9",
   "delegations.revoke.refused.not_found": "Cette d\xE9cision n'appartient pas \xE0 cette entreprise.",
@@ -21954,7 +23842,12 @@ var fr_legal_default = {
   "legal.privacy.collected.p8": "Si votre employeur relie son propre fournisseur d'identit\xE9 \xE0 Orvay pour l'authentification unique, vous connecter par ce biais nous donne votre adresse e-mail professionnelle, et votre nom lorsque le fournisseur en transmet un. Le fournisseur confirme qui vous \xEAtes, donc vous ne nous donnez aucun mot de passe. Si votre employeur l'a autoris\xE9, votre premi\xE8re connexion par son fournisseur cr\xE9e votre compte et une place dans l'entreprise de votre employeur avec les permissions d'un membre, et nous enregistrons que vous l'avez rejointe.",
   "legal.privacy.collected.p9": "Dans le produit, nous vous demandons comment vous appeler, et vous ne pouvez pas y travailler sans nom, parce que les personnes de votre entreprise le voient \xE0 c\xF4t\xE9 du travail que vous proposez et des d\xE9cisions que vous prenez. Vous pouvez le changer \xE0 tout moment depuis votre compte.",
   "legal.privacy.collected.p10": "Si votre employeur relie \xE9galement son annuaire du personnel \xE0 Orvay, l'annuaire peut cr\xE9er votre compte et votre place de la m\xEAme mani\xE8re, modifier le nom que vos coll\xE8gues voient, et d\xE9sactiver votre place. Nous conservons l'identifiant que l'annuaire utilise pour vous afin qu'il puisse vous retrouver, et il est effac\xE9 avec vos autres donn\xE9es si vos donn\xE9es personnelles sont effac\xE9es. Une fois votre place d\xE9sactiv\xE9e, vous ne pouvez plus ouvrir cette entreprise dans Orvay.",
-  "legal.privacy.collected.p11": "Si votre entreprise connecte un compte Mastodon, Bluesky ou X \xE0 Orvay et qu\u2019un membre de l\u2019entreprise commence \xE0 le lire, Orvay lit les r\xE9ponses aux publications de ce compte et les publications qui mentionnent ce compte, et rien d\u2019autre. Pour chacune, il conserve l\u2019identifiant public, le nom affich\xE9 et l\u2019identifiant de compte de son auteur, le texte exactement tel qu\u2019il a \xE9t\xE9 \xE9crit, l\u2019adresse de la publication et de celle \xE0 laquelle elle r\xE9pond, et sa date d\u2019arriv\xE9e. Sur Mastodon, une publication visible seulement par les abonn\xE9s de son auteur ou par les personnes qu\u2019elle nomme n\u2019est pas conserv\xE9e. Rien n\u2019est recherch\xE9, et aucun autre compte que celui de l\u2019entreprise n\u2019est lu.",
+  "legal.privacy.collected.p11": "Si votre entreprise connecte un compte Mastodon, Bluesky ou X \xE0 Orvay et qu\u2019un membre de l\u2019entreprise commence \xE0 le lire, Orvay lit les r\xE9ponses aux publications de ce compte et les publications qui mentionnent ce compte, et rien d\u2019autre. Pour chacune, il conserve l\u2019identifiant public, le nom affich\xE9 et l\u2019identifiant de compte de son auteur, le texte exactement tel qu\u2019il a \xE9t\xE9 \xE9crit, l\u2019adresse de la publication et de celle \xE0 laquelle elle r\xE9pond, et sa date d\u2019arriv\xE9e. Sur Mastodon, une publication visible seulement par les abonn\xE9s de son auteur ou par les personnes qu\u2019elle nomme n\u2019est pas conserv\xE9e. Cette lecture ne porte que sur le compte de l\u2019entreprise, et une recherche, d\xE9crite ci-apr\xE8s, n\u2019y ajoute rien.",
+  // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+  "legal.privacy.collected.p12": "Si votre entreprise connecte un compte X, un membre de l\u2019entreprise peut aussi demander \xE0 Orvay d\u2019afficher une page des publications de ce compte avec les chiffres que X publie \xE0 leur sujet, ou de rechercher sur X des publications publiques des sept derniers jours qui correspondent aux mots saisis par ce membre. Une recherche peut renvoyer des publications de n\u2019importe qui, y compris de personnes qui n\u2019ont jamais \xE9crit \xE0 l\u2019entreprise. Orvay montre le r\xE9sultat \xE0 ce membre et n\u2019en conserve rien\xA0: ni les publications, ni leurs auteurs, ni les mots recherch\xE9s, qui sont transmis \xE0 X. Lorsqu\u2019un membre demande la suppression de l\u2019une des publications de l\u2019entreprise elle-m\xEAme, la demande conserve l\u2019adresse de la publication, pas son texte. L\u2019entreprise d\xE9cide quoi rechercher et pourquoi, et Orvay effectue la recherche sur ses instructions. X facture au compte d\xE9veloppeur X de l\u2019entreprise elle-m\xEAme chaque publication qu\u2019il renvoie.",
+  "legal.privacy.collected.p13": "Le m\xEAme r\xE9glage de l\u2019entreprise couvre un usage de plus. Tant qu\u2019il est activ\xE9, Orvay peut envoyer une deuxi\xE8me fois \xE0 un fournisseur de mod\xE8les la t\xE2che et l\u2019objectif d\u2019un travail que les agents de l\u2019entreprise ont d\xE9j\xE0 effectu\xE9, avec le nom de l\u2019entreprise, pour v\xE9rifier si une nouvelle version de nos instructions au mod\xE8le fait ce travail au moins aussi bien que la version qu\u2019elle remplace. Rien de ce que le travail d\u2019origine a lu n\u2019est envoy\xE9, puisque cela n\u2019a jamais \xE9t\xE9 conserv\xE9. De ce qui revient, Orvay ne conserve aucun texte, seulement de quel travail il s\u2019agissait, si chaque r\xE9ponse a \xE9t\xE9 valid\xE9e, quel mod\xE8le l\u2019a donn\xE9e et ce qu\u2019elle a co\xFBt\xE9. Nous ne le faisons que pour une entreprise que nous d\xE9signons au moment de le lancer, jamais pour une entreprise qui a d\xE9sactiv\xE9 ce r\xE9glage, et rien n\u2019est factur\xE9 \xE0 l\u2019entreprise pour cela.",
+  "legal.privacy.collected.p14": "Si votre entreprise connecte Google Search Console, Google Ads ou YouTube, un membre peut demander \xE0 Orvay d\u2019afficher les performances de recherche de ce compte, les chiffres de ses comptes publicitaires ou les commentaires les plus r\xE9cents sur les vid\xE9os de la cha\xEEne, et une question dans la console qui en nomme un fait lire ces donn\xE9es pour la r\xE9ponse. Ce qui est lu est affich\xE9 au membre, ou envoy\xE9 au mod\xE8le de texte avec la question, et n\u2019est conserv\xE9 que dans la mesure o\xF9 la r\xE9ponse r\xE9dig\xE9e \xE0 partir de ces donn\xE9es le reprend. Lorsqu\u2019un membre propose une r\xE9ponse \xE0 un commentaire YouTube, le nom de la personne qui a \xE9crit le commentaire et ses mots sont conserv\xE9s avec l\u2019enregistrement de la r\xE9ponse, parce que la personne qui approuve la r\xE9ponse les lit. Orvay ne publie une r\xE9ponse, ne supprime une r\xE9ponse qu\u2019Orvay a publi\xE9e ou ne masque un commentaire \xE9crit par quelqu\u2019un d\u2019autre sous une vid\xE9o de l\u2019entreprise qu\u2019apr\xE8s qu\u2019une personne a approuv\xE9 cette seule action. L\u2019acc\xE8s accord\xE9 par Google est stock\xE9 chiffr\xE9, et la d\xE9connexion le d\xE9truit. L\u2019utilisation et le transfert par Orvay des informations re\xE7ues des API Google respectent la Google API Services User Data Policy, y compris les exigences d\u2019utilisation limit\xE9e (Limited Use).",
+  "legal.privacy.collected.p15": "Si votre entreprise permet \xE0 un agent qu\u2019elle exploite elle-m\xEAme, par exemple un agent de programmation, d\u2019effectuer au moyen d\u2019une cl\xE9 API un travail qu\u2019une personne de votre entreprise a approuv\xE9, ou dont votre entreprise a d\xE9cid\xE9 \xE0 l\u2019avance qu\u2019il pouvait \xEAtre effectu\xE9 sans demander l\u2019accord de personne, Orvay conserve ce que cet agent d\xE9clare ensuite\xA0: l\u2019\xE9tape qu\u2019il dit avoir effectu\xE9e, s\u2019il dit que cette \xE9tape a r\xE9ussi, et la r\xE9f\xE9rence qu\u2019il fournit, qui ne peut \xEAtre que l\u2019adresse de ce qu\u2019il a fait, par exemple une pull request. Orvay ne conserve aucune note ni aucun autre texte de l\u2019agent\xA0: un compte rendu qui contient une note est refus\xE9. Le compte rendu est conserv\xE9 comme la version de l\u2019agent et jamais comme une preuve. Lorsque l\u2019agent dit que l\u2019\xE9tape a r\xE9ussi, Orvay tente de v\xE9rifier lui-m\xEAme le r\xE9sultat avec la connexion que votre entreprise a \xE9tablie, et conserve ce qu\u2019il a constat\xE9 \xE0 c\xF4t\xE9 du compte rendu. Si cette v\xE9rification n\u2019aboutit pas, ou si votre entreprise est \xE0 l\u2019arr\xEAt lorsque le compte rendu arrive, Orvay n\u2019en conserve rien, affiche le travail comme non v\xE9rifi\xE9 et ne le v\xE9rifie pas de nouveau de lui-m\xEAme. Lorsque l\u2019agent dit que l\u2019\xE9tape a \xE9chou\xE9, Orvay l\u2019enregistre comme la version de l\u2019agent et ne v\xE9rifie rien. La r\xE9f\xE9rence est aussi inscrite dans la piste d\u2019audit de votre entreprise, et fait donc partie de l\u2019export des donn\xE9es de votre entreprise.",
   "legal.privacy.purposes.heading": "Pourquoi nous le traitons, et sur quelle base",
   "legal.privacy.purposes.pair1.term": "Vous \xE9crire au lancement d'Orvay",
   "legal.privacy.purposes.pair1.detail": "Votre consentement. Article 6, paragraphe 1, point a) du RGPD, et consentement au sens de la nLPD. Vous l'avez donn\xE9 en soumettant le formulaire sous la phrase que nous vous avons montr\xE9e, et nous conservons cette phrase mot pour mot afin que la base puisse \xEAtre v\xE9rifi\xE9e plut\xF4t qu'affirm\xE9e.",
@@ -21977,6 +23870,11 @@ var fr_legal_default = {
   "legal.privacy.recipients.heading": "Qui d'autre le voit",
   "legal.privacy.recipients.p1": "Nous faisons appel \xE0 des prestataires de services. Chacun est nomm\xE9 dans la liste des sous-traitants ult\xE9rieurs, avec ce qu'il re\xE7oit, o\xF9 il traite les donn\xE9es et la garantie sur laquelle repose le transfert.",
   "legal.privacy.recipients.p2": "Nous ne divulguons de donn\xE9es personnelles \xE0 personne d'autre. Si une autorit\xE9 exigeait une divulgation, nous respecterions la loi et vous en informerions, sauf s'il nous \xE9tait interdit de le faire.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.privacy.recipients.p3": "Un fournisseur de mod\xE8les que votre entreprise connecte avec sa propre cl\xE9 n\u2019est pas l\u2019un de nos prestataires de services. Il est nomm\xE9 sur la page des sous-traitants ult\xE9rieurs, parmi les fournisseurs que vous connectez avec votre propre cl\xE9, avec ce que nous lui envoyons.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p4": "Si votre entreprise met \xE0 disposition un flux de travail comme playbook, ce qu\u2019elle met \xE0 disposition est visible pour toutes les autres entreprises qui utilisent Orvay et pour les personnes de ces entreprises\xA0: les \xE9tapes et les r\xE9glages du flux de travail tels qu\u2019ils sont \xE9crits, son nom, la description r\xE9dig\xE9e pour la mise \xE0 disposition, et le nom de votre entreprise uniquement si elle a choisi de l\u2019afficher. La personne de votre entreprise qui l\u2019a mis \xE0 disposition n\u2019est pas affich\xE9e. Nous refusons une mise \xE0 disposition dont le texte contient une adresse e-mail ou un num\xE9ro de t\xE9l\xE9phone sous les formes que nous reconnaissons, des identifiants de connexion que nous reconnaissons, ou le nom complet d\u2019un membre de votre entreprise tel qu\u2019Orvay l\u2019enregistre. D\u2019autres donn\xE9es personnelles peuvent tout de m\xEAme appara\xEEtre dans une mise \xE0 disposition si une entreprise les y \xE9crit, par exemple le nom d\u2019un client, un nom de membre enregistr\xE9 de moins de trois lettres, ou une adresse postale. Les conditions g\xE9n\xE9rales d\u2019utilisation interdisent aux entreprises de mettre \xE0 disposition un flux de travail qui contient des informations sur une personne. Une entreprise peut retirer une mise \xE0 disposition \xE0 tout moment, et les copies que d\u2019autres entreprises ont install\xE9es avant cela restent chez elles.",
+  "legal.privacy.recipients.p5": "Si votre entreprise installe un playbook qu\u2019une autre entreprise a mis \xE0 disposition, elle est prise en compte dans des statistiques affich\xE9es avec ce playbook \xE0 toutes les entreprises sur Orvay, y compris celle qui l\u2019a mis \xE0 disposition\xA0: combien d\u2019entreprises l\u2019ont install\xE9, combien l\u2019ont ex\xE9cut\xE9, combien d\u2019ex\xE9cutions se sont termin\xE9es, parmi les ex\xE9cutions qui ont un r\xE9sultat la part qu\u2019une v\xE9rification ind\xE9pendante a confirm\xE9e et la part qui a \xE9chou\xE9, et la part des entreprises qui l\u2019ont install\xE9 et maintiennent une r\xE9clamation. Seuls ces totaux sont affich\xE9s, les nombres \xE9tant arrondis au multiple de cinq inf\xE9rieur et les parts au multiple de cinq points de pourcentage le plus proche. Aucune ex\xE9cution ni aucune r\xE9clamation n\u2019est affich\xE9e individuellement, et aucune entreprise n\u2019y est nomm\xE9e. Ils ne sont affich\xE9s qu\u2019une fois que les ex\xE9cutions compt\xE9es proviennent d\u2019entreprises dont les organisations ont \xE9t\xE9 cr\xE9\xE9es par au moins cinq personnes diff\xE9rentes et sont au nombre d\u2019au moins trente, et les parts d\u2019ex\xE9cutions qu\u2019une fois que les ex\xE9cutions avec un r\xE9sultat atteignent seules ce m\xEAme seuil et que les entreprises d\u2019une seule personne ne repr\xE9sentent pas plus d\u2019un tiers des ex\xE9cutions. Une entreprise ne compte que pour les playbooks qu\u2019elle a install\xE9s depuis une entreprise dont l\u2019organisation a \xE9t\xE9 cr\xE9\xE9e par une autre personne, jamais pour un flux de travail qu\u2019elle a \xE9crit elle-m\xEAme, et une ex\xE9cution \xE0 blanc, qui ne modifie rien, n\u2019est jamais compt\xE9e.",
   "legal.privacy.transfers.heading": "O\xF9 vont les donn\xE9es",
   "legal.privacy.transfers.p1": "La Suisse ne fait partie ni de l'Union europ\xE9enne ni de l'Espace \xE9conomique europ\xE9en. C'est un pays tiers b\xE9n\xE9ficiant d'une d\xE9cision d'ad\xE9quation de la Commission europ\xE9enne, ainsi que d'une d\xE9cision d'ad\xE9quation du Royaume-Uni. Un transfert de l'EEE ou du Royaume-Uni vers nous repose donc sur l'ad\xE9quation et ne n\xE9cessite aucun instrument suppl\xE9mentaire.",
   "legal.privacy.transfers.pair1.term": "Adresses de la liste d'attente, et tout autre enregistrement en base de donn\xE9es",
@@ -21988,7 +23886,7 @@ var fr_legal_default = {
   "legal.privacy.transfers.pair4.term": "Le traitement de la requ\xEAte elle-m\xEAme",
   "legal.privacy.transfers.pair4.detail": "Notre code s'ex\xE9cute en p\xE9riph\xE9rie de r\xE9seau, partout dans le monde, de sorte que la requ\xEAte qui affiche une page peut s'ex\xE9cuter pr\xE8s de vous plut\xF4t qu'en Europe. Garantie\xA0: les clauses contractuelles types figurant dans le contrat du prestataire.",
   "legal.privacy.transfers.pair5.term": "Requ\xEAtes envoy\xE9es aux mod\xE8les, voix et d\xE9cisions",
-  "legal.privacy.transfers.pair5.detail": "Le texte envoy\xE9 \xE0 un mod\xE8le va \xE0 OpenAI et est trait\xE9 aux \xC9tats-Unis, hors de Suisse et hors de l\u2019EEE. Anthropic ne re\xE7oit rien aujourd\u2019hui. En mode vocal, le son de votre voix va \xE9galement \xE0 OpenAI. Garantie\xA0: l\u2019avenant de traitement des donn\xE9es d\u2019OpenAI, selon lequel notre contrat est conclu avec OpenAI Ireland Ltd., qui transmet les donn\xE9es hors de l\u2019EEE et de la Suisse sur la base des clauses contractuelles types ou d\u2019une d\xE9cision d\u2019ad\xE9quation\xA0; nous ne sommes pas partie \xE0 ces clauses. \xC0 partir d\u2019une date de d\xE9but fix\xE9e au moins 30 jours apr\xE8s notre avis aux clients, TypeSafe AI, aux \xC9tats-Unis, re\xE7oit aussi le d\xE9but d\u2019un travail confi\xE9 \xE0 un agent, une demande de site web et la conversation \xE0 son sujet, les pages lues pendant une recherche, un message publi\xE9 dans une salle et, lorsque votre entreprise laisse Orvay d\xE9cider des r\xE9ponses de la bo\xEEte aux lettres, le nom de votre entreprise, l\u2019e-mail auquel il est r\xE9pondu et la r\xE9ponse r\xE9dig\xE9e. Garantie\xA0: les clauses contractuelles types de son avenant de traitement des donn\xE9es, qui n\u2019a pas d\u2019avenant suisse. Les recherches web vont \xE0 Brave Search et les sessions de navigateur \xE0 Browser Use, tous deux aux \xC9tats-Unis, et chacun a sa propre ligne ci-dessous. Votre adresse de liste d\u2019attente ne fait jamais partie de tout cela.",
+  "legal.privacy.transfers.pair5.detail": "Le texte envoy\xE9 \xE0 un mod\xE8le va \xE0 OpenAI et est trait\xE9 aux \xC9tats-Unis, hors de Suisse et hors de l\u2019EEE. Sur nos propres comptes, Anthropic ne re\xE7oit rien aujourd\u2019hui. Si votre entreprise connecte sa propre cl\xE9 Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq ou OpenRouter, les appels de mod\xE8les de texte que fait le travail de votre entreprise vont \xE0 ce fournisseur dans le cadre du propre contrat de votre entreprise avec lui, sauf ceux que nomme la page des sous-traitants ult\xE9rieurs, et sont trait\xE9s l\xE0 o\xF9 ce contrat le pr\xE9voit. Ce fournisseur est alors le prestataire de votre entreprise et non le n\xF4tre, et le transfert repose sur ce contrat, pas sur le n\xF4tre. En mode vocal, le son de votre voix va \xE9galement \xE0 OpenAI. Garantie\xA0: l\u2019avenant de traitement des donn\xE9es d\u2019OpenAI, selon lequel notre contrat est conclu avec OpenAI Ireland Ltd., qui transmet les donn\xE9es hors de l\u2019EEE et de la Suisse sur la base des clauses contractuelles types ou d\u2019une d\xE9cision d\u2019ad\xE9quation\xA0; nous ne sommes pas partie \xE0 ces clauses. Depuis le 27 septembre 2026, TypeSafe AI, aux \xC9tats-Unis, re\xE7oit aussi le d\xE9but d\u2019un travail confi\xE9 \xE0 un agent, une demande de site web et la conversation \xE0 son sujet, les pages lues pendant une recherche, un message publi\xE9 dans une salle et, lorsque votre entreprise laisse Orvay d\xE9cider des r\xE9ponses de la bo\xEEte aux lettres, le nom de votre entreprise, l\u2019e-mail auquel il est r\xE9pondu et la r\xE9ponse r\xE9dig\xE9e. Garantie\xA0: les clauses contractuelles types de son avenant de traitement des donn\xE9es, qui n\u2019a pas d\u2019avenant suisse. Les recherches web vont \xE0 Brave Search et les sessions de navigateur \xE0 Browser Use, tous deux aux \xC9tats-Unis, et chacun a sa propre ligne ci-dessous. Votre adresse de liste d\u2019attente ne fait jamais partie de tout cela.",
   "legal.privacy.transfers.p2": "Demandez-nous sur quel instrument repose un prestataire donn\xE9, et nous vous transmettrons ce que ce prestataire publie.",
   "legal.privacy.retention.heading": "Combien de temps nous le conservons",
   "legal.privacy.retention.p1": "Le registre des consentements est en ajout seul. Chaque enregistrement est cha\xEEn\xE9 au pr\xE9c\xE9dent par une empreinte, de sorte que la suppression d'une ligne d\xE9truirait la preuve que les lignes restantes n'ont pas \xE9t\xE9 modifi\xE9es. Se d\xE9sinscrire inscrit donc une r\xE9vocation sur votre enregistrement plut\xF4t que de l'effacer.",
@@ -22003,7 +23901,7 @@ var fr_legal_default = {
   "legal.privacy.rights.pair2.term": "Rectification",
   "legal.privacy.rights.pair2.detail": "Indiquez-nous ce qui est erron\xE9, et nous le corrigerons. Article 16 du RGPD, article 32 de la nLPD.",
   "legal.privacy.rights.pair3.term": "Effacement",
-  "legal.privacy.rights.pair3.detail": "Demandez-nous de supprimer vos donn\xE9es, et nous le ferons. Article 17 du RGPD. Lorsque la cha\xEEne d'audit emp\xEAche la suppression d'un enregistrement, nous d\xE9truisons les donn\xE9es personnelles qu'il contient et laissons le reste, qui peut encore montrer que quelque chose s'est produit mais ne peut plus montrer ce que disait cet enregistrement. L'exploitant proc\xE8de ainsi manuellement. Une image qu'une entreprise a ajout\xE9e \xE0 ses publications peut \xEAtre retir\xE9e depuis sa page de marque, ce qui supprime l'image du stockage. Orvay ne supprime pas une publication d\xE9j\xE0 publi\xE9e. L'entreprise peut la supprimer sur le canal. L'enregistrement d'une publication d\xE9j\xE0 pr\xE9par\xE9e conserve la description de l'image, car cet enregistrement n'est jamais modifi\xE9.",
+  "legal.privacy.rights.pair3.detail": "Demandez-nous de supprimer vos donn\xE9es, et nous le ferons. Article 17 du RGPD. Lorsque la cha\xEEne d'audit emp\xEAche la suppression d'un enregistrement, nous d\xE9truisons les donn\xE9es personnelles qu'il contient et laissons le reste, qui peut encore montrer que quelque chose s'est produit mais ne peut plus montrer ce que disait cet enregistrement. L'exploitant proc\xE8de ainsi manuellement. Une image qu'une entreprise a ajout\xE9e \xE0 ses publications peut \xEAtre retir\xE9e depuis sa page de marque, ce qui supprime l'image du stockage. Une publication d\xE9j\xE0 publi\xE9e est supprim\xE9e par l\u2019entreprise\xA0: sur le canal lui-m\xEAme ou, pour une publication sur X, Bluesky ou Mastodon ou une r\xE9ponse qu\u2019Orvay a publi\xE9e sur YouTube, depuis Orvay, o\xF9 un membre le demande et une personne approuve chaque suppression. L'enregistrement d'une publication d\xE9j\xE0 pr\xE9par\xE9e conserve la description de l'image, car cet enregistrement n'est jamais modifi\xE9.",
   "legal.privacy.rights.pair4.term": "Limitation",
   "legal.privacy.rights.pair4.detail": "Demandez-nous de cesser le traitement pendant qu'un point est contest\xE9, et nous le ferons. Article 18 du RGPD.",
   "legal.privacy.rights.pair5.term": "Portabilit\xE9",
@@ -22078,11 +23976,24 @@ var fr_legal_default = {
   "legal.terms.ip.pair4.term": "Retours",
   "legal.terms.ip.pair4.detail": "Si vous nous envoyez une id\xE9e pour le produit, nous pouvons l'utiliser sans rien vous devoir. Ne nous envoyez rien de confidentiel \xE0 titre de retour.",
   "legal.terms.ip.p1": "Exporter vos donn\xE9es personnelles est un droit, c'est donc gratuit sur chaque offre, y compris l'offre gratuite. Exporter un site web g\xE9n\xE9r\xE9 est une fonctionnalit\xE9 du produit, et cela fait partie de ce qu'ach\xE8te une offre payante. Nous distinguons d\xE9lib\xE9r\xE9ment ces deux \xE9l\xE9ments, et nous indiquons lequel est lequel sur la page des tarifs plut\xF4t qu'apr\xE8s votre paiement.",
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): what listing a workflow makes public.
+  "legal.terms.playbooks.heading": "Les playbooks que votre entreprise met \xE0 disposition",
+  "legal.terms.playbooks.p1": "Votre entreprise peut mettre \xE0 disposition comme playbook une version publi\xE9e de l\u2019un de ses flux de travail, afin que d\u2019autres entreprises sur Orvay puissent en installer une copie. La mise \xE0 disposition se d\xE9cide pour chaque version s\xE9par\xE9ment, et rien n\u2019est mis \xE0 disposition sans qu\u2019une personne qui en a l\u2019autorisation le fasse. Par d\xE9faut, seul le propri\xE9taire a cette autorisation.",
+  "legal.terms.playbooks.p2": "Mettre une version \xE0 disposition la rend visible pour toutes les autres entreprises qui utilisent Orvay et pour les personnes de ces entreprises\xA0: toutes ses \xE9tapes et tous ses r\xE9glages tels qu\u2019ils sont \xE9crits, son nom, la description r\xE9dig\xE9e pour la mise \xE0 disposition, un identifiant de la version et la date de sa mise \xE0 disposition. Le nom de votre entreprise n\u2019est affich\xE9 avec elle que si vous le choisissez en la mettant \xE0 disposition. La personne de votre entreprise qui l\u2019a mise \xE0 disposition n\u2019est pas affich\xE9e.",
+  "legal.terms.playbooks.p3": "Avant qu\u2019une version soit mise \xE0 disposition, Orvay refuse de la mettre \xE0 disposition si un texte qu\u2019elle contient, ou sa description, contient des identifiants de connexion d\u2019un type que nous reconnaissons, une adresse e-mail, un num\xE9ro de t\xE9l\xE9phone \xE9crit sous l\u2019une des formes internationales ou nationales habituelles, ou le nom complet d\u2019un membre de votre entreprise tel qu\u2019Orvay l\u2019enregistre, quelle que soit la casse. Orvay refuse aussi une version comportant une \xE9tape qui est assign\xE9e \xE0 un membre d\xE9sign\xE9 par son nom, qui saisit des identifiants de connexion que votre entreprise a enregistr\xE9s dans Orvay, ou qui ex\xE9cute un autre flux de travail de votre entreprise, et il compare le nom et la description \xE0 la courte liste de termes d\xE9crite dans la section sur ce que vous ne pouvez pas faire.",
+  "legal.terms.playbooks.p4": "Ces contr\xF4les ont des limites. Tout ce qu\u2019ils ne reconnaissent pas est affich\xE9 tel qu\u2019il est \xE9crit, par exemple un nom qu\u2019Orvay n\u2019enregistre pas, comme celui d\u2019un client, un nom \xE9crit autrement que dans notre enregistrement, un nom enregistr\xE9 de moins de trois lettres, une adresse postale, ou une adresse e-mail ou un num\xE9ro de t\xE9l\xE9phone \xE9crit d\u2019une autre mani\xE8re. Ne mettez pas \xE0 disposition un flux de travail qui contient des informations sur une personne, et lisez une version avant de la mettre \xE0 disposition.",
+  "legal.terms.playbooks.p5": "Vous pouvez retirer une mise \xE0 disposition \xE0 tout moment. \xC0 partir de l\xE0, personne ne peut plus l\u2019installer. Les copies que d\u2019autres entreprises ont install\xE9es avant ce retrait restent chez ces entreprises, et nous ne les supprimons pas et ne les modifions pas.",
+  "legal.terms.playbooks.p6": "Installer un playbook le copie dans l\u2019entreprise qui l\u2019installe, comme un nouveau flux de travail qui appartient \xE0 cette entreprise. Mettre une version \xE0 disposition n\u2019entra\xEEne aucune ex\xE9cution dans une autre entreprise\xA0: une copie ne s\u2019ex\xE9cute qu\u2019apr\xE8s sa publication par l\u2019entreprise qui l\u2019a install\xE9e, et alors sous les autorisations, la politique et les approbations propres \xE0 cette entreprise. Une version que vous publiez ou mettez \xE0 disposition plus tard ne modifie pas une copie d\xE9j\xE0 install\xE9e.",
+  "legal.terms.playbooks.p7": "Une entreprise qui a install\xE9 un playbook peut d\xE9poser une r\xE9clamation \xE0 son sujet d\xE8s qu\u2019une ex\xE9cution de sa copie s\u2019est termin\xE9e (une ex\xE9cution \xE0 blanc ne compte pas), en choisissant un motif dans une liste fixe\xA0: il ne fonctionne pas, il ne fait pas ce que dit sa description, il agit d\u2019une mani\xE8re que sa mise \xE0 disposition ne rend pas claire, il contient des donn\xE9es personnelles ou des identifiants de connexion, ou il sert \xE0 un usage que les pr\xE9sentes conditions n\u2019autorisent pas. Une r\xE9clamation ne contient aucun texte propre. Une entreprise maintient au plus une r\xE9clamation par playbook et peut la retirer \xE0 tout moment. L\u2019entreprise qui a mis le playbook \xE0 disposition n\u2019est jamais inform\xE9e de l\u2019entreprise qui a d\xE9pos\xE9 la r\xE9clamation. La part des entreprises qui l\u2019ont install\xE9 et maintiennent une r\xE9clamation est affich\xE9e avec les autres statistiques du playbook, et seulement lorsque celles-ci sont affich\xE9es.",
+  "legal.terms.playbooks.p8": "Orvay masque un playbook aux autres entreprises tant que des r\xE9clamations \xE0 son sujet sont maintenues par des entreprises dont les organisations ont \xE9t\xE9 cr\xE9\xE9es par au moins trois personnes diff\xE9rentes, et par au moins un cinqui\xE8me des entreprises qui l\u2019ont install\xE9. Plusieurs organisations cr\xE9\xE9es par une m\xEAme personne comptent pour une seule. Les entreprises de l\u2019organisation de l\u2019entreprise qui l\u2019a mis \xE0 disposition, ou d\u2019une autre organisation cr\xE9\xE9e par la m\xEAme personne que celle-ci, ne sont compt\xE9es ni comme entreprises l\u2019ayant install\xE9 ni pour leurs r\xE9clamations. Tant qu\u2019il est masqu\xE9, personne ne peut l\u2019installer, les copies d\xE9j\xE0 install\xE9es ne sont pas modifi\xE9es, et l\u2019entreprise qui l\u2019a mis \xE0 disposition voit sur sa propre mise \xE0 disposition qu\u2019il est masqu\xE9 et lesquels des motifs ci-dessus ont \xE9t\xE9 donn\xE9s, jamais quelle entreprise les a donn\xE9s. Il n\u2019y a pas encore d\u2019examen par une personne. Un playbook masqu\xE9 n\u2019est de nouveau affich\xE9 que lorsque suffisamment de r\xE9clamations sont retir\xE9es. L\u2019entreprise qui a mis le playbook \xE0 disposition peut retirer cette mise \xE0 disposition \xE0 tout moment, et mettre \xE0 disposition une nouvelle version du flux de travail, qui est une nouvelle mise \xE0 disposition sans r\xE9clamation.",
+  "legal.terms.playbooks.p9": "Une entreprise qui a install\xE9 un playbook peut modifier sa copie, la publier et la mettre \xE0 disposition comme son propre playbook. Orvay refuse de mettre \xE0 disposition une version qu\u2019une autre entreprise a mise \xE0 disposition en premier, m\xEAme apr\xE8s le retrait de cette mise \xE0 disposition, de sorte qu\u2019une copie install\xE9e qui est encore exactement cette version ne peut pas \xEAtre mise \xE0 disposition. Pour toute autre copie, Orvay enregistre, \xE0 partir de la copie elle-m\xEAme, le playbook depuis lequel elle a \xE9t\xE9 install\xE9e, et la mise \xE0 disposition indique qu\u2019elle est adapt\xE9e de ce playbook\xA0: par son nom tant qu\u2019il peut \xEAtre install\xE9, et sinon par un identifiant de sa version. L\u2019entreprise qui met la copie \xE0 disposition ne peut ni supprimer ni modifier cette mention. Une copie mise \xE0 nouveau \xE0 disposition passe chacune des v\xE9rifications d\xE9crites ci-dessus, par rapport aux membres de sa propre entreprise, et les ex\xE9cutions et r\xE9clamations des entreprises qui l\u2019installent comptent pour ses propres statistiques, et non pour celles du playbook dont elle provient.",
   "legal.terms.availability.heading": "Disponibilit\xE9",
   "legal.terms.availability.p1": "Nous ne promettons aucun taux de disponibilit\xE9. Il n'y a pas d'accord de niveau de service, aucun d\xE9lai de r\xE9ponse d'assistance garanti, et une seule personne exploite le service. Lorsque nous pourrons offrir cela, nous le formaliserons par \xE9crit et le facturerons.",
   "legal.terms.availability.p2": "Nous pouvons modifier ou retirer des fonctionnalit\xE9s. Si une modification supprime quelque chose sur lequel vous vous appuyez, nous vous en donnerons pr\xE9avis et, lorsque la modification est substantielle, une porte de sortie.",
   "legal.terms.money.heading": "Argent",
   "legal.terms.money.p1": "Rien n'est factur\xE9 aujourd'hui. Lorsque des offres seront mises en vente, le prix, ce qu'il comprend et chaque limite seront indiqu\xE9s sur la page des tarifs avant votre paiement, pas apr\xE8s. Le quota est mesur\xE9 selon ce que votre utilisation nous co\xFBte r\xE9ellement, et les cr\xE9dits sont la mani\xE8re dont cela est affich\xE9. L'offre gratuite s'arr\xEAte lorsque son allocation est \xE9puis\xE9e et ne g\xE9n\xE8re jamais de facture.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.terms.money.p2": "Les appels de mod\xE8les effectu\xE9s avec une cl\xE9 que votre entreprise a connect\xE9e sont factur\xE9s \xE0 votre entreprise par ce fournisseur et ne sont pas pr\xE9lev\xE9s sur vos cr\xE9dits.",
   "legal.terms.warranty.heading": "Ce que nous ne promettons pas",
   "legal.terms.warranty.p1": "Le service est fourni en l'\xE9tat. Dans la mesure permise par le droit suisse, nous ne garantissons pas qu'il sera ininterrompu ou exempt d'erreurs, qu'il convient \xE0 un usage particulier, ni qu'un r\xE9sultat quelconque est correct.",
   "legal.terms.warranty.p2": "La v\xE9rification est un m\xE9canisme d'ind\xE9pendance, pas un oracle. Un r\xE9sultat v\xE9rifi\xE9 signifie qu'un second acteur a contr\xF4l\xE9 le premier et que la preuve a \xE9t\xE9 enregistr\xE9e. Cela ne signifie pas que le r\xE9sultat est garanti correct, et nous ne le vendons pas comme tel.",
@@ -22148,6 +24059,15 @@ var fr_legal_default = {
   "legal.subprocessors.list.heading": "La liste",
   "legal.subprocessors.changes.heading": "Modification de la liste",
   "legal.subprocessors.changes.p1": "Nous donnons aux clients un pr\xE9avis d'au moins 30 jours par e-mail avant qu'un nouveau sous-traitant ult\xE9rieur ne commence \xE0 traiter leurs donn\xE9es personnelles, et vous pouvez vous y opposer par \xE9crit pendant cette p\xE9riode pour des motifs raisonnables de protection des donn\xE9es. Si nous ne parvenons pas \xE0 r\xE9soudre l'objection, vous pouvez r\xE9silier le service concern\xE9 sans p\xE9nalit\xE9. Cet engagement fait partie de l'accord de traitement des donn\xE9es, ce n'est pas une simple courtoisie.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.subprocessors.own-key.heading": "Fournisseurs que vous connectez avec votre propre cl\xE9",
+  "legal.subprocessors.own-key.p1": "Si votre entreprise connecte sa propre cl\xE9 Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq ou OpenRouter, les appels de mod\xE8les de texte que fait le travail de votre entreprise vont \xE0 ce fournisseur dans le cadre du propre contrat de votre entreprise avec lui. La cr\xE9ation et la modification de votre site web, la voix, la recherche dans la m\xE9moire et les images restent sur nos comptes. Ce fournisseur traite les appels en tant que prestataire de votre entreprise, et non en tant que le n\xF4tre, il ne figure donc pas sur la liste ci-dessus, et le connecter ne d\xE9clenche pas le pr\xE9avis de 30 jours\xA0: votre entreprise l\u2019a choisi.",
+  "legal.subprocessors.own-key.p2": "Nous lui envoyons le m\xEAme texte que celui que nous enverrions sur nos propres comptes, pr\xE9par\xE9 de la m\xEAme fa\xE7on. Ce que le fournisseur conserve, pendant combien de temps et ce qu\u2019il peut en faire d\u2019autre est fix\xE9 par le contrat de votre entreprise avec ce fournisseur, et non par le n\xF4tre. Une demande d\u2019effacement qui nous est adress\xE9e atteint ce que nous d\xE9tenons, et non ce que le fournisseur d\xE9tient sous la cl\xE9 de votre entreprise.",
+  "legal.subprocessors.own-key.p3": "Nous ne m\xE9langeons jamais les deux. Un appel que la cl\xE9 de votre entreprise paie n\u2019est pas envoy\xE9 sur notre compte, et un appel sur notre compte n\u2019est pas envoy\xE9 avec la cl\xE9 de votre entreprise. Si la cl\xE9 de votre entreprise cesse de fonctionner, le travail attend et le signale, au lieu de passer sur notre compte.",
+  "legal.subprocessors.own-key.p4": "Tout appel que le travail de votre entreprise fait \xE0 un fournisseur pour lequel elle n\u2019a pas connect\xE9 de cl\xE9 passe toujours par notre compte, vers les fournisseurs de la liste ci-dessus.",
+  "legal.subprocessors.own-key.p5": "Nous conservons la cl\xE9 de votre entreprise scell\xE9e et ne l\u2019utilisons que pour les appels de votre entreprise. La d\xE9connecter d\xE9truit notre copie. Cela ne r\xE9voque pas la cl\xE9 chez le fournisseur, ce que vous faites dans la console du fournisseur.",
+  "legal.subprocessors.own-key.p6": "Si votre entreprise choisit de n\u2019utiliser que ses propres cl\xE9s, chaque appel de mod\xE8le de texte que fait le travail de votre entreprise va \xE0 un fournisseur pour lequel elle a connect\xE9 une cl\xE9, et un appel qu\u2019aucun d\u2019eux ne peut traiter attend et le signale, au lieu d\u2019aller vers les fournisseurs de la liste ci-dessus. La cr\xE9ation et la modification de votre site web, la voix, la recherche dans la m\xE9moire et les images passent toujours par les fournisseurs list\xE9s ci-dessus.",
+  "legal.subprocessors.own-key.p7": "Un appel sur une cl\xE9 Mistral va au point d\u2019acc\xE8s europ\xE9en de Mistral, que Mistral sert depuis des centres de donn\xE9es situ\xE9s dans des pays de l\u2019UE et de l\u2019AELE. Un appel sur une cl\xE9 OpenRouter va \xE0 OpenRouter, qui le transmet \xE0 un fournisseur qui sert le mod\xE8le, dans une r\xE9gion qu\u2019OpenRouter ne garantit pas.",
   "legal.subprocessors.cloudflare.service": "Sert chaque requ\xEAte. Calcul Workers, stockage d'objets R2, mutualisation de connexions \xE0 la base de donn\xE9es Hyperdrive, Durable Objects, Workflows, DNS, journalisation des requ\xEAtes, et la route e-mail qui envoie les alertes \xE0 l'exploitant.",
   "legal.subprocessors.cloudflare.data1": "M\xE9tadonn\xE9es de requ\xEAte pour chaque visite, y compris l'adresse IP, l'agent utilisateur et la page demand\xE9e",
   "legal.subprocessors.cloudflare.data2": "Une soumission de liste d'attente pendant son transit vers la base de donn\xE9es",
@@ -22208,7 +24128,7 @@ var fr_legal_default = {
   "legal.dpa.subject-matter.pair2.term": "Dur\xE9e",
   "legal.dpa.subject-matter.pair2.detail": "Aussi longtemps que votre compte existe, et apr\xE8s cela uniquement le temps n\xE9cessaire pour restituer ou d\xE9truire les donn\xE9es.",
   "legal.dpa.subject-matter.pair3.term": "Nature et finalit\xE9",
-  "legal.dpa.subject-matter.pair3.detail": "Stockage, extraction, transmission aux sous-traitants ult\xE9rieurs figurant sur la liste publi\xE9e, et soumission \xE0 des fournisseurs de mod\xE8les lorsque vous demandez \xE0 un agent d'effectuer un travail qui en n\xE9cessite un.",
+  "legal.dpa.subject-matter.pair3.detail": "Stockage, extraction, transmission aux sous-traitants ult\xE9rieurs figurant sur la liste publi\xE9e, et soumission \xE0 des fournisseurs de mod\xE8les lorsque vous demandez \xE0 un agent d\u2019effectuer un travail qui en n\xE9cessite un, soit sur nos comptes, soit, lorsque vous connectez votre propre cl\xE9, sur les v\xF4tres.",
   "legal.dpa.subject-matter.pair4.term": "Cat\xE9gories de personnes concern\xE9es",
   "legal.dpa.subject-matter.pair4.detail": "Votre personnel, vos contacts, et toute autre personne dont vous choisissez d'introduire les donn\xE9es.",
   "legal.dpa.subject-matter.pair5.term": "Cat\xE9gories de donn\xE9es personnelles",
@@ -22238,9 +24158,13 @@ var fr_legal_default = {
   "legal.dpa.subprocessors.p1": "Vous nous accordez une autorisation g\xE9n\xE9rale d'engager des sous-traitants ult\xE9rieurs, en vertu des articles 28, paragraphe 2 et 28, paragraphe 3, point d) du RGPD. La liste actuelle est publi\xE9e, elle nomme chacun d'eux, ce qu'il re\xE7oit, o\xF9 il traite les donn\xE9es et la garantie sur laquelle repose le transfert.",
   "legal.dpa.subprocessors.p2": "Nous vous donnons un pr\xE9avis d'au moins 30 jours par e-mail avant qu'un nouveau sous-traitant ult\xE9rieur ne commence \xE0 traiter vos donn\xE9es personnelles. Vous pouvez vous y opposer par \xE9crit pendant cette p\xE9riode pour des motifs raisonnables de protection des donn\xE9es. Si nous ne parvenons pas \xE0 r\xE9soudre votre objection, vous pouvez r\xE9silier la partie concern\xE9e du service sans p\xE9nalit\xE9, et nous remboursons tout montant pr\xE9pay\xE9 pour la p\xE9riode non utilis\xE9e.",
   "legal.dpa.subprocessors.p3": "Chaque sous-traitant ult\xE9rieur est li\xE9 par un contrat \xE9crit comportant des obligations de protection des donn\xE9es au moins aussi strictes que les pr\xE9sentes, \xE0 l\u2019exception de Brave Search pour les requ\xEAtes de recherche que nous lui envoyons, que son avenant de traitement des donn\xE9es exclut\xA0; ce que nous retirons d\u2019une requ\xEAte avant son envoi figure sur la page des sous-traitants ult\xE9rieurs. Lorsque l\u2019un d\u2019eux ne les respecte pas, nous demeurons pleinement responsables envers vous de l\u2019ex\xE9cution par celui-ci de ses obligations. Article 28, paragraphe 4 du RGPD.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.subprocessors.p4": "Un fournisseur de mod\xE8les que vous connectez avec votre propre cl\xE9 n\u2019est pas un sous-traitant ult\xE9rieur que nous engageons. Vous l\u2019engagez dans le cadre de votre propre contrat avec lui, et en connectant la cl\xE9 vous nous donnez l\u2019instruction de lui envoyer les appels de mod\xE8les que d\xE9crit la page des sous-traitants ult\xE9rieurs (article 28, paragraphe 3, point a) du RGPD). L\u2019autorisation, le d\xE9lai de pr\xE9avis et les obligations ci-dessus s\u2019appliquent aux sous-traitants ult\xE9rieurs que nous engageons, et non \xE0 lui.",
   "legal.dpa.transfers.heading": "Transferts internationaux",
   "legal.dpa.transfers.p1": "Lorsqu'un sous-traitant ult\xE9rieur se trouve hors de Suisse et de l'Espace \xE9conomique europ\xE9en, le transfert repose sur la garantie indiqu\xE9e pour lui dans la liste des sous-traitants ult\xE9rieurs. Pour les fournisseurs de mod\xE8les, l'instrument est constitu\xE9 des clauses contractuelles types. Nous ne nous appuyons pas sur une certification de cadre.",
   "legal.dpa.transfers.p2": "La Suisse b\xE9n\xE9ficie d'une d\xE9cision d'ad\xE9quation de la Commission europ\xE9enne, un transfert de l'EEE vers notre base de donn\xE9es \xE0 Zurich ne n\xE9cessite donc aucun instrument suppl\xE9mentaire.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.transfers.p3": "Un transfert vers un fournisseur de mod\xE8les que vous avez connect\xE9 avec votre propre cl\xE9 repose sur votre contrat avec ce fournisseur, et non sur le n\xF4tre.",
   "legal.dpa.data-subject-requests.heading": "Vous aider \xE0 r\xE9pondre aux personnes concern\xE9es",
   "legal.dpa.data-subject-requests.p1": "Nous vous aidons \xE0 r\xE9pondre \xE0 une demande d'une personne concern\xE9e, en tenant compte de la nature du traitement. Article 28, paragraphe 3, point e) du RGPD.",
   "legal.dpa.data-subject-requests.p2": "Lorsque le produit peut y r\xE9pondre, vous pouvez y r\xE9pondre vous-m\xEAme. Vos contacts, vos t\xE9l\xE9versements, vos enregistrements de consentement et votre piste d'audit sont exportables dans un format lisible par machine sur chaque offre, y compris l'offre gratuite, car la portabilit\xE9 est un droit et non une fonctionnalit\xE9.",
@@ -22314,7 +24238,7 @@ var fr_legal_default = {
   "legal.subprocessors.github.safeguard": "GitHub est \xE9tabli aux \xC9tats-Unis et appartient \xE0 Microsoft. Les transferts reposent sur les clauses contractuelles types figurant dans ses conditions. Choisir plut\xF4t un mot de passe signifie qu'absolument aucune donn\xE9e ne parvient \xE0 GitHub.",
   "legal.subprocessors.github.statusDetail": "Atteint uniquement si vous appuyez sur le bouton. Ouvrir la page de connexion n'envoie rien \xE0 GitHub, et cette entr\xE9e \xE9tait absente de cette liste jusqu'au 20 ao\xFBt 2026 alors que le bouton \xE9tait d\xE9j\xE0 \xE0 l'\xE9cran.",
   "legal.terms.acceptable-use.item7": "Exercer une activit\xE9 pour laquelle nous refusons de travailler\xA0: contenu sexuel ou services sexuels, tout ce qui sexualise un enfant, logiciels malveillants et outils d'intrusion, fraude, vente d'armes ou de substances r\xE9glement\xE9es, ou harc\xE8lement cibl\xE9 d'une personne. Il s'agit d'un refus portant sur le travail, non d'un jugement sur vous, et il s'applique quoi que dise la loi de l'endroit o\xF9 vous vous trouvez.",
-  "legal.terms.acceptable-use.p2": "Deux contr\xF4les font respecter la limite pos\xE9e au dernier point de la liste ci-dessus, et il vaut la peine de savoir exactement ce qu'ils sont pour que vous ne les preniez pas pour plus qu'ils ne sont. Le nom et l'adresse web que vous nous donnez sont compar\xE9s \xE0 une courte liste de termes lors de la configuration initiale, avant que nous r\xE9cup\xE9rions quoi que ce soit. Par ailleurs, un agent refuse de travailler sur un objectif qui demande l'une de ces choses. Aucun des deux n'est un examen de tout ce que vous faites, aucun ne lit vos donn\xE9es, et aucun ne vous dispense de savoir ce que vous exploitez.",
+  "legal.terms.acceptable-use.p2": "Trois contr\xF4les font respecter la limite pos\xE9e au dernier point de la liste ci-dessus, et il vaut la peine de savoir exactement ce qu'ils sont pour que vous ne les preniez pas pour plus qu'ils ne sont. Le nom et l'adresse web que vous nous donnez sont compar\xE9s \xE0 une courte liste de termes lors de la configuration initiale, avant que nous r\xE9cup\xE9rions quoi que ce soit. Par ailleurs, un agent refuse de travailler sur un objectif qui demande l'une de ces choses. Enfin, le nom et la description d'un flux de travail que votre entreprise met \xE0 disposition comme playbook sont compar\xE9s \xE0 la m\xEAme liste avant sa mise \xE0 disposition. Aucun d'eux n'est un examen de tout ce que vous faites, aucun ne lit vos donn\xE9es, et aucun ne vous dispense de savoir ce que vous exploitez.",
   // -------------------------------------------------------------------------
   // MACHINE TRANSLATION, 2026-09-23, NOT YET REVIEWED BY A PERSON.
   //
@@ -22363,7 +24287,7 @@ var fr_legal_default = {
   "legal.subprocessors.typesafe.location1": "\xC9tats-Unis, que sa politique de confidentialit\xE9 d\xE9signe comme le lieu d\u2019h\xE9bergement du service",
   "legal.subprocessors.typesafe.location2": "Son avenant de traitement des donn\xE9es n\u2019indique aucun lieu de traitement",
   "legal.subprocessors.typesafe.safeguard": "TypeSafe AI, Inc. est bas\xE9e aux \xC9tats-Unis. Son avenant de traitement des donn\xE9es applique les clauses contractuelles types aux transferts depuis l\u2019UE, avec l\u2019avenant britannique pour le Royaume-Uni. Pour la Suisse, il dit seulement que les litiges rel\xE8vent des tribunaux suisses et que le Pr\xE9pos\xE9 f\xE9d\xE9ral \xE0 la protection des donn\xE9es et \xE0 la transparence (PFPDT) est l\u2019autorit\xE9 comp\xE9tente. Il ne comporte aucun avenant suisse.",
-  "legal.subprocessors.typesafe.statusDetail": "Sa cl\xE9 est configur\xE9e sur le Worker de g\xE9n\xE9ration de site web, qui ne lui envoie rien avant une date de d\xE9but fix\xE9e sur ce Worker. Nous fixons cette date au plus t\xF4t 30 jours apr\xE8s en avoir inform\xE9 nos clients, comme l\u2019exige notre accord de traitement des donn\xE9es. Avant cette date, et chaque fois qu\u2019il ne r\xE9pond pas, une question sur un travail, un site web ou une salle est confi\xE9e \xE0 un mod\xE8le de texte, et une r\xE9ponse de la bo\xEEte aux lettres qui attend sa d\xE9cision attend une personne. Il figure d\xE8s maintenant sur la liste, avant de recevoir quoi que ce soit, afin que cette page et notre avis d\xE9crivent la m\xEAme liste.",
+  "legal.subprocessors.typesafe.statusDetail": "Sa cl\xE9 est configur\xE9e sur le Worker de g\xE9n\xE9ration de site web, qui lui envoie les donn\xE9es ci-dessus depuis le 27 septembre 2026. Chaque fois qu\u2019il ne r\xE9pond pas, une question sur un travail, un site web ou une salle est confi\xE9e \xE0 un mod\xE8le de texte, et une r\xE9ponse de la bo\xEEte aux lettres qui attend sa d\xE9cision attend une personne.",
   "legal.subprocessors.fish.service": "Synth\xE8se vocale et transcription. Jusqu\u2019au 25 septembre 2026, il lisait une r\xE9ponse \xE0 voix haute en mode vocal lorsqu\u2019une conversation en direct n\u2019avait pas pu \xEAtre ouverte, et il pouvait transcrire la parole sur un d\xE9ploiement sans cl\xE9 OpenAI. Il ne fait plus ni l\u2019un ni l\u2019autre.",
   "legal.subprocessors.fish.data1": "Jusqu\u2019au 25 septembre 2026, le texte d\u2019une r\xE9ponse qu\u2019Orvay vous lisait \xE0 voix haute. Ce texte pouvait citer des personnes et des chiffres issus des donn\xE9es de votre entreprise, et rien n\u2019en \xE9tait retir\xE9 avant l\u2019envoi",
   "legal.subprocessors.fish.data2": "Jusqu\u2019au 25 septembre 2026, l\u2019enregistrement de ce que vous disiez en mode vocal, uniquement sur un d\xE9ploiement qui n\u2019avait pas de cl\xE9 OpenAI pour le transcrire",
@@ -22567,7 +24491,7 @@ var it_default = {
   "pricing.feature.scim.name": "Sincronizzazione della directory",
   "pricing.feature.scim.detail": "Il Suo fornitore di identit\xE0 aggiunge e rimuove persone tramite SCIM 2.0, su un dominio che Lei ha verificato per il single sign-on. Solo persone: i gruppi non vengono sincronizzati e i ruoli li stabilisce sempre Lei.",
   "pricing.feature.byo_model_keys.name": "Le Sue chiavi di modello",
-  "pricing.feature.byo_model_keys.detail": "Addebitare l'utilizzo dei modelli ai Suoi account presso i fornitori, anzich\xE9 alla Sua dotazione di crediti.",
+  "pricing.feature.byo_model_keys.detail": "Esegua le chiamate ai modelli sui Suoi account Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq o OpenRouter, fatturate dal Suo fornitore e non dai Suoi crediti, e scelga di usare solo le Sue chiavi. La creazione e la modifica dei siti web, la voce, la ricerca nella memoria e le immagini restano sulle chiavi di Orvay, e una chiamata ha comunque bisogno di crediti disponibili per partire.",
   "pricing.feature.integration_mcp.name": "Strumenti in prestito",
   "pricing.feature.integration_mcp.detail": "Registri i server di strumenti che la sua azienda utilizza gi\xE0, e consenta a Orvay di chiamare i loro strumenti secondo la sua politica, un'approvazione per strumento. I connettori del catalogo proprio di Orvay non vengono conteggiati nel suo piano. Un server di strumenti personalizzato \xE8 uno che lei registra tramite il suo indirizzo, e quanti ne contiene un piano \xE8 indicato nella tabella precedente.",
   "pricing.feature.voice.name": "Voce in-app",
@@ -22867,7 +24791,7 @@ var it_default = {
   "site.limits.card.no-customers.title": "Nessun cliente, quindi nessuna prova di clienti",
   "site.limits.card.no-customers.body": "Non c'\xE8 un muro di loghi su questa pagina perch\xE9 non ci sono loghi da mettervi, e non ci sono testimonianze n\xE9 cifre di utilizzo per lo stesso motivo. Quando ci saranno, verranno indicati per nome.",
   "site.limits.card.data-location.title": "Dove si trovano i dati, detto per intero",
-  "site.limits.card.data-location.body": "Postgres gira a Zurigo, in un progetto la cui regione \xE8 eu-central-2. L'inferenza dei modelli non avviene in Svizzera: i prompt vanno ad Anthropic e OpenAI, che li elaborano al di fuori della Svizzera e al di fuori dell'Unione Europea. La Svizzera \xE8 un paese terzo che gode di una decisione di adeguatezza dell'UE, non un membro dell'Unione Europea o dello Spazio Economico Europeo. Un'affermazione sulla residenza dei dati che ometta la seconda frase \xE8 esattamente il tipo di mezza verit\xE0 che questo intero prodotto esiste per rifiutare.",
+  "site.limits.card.data-location.body": "Postgres gira a Zurigo, in un progetto la cui regione \xE8 eu-central-2. L'inferenza dei modelli non avviene in Svizzera: i prompt vanno ad OpenAI, che li elabora al di fuori della Svizzera e al di fuori dell'Unione Europea. La Svizzera \xE8 un paese terzo che gode di una decisione di adeguatezza dell'UE, non un membro dell'Unione Europea o dello Spazio Economico Europeo. Un'affermazione sulla residenza dei dati che ometta la seconda frase \xE8 esattamente il tipo di mezza verit\xE0 che questo intero prodotto esiste per rifiutare.",
   "site.limits.card.privacy.title": "Privacy prima di tutto, e nessun certificato rivendicato",
   "site.limits.card.privacy.body": "Non deteniamo nessuna certificazione di alcun tipo e non ne rivendichiamo nessuna. Quello che possiamo mostrarLe \xE8 ci\xF2 che fa il codice: isolamento dei tenant scritto come regole di database restrittive che possono solo rifiutare, una catena con hash che pu\xF2 ricalcolare Lei stesso, e un'approvazione umana registrata su qualsiasi cosa abbia un effetto legale su una persona.",
   "site.limits.card.representative.title": "Un obbligo che abbiamo e non abbiamo ancora adempiuto",
@@ -24029,7 +25953,6 @@ var it_default = {
   "decision.run": "Esegui",
   "decision.running": "In esecuzione",
   "decision.halted": "L'autonomia \xE8 sospesa. Rilasci l'arresto prima che qualcosa venga eseguito, incluso ci\xF2 che ha gi\xE0 approvato.",
-  "decision.run.note": "Eseguire applica il piano e poi affida il risultato a un altro attore per la verifica. Nessun adattatore \xE8 collegato in questa distribuzione, quindi l'effetto \xE8 simulato e ogni artefatto prodotto lo dichiara.",
   "decision.refused.title": "\xC8 stato rifiutato",
   "decision.recheck": "Controlla di nuovo",
   "decision.rechecking": "Controllo in corso",
@@ -24683,7 +26606,7 @@ var it_default = {
   "trust.holds.mfa.term": "Nessun secondo fattore",
   "trust.holds.mfa.detail": "Nessun TOTP, nessuna passkey, nessuna chiave hardware. Una password e un indirizzo email sono la totalit\xE0 oggi. L'accesso single sign-on esiste solo sul piano pi\xF9 grande.",
   "trust.holds.inference.term": "L'inferenza del modello non \xE8 in Svizzera",
-  "trust.holds.inference.detail": "Il Suo database \xE8 a Zurigo. I modelli che lo leggono funzionano su Anthropic e OpenAI, al di fuori del paese. Un'affermazione sulla residenza che omette questa frase non \xE8 un'affermazione sulla residenza.",
+  "trust.holds.inference.detail": "Il Suo database \xE8 a Zurigo. I modelli che lo leggono funzionano su OpenAI, al di fuori del paese. Un'affermazione sulla residenza che omette questa frase non \xE8 un'affermazione sulla residenza.",
   "trust.where.heading": "Dove si trovano i dati",
   "trust.where.lead": "Quattro archivi, denominati, con la differenza tra una garanzia e una preferenza mantenuta visibile.",
   "trust.where.database.term": "Dati dell'azienda",
@@ -24691,7 +26614,7 @@ var it_default = {
   "trust.where.evidence.term": "Prove",
   "trust.where.evidence.detail": "Cloudflare R2, bloccato per la giurisdizione dell'UE. Bloccato \xE8 una garanzia. Gli altri bucket hanno un suggerimento sulla posizione, che \xE8 una preferenza, e non descriviamo uno come l'altro.",
   "trust.where.inference.term": "Chiamate del modello",
-  "trust.where.inference.detail": "Anthropic e OpenAI, diretti, senza gateway in mezzo. Quello che viene inviato \xE8 il contesto di cui un'attivit\xE0 ha bisogno, e il testo non attendibile \xE8 recintato prima di raggiungere un modello.",
+  "trust.where.inference.detail": "OpenAI, diretto, senza gateway intermedio. Quello che viene inviato \xE8 il contesto di cui un'attivit\xE0 ha bisogno, e il testo non attendibile \xE8 recintato prima di raggiungere un modello.",
   "trust.where.mail.term": "Posta",
   "trust.where.mail.detail": "Inviata tramite Cloudflare da un indirizzo sul nostro dominio. La posta dei tenant non lascia mai un dominio Orvay, che \xE8 una decisione sulla reputazione piuttosto che una tecnica.",
   "trust.separation.heading": "Come un'azienda \xE8 mantenuta separata da un'altra",
@@ -24992,7 +26915,6 @@ var it_default = {
   "delegations.form.submit": "Decidi in anticipo",
   "delegations.form.submitting": "Registrazione in corso",
   "delegations.ok.title": "Registrato",
-  "delegations.ok.recorded": "{capability} pu\xF2 essere eseguita senza chiedere fino al {until}. Annotato nel registro.",
   "delegations.refused.title": "Non registrato",
   "delegations.refused.gate": "Rifiutato al cancello {gate}: {reason}.",
   "delegations.refused.halted": "L'autonomia \xE8 ferma. Finch\xE9 l'azienda \xE8 ferma non si pu\xF2 decidere nulla in anticipo.",
@@ -25003,7 +26925,6 @@ var it_default = {
   "delegations.refused.forbidden": "{capability} \xE8 vietata per questa azienda, e vietato \xE8 assoluto.",
   "delegations.refused.bound": "Scegli dalle liste per quanto tempo e quante volte.",
   "delegations.refused.rationale": "Di perch\xE9, in al massimo {max} caratteri.",
-  "delegations.refused.already_live": "{capability} \xE8 gi\xE0 stata decisa in anticipo da {name}. Ritira prima quella decisione.",
   "delegations.row.decided": "Deciso da {name} il {date}",
   "delegations.row.until": "Fino al {date}",
   "delegations.row.uses": {
@@ -25018,9 +26939,7 @@ var it_default = {
   "delegations.status.revoked": "Ritirata",
   "delegations.revoke.submit": "Ritira",
   "delegations.revoke.submitting": "Ritiro in corso",
-  "delegations.revoke.sr": "la decisione su {capability}",
   "delegations.revoke.ok.title": "Ritirata",
-  "delegations.revoke.ok.revoked": "{capability} da ora si ferma di nuovo per una persona.",
   "delegations.revoke.ok.already": "Quella decisione era gi\xE0 stata ritirata.",
   "delegations.revoke.refused.title": "Non ritirata",
   "delegations.revoke.refused.not_found": "Quella decisione non \xE8 di questa azienda.",
@@ -26304,7 +28223,12 @@ var it_legal_default = {
   "legal.privacy.collected.p8": "Se il vostro datore di lavoro collega a Orvay il proprio fornitore di identit\xE0 per il single sign-on, accedere tramite questo ci fornisce il vostro indirizzo email di lavoro, e il vostro nome quando il fornitore lo invia. Il fornitore conferma chi siete, quindi non ci date alcuna password. Se il vostro datore di lavoro lo ha consentito, il vostro primo accesso tramite il suo fornitore crea il vostro account e un posto nell'azienda del vostro datore di lavoro con i permessi di un membro, e registriamo che ne siete entrati a far parte.",
   "legal.privacy.collected.p9": "All'interno del prodotto vi chiediamo come chiamarvi, e senza un nome non potete lavorarci, perch\xE9 le persone della vostra azienda lo vedono accanto al lavoro che proponete e alle decisioni che prendete. Potete cambiarlo in qualsiasi momento dal vostro account.",
   "legal.privacy.collected.p10": "Se il vostro datore di lavoro collega anche la propria directory del personale a Orvay, la directory pu\xF2 creare il vostro account e il vostro posto nello stesso modo, modificare il nome che vedono i vostri colleghi, e disattivare il vostro posto. Conserviamo l'identificativo che la directory usa per voi, cos\xEC che possa ritrovarvi, e viene cancellato insieme agli altri vostri dati se i vostri dati personali vengono cancellati. Una volta disattivato il vostro posto, non potete pi\xF9 aprire quell'azienda in Orvay.",
-  "legal.privacy.collected.p11": "Se la vostra azienda collega a Orvay un account Mastodon, Bluesky o X e un membro dell\u2019azienda inizia a leggerlo, Orvay legge le risposte ai post di quell\u2019account e i post che menzionano l\u2019account, e nient\u2019altro. Per ciascuno conserva l\u2019handle, il nome visualizzato e l\u2019identificativo dell\u2019account dell\u2019autore, il testo esattamente come \xE8 stato scritto, l\u2019indirizzo del post e del post a cui risponde, e quando \xE8 arrivato. Su Mastodon, un post visibile solo ai follower dell\u2019autore o alle persone che nomina non viene conservato. Non si cerca nulla, e non si legge nessun account diverso da quello dell\u2019azienda.",
+  "legal.privacy.collected.p11": "Se la vostra azienda collega a Orvay un account Mastodon, Bluesky o X e un membro dell\u2019azienda inizia a leggerlo, Orvay legge le risposte ai post di quell\u2019account e i post che menzionano l\u2019account, e nient\u2019altro. Per ciascuno conserva l\u2019handle, il nome visualizzato e l\u2019identificativo dell\u2019account dell\u2019autore, il testo esattamente come \xE8 stato scritto, l\u2019indirizzo del post e del post a cui risponde, e quando \xE8 arrivato. Su Mastodon, un post visibile solo ai follower dell\u2019autore o alle persone che nomina non viene conservato. Questa lettura riguarda solo l\u2019account dell\u2019azienda, e una ricerca, descritta di seguito, non vi aggiunge nulla.",
+  // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+  "legal.privacy.collected.p12": "Se la vostra azienda collega un account X, un membro dell\u2019azienda pu\xF2 anche chiedere a Orvay di mostrare una pagina dei post di quell\u2019account con i numeri che X pubblica per ciascuno, oppure di cercare su X post pubblici degli ultimi sette giorni che corrispondono alle parole che il membro digita. Una ricerca pu\xF2 restituire post di chiunque, anche di persone che non hanno mai scritto all\u2019azienda. Orvay mostra il risultato a quel membro e non ne conserva nulla: n\xE9 i post, n\xE9 chi li ha scritti, n\xE9 le parole cercate, che vanno a X. Quando un membro chiede di eliminare uno dei post dell\u2019azienda stessa, la richiesta conserva l\u2019indirizzo del post, non il suo testo. \xC8 l\u2019azienda a decidere che cosa cercare e perch\xE9, e Orvay esegue la ricerca su sua istruzione. X addebita all\u2019account sviluppatore X dell\u2019azienda stessa ogni post che restituisce.",
+  "legal.privacy.collected.p13": "La stessa impostazione dell\u2019azienda copre anche un altro uso. Finch\xE9 \xE8 attiva, Orvay pu\xF2 inviare una seconda volta a un fornitore di modelli il compito e l\u2019obiettivo di un lavoro che gli agenti dell\u2019azienda hanno gi\xE0 svolto, insieme al nome dell\u2019azienda, per verificare se una nuova versione delle nostre istruzioni al modello svolge quel lavoro almeno bene quanto la versione che sostituisce. Nulla di ci\xF2 che il lavoro originale ha letto viene inviato, perch\xE9 non \xE8 mai stato conservato. Di ci\xF2 che torna indietro Orvay non conserva alcun testo, ma solo di quale lavoro si trattava, se ogni risposta ha superato il controllo, quale modello l\u2019ha data e quanto \xE8 costata. Lo facciamo solo per un\u2019azienda che indichiamo al momento di avviarlo, mai per un\u2019azienda che ha disattivato l\u2019impostazione, e all\u2019azienda non viene addebitato nulla per questo.",
+  "legal.privacy.collected.p14": "Se la vostra azienda collega Google Search Console, Google Ads o YouTube, un membro pu\xF2 chiedere a Orvay di mostrare il rendimento nella ricerca di quell\u2019account, i numeri dei suoi account pubblicitari o i commenti pi\xF9 recenti sui video del canale, e una domanda nella console che ne nomina uno fa leggere quei dati per la risposta. Ci\xF2 che viene letto \xE8 mostrato al membro, oppure inviato al modello di testo insieme alla domanda, ed \xE8 conservato solo nella misura in cui lo riporta la risposta scritta a partire da esso. Quando un membro propone una risposta a un commento su YouTube, il nome della persona che ha scritto il commento e le sue parole sono conservati con il registro della risposta, perch\xE9 la persona che approva la risposta li legge. Orvay pubblica una risposta, elimina una risposta che Orvay ha pubblicato o nasconde un commento scritto da qualcun altro sotto un video dell\u2019azienda solo dopo che una persona ha approvato quella singola azione. L\u2019accesso concesso da Google \xE8 conservato cifrato, e la disconnessione lo distrugge. L\u2019uso e il trasferimento da parte di Orvay delle informazioni ricevute dalle API di Google rispettano la Google API Services User Data Policy, compresi i requisiti di uso limitato (Limited Use).",
+  "legal.privacy.collected.p15": "Se la vostra azienda consente a un agente che essa stessa gestisce, per esempio un agente di programmazione, di svolgere tramite una chiave API un lavoro approvato da una persona della vostra azienda, o per il quale la vostra azienda ha deciso in anticipo che pu\xF2 procedere senza chiedere a nessuno, Orvay conserva ci\xF2 che quell\u2019agente riferisce in seguito: quale passaggio dice di aver svolto, se dice che il passaggio \xE8 riuscito, e il riferimento che fornisce, che pu\xF2 essere solo l\u2019indirizzo di ci\xF2 che ha fatto, per esempio una pull request. Orvay non conserva alcuna nota n\xE9 altro testo dell\u2019agente: un resoconto che contiene una nota viene rifiutato. Il resoconto \xE8 conservato come versione dell\u2019agente e mai come prova. Quando l\u2019agente dice che il passaggio \xE8 riuscito, Orvay prova a verificare da s\xE9 il risultato con il collegamento che la vostra azienda ha configurato, e conserva accanto al resoconto ci\xF2 che ha rilevato. Se questa verifica non si conclude, o se la vostra azienda \xE8 ferma quando arriva il resoconto, Orvay non ne conserva nulla, mostra il lavoro come non verificato e non lo verifica di nuovo di propria iniziativa. Se invece l\u2019agente riferisce che il passaggio non \xE8 riuscito, Orvay lo registra come versione dell\u2019agente e non verifica nulla. Il riferimento viene anche scritto nella traccia di audit della vostra azienda, e quindi fa parte dell\u2019esportazione dei dati della vostra azienda.",
   "legal.privacy.purposes.heading": "Perch\xE9 lo trattiamo, e su quale base",
   "legal.privacy.purposes.pair1.term": "Scrivervi quando Orvay verr\xE0 lanciato",
   "legal.privacy.purposes.pair1.detail": "Il vostro consenso. GDPR art. 6(1)(a), e consenso ai sensi della nLPD. Lo avete fornito inviando il modulo con la frase che vi abbiamo mostrato, e conserviamo quella frase parola per parola in modo che la base possa essere verificata anzich\xE9 semplicemente affermata.",
@@ -26327,6 +28251,11 @@ var it_legal_default = {
   "legal.privacy.recipients.heading": "Chi altro lo vede",
   "legal.privacy.recipients.p1": "Ci avvaliamo di fornitori di servizi. Ognuno \xE8 nominato nell'elenco dei sub-responsabili, con ci\xF2 che riceve, dove tratta i dati e la garanzia su cui si fonda il trasferimento.",
   "legal.privacy.recipients.p2": "Non divulghiamo dati personali a nessun altro. Se un'autorit\xE0 imponesse la divulgazione seguiremmo la legge, e ve lo comunicheremmo a meno che non ci fosse vietato farlo.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.privacy.recipients.p3": "Un fornitore di modelli che la vostra azienda collega con una propria chiave non \xE8 uno dei nostri fornitori di servizi. \xC8 nominato nella pagina dei sub-responsabili, tra i fornitori che collegate con una vostra chiave, con ci\xF2 che gli inviamo.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p4": "Se la vostra azienda mette a disposizione un flusso di lavoro come playbook, ci\xF2 che mette a disposizione \xE8 visibile a ogni altra azienda che usa Orvay e alle persone di quelle aziende: i passaggi e le impostazioni del flusso di lavoro cos\xEC come sono scritti, il suo nome, la descrizione scritta per la messa a disposizione, e il nome della vostra azienda solo se ha scelto di mostrarlo. Chi nella vostra azienda l\u2019ha messo a disposizione non viene mostrato. Rifiutiamo una messa a disposizione il cui testo contiene un indirizzo email o un numero di telefono nelle forme che riconosciamo, una credenziale che riconosciamo, o il nome completo di un membro della vostra azienda cos\xEC come Orvay lo registra. Altri dati personali possono comunque comparire in una messa a disposizione se un\u2019azienda ve li scrive, per esempio il nome di un cliente, un nome di membro registrato di meno di tre lettere, o un indirizzo postale. I termini di servizio vietano alle aziende di mettere a disposizione un flusso di lavoro che contiene informazioni su una persona. Un\u2019azienda pu\xF2 ritirare una messa a disposizione in qualsiasi momento, e le copie che altre aziende hanno installato prima di allora restano a loro.",
+  "legal.privacy.recipients.p5": "Se la vostra azienda installa un playbook che un\u2019altra azienda ha messo a disposizione, conta nelle statistiche mostrate con quel playbook a ogni azienda su Orvay, compresa quella che l\u2019ha messo a disposizione: quante aziende lo hanno installato, quante lo hanno eseguito, quante esecuzioni si sono concluse, tra le esecuzioni che hanno un esito la quota che un controllo indipendente ha verificato e la quota che \xE8 fallita, e la quota delle aziende che lo hanno installato con un reclamo in corso. Vengono mostrati solo questi totali, con i numeri arrotondati per difetto a un multiplo di cinque e le quote al multiplo di cinque punti percentuali pi\xF9 vicino. Nessuna singola esecuzione n\xE9 alcun singolo reclamo viene mostrato, e nessuna azienda vi \xE8 nominata. Vengono mostrati solo quando le esecuzioni contate provengono da aziende le cui organizzazioni sono state create da almeno cinque persone diverse e sono almeno trenta, e le quote delle esecuzioni solo quando le esecuzioni con un esito raggiungono da sole la stessa soglia e le aziende di una sola persona non rappresentano pi\xF9 di un terzo delle esecuzioni. Un\u2019azienda conta solo per i playbook che ha installato da un\u2019azienda la cui organizzazione \xE8 stata creata da un\u2019altra persona, mai per un flusso di lavoro che ha scritto essa stessa, e un\u2019esecuzione di prova, che non modifica nulla, non viene mai contata.",
   "legal.privacy.transfers.heading": "Dove vanno i dati",
   "legal.privacy.transfers.p1": "La Svizzera non fa parte dell'Unione Europea n\xE9 dello Spazio economico europeo. \xC8 un paese terzo che detiene una decisione di adeguatezza della Commissione europea, e una dal Regno Unito. Un trasferimento dallo SEE o dal Regno Unito verso di noi si fonda quindi sull'adeguatezza e non necessita di ulteriori strumenti.",
   "legal.privacy.transfers.pair1.term": "Indirizzi della lista d'attesa, e ogni altro record del database",
@@ -26338,7 +28267,7 @@ var it_legal_default = {
   "legal.privacy.transfers.pair4.term": "Gestione della richiesta stessa",
   "legal.privacy.transfers.pair4.detail": "Il nostro codice viene eseguito al margine della rete, in tutto il mondo, quindi la richiesta che genera una pagina pu\xF2 essere eseguita vicino a voi anzich\xE9 in Europa. Garanzia: le clausole contrattuali standard nell'accordo con il fornitore.",
   "legal.privacy.transfers.pair5.term": "Prompt inviati ai modelli, voce e decisioni",
-  "legal.privacy.transfers.pair5.detail": "Il testo inviato a un modello va a OpenAI e viene elaborato negli Stati Uniti, fuori dalla Svizzera e fuori dallo SEE. Anthropic oggi non riceve nulla. In modalit\xE0 vocale, anche il suono della vostra voce va a OpenAI. Garanzia: l\u2019addendum sul trattamento dei dati di OpenAI, in base al quale il nostro contratto \xE8 con OpenAI Ireland Ltd., che trasmette i dati fuori dal SEE e dalla Svizzera sulla base delle clausole contrattuali standard o di una decisione di adeguatezza; non siamo parte di tali clausole. A partire da una data di inizio fissata almeno 30 giorni dopo il nostro avviso ai clienti, anche TypeSafe AI, negli Stati Uniti, riceve l\u2019inizio di un lavoro affidato a un agente, la richiesta per un sito web e la conversazione in merito, le pagine lette durante una ricerca, un messaggio pubblicato in una stanza e, quando la vostra azienda lascia decidere a Orvay sulle risposte della casella di posta, il nome della vostra azienda, l\u2019email a cui si risponde e la risposta redatta. Garanzia: le clausole contrattuali standard del suo addendum sul trattamento dei dati, che non ha un addendum svizzero. Le ricerche web vanno a Brave Search e le sessioni del browser a Browser Use, entrambi negli Stati Uniti, e ciascuno ha la propria riga qui sotto. Il vostro indirizzo della lista d\u2019attesa non fa mai parte di tutto questo.",
+  "legal.privacy.transfers.pair5.detail": "Il testo inviato a un modello va a OpenAI e viene elaborato negli Stati Uniti, fuori dalla Svizzera e fuori dallo SEE. Sui nostri account, Anthropic oggi non riceve nulla. Se la vostra azienda collega una propria chiave Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq o OpenRouter, le chiamate ai modelli di testo che il lavoro della vostra azienda effettua vanno a quel fornitore nell\u2019ambito dell\u2019accordo della vostra azienda con esso, tranne quelle che la pagina dei sub-responsabili indica, e sono trattate dove quell\u2019accordo prevede. Quel fornitore \xE8 allora il fornitore della vostra azienda e non il nostro, e il trasferimento si fonda su quell\u2019accordo, non sul nostro. In modalit\xE0 vocale, anche il suono della vostra voce va a OpenAI. Garanzia: l\u2019addendum sul trattamento dei dati di OpenAI, in base al quale il nostro contratto \xE8 con OpenAI Ireland Ltd., che trasmette i dati fuori dal SEE e dalla Svizzera sulla base delle clausole contrattuali standard o di una decisione di adeguatezza; non siamo parte di tali clausole. Dal 27 settembre 2026, anche TypeSafe AI, negli Stati Uniti, riceve l\u2019inizio di un lavoro affidato a un agente, la richiesta per un sito web e la conversazione in merito, le pagine lette durante una ricerca, un messaggio pubblicato in una stanza e, quando la vostra azienda lascia decidere a Orvay sulle risposte della casella di posta, il nome della vostra azienda, l\u2019email a cui si risponde e la risposta redatta. Garanzia: le clausole contrattuali standard del suo addendum sul trattamento dei dati, che non ha un addendum svizzero. Le ricerche web vanno a Brave Search e le sessioni del browser a Browser Use, entrambi negli Stati Uniti, e ciascuno ha la propria riga qui sotto. Il vostro indirizzo della lista d\u2019attesa non fa mai parte di tutto questo.",
   "legal.privacy.transfers.p2": "Chiedeteci su quale strumento si fonda un determinato fornitore e vi invieremo ci\xF2 che quel fornitore pubblica.",
   "legal.privacy.retention.heading": "Per quanto tempo lo conserviamo",
   "legal.privacy.retention.p1": "Il registro dei consensi \xE8 di sola aggiunta. Ogni record \xE8 concatenato a quello precedente tramite un hash, quindi la rimozione di una riga distruggerebbe la prova che le righe rimanenti non sono state modificate. L'annullamento dell'iscrizione scrive quindi una revoca sul vostro record anzich\xE9 cancellarlo.",
@@ -26353,7 +28282,7 @@ var it_legal_default = {
   "legal.privacy.rights.pair2.term": "Rettifica",
   "legal.privacy.rights.pair2.detail": "Diteci cosa \xE8 sbagliato e lo correggeremo. GDPR art. 16, nLPD art. 32.",
   "legal.privacy.rights.pair3.term": "Cancellazione",
-  "legal.privacy.rights.pair3.detail": "Chiedeteci di eliminare i vostri dati e lo faremo. GDPR art. 17. Dove la catena di audit impedisce la rimozione di un record, distruggiamo i dati personali al suo interno e lasciamo il resto, che pu\xF2 ancora mostrare che qualcosa \xE8 accaduto e non pu\xF2 pi\xF9 mostrare cosa diceva. L'operatore lo fa manualmente. Un'immagine che un'azienda ha aggiunto ai suoi post pu\xF2 essere rimossa dalla sua pagina del marchio, e questo la elimina dall'archiviazione. Orvay non elimina un post gi\xE0 pubblicato. L'azienda pu\xF2 eliminarlo sul canale. Il record di un post gi\xE0 preparato conserva la descrizione dell'immagine, perch\xE9 quel record non viene mai modificato.",
+  "legal.privacy.rights.pair3.detail": "Chiedeteci di eliminare i vostri dati e lo faremo. GDPR art. 17. Dove la catena di audit impedisce la rimozione di un record, distruggiamo i dati personali al suo interno e lasciamo il resto, che pu\xF2 ancora mostrare che qualcosa \xE8 accaduto e non pu\xF2 pi\xF9 mostrare cosa diceva. L'operatore lo fa manualmente. Un'immagine che un'azienda ha aggiunto ai suoi post pu\xF2 essere rimossa dalla sua pagina del marchio, e questo la elimina dall'archiviazione. Un post gi\xE0 pubblicato viene eliminato dall\u2019azienda: sul canale stesso oppure, per un post su X, Bluesky o Mastodon o una risposta che Orvay ha pubblicato su YouTube, da Orvay, dove un membro lo chiede e una persona approva ogni eliminazione. Il record di un post gi\xE0 preparato conserva la descrizione dell'immagine, perch\xE9 quel record non viene mai modificato.",
   "legal.privacy.rights.pair4.term": "Limitazione",
   "legal.privacy.rights.pair4.detail": "Chiedeteci di interrompere il trattamento mentre qualcosa \xE8 contestato e lo faremo. GDPR art. 18.",
   "legal.privacy.rights.pair5.term": "Portabilit\xE0",
@@ -26428,11 +28357,24 @@ var it_legal_default = {
   "legal.terms.ip.pair4.term": "Feedback",
   "legal.terms.ip.pair4.detail": "Se ci inviate un'idea per il prodotto, possiamo usarla senza dovervi nulla in cambio. Non inviateci nulla di riservato come feedback.",
   "legal.terms.ip.p1": "Esportare i vostri dati personali \xE8 un diritto, quindi \xE8 gratuito su ogni piano, incluso quello gratuito. Esportare un sito web generato \xE8 una funzionalit\xE0 del prodotto, ed \xE8 parte di ci\xF2 che un piano a pagamento acquista. Manteniamo queste due cose deliberatamente separate, e diciamo quale sia quale nella pagina dei prezzi, non dopo che avete pagato.",
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): what listing a workflow makes public.
+  "legal.terms.playbooks.heading": "I playbook che la vostra azienda mette a disposizione",
+  "legal.terms.playbooks.p1": "La vostra azienda pu\xF2 mettere a disposizione come playbook una versione pubblicata di uno dei suoi flussi di lavoro, cos\xEC che altre aziende su Orvay possano installarne una copia. La messa a disposizione si decide per ogni versione separatamente, e nulla viene messo a disposizione se non lo fa qualcuno che ne ha il permesso. Per impostazione predefinita solo il proprietario ha questo permesso.",
+  "legal.terms.playbooks.p2": "Mettere a disposizione una versione la rende visibile a ogni altra azienda che usa Orvay e alle persone di quelle aziende: tutti i suoi passaggi e le sue impostazioni cos\xEC come sono scritti, il suo nome, la descrizione scritta per la messa a disposizione, un identificativo della versione e il momento in cui \xE8 stata messa a disposizione. Il nome della vostra azienda viene mostrato insieme ad essa solo se lo scegliete quando la mettete a disposizione. Chi nella vostra azienda l\u2019ha messa a disposizione non viene mostrato.",
+  "legal.terms.playbooks.p3": "Prima che una versione venga messa a disposizione, Orvay rifiuta di metterla a disposizione se un qualsiasi testo al suo interno o nella sua descrizione contiene una credenziale di un tipo che riconosciamo, un indirizzo email, un numero di telefono scritto in una delle consuete forme internazionali o nazionali, o il nome completo di un membro della vostra azienda cos\xEC come Orvay lo registra, con qualsiasi combinazione di maiuscole e minuscole. Orvay rifiuta inoltre una versione con un passaggio che \xE8 assegnato a un membro indicato per nome, che inserisce una credenziale che la vostra azienda ha salvato in Orvay, o che esegue un altro flusso di lavoro della vostra azienda, e confronta il nome e la descrizione con il breve elenco di termini descritto nella sezione su cosa non potete fare.",
+  "legal.terms.playbooks.p4": "Questi controlli hanno dei limiti. Tutto ci\xF2 che non riconoscono viene mostrato cos\xEC come \xE8 scritto, per esempio un nome che Orvay non registra, come quello di un cliente, un nome scritto in modo diverso dalla nostra registrazione, un nome registrato di meno di tre lettere, un indirizzo postale, o un indirizzo email o un numero di telefono scritti in un altro modo. Non mettete a disposizione un flusso di lavoro che contiene informazioni su una persona, e leggete una versione prima di metterla a disposizione.",
+  "legal.terms.playbooks.p5": "Potete ritirare una messa a disposizione in qualsiasi momento. Da quel momento nessuno pu\xF2 pi\xF9 installarla. Le copie che altre aziende hanno installato prima del ritiro restano a quelle aziende, e noi non le rimuoviamo n\xE9 le modifichiamo.",
+  "legal.terms.playbooks.p6": "Installare un playbook lo copia nell\u2019azienda che lo installa, come nuovo flusso di lavoro che appartiene a quell\u2019azienda. Mettere a disposizione una versione non fa eseguire nulla in un\u2019altra azienda: una copia viene eseguita solo dopo che l\u2019azienda che l\u2019ha installata la pubblica, e allora con i permessi, la policy e le approvazioni propri di quell\u2019azienda. Una versione che pubblicate o mettete a disposizione in seguito non modifica una copia gi\xE0 installata.",
+  "legal.terms.playbooks.p7": "Un\u2019azienda che ha installato un playbook pu\xF2 presentare un reclamo su di esso non appena un\u2019esecuzione della sua copia si \xE8 conclusa (un\u2019esecuzione di prova non conta), scegliendo un motivo da un elenco fisso: non funziona, non fa ci\xF2 che dice la sua descrizione, agisce in modi che la sua messa a disposizione non rende chiari, contiene dati personali o una credenziale, oppure serve a un uso che questi termini non consentono. Un reclamo non contiene alcun testo proprio. Un\u2019azienda ha al massimo un reclamo in corso per ogni playbook e pu\xF2 ritirarlo in qualsiasi momento. All\u2019azienda che ha messo a disposizione il playbook non viene mai detto quale azienda ha presentato il reclamo. La quota delle aziende che lo hanno installato con un reclamo in corso \xE8 mostrata con le altre statistiche del playbook, e solo quando queste sono mostrate.",
+  "legal.terms.playbooks.p8": "Orvay nasconde un playbook alle altre aziende finch\xE9 su di esso restano in corso reclami di aziende le cui organizzazioni sono state create da almeno tre persone diverse, e di almeno un quinto delle aziende che lo hanno installato. Pi\xF9 organizzazioni create dalla stessa persona contano come una sola. Le aziende dell\u2019organizzazione di chi lo ha messo a disposizione, o di un\u2019altra organizzazione creata dalla stessa persona che ha creato quella, non vengono contate n\xE9 come aziende che lo hanno installato n\xE9 per i loro reclami. Finch\xE9 \xE8 nascosto nessuno pu\xF2 installarlo, le copie gi\xE0 installate non vengono modificate, e l\u2019azienda che lo ha messo a disposizione vede nella propria messa a disposizione che \xE8 nascosto e quali dei motivi sopra indicati sono stati dati, mai quale azienda li ha dati. Non c\u2019\xE8 ancora una revisione da parte di una persona. Un playbook nascosto torna visibile solo quando abbastanza reclami vengono ritirati. L\u2019azienda che ha messo a disposizione il playbook pu\xF2 ritirare la messa a disposizione in qualsiasi momento, e mettere a disposizione una nuova versione del flusso di lavoro, che \xE8 una nuova messa a disposizione senza reclami.",
+  "legal.terms.playbooks.p9": "Un\u2019azienda che ha installato un playbook pu\xF2 modificarne la copia, pubblicarla e metterla a disposizione come playbook proprio. Orvay rifiuta di mettere a disposizione una versione che un\u2019altra azienda ha messo a disposizione per prima, anche dopo che quella messa a disposizione \xE8 stata ritirata, quindi una copia installata che \xE8 ancora esattamente quella versione non pu\xF2 essere messa a disposizione. Per ogni altra copia, Orvay registra, a partire dalla copia stessa, da quale playbook \xE8 stata installata, e la messa a disposizione mostra che \xE8 adattata da quel playbook: con il suo nome finch\xE9 pu\xF2 essere installato, e altrimenti con un identificativo della sua versione. L\u2019azienda che mette a disposizione la copia non pu\xF2 n\xE9 rimuovere n\xE9 modificare questa indicazione. Una copia messa di nuovo a disposizione supera ogni controllo descritto sopra, rispetto ai membri della propria azienda, e le esecuzioni e i reclami delle aziende che la installano contano per le sue statistiche, non per quelle del playbook da cui proviene.",
   "legal.terms.availability.heading": "Disponibilit\xE0",
   "legal.terms.availability.p1": "Non promettiamo alcun tempo di attivit\xE0. Non esiste alcun accordo sul livello di servizio, nessun tempo di risposta del supporto garantito, e una sola persona che gestisce il servizio. Quando potremo offrire queste cose, le metteremo per iscritto e le faremo pagare.",
   "legal.terms.availability.p2": "Possiamo modificare o ritirare funzionalit\xE0. Se una modifica rimuove qualcosa su cui fate affidamento, vi daremo un preavviso e, dove la modifica \xE8 sostanziale, una via d'uscita.",
   "legal.terms.money.heading": "Denaro",
   "legal.terms.money.p1": "Oggi non viene addebitato nulla. Quando i piani saranno messi in vendita, il prezzo, cosa include e ogni limite saranno indicati nella pagina dei prezzi prima che paghiate, non dopo. La quota \xE8 misurata in base a quanto il vostro utilizzo ci costa effettivamente, e i crediti sono il modo in cui viene mostrata. Il piano gratuito si ferma quando la sua disponibilit\xE0 \xE8 esaurita e non genera mai una fattura.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.terms.money.p2": "Le chiamate ai modelli effettuate con una chiave collegata dalla vostra azienda sono fatturate alla vostra azienda da quel fornitore e non sono prelevate dai vostri crediti.",
   "legal.terms.warranty.heading": "Cosa non promettiamo",
   "legal.terms.warranty.p1": "Il servizio \xE8 fornito cos\xEC com'\xE8. Nella misura consentita dalla legge svizzera, non forniamo alcuna garanzia che sar\xE0 ininterrotto o privo di errori, che sia idoneo a uno scopo particolare, o che qualsiasi risultato sia corretto.",
   "legal.terms.warranty.p2": "La verifica \xE8 un meccanismo di indipendenza, non un oracolo. Un risultato verificato significa che un secondo attore ha controllato il primo e la prova \xE8 stata registrata. Non significa che l'esito sia garantito corretto, e non lo vendiamo come tale.",
@@ -26498,6 +28440,15 @@ var it_legal_default = {
   "legal.subprocessors.list.heading": "L'elenco",
   "legal.subprocessors.changes.heading": "Modificare l'elenco",
   "legal.subprocessors.changes.p1": "Diamo ai clienti un preavviso di almeno 30 giorni via email prima che un nuovo sub-responsabile inizi a trattare i loro dati personali, e potete opporvi per iscritto durante quel periodo per motivi ragionevoli legati alla protezione dei dati. Se non possiamo risolvere l'opposizione, potete recedere dal servizio interessato senza penali. Questo impegno fa parte dell'accordo sul trattamento dei dati, non \xE8 una cortesia.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.subprocessors.own-key.heading": "Fornitori che collegate con una vostra chiave",
+  "legal.subprocessors.own-key.p1": "Se la vostra azienda collega una propria chiave Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq o OpenRouter, le chiamate ai modelli di testo che il lavoro della vostra azienda effettua vanno a quel fornitore nell\u2019ambito dell\u2019accordo della vostra azienda con esso. La creazione e la modifica del vostro sito web, la voce, la ricerca nella memoria e le immagini restano sui nostri account. Quel fornitore tratta le chiamate come fornitore della vostra azienda, non come nostro, quindi non \xE8 nell\u2019elenco sopra, e collegarlo non fa partire il preavviso di 30 giorni: la vostra azienda lo ha scelto.",
+  "legal.subprocessors.own-key.p2": "Gli inviamo lo stesso testo che invieremmo sui nostri account, preparato allo stesso modo. Che cosa il fornitore conserva, per quanto tempo e che cos\u2019altro pu\xF2 farne \xE8 stabilito dall\u2019accordo della vostra azienda con quel fornitore, non dal nostro. Una richiesta di cancellazione rivolta a noi raggiunge ci\xF2 che conserviamo noi, e non ci\xF2 che il fornitore conserva con la chiave della vostra azienda.",
+  "legal.subprocessors.own-key.p3": "Non mescoliamo mai le due cose. Una chiamata che la chiave della vostra azienda paga non viene inviata sul nostro account, e una chiamata sul nostro account non viene inviata con la chiave della vostra azienda. Se la chiave della vostra azienda smette di funzionare, il lavoro attende e lo segnala, invece di passare al nostro account.",
+  "legal.subprocessors.own-key.p4": "Ogni chiamata che il lavoro della vostra azienda fa a un fornitore per cui non ha collegato una chiave passa ancora dal nostro account, verso i fornitori nell\u2019elenco sopra.",
+  "legal.subprocessors.own-key.p5": "Conserviamo la chiave della vostra azienda sigillata e la usiamo solo per le chiamate della vostra azienda. Scollegarla distrugge la nostra copia. Non revoca la chiave presso il fornitore, cosa che fate nella console del fornitore.",
+  "legal.subprocessors.own-key.p6": "Se la vostra azienda sceglie di usare solo le proprie chiavi, ogni chiamata a un modello di testo che il lavoro della vostra azienda effettua va a un fornitore per cui l\u2019azienda ha collegato una chiave, e una chiamata che nessuno di essi pu\xF2 servire attende e lo segnala, invece di passare ai fornitori nell\u2019elenco sopra. La creazione e la modifica del vostro sito web, la voce, la ricerca nella memoria e le immagini continuano a usare i fornitori nell\u2019elenco sopra.",
+  "legal.subprocessors.own-key.p7": "Una chiamata su una chiave Mistral va all\u2019endpoint UE di Mistral, che Mistral serve da centri dati in paesi dell\u2019UE e dell\u2019AELS. Una chiamata su una chiave OpenRouter va a OpenRouter, che la passa a un fornitore che serve il modello, in una regione che OpenRouter non garantisce.",
   "legal.subprocessors.cloudflare.service": "Gestisce ogni richiesta. Calcolo Workers, object storage R2, pooling del database Hyperdrive, Durable Objects, Workflows, DNS, registrazione delle richieste, e la rotta email che invia avvisi all'operatore.",
   "legal.subprocessors.cloudflare.data1": "Metadati della richiesta per ogni visita, incluso indirizzo IP, user agent e pagina richiesta",
   "legal.subprocessors.cloudflare.data2": "Un invio alla lista d'attesa mentre \xE8 in transito verso il database",
@@ -26558,7 +28509,7 @@ var it_legal_default = {
   "legal.dpa.subject-matter.pair2.term": "Durata",
   "legal.dpa.subject-matter.pair2.detail": "Per tutto il tempo in cui il vostro account esiste, e dopo di che solo per il tempo necessario a restituire o distruggere i dati.",
   "legal.dpa.subject-matter.pair3.term": "Natura e finalit\xE0",
-  "legal.dpa.subject-matter.pair3.detail": "Archiviazione, recupero, trasmissione ai sub-responsabili nell'elenco pubblicato, e invio ai fornitori di modelli dove istruite un agente a svolgere un lavoro che ne necessita.",
+  "legal.dpa.subject-matter.pair3.detail": "Archiviazione, recupero, trasmissione ai sub-responsabili nell\u2019elenco pubblicato, e invio ai fornitori di modelli dove istruite un agente a svolgere un lavoro che ne necessita, sui nostri account oppure, dove collegate una vostra chiave, sui vostri.",
   "legal.dpa.subject-matter.pair4.term": "Categorie di interessati",
   "legal.dpa.subject-matter.pair4.detail": "Il vostro personale, i vostri contatti, e chiunque altro i cui dati scegliate di inserire.",
   "legal.dpa.subject-matter.pair5.term": "Categorie di dati personali",
@@ -26588,9 +28539,13 @@ var it_legal_default = {
   "legal.dpa.subprocessors.p1": "Ci concedete un'autorizzazione generale a coinvolgere sub-responsabili del trattamento, ai sensi dell'art. 28(2) e 28(3)(d) GDPR. L'elenco attuale \xE8 pubblicato, e nomina ciascuno di essi, cosa riceve, dove tratta i dati e la garanzia su cui si fonda il trasferimento.",
   "legal.dpa.subprocessors.p2": "Vi diamo un preavviso di almeno 30 giorni via email prima che un nuovo sub-responsabile inizi a trattare i vostri dati personali. Potete opporvi per iscritto entro tale periodo per motivi ragionevoli legati alla protezione dei dati. Se non possiamo risolvere la vostra opposizione, potete recedere dalla parte interessata del servizio senza penali, e rimborsiamo qualsiasi tariffa prepagata per il periodo non utilizzato.",
   "legal.dpa.subprocessors.p3": "Ogni sub-responsabile \xE8 vincolato da un contratto scritto con obblighi di protezione dei dati non pi\xF9 deboli di questi, eccetto Brave Search per le query di ricerca che gli inviamo, che il suo addendum sul trattamento dei dati esclude; ci\xF2 che rimuoviamo da una query prima dell\u2019invio \xE8 indicato nella pagina dei sub-responsabili del trattamento. Dove uno di essi non li rispetti, restiamo pienamente responsabili nei vostri confronti per la sua prestazione. Art. 28(4) GDPR.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.subprocessors.p4": "Un fornitore di modelli che collegate con una vostra chiave non \xE8 un sub-responsabile che coinvolgiamo noi. Lo coinvolgete voi, nell\u2019ambito del vostro accordo con esso, e collegando la chiave ci istruite a inviargli le chiamate ai modelli che la pagina dei sub-responsabili descrive (art. 28(3)(a) GDPR). L\u2019autorizzazione, il preavviso e gli obblighi sopra si applicano ai sub-responsabili che coinvolgiamo noi, e non a esso.",
   "legal.dpa.transfers.heading": "Trasferimenti internazionali",
   "legal.dpa.transfers.p1": "Dove un sub-responsabile si trova fuori dalla Svizzera e dallo Spazio economico europeo, il trasferimento si basa sulla garanzia indicata per esso nell'elenco dei sub-responsabili. Per i fornitori di modelli lo strumento sono le clausole contrattuali standard. Non ci basiamo su una certificazione di framework.",
   "legal.dpa.transfers.p2": "La Svizzera detiene una decisione di adeguatezza della Commissione europea, quindi un trasferimento dallo SEE al nostro database a Zurigo non necessita di ulteriori strumenti.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.transfers.p3": "Un trasferimento verso un fornitore di modelli che avete collegato con una vostra chiave si fonda sul vostro accordo con quel fornitore, non sul nostro.",
   "legal.dpa.data-subject-requests.heading": "Aiutarvi a rispondere agli interessati",
   "legal.dpa.data-subject-requests.p1": "Vi aiutiamo a soddisfare una richiesta di un interessato, tenendo conto della natura del trattamento. Art. 28(3)(e) GDPR.",
   "legal.dpa.data-subject-requests.p2": "Dove il prodotto pu\xF2 rispondere, potete rispondere voi stessi. I vostri contatti, caricamenti, record di consenso e traccia di audit sono esportabili in un formato leggibile da macchina su ogni piano, incluso quello gratuito, perch\xE9 la portabilit\xE0 \xE8 un diritto e non una funzionalit\xE0.",
@@ -26673,7 +28628,7 @@ var it_legal_default = {
   "legal.subprocessors.github.safeguard": "GitHub \xE8 stabilita negli Stati Uniti ed \xE8 di propriet\xE0 di Microsoft. I trasferimenti si fondano sulle clausole contrattuali standard contenute nelle sue condizioni. Scegliere invece una password significa che nessun dato raggiunge GitHub.",
   "legal.subprocessors.github.statusDetail": "Viene raggiunta solo se premete il pulsante. Aprire la schermata di accesso non invia nulla a GitHub, e questa voce mancava dall'elenco fino al 20 agosto 2026 mentre il pulsante era gi\xE0 sullo schermo.",
   "legal.terms.acceptable-use.item7": "Gestire un'attivit\xE0 per cui non lavoreremo: contenuti sessuali o servizi sessuali, qualsiasi cosa che sessualizzi un minore, malware e strumenti di intrusione, frode, la vendita di armi o sostanze controllate, o molestie mirate contro una persona. Questo \xE8 un rifiuto che riguarda il lavoro, non un giudizio su di voi, e si applica qualunque cosa dica la legge del luogo in cui vi trovate.",
-  "legal.terms.acceptable-use.p2": "Due controlli fanno rispettare la regola qui sopra, e vale la pena sapere esattamente quali siano, cos\xEC da non scambiarli per qualcosa di pi\xF9 ampio. Il nome e l'indirizzo web che ci fornite vengono confrontati con un breve elenco di termini durante la configurazione, prima che recuperiamo qualsiasi cosa. Separatamente, un agente rifiuta di lavorare su un obiettivo che chiede una di queste cose. Nessuno dei due \xE8 una revisione di tutto ci\xF2 che fate, nessuno dei due legge i vostri dati, e nessuno dei due sostituisce la vostra conoscenza di ci\xF2 che state gestendo.",
+  "legal.terms.acceptable-use.p2": "Tre controlli fanno rispettare la regola qui sopra, e vale la pena sapere esattamente quali siano, cos\xEC da non scambiarli per qualcosa di pi\xF9 ampio. Il nome e l'indirizzo web che ci fornite vengono confrontati con un breve elenco di termini durante la configurazione, prima che recuperiamo qualsiasi cosa. Separatamente, un agente rifiuta di lavorare su un obiettivo che chiede una di queste cose. Inoltre, il nome e la descrizione di un flusso di lavoro che la vostra azienda mette a disposizione come playbook vengono confrontati con lo stesso elenco prima della messa a disposizione. Nessuno dei tre \xE8 una revisione di tutto ci\xF2 che fate, nessuno dei tre legge i vostri dati, e nessuno dei tre sostituisce la vostra conoscenza di ci\xF2 che state gestendo.",
   // -------------------------------------------------------------------------
   // MACHINE TRANSLATION, 2026-09-23, NOT YET REVIEWED BY A PERSON.
   //
@@ -26722,7 +28677,7 @@ var it_legal_default = {
   "legal.subprocessors.typesafe.location1": "Stati Uniti, che la sua informativa sulla privacy indica come luogo in cui il servizio \xE8 ospitato",
   "legal.subprocessors.typesafe.location2": "Il suo addendum sul trattamento dei dati non indica alcun luogo di trattamento",
   "legal.subprocessors.typesafe.safeguard": "TypeSafe AI, Inc. ha sede negli Stati Uniti. Il suo addendum sul trattamento dei dati applica le clausole contrattuali standard ai trasferimenti dall\u2019UE, con l\u2019addendum del Regno Unito per il Regno Unito. Per la Svizzera dice soltanto che le controversie spettano ai tribunali svizzeri e che l\u2019autorit\xE0 competente \xE8 l\u2019Incaricato federale della protezione dei dati e della trasparenza (IFPDT). Non ha alcun addendum svizzero.",
-  "legal.subprocessors.typesafe.statusDetail": "La sua chiave \xE8 impostata sul Worker di generazione dei siti web, che non gli invia nulla prima di una data di inizio impostata su quel Worker. Fissiamo tale data non prima di 30 giorni dopo averne informato i clienti, come richiede il nostro accordo sul trattamento dei dati. Prima di quella data, e ogni volta che non risponde, una domanda su un lavoro, un sito web o una stanza va invece a un modello di testo, e una risposta della casella di posta in attesa della sua decisione attende una persona. \xC8 in elenco gi\xE0 ora, prima di ricevere qualsiasi cosa, perch\xE9 questa pagina e il nostro avviso descrivano lo stesso elenco.",
+  "legal.subprocessors.typesafe.statusDetail": "La sua chiave \xE8 impostata sul Worker di generazione dei siti web, che gli invia i dati di cui sopra dal 27 settembre 2026. Ogni volta che non risponde, una domanda su un lavoro, un sito web o una stanza va invece a un modello di testo, e una risposta della casella di posta in attesa della sua decisione attende una persona.",
   "legal.subprocessors.fish.service": "Sintesi vocale e trascrizione. Fino al 25 settembre 2026 leggeva ad alta voce una risposta in modalit\xE0 vocale quando non era stato possibile aprire una conversazione dal vivo, e poteva trascrivere il parlato in una distribuzione senza chiave OpenAI. Oggi non fa n\xE9 l\u2019una n\xE9 l\u2019altra cosa.",
   "legal.subprocessors.fish.data1": "Fino al 25 settembre 2026, il testo di una risposta che Orvay vi leggeva ad alta voce. Quel testo poteva nominare persone e cifre tratte dai dati della vostra azienda, e nulla veniva rimosso prima dell\u2019invio",
   "legal.subprocessors.fish.data2": "Fino al 25 settembre 2026, la registrazione di ci\xF2 che dicevate in modalit\xE0 vocale, solo in una distribuzione che non aveva una chiave OpenAI con cui trascriverla",
@@ -26919,7 +28874,7 @@ var es_default = {
   "pricing.feature.scim.name": "Sincronizaci\xF3n de directorio",
   "pricing.feature.scim.detail": "Su proveedor de identidad a\xF1ade y elimina personas mediante SCIM 2.0, en un dominio que usted ha verificado para el inicio de sesi\xF3n \xFAnico. Solo personas: los grupos no se sincronizan y los roles los sigue fijando usted.",
   "pricing.feature.byo_model_keys.name": "Sus propias claves de modelo",
-  "pricing.feature.byo_model_keys.detail": "Facture el uso del modelo a sus propias cuentas de proveedores en lugar de a su asignaci\xF3n de cr\xE9ditos.",
+  "pricing.feature.byo_model_keys.detail": "Ejecute las llamadas a modelos en sus propias cuentas de Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq u OpenRouter, facturadas por su proveedor y no con sus cr\xE9ditos, y elija usar solo sus propias claves. La creaci\xF3n y edici\xF3n de sitios web, la voz, la b\xFAsqueda en la memoria y las im\xE1genes siguen en las claves de Orvay, y una llamada sigue necesitando cr\xE9ditos disponibles para empezar.",
   "pricing.feature.integration_mcp.name": "Herramientas prestadas",
   "pricing.feature.integration_mcp.detail": "Registre los servidores de herramientas que su empresa ya utiliza, y permita que Orvay llame a sus herramientas conforme a su pol\xEDtica, una aprobaci\xF3n por herramienta. Los conectores del propio cat\xE1logo de Orvay no se cuentan en su plan. Un servidor de herramientas propio es uno que usted registra por su direcci\xF3n, y la tabla anterior muestra cu\xE1ntos contiene cada plan.",
   "pricing.feature.voice.name": "Voz en la aplicaci\xF3n",
@@ -27218,7 +29173,7 @@ var es_default = {
   "site.limits.card.no-customers.title": "Sin clientes, y por tanto sin pruebas de clientes",
   "site.limits.card.no-customers.body": "No hay un muro de logotipos en esta p\xE1gina porque no hay logotipos que poner en \xE9l, y tampoco hay testimonios ni cifras de uso, por la misma raz\xF3n. Cuando los haya, se nombrar\xE1n.",
   "site.limits.card.data-location.title": "D\xF3nde est\xE1n los datos, dicho por completo",
-  "site.limits.card.data-location.body": "Postgres se ejecuta en Z\xFArich, en un proyecto cuya regi\xF3n es eu-central-2. La inferencia del modelo no se ejecuta en Suiza: las instrucciones se env\xEDan a Anthropic y a OpenAI, que las procesan fuera de Suiza y fuera de la UE. Suiza es un tercer pa\xEDs que cuenta con una decisi\xF3n de adecuaci\xF3n de la UE, no un Estado miembro de la UE ni del EEE. Una afirmaci\xF3n de residencia que omita la segunda frase es exactamente el tipo de verdad a medias que este producto entero existe para rechazar.",
+  "site.limits.card.data-location.body": "Postgres se ejecuta en Z\xFArich, en un proyecto cuya regi\xF3n es eu-central-2. La inferencia del modelo no se ejecuta en Suiza: las instrucciones se env\xEDan a OpenAI, que las procesa fuera de Suiza y fuera de la UE. Suiza es un tercer pa\xEDs que cuenta con una decisi\xF3n de adecuaci\xF3n de la UE, no un Estado miembro de la UE ni del EEE. Una afirmaci\xF3n de residencia que omita la segunda frase es exactamente el tipo de verdad a medias que este producto entero existe para rechazar.",
   "site.limits.card.privacy.title": "La privacidad primero, sin ning\xFAn certificado reclamado",
   "site.limits.card.privacy.body": "No tenemos ninguna certificaci\xF3n y no afirmamos tener ninguna. Lo que s\xED podemos mostrarle es lo que hace el c\xF3digo: aislamiento entre empresas escrito como pol\xEDticas restrictivas de base de datos que solo pueden negar, una cadena de hashes que usted mismo puede recalcular, y una aprobaci\xF3n humana registrada en todo lo que tenga un efecto legal sobre una persona.",
   "site.limits.card.representative.title": "Un deber que tenemos y que no hemos satisfecho",
@@ -28380,7 +30335,6 @@ var es_default = {
   "decision.run": "Ejecutar",
   "decision.running": "Ejecutando",
   "decision.halted": "La autonom\xEDa est\xE1 detenida. Libere la parada antes de que se ejecute algo, incluido lo que ya haya aprobado.",
-  "decision.run.note": "Ejecutar aplica el plan y luego entrega el resultado a otro actor para comprobarlo. No hay ning\xFAn adaptador conectado en este despliegue, as\xED que el efecto es simulado y cada artefacto producido lo dice.",
   "decision.refused.title": "Esto fue rechazado",
   "decision.recheck": "Comprobar de nuevo",
   "decision.rechecking": "Comprobando",
@@ -29034,7 +30988,7 @@ var es_default = {
   "trust.holds.mfa.term": "Ning\xFAn segundo factor",
   "trust.holds.mfa.detail": "No TOTP, no claves de acceso, no claves de hardware. Una contrase\xF1a y una direcci\xF3n de correo electr\xF3nico son todo hoy. El inicio de sesi\xF3n \xFAnico existe solo en el plan m\xE1s grande.",
   "trust.holds.inference.term": "La inferencia del modelo no est\xE1 en Suiza",
-  "trust.holds.inference.detail": "Su base de datos est\xE1 en Z\xFArich. Los modelos que leen de ella se ejecutan en Anthropic y OpenAI, fuera del pa\xEDs. Una afirmaci\xF3n de residencia que omite esta oraci\xF3n no es una afirmaci\xF3n de residencia.",
+  "trust.holds.inference.detail": "Su base de datos est\xE1 en Z\xFArich. Los modelos que leen de ella se ejecutan en OpenAI, fuera del pa\xEDs. Una afirmaci\xF3n de residencia que omite esta oraci\xF3n no es una afirmaci\xF3n de residencia.",
   "trust.where.heading": "D\xF3nde est\xE1n los datos",
   "trust.where.lead": "Cuatro almacenes, nombrados, con la diferencia entre una garant\xEDa y una preferencia visible.",
   "trust.where.database.term": "Datos de empresa",
@@ -29042,7 +30996,7 @@ var es_default = {
   "trust.where.evidence.term": "Evidencia",
   "trust.where.evidence.detail": "Cloudflare R2, fijado a la jurisdicci\xF3n de la UE. Fijado es una garant\xEDa. Los otros cubos tienen una sugerencia de ubicaci\xF3n, que es una preferencia, y no describimos una como la otra.",
   "trust.where.inference.term": "Llamadas de modelo",
-  "trust.where.inference.detail": "Anthropic y OpenAI, directo, sin puerta de enlace entre ellos. Lo que se env\xEDa es el contexto que una tarea necesita, y el texto no confiable est\xE1 encerrado antes de llegar a un modelo.",
+  "trust.where.inference.detail": "OpenAI, directo, sin puerta de enlace intermedia. Lo que se env\xEDa es el contexto que una tarea necesita, y el texto no confiable est\xE1 encerrado antes de llegar a un modelo.",
   "trust.where.mail.term": "Correo",
   "trust.where.mail.detail": "Enviado a trav\xE9s de Cloudflare desde una direcci\xF3n de nuestro propio dominio. El correo de inquilino nunca sale de un dominio Orvay, que es una decisi\xF3n de reputaci\xF3n en lugar de una t\xE9cnica.",
   "trust.separation.heading": "C\xF3mo se mantiene una empresa separada de otra",
@@ -29343,7 +31297,6 @@ var es_default = {
   "delegations.form.submit": "Decidir por adelantado",
   "delegations.form.submitting": "Registrando",
   "delegations.ok.title": "Registrado",
-  "delegations.ok.recorded": "{capability} puede ejecutarse sin preguntar hasta el {until}. Anotado en el registro.",
   "delegations.refused.title": "No registrado",
   "delegations.refused.gate": "Rechazado en la puerta {gate}: {reason}.",
   "delegations.refused.halted": "La autonom\xEDa est\xE1 detenida. No se puede decidir nada por adelantado mientras la empresa est\xE9 parada.",
@@ -29354,7 +31307,6 @@ var es_default = {
   "delegations.refused.forbidden": "{capability} est\xE1 prohibida en esta empresa, y prohibido es absoluto.",
   "delegations.refused.bound": "Elige en las listas cu\xE1nto tiempo y cu\xE1ntas veces.",
   "delegations.refused.rationale": "Di por qu\xE9, en {max} caracteres como m\xE1ximo.",
-  "delegations.refused.already_live": "{capability} ya la decidi\xF3 por adelantado {name}. Retira antes esa decisi\xF3n.",
   "delegations.row.decided": "Decidido por {name} el {date}",
   "delegations.row.until": "Hasta el {date}",
   "delegations.row.uses": {
@@ -29369,9 +31321,7 @@ var es_default = {
   "delegations.status.revoked": "Retirada",
   "delegations.revoke.submit": "Retirar",
   "delegations.revoke.submitting": "Retirando",
-  "delegations.revoke.sr": "la decisi\xF3n sobre {capability}",
   "delegations.revoke.ok.title": "Retirada",
-  "delegations.revoke.ok.revoked": "{capability} vuelve a detenerse ante una persona a partir de ahora.",
   "delegations.revoke.ok.already": "Esa decisi\xF3n ya se hab\xEDa retirado.",
   "delegations.revoke.refused.title": "No retirada",
   "delegations.revoke.refused.not_found": "Esa decisi\xF3n no es de esta empresa.",
@@ -30648,7 +32598,12 @@ var es_legal_default = {
   "legal.privacy.collected.p8": "Si su empleador conecta su propio proveedor de identidad a Orvay para el inicio de sesi\xF3n \xFAnico, iniciar sesi\xF3n a trav\xE9s de \xE9l nos da su direcci\xF3n de correo electr\xF3nico de trabajo, y su nombre cuando el proveedor lo env\xEDa. El proveedor confirma qui\xE9n es usted, as\xED que no nos da ninguna contrase\xF1a. Si su empleador lo ha permitido, su primer inicio de sesi\xF3n a trav\xE9s de su proveedor crea su cuenta y un puesto en la empresa de su empleador con los permisos de un miembro, y registramos que se ha incorporado.",
   "legal.privacy.collected.p9": "Dentro del producto le preguntamos c\xF3mo llamarle, y no puede trabajar all\xED sin un nombre, porque las personas de su empresa lo ven junto al trabajo que propone y a las decisiones que toma. Puede cambiarlo en cualquier momento desde su cuenta.",
   "legal.privacy.collected.p10": "Si su empleador tambi\xE9n conecta su directorio de empleados a Orvay, el directorio puede crear su cuenta y su puesto de la misma manera, cambiar el nombre que ven sus compa\xF1eros, y desactivar su puesto. Conservamos el identificador que el directorio usa para usted para que pueda volver a encontrarle, y se borra junto con sus otros datos si se borran sus datos personales. Una vez desactivado su puesto, ya no puede abrir esa empresa en Orvay.",
-  "legal.privacy.collected.p11": "Si su empresa conecta a Orvay una cuenta de Mastodon, Bluesky o X y un miembro de la empresa empieza a leerla, Orvay lee las respuestas a las publicaciones de esa cuenta y las publicaciones que mencionan la cuenta, y nada m\xE1s. De cada una guarda el identificador p\xFAblico, el nombre visible y el identificador de cuenta de su autor, el texto exactamente como lo escribi\xF3, la direcci\xF3n de la publicaci\xF3n y de la publicaci\xF3n a la que responde, y cu\xE1ndo lleg\xF3. En Mastodon, una publicaci\xF3n visible solo para los seguidores de su autor o para las personas que nombra no se guarda. No se busca nada, y no se lee ninguna cuenta que no sea la de la propia empresa.",
+  "legal.privacy.collected.p11": "Si su empresa conecta a Orvay una cuenta de Mastodon, Bluesky o X y un miembro de la empresa empieza a leerla, Orvay lee las respuestas a las publicaciones de esa cuenta y las publicaciones que mencionan la cuenta, y nada m\xE1s. De cada una guarda el identificador p\xFAblico, el nombre visible y el identificador de cuenta de su autor, el texto exactamente como lo escribi\xF3, la direcci\xF3n de la publicaci\xF3n y de la publicaci\xF3n a la que responde, y cu\xE1ndo lleg\xF3. En Mastodon, una publicaci\xF3n visible solo para los seguidores de su autor o para las personas que nombra no se guarda. Esta lectura abarca solo la cuenta de la propia empresa, y una b\xFAsqueda, descrita a continuaci\xF3n, no le a\xF1ade nada.",
+  // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+  "legal.privacy.collected.p12": "Si su empresa conecta una cuenta de X, un miembro de la empresa tambi\xE9n puede pedir a Orvay que muestre una p\xE1gina de las publicaciones de esa cuenta con las cifras que X publica sobre ellas, o que busque en X publicaciones p\xFAblicas de los \xFAltimos siete d\xEDas que coincidan con las palabras que el miembro escriba. Una b\xFAsqueda puede devolver publicaciones de cualquier persona, incluidas personas que nunca escribieron a la empresa. Orvay muestra el resultado a ese miembro y no conserva nada de \xE9l: ni las publicaciones, ni qui\xE9n las escribi\xF3, ni las palabras buscadas, que van a X. Cuando un miembro pide borrar una de las publicaciones de la propia empresa, la solicitud conserva la direcci\xF3n de la publicaci\xF3n, no su texto. La empresa decide qu\xE9 buscar y por qu\xE9, y Orvay realiza la b\xFAsqueda siguiendo sus instrucciones. X cobra a la cuenta de desarrollador de X de la propia empresa cada publicaci\xF3n que devuelve.",
+  "legal.privacy.collected.p13": "El mismo ajuste de la empresa cubre un uso m\xE1s. Mientras est\xE1 activado, Orvay puede enviar por segunda vez a un proveedor de modelos la tarea y el objetivo de un trabajo que los agentes de la empresa ya han hecho, junto con el nombre de la empresa, para comprobar si una nueva versi\xF3n de nuestras instrucciones al modelo hace ese trabajo al menos tan bien como la versi\xF3n a la que sustituye. No se env\xEDa nada de lo que ley\xF3 el trabajo original, porque nunca se conserv\xF3. De lo que vuelve, Orvay no conserva ning\xFAn texto, solo de qu\xE9 trabajo se trataba, si cada respuesta super\xF3 la comprobaci\xF3n, qu\xE9 modelo la dio y cu\xE1nto cost\xF3. Solo lo hacemos para una empresa que indicamos al ponerlo en marcha, nunca para una empresa que ha desactivado el ajuste, y a la empresa no se le cobra nada por ello.",
+  "legal.privacy.collected.p14": "Si su empresa conecta Google Search Console, Google Ads o YouTube, un miembro puede pedir a Orvay que muestre el rendimiento en b\xFAsqueda de esa cuenta, las cifras de sus cuentas de anuncios o los comentarios m\xE1s recientes en los v\xEDdeos del canal, y una pregunta en la consola que nombre alguno de ellos hace que esos datos se lean para la respuesta. Lo que se lee se muestra al miembro, o se env\xEDa al modelo de texto junto con la pregunta, y solo se conserva en la medida en que lo recoge la respuesta escrita a partir de ello. Cuando un miembro propone una respuesta a un comentario de YouTube, el nombre de la persona que escribi\xF3 el comentario y sus palabras se conservan con el registro de la respuesta, porque la persona que aprueba la respuesta los lee. Orvay publica una respuesta, borra una respuesta que Orvay public\xF3 u oculta un comentario que otra persona escribi\xF3 bajo un v\xEDdeo de la empresa solo despu\xE9s de que una persona apruebe esa \xFAnica acci\xF3n. El acceso que concede Google se guarda cifrado, y desconectarlo lo destruye. El uso y la transferencia por parte de Orvay de la informaci\xF3n recibida de las API de Google se ajustan a la Google API Services User Data Policy, incluidos los requisitos de uso limitado (Limited Use).",
+  "legal.privacy.collected.p15": "Si su empresa permite que un agente que ella misma gestiona, por ejemplo un agente de programaci\xF3n, haga mediante una clave de API un trabajo que aprob\xF3 una persona de su empresa, o para el que su empresa decidi\xF3 de antemano que puede seguir adelante sin preguntar a nadie, Orvay conserva lo que ese agente informa despu\xE9s: qu\xE9 paso dice haber hecho, si dice que ese paso sali\xF3 bien, y la referencia que da, que solo puede ser la direcci\xF3n de lo que hizo, por ejemplo una solicitud de extracci\xF3n (pull request). Orvay no conserva ninguna nota ni ning\xFAn otro texto del agente: un informe que contiene una nota se rechaza. El informe se conserva como la versi\xF3n del agente y nunca como prueba. Cuando el agente dice que el paso sali\xF3 bien, Orvay intenta comprobar el resultado por s\xED mismo con la conexi\xF3n que estableci\xF3 su empresa, y conserva junto al informe lo que encontr\xF3. Si esa comprobaci\xF3n no termina, o si su empresa est\xE1 detenida cuando llega el informe, Orvay no conserva nada de ella, muestra el trabajo como no verificado y no vuelve a comprobarlo por iniciativa propia. Cuando el agente dice que el paso fall\xF3, Orvay lo registra como la versi\xF3n del agente y no comprueba nada. La referencia tambi\xE9n se escribe en el registro de auditor\xEDa de su empresa, as\xED que forma parte de la exportaci\xF3n de datos de su empresa.",
   "legal.privacy.purposes.heading": "Por qu\xE9 lo tratamos, y con qu\xE9 base",
   "legal.privacy.purposes.pair1.term": "Escribirle cuando Orvay se lance",
   "legal.privacy.purposes.pair1.detail": "Su consentimiento. Art. 6.1.a RGPD, y consentimiento conforme a la revFADP. Lo prest\xF3 al enviar el formulario bajo la frase que le mostramos, y guardamos esa frase palabra por palabra para que la base pueda comprobarse en lugar de simplemente afirmarse.",
@@ -30671,6 +32626,11 @@ var es_legal_default = {
   "legal.privacy.recipients.heading": "Qui\xE9n m\xE1s lo ve",
   "legal.privacy.recipients.p1": "Utilizamos proveedores de servicios. Cada uno figura en la lista de subencargados, con lo que recibe, d\xF3nde trata los datos y la garant\xEDa en la que se basa la transferencia.",
   "legal.privacy.recipients.p2": "No revelamos datos personales a nadie m\xE1s. Si una autoridad exigiera su divulgaci\xF3n, cumplir\xEDamos la ley, y se lo comunicar\xEDamos a menos que tuvi\xE9ramos prohibido hacerlo.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.privacy.recipients.p3": "Un proveedor de modelos que su empresa conecta con su propia clave no es uno de nuestros proveedores de servicios. Figura en la p\xE1gina de subencargados, entre los proveedores que usted conecta con su propia clave, con lo que le enviamos.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p4": "Si su empresa pone a disposici\xF3n un flujo de trabajo como playbook, lo que pone a disposici\xF3n es visible para todas las dem\xE1s empresas que usan Orvay y para las personas de esas empresas: los pasos y ajustes del flujo de trabajo tal como est\xE1n escritos, el nombre del flujo de trabajo, la descripci\xF3n escrita para la puesta a disposici\xF3n, y el nombre de su empresa solo si eligi\xF3 mostrarlo. No se muestra qui\xE9n de su empresa lo puso a disposici\xF3n. Rechazamos una puesta a disposici\xF3n cuyo texto contenga una direcci\xF3n de correo electr\xF3nico o un n\xFAmero de tel\xE9fono en las formas que reconocemos, una credencial que reconocemos, o el nombre completo de un miembro de su empresa tal como Orvay lo registra. Otros datos personales pueden aparecer igualmente en una puesta a disposici\xF3n si una empresa los escribe en ella, por ejemplo el nombre de un cliente, un nombre de miembro registrado de menos de tres letras, o una direcci\xF3n postal. Los t\xE9rminos de servicio proh\xEDben a las empresas poner a disposici\xF3n un flujo de trabajo que contenga informaci\xF3n sobre una persona. Una empresa puede retirar una puesta a disposici\xF3n en cualquier momento, y las copias que otras empresas instalaron antes se quedan con ellas.",
+  "legal.privacy.recipients.p5": "Si su empresa instala un playbook que otra empresa puso a disposici\xF3n, cuenta para las estad\xEDsticas que se muestran con ese playbook a todas las empresas de Orvay, incluida la que lo puso a disposici\xF3n: cu\xE1ntas empresas lo instalaron, cu\xE1ntas lo ejecutaron, cu\xE1ntas ejecuciones terminaron, de las ejecuciones que tienen un resultado la proporci\xF3n que una comprobaci\xF3n independiente verific\xF3 y la proporci\xF3n que fall\xF3, y la proporci\xF3n de las empresas que lo instalaron con una queja vigente. Solo se muestran esos totales, con las cifras redondeadas hacia abajo a un m\xFAltiplo de cinco y las proporciones al m\xFAltiplo de cinco puntos porcentuales m\xE1s cercano. No se muestra ninguna ejecuci\xF3n ni ninguna queja individual, y no se nombra a ninguna empresa en ellos. Solo se muestran cuando las ejecuciones contadas proceden de empresas cuyas organizaciones crearon al menos cinco personas distintas y son al menos treinta, y las proporciones de ejecuciones solo cuando las ejecuciones con resultado alcanzan por s\xED solas ese mismo umbral y las empresas de una sola persona no suman m\xE1s de un tercio de las ejecuciones. Una empresa solo cuenta para los playbooks que instal\xF3 de una empresa cuya organizaci\xF3n cre\xF3 otra persona, nunca para un flujo de trabajo que escribi\xF3 ella misma, y una ejecuci\xF3n de prueba, que no cambia nada, nunca se cuenta.",
   "legal.privacy.transfers.heading": "Ad\xF3nde van los datos",
   "legal.privacy.transfers.p1": "Suiza no forma parte de la Uni\xF3n Europea ni del Espacio Econ\xF3mico Europeo. Es un tercer pa\xEDs que cuenta con una decisi\xF3n de adecuaci\xF3n de la Comisi\xF3n Europea y con otra del Reino Unido. Una transferencia desde el EEE o el Reino Unido hacia nosotros se basa por tanto en la adecuaci\xF3n y no necesita ning\xFAn instrumento adicional.",
   "legal.privacy.transfers.pair1.term": "Direcciones de la lista de espera, y cualquier otro registro de la base de datos",
@@ -30682,7 +32642,7 @@ var es_legal_default = {
   "legal.privacy.transfers.pair4.term": "La gesti\xF3n de la propia solicitud",
   "legal.privacy.transfers.pair4.detail": "Nuestro c\xF3digo se ejecuta en el borde de la red, en todo el mundo, por lo que la solicitud que genera una p\xE1gina puede ejecutarse cerca de usted en lugar de en Europa. Garant\xEDa: las cl\xE1usulas contractuales tipo del contrato con el proveedor.",
   "legal.privacy.transfers.pair5.term": "Instrucciones enviadas a los modelos, voz y decisiones",
-  "legal.privacy.transfers.pair5.detail": "El texto enviado a un modelo va a OpenAI y se trata en Estados Unidos, fuera de Suiza y fuera del EEE. Anthropic no recibe nada hoy. En el modo de voz, el sonido de su voz tambi\xE9n va a OpenAI. Garant\xEDa: la adenda de tratamiento de datos de OpenAI, seg\xFAn la cual nuestro contrato es con OpenAI Ireland Ltd., que transmite los datos fuera del EEE y de Suiza sobre la base de las cl\xE1usulas contractuales tipo o de una decisi\xF3n de adecuaci\xF3n; no somos parte de esas cl\xE1usulas. A partir de una fecha de inicio fijada al menos 30 d\xEDas despu\xE9s de nuestro aviso a los clientes, TypeSafe AI, en Estados Unidos, recibe tambi\xE9n el comienzo de un trabajo encargado a un agente, el encargo de un sitio web y la conversaci\xF3n sobre \xE9l, las p\xE1ginas le\xEDdas al investigar, un mensaje publicado en una sala y, cuando su empresa deja que Orvay decida sobre las respuestas del buz\xF3n, el nombre de su empresa, el correo electr\xF3nico al que se responde y la respuesta redactada. Garant\xEDa: las cl\xE1usulas contractuales tipo de su adenda de tratamiento de datos, que no tiene una adenda suiza. Las b\xFAsquedas web van a Brave Search y las sesiones de navegador a Browser Use, ambos en Estados Unidos, y cada uno tiene su propia l\xEDnea m\xE1s abajo. Su direcci\xF3n de la lista de espera nunca forma parte de nada de esto.",
+  "legal.privacy.transfers.pair5.detail": "El texto enviado a un modelo va a OpenAI y se trata en Estados Unidos, fuera de Suiza y fuera del EEE. En nuestras propias cuentas, Anthropic no recibe nada hoy. Si su empresa conecta su propia clave de Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq u OpenRouter, las llamadas a modelos de texto que hace el trabajo de su empresa van a ese proveedor conforme al acuerdo propio de su empresa con \xE9l, salvo las que nombra la p\xE1gina de subencargados, y se tratan donde ese acuerdo indica. Ese proveedor es entonces el proveedor de su empresa y no el nuestro, y la transferencia se basa en el acuerdo de su empresa con \xE9l, no en el nuestro. En el modo de voz, el sonido de su voz tambi\xE9n va a OpenAI. Garant\xEDa: la adenda de tratamiento de datos de OpenAI, seg\xFAn la cual nuestro contrato es con OpenAI Ireland Ltd., que transmite los datos fuera del EEE y de Suiza sobre la base de las cl\xE1usulas contractuales tipo o de una decisi\xF3n de adecuaci\xF3n; no somos parte de esas cl\xE1usulas. Desde el 27 de septiembre de 2026, TypeSafe AI, en Estados Unidos, recibe tambi\xE9n el comienzo de un trabajo encargado a un agente, el encargo de un sitio web y la conversaci\xF3n sobre \xE9l, las p\xE1ginas le\xEDdas al investigar, un mensaje publicado en una sala y, cuando su empresa deja que Orvay decida sobre las respuestas del buz\xF3n, el nombre de su empresa, el correo electr\xF3nico al que se responde y la respuesta redactada. Garant\xEDa: las cl\xE1usulas contractuales tipo de su adenda de tratamiento de datos, que no tiene una adenda suiza. Las b\xFAsquedas web van a Brave Search y las sesiones de navegador a Browser Use, ambos en Estados Unidos, y cada uno tiene su propia l\xEDnea m\xE1s abajo. Su direcci\xF3n de la lista de espera nunca forma parte de nada de esto.",
   "legal.privacy.transfers.p2": "Preg\xFAntenos en qu\xE9 instrumento se basa un proveedor concreto y le enviaremos lo que ese proveedor publica.",
   "legal.privacy.retention.heading": "Cu\xE1nto tiempo lo conservamos",
   "legal.privacy.retention.p1": "El libro de consentimientos es de solo adici\xF3n. Cada registro est\xE1 encadenado al anterior mediante un hash, de modo que eliminar una fila destruir\xEDa la prueba de que las filas restantes no han sido modificadas. Por eso, darse de baja escribe una revocaci\xF3n sobre su registro en lugar de borrarlo.",
@@ -30697,7 +32657,7 @@ var es_legal_default = {
   "legal.privacy.rights.pair2.term": "Rectificaci\xF3n",
   "legal.privacy.rights.pair2.detail": "Ind\xEDquenos qu\xE9 est\xE1 mal y lo corregiremos. Art. 16 RGPD, art. 32 revFADP.",
   "legal.privacy.rights.pair3.term": "Supresi\xF3n",
-  "legal.privacy.rights.pair3.detail": "P\xEDdanos que borremos sus datos y lo haremos. Art. 17 RGPD. Cuando la cadena de auditor\xEDa impide eliminar un registro, destruimos los datos personales que contiene y dejamos el resto, que a\xFAn puede mostrar que algo ocurri\xF3 pero ya no puede mostrar qu\xE9 dec\xEDa. El operador lo hace manualmente. Una imagen que una empresa a\xF1adi\xF3 a sus publicaciones puede eliminarse desde su p\xE1gina de marca, lo que la borra del almacenamiento. Orvay no borra una publicaci\xF3n ya publicada. La empresa puede borrarla en el canal. El registro de una publicaci\xF3n ya preparada conserva la descripci\xF3n de la imagen, porque ese registro nunca se modifica.",
+  "legal.privacy.rights.pair3.detail": "P\xEDdanos que borremos sus datos y lo haremos. Art. 17 RGPD. Cuando la cadena de auditor\xEDa impide eliminar un registro, destruimos los datos personales que contiene y dejamos el resto, que a\xFAn puede mostrar que algo ocurri\xF3 pero ya no puede mostrar qu\xE9 dec\xEDa. El operador lo hace manualmente. Una imagen que una empresa a\xF1adi\xF3 a sus publicaciones puede eliminarse desde su p\xE1gina de marca, lo que la borra del almacenamiento. Una publicaci\xF3n ya publicada la borra la empresa: en el propio canal o, si es una publicaci\xF3n en X, Bluesky o Mastodon o una respuesta que Orvay public\xF3 en YouTube, desde Orvay, donde un miembro lo pide y una persona aprueba cada borrado. El registro de una publicaci\xF3n ya preparada conserva la descripci\xF3n de la imagen, porque ese registro nunca se modifica.",
   "legal.privacy.rights.pair4.term": "Limitaci\xF3n",
   "legal.privacy.rights.pair4.detail": "P\xEDdanos que dejemos de tratar sus datos mientras algo se est\xE1 discutiendo y lo haremos. Art. 18 RGPD.",
   "legal.privacy.rights.pair5.term": "Portabilidad",
@@ -30772,11 +32732,24 @@ var es_legal_default = {
   "legal.terms.ip.pair4.term": "Comentarios",
   "legal.terms.ip.pair4.detail": "Si nos env\xEDa una idea para el producto, podemos usarla sin deberle nada a cambio. No nos env\xEDe nada confidencial como comentario.",
   "legal.terms.ip.p1": "Exportar sus datos personales es un derecho, por lo que es gratuito en todos los planes, incluido el gratuito. Exportar un sitio web generado es una funci\xF3n del producto, y forma parte de lo que compra un plan de pago. Mantenemos ambas cosas deliberadamente separadas, e indicamos cu\xE1l es cu\xE1l en la p\xE1gina de precios, no despu\xE9s de que haya pagado.",
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): what listing a workflow makes public.
+  "legal.terms.playbooks.heading": "Los playbooks que su empresa pone a disposici\xF3n",
+  "legal.terms.playbooks.p1": "Su empresa puede poner a disposici\xF3n como playbook una versi\xF3n publicada de uno de sus flujos de trabajo, para que otras empresas en Orvay puedan instalar una copia. La puesta a disposici\xF3n se decide para cada versi\xF3n por separado, y no se pone nada a disposici\xF3n salvo que lo haga alguien con permiso para ello. De forma predeterminada, solo el propietario tiene ese permiso.",
+  "legal.terms.playbooks.p2": "Poner una versi\xF3n a disposici\xF3n la hace visible para todas las dem\xE1s empresas que usan Orvay y para las personas de esas empresas: todos sus pasos y ajustes tal como est\xE1n escritos, el nombre del flujo de trabajo, la descripci\xF3n escrita para la puesta a disposici\xF3n, un identificador de la versi\xF3n y cu\xE1ndo se puso a disposici\xF3n. El nombre de su empresa solo se muestra con ella si usted lo elige al ponerla a disposici\xF3n. No se muestra qui\xE9n de su empresa la puso a disposici\xF3n.",
+  "legal.terms.playbooks.p3": "Antes de poner una versi\xF3n a disposici\xF3n, Orvay se niega a hacerlo si alg\xFAn texto de la versi\xF3n o de su descripci\xF3n contiene una credencial de un tipo que reconocemos, una direcci\xF3n de correo electr\xF3nico, un n\xFAmero de tel\xE9fono escrito en una de las formas internacionales o nacionales habituales, o el nombre completo de un miembro de su empresa tal como Orvay lo registra, en cualquier combinaci\xF3n de may\xFAsculas y min\xFAsculas. Orvay tambi\xE9n rechaza una versi\xF3n con un paso que est\xE1 asignado a un miembro concreto por su nombre, que introduce una credencial que su empresa guard\xF3 en Orvay, o que ejecuta otro flujo de trabajo de su empresa, y compara el nombre y la descripci\xF3n con la lista corta de t\xE9rminos descrita en la secci\xF3n sobre lo que no puede hacer.",
+  "legal.terms.playbooks.p4": "Estas comprobaciones tienen l\xEDmites. Todo lo que no reconocen se muestra tal como est\xE1 escrito, por ejemplo un nombre que Orvay no tiene registrado, como el de un cliente, un nombre escrito de forma distinta a nuestro registro, un nombre registrado de menos de tres letras, una direcci\xF3n postal, o una direcci\xF3n de correo electr\xF3nico o un n\xFAmero de tel\xE9fono escritos de otra forma. No ponga a disposici\xF3n un flujo de trabajo que contenga informaci\xF3n sobre una persona, y lea una versi\xF3n antes de ponerla a disposici\xF3n.",
+  "legal.terms.playbooks.p5": "Puede retirar una puesta a disposici\xF3n en cualquier momento. A partir de entonces nadie puede instalarla. Las copias que otras empresas instalaron antes de que usted la retirara se quedan con esas empresas, y no las eliminamos ni las modificamos.",
+  "legal.terms.playbooks.p6": "Instalar un playbook lo copia en la empresa que lo instala, como un flujo de trabajo nuevo que pertenece a esa empresa. Poner una versi\xF3n a disposici\xF3n no hace que se ejecute nada en otra empresa: una copia solo se ejecuta despu\xE9s de que la empresa que la instal\xF3 la publique, y entonces con los permisos, la pol\xEDtica y las aprobaciones propios de esa empresa. Una versi\xF3n que publique o ponga a disposici\xF3n m\xE1s adelante no modifica una copia ya instalada.",
+  "legal.terms.playbooks.p7": "Una empresa que instal\xF3 un playbook puede presentar una queja sobre \xE9l en cuanto haya terminado una ejecuci\xF3n de su copia (una ejecuci\xF3n de prueba no cuenta), eligiendo un motivo de una lista fija: no funciona, no hace lo que dice su descripci\xF3n, act\xFAa de maneras que su puesta a disposici\xF3n no deja claras, contiene datos personales o una credencial, o sirve para un uso que estos t\xE9rminos no permiten. Una queja no contiene ning\xFAn texto propio. Una empresa tiene como m\xE1ximo una queja vigente sobre cada playbook y puede retirarla en cualquier momento. A la empresa que puso a disposici\xF3n el playbook nunca se le dice qu\xE9 empresa present\xF3 la queja. La proporci\xF3n de las empresas que lo instalaron con una queja vigente se muestra con las dem\xE1s estad\xEDsticas del playbook, y solo cuando estas se muestran.",
+  "legal.terms.playbooks.p8": "Orvay oculta un playbook a las dem\xE1s empresas mientras haya quejas vigentes sobre \xE9l de empresas cuyas organizaciones crearon al menos tres personas distintas, y de al menos una quinta parte de las empresas que lo instalaron. Varias organizaciones creadas por una misma persona cuentan como una sola. Las empresas de la organizaci\xF3n de quien lo puso a disposici\xF3n, o de otra organizaci\xF3n creada por la misma persona que cre\xF3 esa, no se cuentan ni como empresas que lo instalaron ni por sus quejas. Mientras est\xE1 oculto nadie puede instalarlo, las copias ya instaladas no se modifican, y la empresa que lo puso a disposici\xF3n ve en su propia puesta a disposici\xF3n que est\xE1 oculto y cu\xE1les de los motivos anteriores se dieron, nunca qu\xE9 empresa los dio. Todav\xEDa no hay revisi\xF3n por parte de una persona. Un playbook oculto solo vuelve a mostrarse cuando se retiran suficientes quejas. La empresa que puso el playbook a disposici\xF3n puede retirar la puesta a disposici\xF3n en cualquier momento, y poner a disposici\xF3n una nueva versi\xF3n del flujo de trabajo, que es una nueva puesta a disposici\xF3n sin quejas.",
+  "legal.terms.playbooks.p9": "Una empresa que instal\xF3 un playbook puede editar su copia, publicarla y ponerla a disposici\xF3n como un playbook propio. Orvay se niega a poner a disposici\xF3n una versi\xF3n que otra empresa puso a disposici\xF3n primero, incluso despu\xE9s de que esa puesta a disposici\xF3n se haya retirado, por lo que una copia instalada que sigue siendo exactamente esa versi\xF3n no se puede poner a disposici\xF3n. Para cualquier otra copia, Orvay registra, a partir de la propia copia, desde qu\xE9 playbook se instal\xF3, y la puesta a disposici\xF3n muestra que est\xE1 adaptada de ese playbook: por su nombre mientras se pueda instalar, y en otro caso por un identificador de su versi\xF3n. La empresa que pone la copia a disposici\xF3n no puede eliminar ni cambiar esa indicaci\xF3n. Una copia puesta de nuevo a disposici\xF3n pasa cada una de las comprobaciones descritas arriba, respecto a los miembros de su propia empresa, y las ejecuciones y quejas de las empresas que la instalan cuentan para sus propias estad\xEDsticas, no para las del playbook del que procede.",
   "legal.terms.availability.heading": "Disponibilidad",
   "legal.terms.availability.p1": "No prometemos ning\xFAn tiempo de actividad. No hay ning\xFAn acuerdo de nivel de servicio ni ning\xFAn tiempo de respuesta de soporte garantizado, y hay una sola persona operando el servicio. Cuando podamos ofrecer eso, lo pondremos por escrito y lo cobraremos.",
   "legal.terms.availability.p2": "Podemos cambiar o retirar funciones. Si un cambio elimina algo de lo que usted depend\xEDa, le daremos aviso previo y, cuando el cambio sea sustancial, una v\xEDa de salida.",
   "legal.terms.money.heading": "Dinero",
   "legal.terms.money.p1": "Hoy no se cobra nada. Cuando los planes salgan a la venta, el precio, lo que incluye y cada l\xEDmite se indicar\xE1n en la p\xE1gina de precios antes de que pague, no despu\xE9s. El l\xEDmite de uso se mide en lo que su uso realmente nos cuesta, y los cr\xE9ditos son la forma en que ese l\xEDmite se muestra. El plan gratuito se detiene cuando se agota su asignaci\xF3n y nunca genera una factura.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.terms.money.p2": "Las llamadas a modelos hechas con una clave que su empresa conect\xF3 las factura a su empresa ese proveedor y no se descuentan de sus cr\xE9ditos.",
   "legal.terms.warranty.heading": "Lo que no prometemos",
   "legal.terms.warranty.p1": "El servicio se presta tal cual. En la medida en que lo permita el derecho suizo, no otorgamos ninguna garant\xEDa de que sea ininterrumpido o est\xE9 libre de errores, de que sea apto para un fin concreto, ni de que ning\xFAn resultado sea correcto.",
   "legal.terms.warranty.p2": "La verificaci\xF3n es un mecanismo de independencia, no un or\xE1culo. Un resultado verificado significa que un segundo actor comprob\xF3 el primero y que la evidencia qued\xF3 registrada. No significa que el resultado est\xE9 garantizado como correcto, y no lo vendemos como tal.",
@@ -30842,6 +32815,15 @@ var es_legal_default = {
   "legal.subprocessors.list.heading": "La lista",
   "legal.subprocessors.changes.heading": "Cambios en la lista",
   "legal.subprocessors.changes.p1": "Avisamos a los clientes con al menos 30 d\xEDas de antelaci\xF3n por correo electr\xF3nico antes de que un nuevo subencargado comience a tratar sus datos personales, y usted puede oponerse por escrito durante ese periodo por motivos razonables de protecci\xF3n de datos. Si no podemos resolver la objeci\xF3n, puede rescindir el servicio afectado sin penalizaci\xF3n. Ese compromiso forma parte del contrato de encargo del tratamiento, no es una cortes\xEDa.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.subprocessors.own-key.heading": "Proveedores que usted conecta con su propia clave",
+  "legal.subprocessors.own-key.p1": "Si su empresa conecta su propia clave de Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq u OpenRouter, las llamadas a modelos de texto que hace el trabajo de su empresa van a ese proveedor conforme al acuerdo propio de su empresa con \xE9l. La creaci\xF3n y edici\xF3n de su sitio web, la voz, la b\xFAsqueda en la memoria y las im\xE1genes siguen en nuestras cuentas. Ese proveedor trata las llamadas como proveedor de su empresa, no como nuestro, por eso no figura en la lista anterior, y conectarlo no pone en marcha el preaviso de 30 d\xEDas: su empresa lo eligi\xF3.",
+  "legal.subprocessors.own-key.p2": "Le enviamos el mismo texto que enviar\xEDamos en nuestras propias cuentas, preparado de la misma manera. Lo que el proveedor conserva, durante cu\xE1nto tiempo y qu\xE9 m\xE1s puede hacer con ello lo fija el acuerdo de su empresa con ese proveedor, no el nuestro. Una solicitud de supresi\xF3n dirigida a nosotros alcanza lo que conservamos nosotros, y no lo que el proveedor conserva con la clave de su empresa.",
+  "legal.subprocessors.own-key.p3": "Nunca mezclamos las dos cosas. Una llamada que paga la clave de su empresa no se env\xEDa en nuestra cuenta, y una llamada en nuestra cuenta no se env\xEDa con la clave de su empresa. Si la clave de su empresa deja de funcionar, el trabajo espera y lo indica, en lugar de pasar a nuestra cuenta.",
+  "legal.subprocessors.own-key.p4": "Toda llamada que el trabajo de su empresa hace a un proveedor para el que no ha conectado una clave sigue yendo en nuestra cuenta, a los proveedores de la lista anterior.",
+  "legal.subprocessors.own-key.p5": "Guardamos la clave de su empresa sellada y solo la usamos para las llamadas de su empresa. Desconectarla destruye nuestra copia. No revoca la clave en el proveedor, algo que usted hace en la consola del propio proveedor.",
+  "legal.subprocessors.own-key.p6": "Si su empresa elige usar solo sus propias claves, cada llamada a un modelo de texto que hace el trabajo de su empresa va a un proveedor para el que ha conectado una clave, y una llamada que ninguno de ellos pueda atender espera y lo indica, en lugar de pasar a los proveedores de la lista anterior. La creaci\xF3n y edici\xF3n de su sitio web, la voz, la b\xFAsqueda en la memoria y las im\xE1genes siguen usando los proveedores de la lista anterior.",
+  "legal.subprocessors.own-key.p7": "Una llamada con una clave de Mistral va al punto de acceso europeo de Mistral, que Mistral atiende desde centros de datos en pa\xEDses de la UE y de la AELC. Una llamada con una clave de OpenRouter va a OpenRouter, que la pasa a un proveedor que atiende el modelo, en una regi\xF3n que OpenRouter no garantiza.",
   "legal.subprocessors.cloudflare.service": "Sirve cada solicitud. C\xF3mputo en Workers, almacenamiento de objetos R2, agrupaci\xF3n de conexiones de base de datos Hyperdrive, Durable Objects, Workflows, DNS, registro de solicitudes y la ruta de correo que env\xEDa las alertas al operador.",
   "legal.subprocessors.cloudflare.data1": "Metadatos de solicitud de cada visita, incluidas la direcci\xF3n IP, el agente de usuario y la p\xE1gina solicitada",
   "legal.subprocessors.cloudflare.data2": "Un env\xEDo de la lista de espera mientras est\xE1 en tr\xE1nsito hacia la base de datos",
@@ -30902,7 +32884,7 @@ var es_legal_default = {
   "legal.dpa.subject-matter.pair2.term": "Duraci\xF3n",
   "legal.dpa.subject-matter.pair2.detail": "Mientras exista su cuenta, y despu\xE9s de eso solo durante el tiempo necesario para devolver o destruir los datos.",
   "legal.dpa.subject-matter.pair3.term": "Naturaleza y finalidad",
-  "legal.dpa.subject-matter.pair3.detail": "Almacenamiento, recuperaci\xF3n, transmisi\xF3n a los subencargados de la lista publicada, y env\xEDo a proveedores de modelos cuando usted ordena a un agente realizar un trabajo que lo necesite.",
+  "legal.dpa.subject-matter.pair3.detail": "Almacenamiento, recuperaci\xF3n, transmisi\xF3n a los subencargados de la lista publicada, y env\xEDo a proveedores de modelos cuando usted ordena a un agente realizar un trabajo que lo necesite, ya sea en nuestras cuentas o, cuando usted conecta su propia clave, en las suyas.",
   "legal.dpa.subject-matter.pair4.term": "Categor\xEDas de interesados",
   "legal.dpa.subject-matter.pair4.detail": "Su personal, sus contactos, y cualquier otra persona cuyos datos usted decida introducir.",
   "legal.dpa.subject-matter.pair5.term": "Categor\xEDas de datos personales",
@@ -30932,9 +32914,13 @@ var es_legal_default = {
   "legal.dpa.subprocessors.p1": "Usted otorga una autorizaci\xF3n general para que contratemos subencargados del tratamiento, conforme a los arts. 28.2 y 28.3.d RGPD. La lista actual est\xE1 publicada, y nombra a cada uno, lo que recibe, d\xF3nde lo trata y la garant\xEDa en la que se basa la transferencia.",
   "legal.dpa.subprocessors.p2": "Le damos al menos 30 d\xEDas de preaviso por correo electr\xF3nico antes de que un nuevo subencargado comience a tratar sus datos personales. Usted puede oponerse por escrito dentro de ese plazo por motivos razonables de protecci\xF3n de datos. Si no podemos resolver su objeci\xF3n, puede rescindir la parte afectada del servicio sin penalizaci\xF3n, y le reembolsamos cualquier tarifa prepagada por el periodo no utilizado.",
   "legal.dpa.subprocessors.p3": "Cada subencargado est\xE1 vinculado por un contrato escrito con obligaciones de protecci\xF3n de datos no menos estrictas que estas, salvo Brave Search para las consultas de b\xFAsqueda que le enviamos, que su adenda de tratamiento de datos excluye; lo que retiramos de una consulta antes de enviarla figura en la p\xE1gina de subencargados del tratamiento. Cuando uno de ellos no las cumpla, seguimos siendo plenamente responsables frente a usted de su actuaci\xF3n. Art. 28.4 RGPD.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.subprocessors.p4": "Un proveedor de modelos que usted conecta con su propia clave no es un subencargado que contratemos nosotros. Usted lo contrata conforme a su propio acuerdo con \xE9l, y al conectar la clave nos ordena enviarle las llamadas a modelos que describe la p\xE1gina de subencargados (art. 28.3.a RGPD). La autorizaci\xF3n, el preaviso y las obligaciones anteriores se aplican a los subencargados que contratamos nosotros, y no a \xE9l.",
   "legal.dpa.transfers.heading": "Transferencias internacionales",
   "legal.dpa.transfers.p1": "Cuando un subencargado est\xE1 fuera de Suiza y del Espacio Econ\xF3mico Europeo, la transferencia se basa en la garant\xEDa indicada para \xE9l en la lista de subencargados. Para los proveedores de modelos, el instrumento son las cl\xE1usulas contractuales tipo. No nos basamos en una certificaci\xF3n de un marco de referencia.",
   "legal.dpa.transfers.p2": "Suiza cuenta con una decisi\xF3n de adecuaci\xF3n de la Comisi\xF3n Europea, por lo que una transferencia desde el EEE hacia nuestra base de datos en Zurich no necesita ning\xFAn instrumento adicional.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.transfers.p3": "Una transferencia a un proveedor de modelos que usted conect\xF3 con su propia clave se basa en su acuerdo con ese proveedor, no en el nuestro.",
   "legal.dpa.data-subject-requests.heading": "Ayudarle a responder a los interesados",
   "legal.dpa.data-subject-requests.p1": "Le ayudamos a atender una solicitud de un interesado, teniendo en cuenta la naturaleza del tratamiento. Art. 28.3.e RGPD.",
   "legal.dpa.data-subject-requests.p2": "Cuando el producto puede responderla, usted mismo puede responderla. Sus contactos, cargas, registros de consentimiento y registro de auditor\xEDa son exportables en un formato legible por m\xE1quina en todos los planes, incluido el gratuito, porque la portabilidad es un derecho y no una funci\xF3n.",
@@ -31016,7 +33002,7 @@ var es_legal_default = {
   "legal.subprocessors.github.safeguard": "GitHub est\xE1 establecida en Estados Unidos y es propiedad de Microsoft. Las transferencias se basan en las cl\xE1usulas contractuales tipo de sus condiciones. Elegir una contrase\xF1a en su lugar significa que no llega ning\xFAn dato a GitHub.",
   "legal.subprocessors.github.statusDetail": "Solo se alcanza si pulsa el bot\xF3n. Abrir la p\xE1gina de inicio de sesi\xF3n no env\xEDa nada a GitHub, y esta entrada faltaba en esta lista hasta el 20 de agosto de 2026 mientras el bot\xF3n ya estaba en pantalla.",
   "legal.terms.acceptable-use.item7": "Gestionar un negocio para el que no trabajaremos: contenido sexual o servicios sexuales, cualquier cosa que sexualice a un ni\xF1o, malware y herramientas de intrusi\xF3n, fraude, la venta de armas o sustancias controladas, o acoso dirigido a una persona. Esto es un rechazo sobre el trabajo, no un juicio sobre usted, y se aplica diga lo que diga la ley del lugar donde usted se encuentre.",
-  "legal.terms.acceptable-use.p2": "Dos comprobaciones hacen cumplir la l\xEDnea anterior, y vale la pena saber exactamente cu\xE1les son para que no las tome por m\xE1s de lo que son. El nombre y la direcci\xF3n web que nos proporciona se comparan con una lista corta de t\xE9rminos cuando hace la configuraci\xF3n inicial, antes de que descarguemos nada. Por separado, un agente se niega a trabajar en un objetivo que pida una de estas cosas. Ninguna de las dos es una revisi\xF3n de todo lo que hace, ninguna de las dos lee sus datos, y ninguna de las dos sustituye su propio conocimiento de lo que est\xE1 ejecutando.",
+  "legal.terms.acceptable-use.p2": "Tres comprobaciones hacen cumplir la l\xEDnea anterior, y vale la pena saber exactamente cu\xE1les son para que no las tome por m\xE1s de lo que son. El nombre y la direcci\xF3n web que nos proporciona se comparan con una lista corta de t\xE9rminos cuando hace la configuraci\xF3n inicial, antes de que descarguemos nada. Por separado, un agente se niega a trabajar en un objetivo que pida una de estas cosas. Adem\xE1s, el nombre y la descripci\xF3n de un flujo de trabajo que su empresa pone a disposici\xF3n como playbook se comparan con la misma lista antes de ponerlo a disposici\xF3n. Ninguna de las tres es una revisi\xF3n de todo lo que hace, ninguna de las tres lee sus datos, y ninguna de las tres sustituye su propio conocimiento de lo que est\xE1 ejecutando.",
   // -------------------------------------------------------------------------
   // MACHINE TRANSLATION, 2026-09-23, NOT YET REVIEWED BY A PERSON.
   //
@@ -31065,7 +33051,7 @@ var es_legal_default = {
   "legal.subprocessors.typesafe.location1": "Estados Unidos, que su pol\xEDtica de privacidad indica como el lugar donde se aloja el servicio",
   "legal.subprocessors.typesafe.location2": "Su adenda de tratamiento de datos no indica ning\xFAn lugar de tratamiento",
   "legal.subprocessors.typesafe.safeguard": "TypeSafe AI, Inc. tiene su sede en Estados Unidos. Su adenda de tratamiento de datos aplica las cl\xE1usulas contractuales tipo a las transferencias desde la UE, con la adenda del Reino Unido para el Reino Unido. Sobre Suiza dice solo que los litigios corresponden a los tribunales suizos y que la autoridad competente es el Comisionado Federal de Protecci\xF3n de Datos e Informaci\xF3n (FDPIC). No tiene ninguna adenda suiza.",
-  "legal.subprocessors.typesafe.statusDetail": "Su clave est\xE1 configurada en el Worker de generaci\xF3n de sitios web, que no le env\xEDa nada antes de una fecha de inicio fijada en ese Worker. Fijamos esa fecha no antes de 30 d\xEDas despu\xE9s de informar a los clientes, como exige nuestro contrato de encargo del tratamiento. Antes de esa fecha, y siempre que no responda, una pregunta sobre un trabajo, un sitio web o una sala va a un modelo de texto, y una respuesta del buz\xF3n que espera su decisi\xF3n espera a una persona. Figura ya en la lista, antes de recibir nada, para que esta p\xE1gina y nuestro aviso describan la misma lista.",
+  "legal.subprocessors.typesafe.statusDetail": "Su clave est\xE1 configurada en el Worker de generaci\xF3n de sitios web, que le env\xEDa los datos anteriores desde el 27 de septiembre de 2026. Siempre que no responda, una pregunta sobre un trabajo, un sitio web o una sala va a un modelo de texto, y una respuesta del buz\xF3n que espera su decisi\xF3n espera a una persona.",
   "legal.subprocessors.fish.service": "S\xEDntesis de voz y transcripci\xF3n. Hasta el 25 de septiembre de 2026 le\xEDa en voz alta una respuesta en el modo de voz cuando no se pod\xEDa abrir una conversaci\xF3n en directo, y pod\xEDa transcribir voz en un despliegue sin clave de OpenAI. Hoy no hace ninguna de las dos cosas.",
   "legal.subprocessors.fish.data1": "Hasta el 25 de septiembre de 2026, el texto de una respuesta que Orvay le le\xEDa en voz alta. Ese texto pod\xEDa nombrar personas y cifras de los registros de su empresa, y no se retiraba nada antes del env\xEDo",
   "legal.subprocessors.fish.data2": "Hasta el 25 de septiembre de 2026, la grabaci\xF3n de lo que dec\xEDa en el modo de voz, solo en un despliegue que no ten\xEDa clave de OpenAI con la que transcribirla",
@@ -31268,7 +33254,7 @@ var pt_default = {
   "pricing.feature.scim.name": "Sincroniza\xE7\xE3o de diret\xF3rio",
   "pricing.feature.scim.detail": "O seu fornecedor de identidade adiciona e remove pessoas atrav\xE9s de SCIM 2.0, num dom\xEDnio que comprovou para o login \xFAnico. Apenas pessoas: os grupos n\xE3o s\xE3o sincronizados e as fun\xE7\xF5es continuam a ser definidas por si.",
   "pricing.feature.byo_model_keys.name": "Suas pr\xF3prias chaves de modelo",
-  "pricing.feature.byo_model_keys.detail": "Cobre o uso de modelo nas suas pr\xF3prias contas de fornecedor, em vez de na sua cota de cr\xE9ditos.",
+  "pricing.feature.byo_model_keys.detail": "Execute chamadas a modelos nas suas pr\xF3prias contas Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq ou OpenRouter, cobradas pelo seu fornecedor e n\xE3o dos seus cr\xE9ditos, e escolha usar apenas as suas pr\xF3prias chaves. A cria\xE7\xE3o e edi\xE7\xE3o de websites, a voz, a pesquisa na mem\xF3ria e as imagens continuam nas chaves da Orvay, e uma chamada continua a precisar de cr\xE9ditos dispon\xEDveis para come\xE7ar.",
   "pricing.feature.integration_mcp.name": "Ferramentas emprestadas",
   "pricing.feature.integration_mcp.detail": "Registe os servidores de ferramentas que a sua empresa j\xE1 utiliza, e permita que Orvay chame as suas ferramentas conforme a sua pol\xEDtica, uma aprova\xE7\xE3o por ferramenta. Os conectores do pr\xF3prio cat\xE1logo de Orvay n\xE3o contam para o seu plano. Um servidor de ferramentas pr\xF3prio \xE9 um que regista pelo seu endere\xE7o, e quantos cada plano comporta est\xE1 na tabela anterior.",
   "pricing.feature.voice.name": "Voz dentro da aplica\xE7\xE3o",
@@ -31592,7 +33578,7 @@ var pt_default = {
   "site.limits.card.no-customers.title": "Sem clientes, logo sem prova de clientes",
   "site.limits.card.no-customers.body": "N\xE3o h\xE1 um mural de log\xF3tipos nesta p\xE1gina porque n\xE3o h\xE1 log\xF3tipos para l\xE1 colocar, nem depoimentos, nem n\xFAmeros de utiliza\xE7\xE3o, pela mesma raz\xE3o. Quando existirem, ser\xE3o nomeados.",
   "site.limits.card.data-location.title": "Onde est\xE3o os dados, dito por inteiro",
-  "site.limits.card.data-location.body": "O Postgres corre em Zurique, num projeto cuja regi\xE3o \xE9 eu-central-2. A infer\xEAncia de modelo n\xE3o corre na Su\xED\xE7a: os prompts v\xE3o para a Anthropic e a OpenAI, que processam fora da Su\xED\xE7a e fora da UE. A Su\xED\xE7a \xE9 um pa\xEDs terceiro com uma decis\xE3o de adequa\xE7\xE3o da UE, n\xE3o um Estado-membro da UE ou do EEE. Uma afirma\xE7\xE3o de resid\xEAncia que omita a segunda frase \xE9 exatamente o tipo de meia-verdade que este produto inteiro existe para recusar.",
+  "site.limits.card.data-location.body": "O Postgres corre em Zurique, num projeto cuja regi\xE3o \xE9 eu-central-2. A infer\xEAncia de modelo n\xE3o corre na Su\xED\xE7a: os prompts v\xE3o para a OpenAI, que processa fora da Su\xED\xE7a e fora da UE. A Su\xED\xE7a \xE9 um pa\xEDs terceiro com uma decis\xE3o de adequa\xE7\xE3o da UE, n\xE3o um Estado-membro da UE ou do EEE. Uma afirma\xE7\xE3o de resid\xEAncia que omita a segunda frase \xE9 exatamente o tipo de meia-verdade que este produto inteiro existe para recusar.",
   "site.limits.card.privacy.title": "Privacidade em primeiro lugar, e nenhuma certifica\xE7\xE3o reivindicada",
   "site.limits.card.privacy.body": "N\xE3o possu\xEDmos certifica\xE7\xE3o alguma e n\xE3o afirmamos possuir nenhuma. O que podemos mostrar \xE9 o que o c\xF3digo faz: isolamento de inquilinos escrito como pol\xEDticas restritivas de banco de dados que s\xF3 podem recusar, uma cadeia de hash que pode recalcular, e uma aprova\xE7\xE3o humana registada em qualquer coisa com efeito legal sobre uma pessoa.",
   "site.limits.card.representative.title": "Um dever que temos e ainda n\xE3o cumprimos",
@@ -32754,7 +34740,6 @@ var pt_default = {
   "decision.run": "Executar",
   "decision.running": "A executar",
   "decision.halted": "A autonomia est\xE1 parada. Liberte a paragem antes de algo ser executado, incluindo o que j\xE1 aprovou.",
-  "decision.run.note": "Executar aplica o plano e depois entrega o resultado a outro ator para verifica\xE7\xE3o. Nenhum adaptador est\xE1 ligado nesta implementa\xE7\xE3o, pelo que o efeito \xE9 simulado e cada artefacto produzido o diz.",
   "decision.refused.title": "Isto foi recusado",
   "decision.recheck": "Verificar novamente",
   "decision.rechecking": "A verificar",
@@ -33412,7 +35397,7 @@ var pt_default = {
   "trust.holds.mfa.term": "Nenhum segundo fator",
   "trust.holds.mfa.detail": "Nenhum TOTP, nenhuma passkey, nenhuma chave de hardware. Uma palavra-passe e um endere\xE7o de email s\xE3o o todo disso hoje. O login \xFAnico existe apenas no plano maior.",
   "trust.holds.inference.term": "A infer\xEAncia de modelos n\xE3o est\xE1 na Su\xED\xE7a",
-  "trust.holds.inference.detail": "A sua base de dados est\xE1 em Zurique. Os modelos que leem a partir dela executam na Anthropic e OpenAI, fora do pa\xEDs. Uma afirma\xE7\xE3o de resid\xEAncia que omita esta frase n\xE3o \xE9 uma afirma\xE7\xE3o de resid\xEAncia.",
+  "trust.holds.inference.detail": "A sua base de dados est\xE1 em Zurique. Os modelos que leem a partir dela executam na OpenAI, fora do pa\xEDs. Uma afirma\xE7\xE3o de resid\xEAncia que omita esta frase n\xE3o \xE9 uma afirma\xE7\xE3o de resid\xEAncia.",
   "trust.where.heading": "Onde os dados est\xE3o",
   "trust.where.lead": "Quatro armaz\xE9ns, nomeados, com a diferen\xE7a entre uma garantia e uma prefer\xEAncia mantida vis\xEDvel.",
   "trust.where.database.term": "Dados da empresa",
@@ -33420,7 +35405,7 @@ var pt_default = {
   "trust.where.evidence.term": "Provas",
   "trust.where.evidence.detail": "Cloudflare R2, fixado \xE0 jurisdi\xE7\xE3o da UE. Fixado \xE9 uma garantia. Os outros baldes cont\xEAm uma dica de localiza\xE7\xE3o, que \xE9 uma prefer\xEAncia, e n\xE3o descrevemos uma como a outra.",
   "trust.where.inference.term": "Chamadas de modelos",
-  "trust.where.inference.detail": "Anthropic e OpenAI, direto, sem nenhuma porta de entrada no meio. O que \xE9 enviado \xE9 o contexto que uma tarefa necessita, e o texto n\xE3o confi\xE1vel \xE9 vedado antes de alcan\xE7ar um modelo.",
+  "trust.where.inference.detail": "OpenAI, direto, sem nenhuma porta de entrada interm\xE9dia. O que \xE9 enviado \xE9 o contexto que uma tarefa necessita, e o texto n\xE3o confi\xE1vel \xE9 vedado antes de alcan\xE7ar um modelo.",
   "trust.where.mail.term": "Correio",
   "trust.where.mail.detail": "Enviado atrav\xE9s do Cloudflare de um endere\xE7o no nosso pr\xF3prio dom\xEDnio. O correio do inquilino nunca sai de um dom\xEDnio Orvay, que \xE9 uma decis\xE3o de reputa\xE7\xE3o em vez de uma t\xE9cnica.",
   "trust.separation.heading": "Como uma empresa \xE9 mantida separada de outra",
@@ -33721,7 +35706,6 @@ var pt_default = {
   "delegations.form.submit": "Decidir com anteced\xEAncia",
   "delegations.form.submitting": "Registrando",
   "delegations.ok.title": "Registrado",
-  "delegations.ok.recorded": "{capability} pode rodar sem perguntar at\xE9 {until}. Anotado no registro.",
   "delegations.refused.title": "N\xE3o registrado",
   "delegations.refused.gate": "Recusado no port\xE3o {gate}: {reason}.",
   "delegations.refused.halted": "A autonomia est\xE1 parada. Nada pode ser decidido com anteced\xEAncia enquanto a empresa estiver parada.",
@@ -33732,7 +35716,6 @@ var pt_default = {
   "delegations.refused.forbidden": "{capability} \xE9 proibida nesta empresa, e proibido \xE9 absoluto.",
   "delegations.refused.bound": "Escolha nas listas por quanto tempo e quantas vezes.",
   "delegations.refused.rationale": "Diga por qu\xEA, em no m\xE1ximo {max} caracteres.",
-  "delegations.refused.already_live": "{capability} j\xE1 foi decidida com anteced\xEAncia por {name}. Retire essa decis\xE3o primeiro.",
   "delegations.row.decided": "Decidido por {name} em {date}",
   "delegations.row.until": "At\xE9 {date}",
   "delegations.row.uses": {
@@ -33747,9 +35730,7 @@ var pt_default = {
   "delegations.status.revoked": "Retirada",
   "delegations.revoke.submit": "Retirar",
   "delegations.revoke.submitting": "Retirando",
-  "delegations.revoke.sr": "a decis\xE3o sobre {capability}",
   "delegations.revoke.ok.title": "Retirada",
-  "delegations.revoke.ok.revoked": "{capability} volta a parar diante de uma pessoa a partir de agora.",
   "delegations.revoke.ok.already": "Essa decis\xE3o j\xE1 tinha sido retirada.",
   "delegations.revoke.refused.title": "N\xE3o retirada",
   "delegations.revoke.refused.not_found": "Essa decis\xE3o n\xE3o \xE9 desta empresa.",
@@ -35024,7 +37005,12 @@ var pt_legal_default = {
   "legal.privacy.collected.p8": "Se o seu empregador ligar o seu pr\xF3prio fornecedor de identidade \xE0 Orvay para single sign-on, iniciar sess\xE3o atrav\xE9s dele d\xE1-nos o seu endere\xE7o de email profissional, e o seu nome quando o fornecedor o envia. O fornecedor confirma quem \xE9, pelo que n\xE3o nos d\xE1 nenhuma palavra-passe. Se o seu empregador o tiver permitido, o seu primeiro in\xEDcio de sess\xE3o atrav\xE9s do fornecedor dele cria a sua conta e um lugar na empresa do seu empregador com as permiss\xF5es de um membro, e registamos que se juntou.",
   "legal.privacy.collected.p9": "Dentro do produto perguntamos que nome devemos usar para si, e n\xE3o pode trabalhar l\xE1 sem um nome, porque as pessoas da sua empresa veem-no ao lado do trabalho que prop\xF5e e das decis\xF5es que toma. Pode alter\xE1-lo a qualquer momento a partir da sua conta.",
   "legal.privacy.collected.p10": "Se o seu empregador tamb\xE9m ligar o respetivo diret\xF3rio de pessoal \xE0 Orvay, o diret\xF3rio pode criar a sua conta e o seu lugar da mesma forma, alterar o nome que os seus colegas veem, e desativar o seu lugar. Guardamos o identificador que o diret\xF3rio usa para si, para que possa voltar a encontrar a sua conta, e esse identificador \xE9 eliminado juntamente com os seus outros dados se os seus dados pessoais forem apagados. Depois de o seu lugar ser desativado, j\xE1 n\xE3o pode abrir essa empresa na Orvay.",
-  "legal.privacy.collected.p11": "Se a sua empresa ligar \xE0 Orvay uma conta do Mastodon, do Bluesky ou do X e um membro da empresa come\xE7ar a l\xEA-la, a Orvay l\xEA as respostas \xE0s publica\xE7\xF5es dessa conta e as publica\xE7\xF5es que mencionam a conta, e mais nada. De cada uma guarda o identificador p\xFAblico, o nome apresentado e o identificador de conta do autor, o texto exatamente como foi escrito, o endere\xE7o da publica\xE7\xE3o e da publica\xE7\xE3o a que responde, e quando chegou. No Mastodon, uma publica\xE7\xE3o vis\xEDvel apenas para os seguidores do autor ou para as pessoas que nomeia n\xE3o \xE9 guardada. N\xE3o se pesquisa nada, e n\xE3o se l\xEA nenhuma conta al\xE9m da da pr\xF3pria empresa.",
+  "legal.privacy.collected.p11": "Se a sua empresa ligar \xE0 Orvay uma conta do Mastodon, do Bluesky ou do X e um membro da empresa come\xE7ar a l\xEA-la, a Orvay l\xEA as respostas \xE0s publica\xE7\xF5es dessa conta e as publica\xE7\xF5es que mencionam a conta, e mais nada. De cada uma guarda o identificador p\xFAblico, o nome apresentado e o identificador de conta do autor, o texto exatamente como foi escrito, o endere\xE7o da publica\xE7\xE3o e da publica\xE7\xE3o a que responde, e quando chegou. No Mastodon, uma publica\xE7\xE3o vis\xEDvel apenas para os seguidores do autor ou para as pessoas que nomeia n\xE3o \xE9 guardada. Esta leitura abrange apenas a conta da pr\xF3pria empresa, e uma pesquisa, descrita a seguir, n\xE3o lhe acrescenta nada.",
+  // Appended 2026-09-26 (ADR-0097), never inserted (§7a).
+  "legal.privacy.collected.p12": "Se a sua empresa ligar uma conta do X, um membro da empresa pode tamb\xE9m pedir \xE0 Orvay que mostre uma p\xE1gina das publica\xE7\xF5es dessa conta com os n\xFAmeros que o X publica sobre elas, ou que pesquise no X publica\xE7\xF5es p\xFAblicas dos \xFAltimos sete dias que correspondam \xE0s palavras que o membro escrever. Uma pesquisa pode devolver publica\xE7\xF5es de qualquer pessoa, incluindo pessoas que nunca escreveram \xE0 empresa. A Orvay mostra o resultado a esse membro e n\xE3o guarda nada dele: nem as publica\xE7\xF5es, nem quem as escreveu, nem as palavras pesquisadas, que v\xE3o para o X. Quando um membro pede para apagar uma das publica\xE7\xF5es da pr\xF3pria empresa, o pedido guarda o endere\xE7o da publica\xE7\xE3o, n\xE3o o seu texto. \xC9 a empresa que decide o que pesquisar e porqu\xEA, e a Orvay faz a pesquisa segundo as suas instru\xE7\xF5es. O X cobra \xE0 conta de programador do X da pr\xF3pria empresa cada publica\xE7\xE3o que devolve.",
+  "legal.privacy.collected.p13": "A mesma defini\xE7\xE3o da empresa abrange mais uma utiliza\xE7\xE3o. Enquanto estiver ligada, a Orvay pode enviar uma segunda vez a um fornecedor de modelos a tarefa e o objetivo de um trabalho que os agentes da empresa j\xE1 fizeram, juntamente com o nome da empresa, para verificar se uma nova vers\xE3o das nossas instru\xE7\xF5es ao modelo faz esse trabalho pelo menos t\xE3o bem como a vers\xE3o que substitui. Nada do que o trabalho original leu \xE9 enviado, porque nunca foi guardado. Do que regressa, a Orvay n\xE3o guarda nenhum texto, apenas de que trabalho se tratava, se cada resposta passou na verifica\xE7\xE3o, que modelo a deu e quanto custou. S\xF3 o fazemos para uma empresa que indicamos ao inici\xE1-lo, nunca para uma empresa que desligou a defini\xE7\xE3o, e nada \xE9 cobrado \xE0 empresa por isso.",
+  "legal.privacy.collected.p14": "Se a sua empresa ligar o Google Search Console, o Google Ads ou o YouTube, um membro pode pedir \xE0 Orvay que mostre o desempenho de pesquisa dessa conta, os n\xFAmeros das suas contas de an\xFAncios ou os coment\xE1rios mais recentes nos v\xEDdeos do canal, e uma pergunta na consola que nomeie um deles faz com que esses dados sejam lidos para a resposta. O que \xE9 lido \xE9 mostrado ao membro, ou enviado ao modelo de texto com a pergunta, e s\xF3 \xE9 guardado na medida em que a resposta escrita a partir dele o reproduz. Quando um membro prop\xF5e uma resposta a um coment\xE1rio do YouTube, o nome da pessoa que escreveu o coment\xE1rio e as suas palavras s\xE3o guardados com o registo da resposta, porque a pessoa que aprova a resposta os l\xEA. A Orvay publica uma resposta, apaga uma resposta que a Orvay publicou ou oculta um coment\xE1rio que outra pessoa escreveu sob um v\xEDdeo da empresa s\xF3 depois de uma pessoa aprovar essa \xFAnica a\xE7\xE3o. O acesso que a Google concede \xE9 guardado cifrado, e desligar a liga\xE7\xE3o destr\xF3i-o. A utiliza\xE7\xE3o e a transfer\xEAncia, pela Orvay, de informa\xE7\xF5es recebidas das API da Google respeitam a Google API Services User Data Policy, incluindo os requisitos de utiliza\xE7\xE3o limitada (Limited Use).",
+  "legal.privacy.collected.p15": "Se a sua empresa permitir que um agente que ela pr\xF3pria gere, por exemplo um agente de programa\xE7\xE3o, fa\xE7a atrav\xE9s de uma chave de API um trabalho que uma pessoa da sua empresa aprovou, ou para o qual a sua empresa decidiu antecipadamente que pode avan\xE7ar sem perguntar a ningu\xE9m, a Orvay guarda o que esse agente comunica depois: que passo diz ter feito, se diz que esse passo correu bem, e a refer\xEAncia que indica, que s\xF3 pode ser o endere\xE7o do que fez, por exemplo um pull request. A Orvay n\xE3o guarda nenhuma nota nem nenhum outro texto do agente: um relat\xF3rio que contenha uma nota \xE9 recusado. O relat\xF3rio \xE9 guardado como a vers\xE3o do agente e nunca como prova. Quando o agente diz que o passo correu bem, a Orvay tenta verificar ela pr\xF3pria o resultado com a liga\xE7\xE3o que a sua empresa estabeleceu, e guarda junto ao relat\xF3rio o que encontrou. Se essa verifica\xE7\xE3o n\xE3o chegar ao fim, ou se a sua empresa estiver parada quando o relat\xF3rio chegar, a Orvay n\xE3o guarda nada sobre ela, mostra o trabalho como n\xE3o verificado e n\xE3o volta a verific\xE1-lo por iniciativa pr\xF3pria. Quando o agente diz que o passo falhou, a Orvay regista isso como a vers\xE3o do agente e n\xE3o verifica nada. A refer\xEAncia \xE9 tamb\xE9m escrita na pista de auditoria da sua empresa, pelo que faz parte da exporta\xE7\xE3o de dados da sua empresa.",
   "legal.privacy.purposes.heading": "Por que raz\xE3o tratamos os dados, e com que base",
   "legal.privacy.purposes.pair1.term": "Escrever-lhe quando a Orvay for lan\xE7ada",
   "legal.privacy.purposes.pair1.detail": "O seu consentimento. Art. 6(1)(a) do RGPD, e consentimento nos termos da revFADP. Deu-o ao enviar o formul\xE1rio sob a frase que lhe mostr\xE1mos, e armazenamos essa frase palavra por palavra para que a base possa ser verificada, e n\xE3o apenas alegada.",
@@ -35047,6 +37033,11 @@ var pt_legal_default = {
   "legal.privacy.recipients.heading": "Quem mais tem acesso",
   "legal.privacy.recipients.p1": "Usamos prestadores de servi\xE7o. Cada um est\xE1 nomeado na lista de subcontratantes ulteriores, com o que recebe, onde processa e a salvaguarda em que a transfer\xEAncia se baseia.",
   "legal.privacy.recipients.p2": "N\xE3o divulgamos dados pessoais a mais ningu\xE9m. Se uma autoridade nos obrigasse a divulg\xE1-los, seguir\xEDamos a lei, e inform\xE1-lo-\xEDamos, a menos que f\xF4ssemos proibidos de o fazer.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.privacy.recipients.p3": "Um fornecedor de modelo que a sua empresa liga com a sua pr\xF3pria chave n\xE3o \xE9 um dos nossos prestadores de servi\xE7o. \xC9 nomeado na p\xE1gina de subcontratantes ulteriores, entre os fornecedores que liga com a sua pr\xF3pria chave, com o que lhe enviamos.",
+  // Appended 2026-09-28 (docs/plan/40 §4 step 2), never inserted: `pN` is positional (§7a).
+  "legal.privacy.recipients.p4": "Se a sua empresa disponibilizar um fluxo de trabalho como playbook, o que disponibiliza fica vis\xEDvel para todas as outras empresas que usam a Orvay e para as pessoas dessas empresas: os passos e as defini\xE7\xF5es do fluxo de trabalho tal como est\xE3o escritos, o respetivo nome, a descri\xE7\xE3o escrita para a disponibiliza\xE7\xE3o, e o nome da sua empresa apenas se tiver escolhido mostr\xE1-lo. Quem na sua empresa o disponibilizou n\xE3o \xE9 mostrado. Recusamos uma disponibiliza\xE7\xE3o cujo texto contenha um endere\xE7o de email ou um n\xFAmero de telefone nas formas que reconhecemos, uma credencial que reconhecemos, ou o nome completo de um membro da sua empresa tal como a Orvay o regista. Outros dados pessoais podem ainda assim aparecer numa disponibiliza\xE7\xE3o se uma empresa os escrever nela, por exemplo o nome de um cliente, um nome de membro registado com menos de tr\xEAs letras, ou uma morada postal. Os termos de servi\xE7o pro\xEDbem as empresas de disponibilizar um fluxo de trabalho que contenha informa\xE7\xF5es sobre uma pessoa. Uma empresa pode retirar uma disponibiliza\xE7\xE3o a qualquer momento, e as c\xF3pias que outras empresas instalaram antes disso ficam com elas.",
+  "legal.privacy.recipients.p5": "Se a sua empresa instalar um playbook que outra empresa disponibilizou, conta para estat\xEDsticas mostradas com esse playbook a todas as empresas na Orvay, incluindo a que o disponibilizou: quantas empresas o instalaram, quantas o executaram, quantas execu\xE7\xF5es terminaram, das execu\xE7\xF5es que t\xEAm um resultado a propor\xE7\xE3o que uma verifica\xE7\xE3o independente confirmou e a propor\xE7\xE3o que falhou, e a propor\xE7\xE3o das empresas que o instalaram com uma reclama\xE7\xE3o em vigor. S\xF3 s\xE3o mostrados esses totais, com os n\xFAmeros arredondados por defeito a um m\xFAltiplo de cinco e as propor\xE7\xF5es ao m\xFAltiplo de cinco pontos percentuais mais pr\xF3ximo. Nenhuma execu\xE7\xE3o nem nenhuma reclama\xE7\xE3o individual \xE9 mostrada, e nenhuma empresa \xE9 nelas nomeada. S\xF3 s\xE3o mostrados quando as execu\xE7\xF5es contadas v\xEAm de empresas cujas organiza\xE7\xF5es foram criadas por pelo menos cinco pessoas diferentes e s\xE3o pelo menos trinta, e as propor\xE7\xF5es de execu\xE7\xF5es s\xF3 quando as execu\xE7\xF5es com resultado atingem sozinhas esse mesmo limiar e as empresas de uma s\xF3 pessoa n\xE3o representam mais de um ter\xE7o das execu\xE7\xF5es. Uma empresa s\xF3 conta para playbooks que instalou a partir de uma empresa cuja organiza\xE7\xE3o foi criada por outra pessoa, nunca para um fluxo de trabalho que ela pr\xF3pria escreveu, e uma execu\xE7\xE3o de teste, que n\xE3o altera nada, nunca \xE9 contada.",
   "legal.privacy.transfers.heading": "Para onde os dados v\xE3o",
   "legal.privacy.transfers.p1": "A Su\xED\xE7a n\xE3o faz parte da Uni\xE3o Europeia nem do Espa\xE7o Econ\xF3mico Europeu. \xC9 um pa\xEDs terceiro que possui uma decis\xE3o de adequa\xE7\xE3o da Comiss\xE3o Europeia, e outra do Reino Unido. Uma transfer\xEAncia do EEE ou do Reino Unido para n\xF3s, portanto, baseia-se na adequa\xE7\xE3o e n\xE3o precisa de nenhum outro instrumento.",
   "legal.privacy.transfers.pair1.term": "Endere\xE7os da lista de espera, e todos os outros registos da base de dados",
@@ -35058,7 +37049,7 @@ var pt_legal_default = {
   "legal.privacy.transfers.pair4.term": "Tratamento do pr\xF3prio pedido",
   "legal.privacy.transfers.pair4.detail": "O nosso c\xF3digo \xE9 executado na periferia da rede, em todo o mundo, de modo que o pedido que renderiza uma p\xE1gina pode ser executado perto de si, e n\xE3o na Europa. Salvaguarda: as cl\xE1usulas contratuais-tipo no contrato com o fornecedor.",
   "legal.privacy.transfers.pair5.term": "Prompts de modelo, voz e decis\xF5es",
-  "legal.privacy.transfers.pair5.detail": "O texto enviado a um modelo vai para a OpenAI e \xE9 processado nos Estados Unidos, fora da Su\xED\xE7a e fora do EEE. A Anthropic n\xE3o recebe nada hoje. No modo de voz, o som da sua voz tamb\xE9m vai para a OpenAI. Salvaguarda: a adenda de tratamento de dados da OpenAI, nos termos da qual o nosso contrato \xE9 com a OpenAI Ireland Ltd., que transmite os dados para fora do EEE e da Su\xED\xE7a com base nas cl\xE1usulas contratuais-tipo ou numa decis\xE3o de adequa\xE7\xE3o; n\xE3o somos parte dessas cl\xE1usulas. A partir de uma data de in\xEDcio fixada pelo menos 30 dias ap\xF3s o nosso aviso aos clientes, a TypeSafe AI, nos Estados Unidos, recebe tamb\xE9m o in\xEDcio de um trabalho confiado a um agente, o pedido de um site e a conversa sobre ele, as p\xE1ginas lidas ao pesquisar, uma mensagem publicada numa sala e, quando a sua empresa deixa a Orvay decidir sobre as respostas da caixa de correio, o nome da sua empresa, o email a que se responde e a resposta redigida. Salvaguarda: as cl\xE1usulas contratuais-tipo da adenda de tratamento de dados da TypeSafe AI, que n\xE3o tem uma adenda su\xED\xE7a. As pesquisas na web v\xE3o para a Brave Search e as sess\xF5es de navegador para a Browser Use, ambas nos Estados Unidos, e cada uma tem a sua pr\xF3pria linha abaixo. O seu endere\xE7o da lista de espera nunca faz parte de nada disto.",
+  "legal.privacy.transfers.pair5.detail": "O texto enviado a um modelo vai para a OpenAI e \xE9 processado nos Estados Unidos, fora da Su\xED\xE7a e fora do EEE. Nas nossas pr\xF3prias contas, a Anthropic n\xE3o recebe nada hoje. Se a sua empresa ligar a sua pr\xF3pria chave Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq ou OpenRouter, as chamadas a modelos de texto que o trabalho da sua empresa faz v\xE3o para esse fornecedor ao abrigo do acordo da sua empresa com ele, exceto as que a p\xE1gina de subcontratantes ulteriores indica, e s\xE3o tratadas onde esse acordo prev\xEA. Esse fornecedor passa ent\xE3o a ser o fornecedor da sua empresa e n\xE3o o nosso, e a transfer\xEAncia baseia-se no acordo da sua empresa com ele, n\xE3o no nosso. No modo de voz, o som da sua voz tamb\xE9m vai para a OpenAI. Salvaguarda: a adenda de tratamento de dados da OpenAI, nos termos da qual o nosso contrato \xE9 com a OpenAI Ireland Ltd., que transmite os dados para fora do EEE e da Su\xED\xE7a com base nas cl\xE1usulas contratuais-tipo ou numa decis\xE3o de adequa\xE7\xE3o; n\xE3o somos parte dessas cl\xE1usulas. Desde 27 de setembro de 2026, a TypeSafe AI, nos Estados Unidos, recebe tamb\xE9m o in\xEDcio de um trabalho confiado a um agente, o pedido de um site e a conversa sobre ele, as p\xE1ginas lidas ao pesquisar, uma mensagem publicada numa sala e, quando a sua empresa deixa a Orvay decidir sobre as respostas da caixa de correio, o nome da sua empresa, o email a que se responde e a resposta redigida. Salvaguarda: as cl\xE1usulas contratuais-tipo da adenda de tratamento de dados da TypeSafe AI, que n\xE3o tem uma adenda su\xED\xE7a. As pesquisas na web v\xE3o para a Brave Search e as sess\xF5es de navegador para a Browser Use, ambas nos Estados Unidos, e cada uma tem a sua pr\xF3pria linha abaixo. O seu endere\xE7o da lista de espera nunca faz parte de nada disto.",
   "legal.privacy.transfers.p2": "Pergunte-nos em que instrumento um determinado fornecedor se baseia, e enviar-lhe-emos o que esse fornecedor publica.",
   "legal.privacy.retention.heading": "Por quanto tempo mantemos os dados",
   "legal.privacy.retention.p1": "O livro-raz\xE3o de consentimento \xE9 somente de acr\xE9scimo. Cada registo est\xE1 encadeado ao anterior por um hash, de modo que remover uma linha destruiria a prova de que as linhas restantes n\xE3o foram modificadas. Cancelar a inscri\xE7\xE3o, portanto, grava uma revoga\xE7\xE3o no seu registo, em vez de apag\xE1-lo.",
@@ -35073,7 +37064,7 @@ var pt_legal_default = {
   "legal.privacy.rights.pair2.term": "Retifica\xE7\xE3o",
   "legal.privacy.rights.pair2.detail": "Diga-nos o que est\xE1 errado e corrigi-lo-emos. Art. 16 do RGPD, art. 32 da revFADP.",
   "legal.privacy.rights.pair3.term": "Elimina\xE7\xE3o",
-  "legal.privacy.rights.pair3.detail": "Pe\xE7a-nos que apaguemos os seus dados e f\xE1-lo-emos. Art. 17 do RGPD. Quando a cadeia de auditoria impede a remo\xE7\xE3o de um registo, destru\xEDmos os dados pessoais nele contidos e deixamos o restante, que ainda pode mostrar que algo aconteceu e j\xE1 n\xE3o pode mostrar o que dizia. O operador faz isto manualmente. Uma imagem que uma empresa acrescentou \xE0s suas publica\xE7\xF5es pode ser removida na sua p\xE1gina de marca, o que a apaga do armazenamento. A Orvay n\xE3o apaga uma publica\xE7\xE3o j\xE1 publicada. A empresa pode apag\xE1-la no canal. O registo de uma publica\xE7\xE3o j\xE1 preparada mant\xE9m a descri\xE7\xE3o da imagem, porque esse registo nunca \xE9 alterado.",
+  "legal.privacy.rights.pair3.detail": "Pe\xE7a-nos que apaguemos os seus dados e f\xE1-lo-emos. Art. 17 do RGPD. Quando a cadeia de auditoria impede a remo\xE7\xE3o de um registo, destru\xEDmos os dados pessoais nele contidos e deixamos o restante, que ainda pode mostrar que algo aconteceu e j\xE1 n\xE3o pode mostrar o que dizia. O operador faz isto manualmente. Uma imagem que uma empresa acrescentou \xE0s suas publica\xE7\xF5es pode ser removida na sua p\xE1gina de marca, o que a apaga do armazenamento. Uma publica\xE7\xE3o j\xE1 publicada \xE9 apagada pela empresa: no pr\xF3prio canal ou, se for uma publica\xE7\xE3o no X, no Bluesky ou no Mastodon ou uma resposta que a Orvay publicou no YouTube, a partir da Orvay, onde um membro o pede e uma pessoa aprova cada elimina\xE7\xE3o. O registo de uma publica\xE7\xE3o j\xE1 preparada mant\xE9m a descri\xE7\xE3o da imagem, porque esse registo nunca \xE9 alterado.",
   "legal.privacy.rights.pair4.term": "Limita\xE7\xE3o",
   "legal.privacy.rights.pair4.detail": "Pe\xE7a-nos para interromper o tratamento enquanto algo est\xE1 a ser contestado, e f\xE1-lo-emos. Art. 18 do RGPD.",
   "legal.privacy.rights.pair5.term": "Portabilidade",
@@ -35148,11 +37139,24 @@ var pt_legal_default = {
   "legal.terms.ip.pair4.term": "Feedback",
   "legal.terms.ip.pair4.detail": "Se nos enviar uma ideia para o produto, podemos us\xE1-la sem lhe dever nada. N\xE3o nos envie nada confidencial como feedback.",
   "legal.terms.ip.p1": "Exportar os seus dados pessoais \xE9 um direito, portanto \xE9 gratuito em todos os planos, incluindo o gratuito. Exportar um site gerado \xE9 uma funcionalidade do produto, e faz parte do que um plano pago compra. Mantemos essas duas coisas deliberadamente separadas, e dizemos qual \xE9 qual na p\xE1gina de pre\xE7os, e n\xE3o depois de j\xE1 ter pago.",
+  // Playbooks, 2026-09-28 (docs/plan/40 §4 step 2): what listing a workflow makes public.
+  "legal.terms.playbooks.heading": "Os playbooks que a sua empresa disponibiliza",
+  "legal.terms.playbooks.p1": "A sua empresa pode disponibilizar como playbook uma vers\xE3o publicada de um dos seus fluxos de trabalho, para que outras empresas na Orvay possam instalar uma c\xF3pia. A disponibiliza\xE7\xE3o decide-se para cada vers\xE3o em separado, e nada \xE9 disponibilizado se n\xE3o for algu\xE9m com permiss\xE3o para isso a faz\xEA-lo. Por predefini\xE7\xE3o, s\xF3 o propriet\xE1rio tem essa permiss\xE3o.",
+  "legal.terms.playbooks.p2": "Disponibilizar uma vers\xE3o torna-a vis\xEDvel para todas as outras empresas que usam a Orvay e para as pessoas dessas empresas: todos os seus passos e defini\xE7\xF5es tal como est\xE3o escritos, o respetivo nome, a descri\xE7\xE3o escrita para a disponibiliza\xE7\xE3o, um identificador da vers\xE3o e quando foi disponibilizada. O nome da sua empresa s\xF3 \xE9 mostrado com ela se o escolher ao disponibiliz\xE1-la. Quem na sua empresa a disponibilizou n\xE3o \xE9 mostrado.",
+  "legal.terms.playbooks.p3": "Antes de uma vers\xE3o ser disponibilizada, a Orvay recusa disponibiliz\xE1-la se algum texto nela ou na sua descri\xE7\xE3o contiver uma credencial de um tipo que reconhecemos, um endere\xE7o de email, um n\xFAmero de telefone escrito numa das formas internacionais ou nacionais habituais, ou o nome completo de um membro da sua empresa tal como a Orvay o regista, em qualquer combina\xE7\xE3o de mai\xFAsculas e min\xFAsculas. A Orvay recusa tamb\xE9m uma vers\xE3o com um passo que esteja atribu\xEDdo a um membro identificado pelo nome, que introduza uma credencial que a sua empresa guardou na Orvay, ou que execute outro fluxo de trabalho da sua empresa, e compara o nome e a descri\xE7\xE3o com a lista curta de termos descrita na sec\xE7\xE3o sobre o que n\xE3o pode fazer.",
+  "legal.terms.playbooks.p4": "Estas verifica\xE7\xF5es t\xEAm limites. Tudo o que n\xE3o reconhecem \xE9 mostrado tal como est\xE1 escrito, por exemplo um nome que a Orvay n\xE3o tem registado, como o de um cliente, um nome escrito de forma diferente do nosso registo, um nome registado com menos de tr\xEAs letras, uma morada postal, ou um endere\xE7o de email ou um n\xFAmero de telefone escritos de outra forma. N\xE3o disponibilize um fluxo de trabalho que contenha informa\xE7\xF5es sobre uma pessoa, e leia uma vers\xE3o antes de a disponibilizar.",
+  "legal.terms.playbooks.p5": "Pode retirar uma disponibiliza\xE7\xE3o a qualquer momento. A partir da\xED, ningu\xE9m a pode instalar. As c\xF3pias que outras empresas instalaram antes de a retirar ficam com essas empresas, e n\xE3o as removemos nem as alteramos.",
+  "legal.terms.playbooks.p6": "Instalar um playbook copia-o para a empresa que o instala, como um novo fluxo de trabalho que pertence a essa empresa. Disponibilizar uma vers\xE3o n\xE3o faz com que nada seja executado noutra empresa: uma c\xF3pia s\xF3 \xE9 executada depois de a empresa que a instalou a publicar, e ent\xE3o com as permiss\xF5es, a pol\xEDtica e as aprova\xE7\xF5es pr\xF3prias dessa empresa. Uma vers\xE3o que publique ou disponibilize mais tarde n\xE3o altera uma c\xF3pia j\xE1 instalada.",
+  "legal.terms.playbooks.p7": "Uma empresa que instalou um playbook pode apresentar uma reclama\xE7\xE3o sobre ele assim que uma execu\xE7\xE3o da sua c\xF3pia tiver terminado (uma execu\xE7\xE3o de teste n\xE3o conta), escolhendo um motivo de uma lista fixa: n\xE3o funciona, n\xE3o faz o que a sua descri\xE7\xE3o diz, age de formas que a sua disponibiliza\xE7\xE3o n\xE3o deixa claras, cont\xE9m dados pessoais ou uma credencial, ou destina-se a um uso que estes termos n\xE3o permitem. Uma reclama\xE7\xE3o n\xE3o cont\xE9m qualquer texto pr\xF3prio. Uma empresa tem no m\xE1ximo uma reclama\xE7\xE3o em vigor sobre cada playbook e pode retir\xE1-la a qualquer momento. \xC0 empresa que disponibilizou o playbook nunca \xE9 dito que empresa apresentou a reclama\xE7\xE3o. A propor\xE7\xE3o das empresas que o instalaram com uma reclama\xE7\xE3o em vigor \xE9 mostrada com as restantes estat\xEDsticas do playbook, e s\xF3 quando estas s\xE3o mostradas.",
+  "legal.terms.playbooks.p8": "A Orvay oculta um playbook das outras empresas enquanto houver reclama\xE7\xF5es em vigor sobre ele de empresas cujas organiza\xE7\xF5es foram criadas por pelo menos tr\xEAs pessoas diferentes, e de pelo menos um quinto das empresas que o instalaram. V\xE1rias organiza\xE7\xF5es criadas pela mesma pessoa contam como uma s\xF3. As empresas da organiza\xE7\xE3o de quem o disponibilizou, ou de outra organiza\xE7\xE3o criada pela mesma pessoa que criou essa, n\xE3o s\xE3o contadas nem como empresas que o instalaram nem pelas suas reclama\xE7\xF5es. Enquanto est\xE1 oculto ningu\xE9m o pode instalar, as c\xF3pias j\xE1 instaladas n\xE3o s\xE3o alteradas, e a empresa que o disponibilizou v\xEA na sua pr\xF3pria disponibiliza\xE7\xE3o que est\xE1 oculto e quais dos motivos acima foram indicados, nunca que empresa os indicou. Ainda n\xE3o h\xE1 revis\xE3o por uma pessoa. Um playbook oculto s\xF3 volta a ser mostrado quando forem retiradas reclama\xE7\xF5es suficientes. A empresa que disponibilizou o playbook pode retirar a disponibiliza\xE7\xE3o a qualquer momento, e disponibilizar uma nova vers\xE3o do fluxo de trabalho, que \xE9 uma nova disponibiliza\xE7\xE3o sem reclama\xE7\xF5es.",
+  "legal.terms.playbooks.p9": "Uma empresa que instalou um playbook pode editar a sua c\xF3pia, public\xE1-la e disponibiliz\xE1-la como um playbook pr\xF3prio. A Orvay recusa disponibilizar uma vers\xE3o que outra empresa disponibilizou primeiro, mesmo depois de essa disponibiliza\xE7\xE3o ser retirada, pelo que uma c\xF3pia instalada que continua a ser exatamente essa vers\xE3o n\xE3o pode ser disponibilizada. Para qualquer outra c\xF3pia, a Orvay regista, a partir da pr\xF3pria c\xF3pia, de que playbook foi instalada, e a disponibiliza\xE7\xE3o mostra que foi adaptada desse playbook: pelo nome enquanto puder ser instalado, e caso contr\xE1rio por um identificador da sua vers\xE3o. A empresa que disponibiliza a c\xF3pia n\xE3o pode remover nem alterar essa indica\xE7\xE3o. Uma c\xF3pia novamente disponibilizada passa cada uma das verifica\xE7\xF5es descritas acima, em rela\xE7\xE3o aos membros da sua pr\xF3pria empresa, e as execu\xE7\xF5es e reclama\xE7\xF5es das empresas que a instalam contam para as suas pr\xF3prias estat\xEDsticas, n\xE3o para as do playbook de onde prov\xE9m.",
   "legal.terms.availability.heading": "Disponibilidade",
   "legal.terms.availability.p1": "N\xE3o prometemos tempo de atividade algum. N\xE3o h\xE1 acordo de n\xEDvel de servi\xE7o, nem tempo de resposta de suporte garantido, e uma \xFAnica pessoa opera o servi\xE7o. Quando pudermos oferecer isso, colocaremos por escrito e cobraremos por isso.",
   "legal.terms.availability.p2": "Podemos alterar ou retirar funcionalidades. Se uma altera\xE7\xE3o remover algo de que dependa, daremos aviso pr\xE9vio e, onde a mudan\xE7a for material, uma forma de sair.",
   "legal.terms.money.heading": "Dinheiro",
   "legal.terms.money.p1": "Nada \xE9 cobrado hoje. Quando os planos forem postos \xE0 venda, o pre\xE7o, o que inclui e todos os limites ser\xE3o declarados na p\xE1gina de pre\xE7os antes de pagar, n\xE3o depois. A quota \xE9 medida pelo que o seu uso realmente nos custa, e os cr\xE9ditos s\xE3o a forma como isso \xE9 exibido. O plano gratuito \xE9 interrompido quando a franquia dele se esgota, e nunca gera fatura.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.terms.money.p2": "As chamadas a modelos feitas com uma chave que a sua empresa ligou s\xE3o cobradas \xE0 sua empresa por esse fornecedor e n\xE3o s\xE3o descontadas dos seus cr\xE9ditos.",
   "legal.terms.warranty.heading": "O que n\xE3o prometemos",
   "legal.terms.warranty.p1": "O servi\xE7o \xE9 fornecido como est\xE1. Na medida em que a lei su\xED\xE7a permite, n\xE3o damos garantia alguma de que ser\xE1 ininterrupto ou livre de erros, de que \xE9 adequado a um prop\xF3sito espec\xEDfico, ou de que qualquer resultado est\xE1 correto.",
   "legal.terms.warranty.p2": "A verifica\xE7\xE3o \xE9 um mecanismo de independ\xEAncia, n\xE3o um or\xE1culo. Um resultado verificado significa que um segundo ator verificou o primeiro e que a evid\xEAncia foi registada. N\xE3o significa que o desfecho seja garantidamente correto, e n\xE3o o vendemos como tal.",
@@ -35218,6 +37222,15 @@ var pt_legal_default = {
   "legal.subprocessors.list.heading": "A lista",
   "legal.subprocessors.changes.heading": "Altera\xE7\xF5es \xE0 lista",
   "legal.subprocessors.changes.p1": "Damos aos clientes pelo menos 30 dias de aviso pr\xE9vio por email antes que um novo subcontratante ulterior comece a processar os seus dados pessoais, e pode opor-se por escrito durante esse per\xEDodo por motivos razo\xE1veis de prote\xE7\xE3o de dados. Se n\xE3o conseguirmos resolver a obje\xE7\xE3o, pode encerrar o servi\xE7o afetado sem penalidade. Esse compromisso faz parte do contrato de tratamento de dados, e n\xE3o \xE9 uma mera cortesia.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.subprocessors.own-key.heading": "Fornecedores que liga com a sua pr\xF3pria chave",
+  "legal.subprocessors.own-key.p1": "Se a sua empresa ligar a sua pr\xF3pria chave Anthropic, OpenAI, Google, Mistral, xAI, DeepSeek, Groq ou OpenRouter, as chamadas a modelos de texto que o trabalho da sua empresa faz v\xE3o para esse fornecedor ao abrigo do acordo da sua empresa com ele. A cria\xE7\xE3o e edi\xE7\xE3o do seu website, a voz, a pesquisa na mem\xF3ria e as imagens continuam nas nossas contas. Esse fornecedor trata as chamadas como fornecedor da sua empresa, n\xE3o como nosso, por isso n\xE3o est\xE1 na lista acima, e lig\xE1-lo n\xE3o desencadeia o aviso pr\xE9vio de 30 dias: foi a sua empresa que o escolheu.",
+  "legal.subprocessors.own-key.p2": "Enviamos-lhe o mesmo texto que enviar\xEDamos nas nossas pr\xF3prias contas, preparado da mesma forma. O que o fornecedor guarda, durante quanto tempo e o que mais pode fazer com ele \xE9 definido pelo acordo da sua empresa com esse fornecedor, n\xE3o pelo nosso. Um pedido de apagamento dirigido a n\xF3s abrange o que n\xF3s guardamos, e n\xE3o o que o fornecedor guarda com a chave da sua empresa.",
+  "legal.subprocessors.own-key.p3": "Nunca misturamos as duas coisas. Uma chamada paga pela chave da sua empresa n\xE3o \xE9 enviada na nossa conta, e uma chamada na nossa conta n\xE3o \xE9 enviada com a chave da sua empresa. Se a chave da sua empresa deixar de funcionar, o trabalho aguarda e di-lo, em vez de passar para a nossa conta.",
+  "legal.subprocessors.own-key.p4": "Qualquer chamada que o trabalho da sua empresa fa\xE7a a um fornecedor para o qual n\xE3o ligou uma chave continua a ir na nossa conta, para os fornecedores da lista acima.",
+  "legal.subprocessors.own-key.p5": "Guardamos a chave da sua empresa selada e s\xF3 a usamos para as chamadas da sua empresa. Deslig\xE1-la destr\xF3i a nossa c\xF3pia. N\xE3o revoga a chave no fornecedor, o que faz na consola do pr\xF3prio fornecedor.",
+  "legal.subprocessors.own-key.p6": "Se a sua empresa escolher usar apenas as suas pr\xF3prias chaves, cada chamada a um modelo de texto que o trabalho da sua empresa fa\xE7a vai para um fornecedor para o qual ligou uma chave, e uma chamada que nenhum deles consiga servir aguarda e di-lo, em vez de ir para os fornecedores da lista acima. A cria\xE7\xE3o e edi\xE7\xE3o do seu website, a voz, a pesquisa na mem\xF3ria e as imagens continuam a usar os fornecedores da lista acima.",
+  "legal.subprocessors.own-key.p7": "Uma chamada com uma chave da Mistral vai para o endpoint da UE da Mistral, que a Mistral serve a partir de centros de dados em pa\xEDses da UE e da EFTA. Uma chamada com uma chave da OpenRouter vai para a OpenRouter, que a passa a um fornecedor que serve o modelo, numa regi\xE3o que a OpenRouter n\xE3o garante.",
   "legal.subprocessors.cloudflare.service": "Serve todos os pedidos. Computa\xE7\xE3o Workers, armazenamento de objetos R2, pool de liga\xE7\xF5es \xE0 base de dados Hyperdrive, Durable Objects, Workflows, DNS, registo de pedidos e a rota de email que envia alertas ao operador.",
   "legal.subprocessors.cloudflare.data1": "Metadados do pedido de cada visita, incluindo endere\xE7o IP, user agent e a p\xE1gina solicitada",
   "legal.subprocessors.cloudflare.data2": "Um envio de lista de espera enquanto est\xE1 em tr\xE2nsito para a base de dados",
@@ -35278,7 +37291,7 @@ var pt_legal_default = {
   "legal.dpa.subject-matter.pair2.term": "Dura\xE7\xE3o",
   "legal.dpa.subject-matter.pair2.detail": "Enquanto a sua conta existir, e depois disso somente pelo tempo necess\xE1rio para devolver ou destruir os dados.",
   "legal.dpa.subject-matter.pair3.term": "Natureza e finalidade",
-  "legal.dpa.subject-matter.pair3.detail": "Armazenamento, recupera\xE7\xE3o, transmiss\xE3o aos subcontratantes ulteriores na lista publicada, e envio a fornecedores de modelo onde instrui um agente a fazer um trabalho que precisa de um.",
+  "legal.dpa.subject-matter.pair3.detail": "Armazenamento, recupera\xE7\xE3o, transmiss\xE3o aos subcontratantes ulteriores na lista publicada, e envio a fornecedores de modelo onde instrui um agente a fazer um trabalho que precisa de um, seja nas nossas contas ou, onde liga a sua pr\xF3pria chave, nas suas.",
   "legal.dpa.subject-matter.pair4.term": "Categorias de titulares dos dados",
   "legal.dpa.subject-matter.pair4.detail": "A sua equipa, os seus contactos, e qualquer outra pessoa cujos dados escolha inserir.",
   "legal.dpa.subject-matter.pair5.term": "Categorias de dados pessoais",
@@ -35308,9 +37321,13 @@ var pt_legal_default = {
   "legal.dpa.subprocessors.p1": "Concede autoriza\xE7\xE3o geral para que contratemos subcontratantes ulteriores, nos termos dos arts. 28(2) e 28(3)(d) do RGPD. A lista atual \xE9 publicada, e nomeia cada um, o que recebe, onde processa e a salvaguarda em que a transfer\xEAncia se baseia.",
   "legal.dpa.subprocessors.p2": "Damos-lhe pelo menos 30 dias de aviso pr\xE9vio por email antes que um novo subcontratante ulterior comece a processar os seus dados pessoais. Pode opor-se por escrito dentro desse per\xEDodo por motivos razo\xE1veis de prote\xE7\xE3o de dados. Se n\xE3o conseguirmos resolver a sua obje\xE7\xE3o, pode encerrar a parte afetada do servi\xE7o sem penalidade, e reembolsaremos qualquer taxa pr\xE9-paga pelo per\xEDodo n\xE3o utilizado.",
   "legal.dpa.subprocessors.p3": "Cada subcontratante ulterior est\xE1 vinculado por um contrato escrito com obriga\xE7\xF5es de prote\xE7\xE3o de dados n\xE3o mais fracas que estas, exceto a Brave Search quanto \xE0s consultas de pesquisa que lhe enviamos, que a adenda de tratamento de dados da Brave exclui; o que removemos de uma consulta antes de a enviar consta da p\xE1gina dos subcontratantes ulteriores. Onde um deles n\xE3o as cumprir, permanecemos totalmente respons\xE1veis perante si pelo seu desempenho. Art. 28(4) do RGPD.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.subprocessors.p4": "Um fornecedor de modelo que liga com a sua pr\xF3pria chave n\xE3o \xE9 um subcontratante ulterior que contratamos. Contrata-o ao abrigo do seu pr\xF3prio acordo com ele e, ao ligar a chave, instrui-nos a enviar-lhe as chamadas a modelos que a p\xE1gina de subcontratantes ulteriores descreve (art. 28(3)(a) do RGPD). A autoriza\xE7\xE3o, o aviso pr\xE9vio e as obriga\xE7\xF5es acima aplicam-se aos subcontratantes ulteriores que contratamos, e n\xE3o a ele.",
   "legal.dpa.transfers.heading": "Transfer\xEAncias internacionais",
   "legal.dpa.transfers.p1": "Onde um subcontratante ulterior est\xE1 fora da Su\xED\xE7a e do Espa\xE7o Econ\xF3mico Europeu, a transfer\xEAncia baseia-se na salvaguarda nomeada para ele na lista de subcontratantes ulteriores. Para os fornecedores de modelo, o instrumento s\xE3o as cl\xE1usulas contratuais-tipo. N\xE3o nos baseamos numa certifica\xE7\xE3o ao abrigo de um quadro de privacidade.",
   "legal.dpa.transfers.p2": "A Su\xED\xE7a possui uma decis\xE3o de adequa\xE7\xE3o da Comiss\xE3o Europeia, portanto uma transfer\xEAncia do EEE para a nossa base de dados em Zurique n\xE3o precisa de nenhum outro instrumento.",
+  // Appended 2026-09-26 (ADR-0095), never inserted (§7a). MACHINE TRANSLATION, NOT YET REVIEWED BY A PERSON.
+  "legal.dpa.transfers.p3": "Uma transfer\xEAncia para um fornecedor de modelo que ligou com a sua pr\xF3pria chave baseia-se no seu acordo com esse fornecedor, n\xE3o no nosso.",
   "legal.dpa.data-subject-requests.heading": "Ajud\xE1-lo a responder aos titulares dos dados",
   "legal.dpa.data-subject-requests.p1": "Ajudamo-lo a responder a um pedido de um titular dos dados, tendo em conta a natureza do tratamento. Art. 28(3)(e) do RGPD.",
   "legal.dpa.data-subject-requests.p2": "Onde o produto pode responder, pode responder por si mesmo. Os seus contactos, ficheiros carregados, registos de consentimento e pista de auditoria s\xE3o export\xE1veis em formato leg\xEDvel por m\xE1quina em todos os planos, incluindo o gratuito, porque a portabilidade \xE9 um direito, e n\xE3o uma funcionalidade.",
@@ -35390,7 +37407,7 @@ var pt_legal_default = {
   "legal.subprocessors.github.safeguard": "O GitHub est\xE1 estabelecido nos Estados Unidos e \xE9 propriedade da Microsoft. As transfer\xEAncias baseiam-se nas cl\xE1usulas contratuais-tipo dos termos do GitHub. Escolher antes uma palavra-passe significa que nenhum dado chega ao GitHub.",
   "legal.subprocessors.github.statusDetail": "S\xF3 \xE9 alcan\xE7ado se premir o bot\xE3o. Abrir a p\xE1gina de in\xEDcio de sess\xE3o n\xE3o envia nada ao GitHub, e esta entrada esteve ausente desta lista at\xE9 20 de agosto de 2026, enquanto o bot\xE3o j\xE1 estava no ecr\xE3.",
   "legal.terms.acceptable-use.item7": "Gerir um neg\xF3cio para o qual n\xE3o trabalhamos: conte\xFAdo sexual ou servi\xE7os sexuais, qualquer coisa que sexualize uma crian\xE7a, malware e ferramentas de intrus\xE3o, fraude, a venda de armas ou subst\xE2ncias controladas, ou ass\xE9dio dirigido a uma pessoa. Esta \xE9 uma recusa sobre o trabalho, n\xE3o um julgamento sobre si, e aplica-se independentemente do que diga a lei onde estiver.",
-  "legal.terms.acceptable-use.p2": "Duas verifica\xE7\xF5es fazem cumprir a linha acima, e vale a pena saber exatamente quais s\xE3o para que n\xE3o as confunda com mais do que s\xE3o. O nome e o endere\xE7o web que nos d\xE1 s\xE3o comparados com uma lista curta de termos durante a configura\xE7\xE3o, antes de irmos buscar seja o que for. Em separado, um agente recusa-se a trabalhar num objetivo que pe\xE7a uma destas coisas. Nenhuma delas \xE9 uma revis\xE3o de tudo o que faz, nenhuma l\xEA os seus dados, e nenhuma substitui saber o que est\xE1 a executar.",
+  "legal.terms.acceptable-use.p2": "Tr\xEAs verifica\xE7\xF5es fazem cumprir a linha acima, e vale a pena saber exatamente quais s\xE3o para que n\xE3o as confunda com mais do que s\xE3o. O nome e o endere\xE7o web que nos d\xE1 s\xE3o comparados com uma lista curta de termos durante a configura\xE7\xE3o, antes de irmos buscar seja o que for. Em separado, um agente recusa-se a trabalhar num objetivo que pe\xE7a uma destas coisas. Al\xE9m disso, o nome e a descri\xE7\xE3o de um fluxo de trabalho que a sua empresa disponibiliza como playbook s\xE3o comparados com a mesma lista antes de ser disponibilizado. Nenhuma delas \xE9 uma revis\xE3o de tudo o que faz, nenhuma l\xEA os seus dados, e nenhuma substitui saber o que est\xE1 a executar.",
   // -------------------------------------------------------------------------
   // MACHINE TRANSLATION, 2026-09-23, NOT YET REVIEWED BY A PERSON.
   //
@@ -35439,7 +37456,7 @@ var pt_legal_default = {
   "legal.subprocessors.typesafe.location1": "Estados Unidos, que a sua pol\xEDtica de privacidade indica como o local onde o servi\xE7o est\xE1 alojado",
   "legal.subprocessors.typesafe.location2": "A adenda de tratamento de dados da TypeSafe AI n\xE3o indica nenhum local de tratamento",
   "legal.subprocessors.typesafe.safeguard": "A TypeSafe AI, Inc. tem sede nos Estados Unidos. A sua adenda de tratamento de dados aplica as cl\xE1usulas contratuais-tipo \xE0s transfer\xEAncias a partir da UE, com a adenda do Reino Unido para o Reino Unido. Quanto \xE0 Su\xED\xE7a, diz apenas que os lit\xEDgios cabem aos tribunais su\xED\xE7os e que a autoridade competente \xE9 o Comiss\xE1rio Federal de Prote\xE7\xE3o de Dados e Informa\xE7\xE3o (FDPIC). N\xE3o tem nenhuma adenda su\xED\xE7a.",
-  "legal.subprocessors.typesafe.statusDetail": "A chave da TypeSafe AI est\xE1 configurada no Worker de gera\xE7\xE3o de sites, que nada envia a este fornecedor antes de uma data de in\xEDcio definida nesse Worker. Definimos essa data n\xE3o antes de 30 dias depois de informarmos os clientes, como exige o nosso contrato de tratamento de dados. Antes dessa data, e sempre que a TypeSafe AI n\xE3o responder, uma pergunta sobre um trabalho, um site ou uma sala vai para um modelo de texto, e uma resposta da caixa de correio que aguarda a decis\xE3o da TypeSafe AI fica \xE0 espera de uma pessoa. Consta j\xE1 da lista, antes de receber qualquer coisa, para que esta p\xE1gina e o nosso aviso descrevam a mesma lista.",
+  "legal.subprocessors.typesafe.statusDetail": "A chave da TypeSafe AI est\xE1 configurada no Worker de gera\xE7\xE3o de sites, que lhe envia os dados acima desde 27 de setembro de 2026. Sempre que a TypeSafe AI n\xE3o responder, uma pergunta sobre um trabalho, um site ou uma sala vai para um modelo de texto, e uma resposta da caixa de correio que aguarda a decis\xE3o da TypeSafe AI fica \xE0 espera de uma pessoa.",
   "legal.subprocessors.fish.service": "S\xEDntese de voz e transcri\xE7\xE3o. At\xE9 25 de setembro de 2026, lia uma resposta em voz alta no modo de voz quando n\xE3o era poss\xEDvel abrir uma conversa em direto, e podia transcrever a fala numa instala\xE7\xE3o sem chave da OpenAI. Hoje n\xE3o faz nenhuma das duas coisas.",
   "legal.subprocessors.fish.data1": "At\xE9 25 de setembro de 2026, o texto de uma resposta que a Orvay lhe lia em voz alta. Esse texto podia nomear pessoas e n\xFAmeros dos registos da sua empresa, e nada nele era removido antes do envio",
   "legal.subprocessors.fish.data2": "At\xE9 25 de setembro de 2026, a grava\xE7\xE3o do que dizia no modo de voz, apenas numa instala\xE7\xE3o que n\xE3o tivesse chave da OpenAI para a transcrever",
@@ -36036,11 +38053,11 @@ var renderIncidentPage = (input) => {
   const ZONE_MS = span / 64;
   const segments = incident.phases.map((phase, i) => {
     const from = phase.at;
-    const to = incident.phases[i + 1]?.at ?? end;
-    const width = Math.max((to - from) / span * 100, 1.5);
-    const zoneCount = Math.max(1, Math.round((to - from) / ZONE_MS));
+    const to2 = incident.phases[i + 1]?.at ?? end;
+    const width = Math.max((to2 - from) / span * 100, 1.5);
+    const zoneCount = Math.max(1, Math.round((to2 - from) / ZONE_MS));
     const zones = Array.from({ length: zoneCount }, (_, z) => {
-      const t = from + (to - from) * z / Math.max(zoneCount - 1, 1);
+      const t = from + (to2 - from) * z / Math.max(zoneCount - 1, 1);
       const anchor = ` style="--tip-anchor:${((t - start) / span * 100).toFixed(3)}%"`;
       return `<span class="zone" tabindex="0"${anchor}><span class="tip"><span class="tip-day">${esc(
         utc(t)
@@ -36499,7 +38516,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "eb936f1b" : "unknown";
+var sourceCommit = true ? "c9881bd7b" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
