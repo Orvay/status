@@ -304,6 +304,10 @@
 
      Before 2026-08-18 both stacks named families that nothing loaded, so every
      surface rendered in system-ui while the tokens claimed otherwise. */
+  --control-radius: var(--o-radius-pill);
+  --control-hover-shadow: var(--o-bevel-raised);
+  --surface-floating-shadow: var(--o-bevel-raised);
+  --o-loop-iterations: infinite;
   --o-font-sans: var(--o-font-sans-face, InterVariable), Inter, ui-sans-serif, system-ui, sans-serif;
   --o-font-mono: var(--o-font-mono-face, "IBM Plex Mono"), ui-monospace, SFMono-Regular, monospace;
   /* The one serif in the system, and it exists for exactly one line of type:
@@ -356,6 +360,14 @@
   --o-tracking-title-24: -0.03em;
   --o-text-title-19: 1.1875rem/1.5rem var(--o-font-sans);
   --o-tracking-title-19: -0.025em;
+  --brand-light-rose: var(--v6-heat-1);
+  --brand-light-orange: var(--v6-heat-2);
+  --brand-light-gold: var(--v6-heat-3);
+  --brand-light-sky: var(--v6-heat-4);
+  --brand-light-blue: var(--v6-heat-5);
+  --brand-light-blur: 28px;
+  --o-text-body-16: 1rem/1.625rem var(--o-font-sans);
+  --o-tracking-body-16: -0.01em;
   --o-text-body-15: 0.9375rem/1.5rem var(--o-font-sans);
   --o-tracking-body-15: -0.015em;
   --o-text-label-14: 0.875rem/1rem var(--o-font-sans);
@@ -364,6 +376,7 @@
   --o-tracking-mono-13: 0em;
   --o-text-micro-11: 0.6875rem/0.875rem var(--o-font-sans);
   --o-tracking-micro-11: 0.012em;
+  --o-tracking-uppercase: 0.06em;
 
   /* Chrome tracks in ABSOLUTE PIXELS. Text tracks in percentages.
 
@@ -1798,6 +1811,7 @@
    ============================================================================= */
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --o-loop-iterations: 0;
     --o-dur-instant: 0ms;
     --o-dur-quick: 0ms;
     --o-dur-considered: 0ms;
@@ -1920,6 +1934,12 @@
      reserves; that file's note says why the two must agree. */
   --app-rail-icon: 56px;
   --app-gutter: var(--o-space-3);
+  --companion-size-inline: 2rem;
+  --companion-size-welcome: 4.5rem;
+  --companion-body: var(--accent-solid);
+  --companion-face: var(--accent-on-solid);
+  --app-frame-bg: var(--bg-canvas);
+  --app-card-shadow: none;
   --app-bar-h: 3rem;
 
   /* REGISTERED, and this is load-bearing rather than decoration.
@@ -2380,6 +2400,10 @@
      CARRY ink, which makes it too dark to BE ink. 5.61:1 at the worst rung
      against a 3:1 floor. */
   --focus-ring: var(--o-workbench-accent-text);
+  --companion-body: var(--accent-solid);
+  --companion-face: var(--accent-on-solid);
+  --app-frame-bg: var(--bg-canvas);
+
 }
 
 /* =============================================================================
@@ -2605,26 +2629,30 @@
      names stay so app.css keeps stating no values, and the handle's own
      hairline derives from both, so a full-height sheet gets a full-height
      edge with no second rule. */
-  --app-gutter: 0px;
-  --app-card-radius: 0px;
-  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.
-     §2 of the design language reads "never 16px or above" and §4 is exact: 2px
-     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.
-     The shared scale runs 8, 12, 20 and 30, so every surface in the app was
-     between four and fifteen times the spec, and a 30px panel corner is what
-     makes a settings screen read as a consumer app rather than a register.
-     Restated here rather than at :root because the site's own language is
-     built on the same four names and is not this. The pill is untouched: a
-     control is a pill or a surface, and those are the only two shapes. */
-  --o-radius-sm: 2px;
-  --o-radius-md: 2px;
-  --o-radius-lg: 2px;
-  --o-radius-panel: 2px;
-  /* Derived from --o-radius-lg, which the four lines above move. Inert in this
-     app, like the nine --docs-* bindings further down, and declared for the same
-     reason: eleven correct lines cost less than one frozen list. */
+  --app-gutter: var(--o-space-3);
+  --app-card-radius: var(--o-radius-panel);
+  /* App geometry: squared sheets, softly eased controls, floating overlays.
+     These extend the existing scale and never reach the marketing/docs hosts. */
+  --o-radius-sm: 4px;
+  --o-radius-md: 6px;
+  --o-radius-lg: 8px;
+  --o-radius-panel: 12px;
+  --control-radius: var(--o-radius-md);
+  --o-weight-medium: 500;
+  --o-weight-strong: 500;
+  --app-content-gutter: var(--o-space-6);
+  --app-content-max: 78rem;
+  --app-section-gap: var(--o-space-6);
+  --app-rail-row-h: 36px;
+  --app-bar-h: 56px;
+  --app-auth-measure: 26rem;
+  --app-context-measure: 25rem;
+  /* The sign-in screen's framed panel: rounder than a sheet, because it is a
+     window onto the landing rather than a surface of the product. */
+  --app-auth-panel-radius: 20px;
+  --app-chat-measure: 46rem;
   --docs-card-radius: var(--o-radius-lg);
-  --app-rail-bg: var(--bg-canvas);
+  --app-rail-bg: var(--bg-subtle);
   --app-rail-fg: var(--fg-secondary);
   --app-rail-fg-active: var(--fg-primary);
   --app-card-bg: var(--bg-raised);
@@ -2686,6 +2714,27 @@
     0 12px 28px -14px color-mix(in oklab, black 20%, transparent);
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
+  --control-hover-shadow: var(--o-bevel-resting);
+  --surface-floating-shadow:
+    inset 0 0 0 var(--o-hairline) var(--line-border),
+    0 4px 12px -4px color-mix(in oklab, black 12%, transparent),
+    0 18px 48px -16px color-mix(in oklab, black 20%, transparent);
+
+  --field-flat-border: var(--line-control);
+  --field-flat-hover-border: var(--line-control);
+  --field-flat-border-width: var(--o-hairline);
+  --field-focus-offset: -2px;
+  --field-focus-shadow: none;
+  --field-flat-focus-offset: var(--field-focus-offset);
+
+  --app-frame-bg: var(--bg-subtle);
+  --app-card-shadow:
+    0 1px 3px -1px color-mix(in oklab, black 8%, transparent),
+    0 8px 24px -16px color-mix(in oklab, black 10%, transparent);
+
+  --companion-body: var(--accent-solid);
+  --companion-face: var(--accent-on-solid);
+
 }
 
 /* A NOTE FOR WHOEVER RE-ARMS THE BUILDER. `[data-surface='builder']` above is
@@ -2759,29 +2808,13 @@
      names stay so app.css keeps stating no values, and the handle's own
      hairline derives from both, so a full-height sheet gets a full-height
      edge with no second rule. */
-  --app-gutter: 0px;
-  --app-card-radius: 0px;
-  /* RADIUS, AND THE SPEC'S CEILING IS LOWER THAN THE SCALE'S FLOOR.
-     §2 of the design language reads "never 16px or above" and §4 is exact: 2px
-     on surfaces and inputs, 50% on pills, avatars and the mark, 0 on tables.
-     The shared scale runs 8, 12, 20 and 30, so every surface in the app was
-     between four and fifteen times the spec, and a 30px panel corner is what
-     makes a settings screen read as a consumer app rather than a register.
-     Restated here rather than at :root because the site's own language is
-     built on the same four names and is not this. The pill is untouched: a
-     control is a pill or a surface, and those are the only two shapes. */
-  --o-radius-sm: 2px;
-  --o-radius-md: 2px;
-  --o-radius-lg: 2px;
-  --o-radius-panel: 2px;
-  /* Derived from --o-radius-lg, which the four lines above move. Inert in this
-     app, like the nine --docs-* bindings further down, and declared for the same
-     reason: eleven correct lines cost less than one frozen list. */
+  --app-gutter: var(--o-space-3);
+  --app-card-radius: var(--o-radius-panel);
   --docs-card-radius: var(--o-radius-lg);
   --app-rail-bg: var(--bg-canvas);
   --app-rail-fg: var(--fg-secondary);
   --app-rail-fg-active: var(--fg-primary);
-  --app-card-bg: var(--bg-raised);
+  --app-card-bg: var(--bg-subtle);
   --app-card-line: var(--line-rule);
 
   /* The same two washes, pulled the other way. "Toward the ink" is toward
@@ -2825,8 +2858,28 @@
     0 12px 28px -14px color-mix(in oklab, black 60%, transparent);
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
-}
+  --control-hover-shadow: var(--o-bevel-resting);
+  --surface-floating-shadow:
+    inset 0 0 0 var(--o-hairline) var(--line-border),
+    0 4px 12px -4px color-mix(in oklab, black 12%, transparent),
+    0 18px 48px -16px color-mix(in oklab, black 20%, transparent);
 
+  --field-flat-border: var(--line-control);
+  --field-flat-hover-border: var(--line-control);
+  --field-flat-border-width: var(--o-hairline);
+  --field-focus-offset: -2px;
+  --field-focus-shadow: none;
+  --field-flat-focus-offset: var(--field-focus-offset);
+
+  --app-frame-bg: var(--bg-canvas);
+  --app-card-shadow:
+    0 1px 3px -1px color-mix(in oklab, black 8%, transparent),
+    0 8px 24px -16px color-mix(in oklab, black 10%, transparent);
+
+  --companion-body: var(--accent-solid);
+  --companion-face: var(--accent-on-solid);
+
+}
 
 /*
  * The status pages' own styles. Every colour is a token from tokens.css, which
@@ -3299,7 +3352,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
   font-weight: var(--o-weight-medium);
   /* Fully round. Controls and surfaces are the only two shapes in the system,
      which is what stops a UI drifting into a dozen near-identical radii. */
-  border-radius: var(--o-radius-pill);
+  border-radius: var(--control-radius);
   border: var(--o-hairline) solid transparent;
   cursor: pointer;
   /* An <a> wearing this class is a real case: "go home" on the 404 page is a
@@ -3322,7 +3375,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
   transition:
     background-color var(--o-dur-quick) var(--o-ease-standard),
     box-shadow var(--o-dur-quick) var(--o-ease-standard),
-    padding var(--o-dur-quick) var(--o-ease-standard);
+    padding var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-top var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-bottom var(--o-dur-quick) var(--o-ease-standard);
 }
 
 /* Approve is FILLED, Reject is OUTLINE. They differed only by hue in the draft
@@ -3330,11 +3385,31 @@ ul.updates .when { font: var(--o-text-mono-13); }
 /* The solid control: a slab with a faint vertical gradient, so the surface
    reads as lit from above rather than as flat fill. It is dark in the light
    theme and light in the dark theme, which is why its ink is a paired token. */
+/* THE STOPS ARE TYPED, SO HOVER CAN ANIMATE THEM INSTEAD OF REPLACING THEM.
+
+   Hover used to set `background: <colour>`. That shorthand deletes the
+   gradient image at once and then transitions `background-color` up from the
+   rest state's TRANSPARENT, so every hover painted the slab white for a frame
+   and faded it back in: a flicker on the loudest control in the product,
+   every time a pointer crossed it. Registered as <color>, the two stops
+   interpolate like any colour, the gradient is painted on every frame, and
+   there is no frame without a fill. A browser without @property swaps the
+   stops instantly, which is still never transparent. */
+@property --o-button-top {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: transparent;
+}
+@property --o-button-bottom {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: transparent;
+}
+
 .o-button[data-intent='primary'] {
-  background: linear-gradient(
-    var(--control-solid-top) 0%,
-    var(--control-solid-bottom) 100%
-  );
+  --o-button-top: var(--control-solid-top);
+  --o-button-bottom: var(--control-solid-bottom);
+  background: linear-gradient(var(--o-button-top) 0%, var(--o-button-bottom) 100%);
   /* --control-solid-ink, NOT --fg-on-solid. The slab inverts between themes and
      --o-neutral-9 (which --fg-on-solid is the ink for) does not, so the two
      drift apart: this rule rendered near-black text on a near-black button at
@@ -3353,7 +3428,8 @@ ul.updates .when { font: var(--o-text-mono-13); }
      lower stop, which is exactly what this rule used to paint, and paper mixes
      toward `--bg-subtle` so the direction matches `:active` without going as
      far. */
-  background: var(--control-solid-hover);
+  --o-button-top: var(--control-solid-hover);
+  --o-button-bottom: var(--control-solid-hover);
 }
 
 /* The raised control: white, lifted off the ground by a white inset highlight
@@ -3435,6 +3511,27 @@ ul.updates .when { font: var(--o-text-mono-13); }
    would then spread a wrapped line across the whole column. */
 .o-actions[data-split] > :last-child {
   margin-inline-start: auto;
+}
+
+/* The product keeps a stable hit area while its state changes. The original
+   measured marketing treatment remains scoped to hosts without paper. */
+[data-surface='paper'] .o-button {
+  transition:
+    background-color var(--o-dur-quick) var(--o-ease-standard),
+    border-color var(--o-dur-quick) var(--o-ease-standard),
+    transform var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-top var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-bottom var(--o-dur-quick) var(--o-ease-standard);
+}
+[data-surface='paper'] .o-button[data-intent='secondary']:hover:not([aria-disabled='true']):not(:disabled) {
+  padding-inline: var(--o-space-5);
+  background-color: var(--bg-subtle);
+}
+[data-surface='paper'] .o-button:active:not([aria-disabled='true']):not(:disabled) {
+  transform: translateY(1px);
+}
+[data-surface='paper'] .o-button[aria-disabled='true']:hover {
+  padding-inline: var(--o-space-5);
 }
 
 /* =============================================================================
