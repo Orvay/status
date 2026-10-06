@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791300612076,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791300612076,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791300612076,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791300612076,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791297896835,
       "component": "webhook-delivery",
       "label": "Webhook delivery",
