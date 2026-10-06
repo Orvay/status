@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791315047164,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791315047164,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791315047164,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791315047164,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791315047164,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791315047164,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791313212651,
       "component": "sign-in",
       "label": "Sign in",
