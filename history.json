@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791295212741,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791295212741,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791295212741,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791293413600,
       "component": "agent-runs",
       "label": "Agent runs",
