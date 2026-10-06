@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791320411417,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791320411417,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791320411417,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791320411417,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791320411417,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791318610220,
       "component": "evidence-archive",
       "label": "Evidence archive",
