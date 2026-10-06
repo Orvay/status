@@ -2,6 +2,55 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791307821161,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791307821161,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791307821161,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791307821161,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791307821161,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791307821161,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791307821161,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791306012580,
       "component": "email-notifications",
       "label": "Email notifications",

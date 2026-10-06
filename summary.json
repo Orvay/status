@@ -1,219 +1,219 @@
 {
   "schema": 1,
-  "generatedAt": 1791306012580,
+  "generatedAt": 1791307821161,
   "readings": {
     "marketing-site": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 631.555881
+        "latencyMs": 788.096849
       }
     },
     "control-plane": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 5700.787394
+        "latencyMs": 4841.053591
       }
     },
     "sign-in": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 5706.269915000001
+        "latencyMs": 4859.289295
       }
     },
     "directory-sync": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 5460.867554
+        "level": "operational",
+        "latencyMs": 2818.6944980000003
       }
     },
     "website-studio": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 4125.352272
+        "latencyMs": 4862.345029
       }
     },
     "voice-mode": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 5706.269915000001
+        "latencyMs": 4859.289295
       }
     },
     "tenant-sites": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 358.40275999999994
+        "latencyMs": 284.82036099999993
       }
     },
     "documentation": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 583.658004
+        "latencyMs": 765.728771
       }
     },
     "email-notifications": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "operational",
-        "latencyMs": 3870.650518
+        "latencyMs": 2811.778287
       }
     },
     "agent-runs": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 5775.973857
+        "latencyMs": 4867.362436
       }
     },
     "in-app-notifications": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 5833.830771999999
+        "level": "operational",
+        "latencyMs": 2982.999538
       }
     },
     "independent-verification": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 4345.143781
+        "level": "operational",
+        "latencyMs": 2998.4878360000002
       }
     },
     "webhook-delivery": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 5740.484714
+        "level": "operational",
+        "latencyMs": 2952.973305
       }
     },
     "scheduled-work": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 5816.816877
+        "latencyMs": 4969.6511120000005
       }
     },
     "evidence-archive": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 5828.393067999999
+        "latencyMs": 4976.359511
       }
     },
     "checkout-and-billing": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 6086.49779
+        "level": "operational",
+        "latencyMs": 3268.348157
       }
     },
     "inbound-mail": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 4180.455722
+        "level": "operational",
+        "latencyMs": 2930.918853
       }
     },
     "mailbox": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
-        "level": "degraded",
-        "latencyMs": 5696.423071
+        "level": "operational",
+        "latencyMs": 2952.7682409999998
       }
     },
     "repository-changes": {
       "method": "probe",
       "vantage": "github-actions",
-      "observedAt": 1791306012580,
+      "observedAt": 1791307821161,
       "observation": {
         "kind": "ok",
         "level": "degraded",
-        "latencyMs": 4174.076725
+        "latencyMs": 4899.022911
       }
     }
   },
   "states": {
     "sign-in": "degraded",
     "single-sign-on": "not-measured",
-    "directory-sync": "degraded",
+    "directory-sync": "operational",
     "control-plane": "degraded",
     "website-studio": "degraded",
     "tenant-sites": "operational",
     "marketing-site": "operational",
     "documentation": "operational",
     "agent-runs": "degraded",
-    "in-app-notifications": "degraded",
-    "independent-verification": "degraded",
-    "webhook-delivery": "degraded",
+    "in-app-notifications": "operational",
+    "independent-verification": "operational",
+    "webhook-delivery": "operational",
     "connected-tools": "not-measured",
     "scheduled-work": "degraded",
     "evidence-archive": "degraded",
-    "checkout-and-billing": "degraded",
+    "checkout-and-billing": "operational",
     "email-notifications": "operational",
-    "inbound-mail": "degraded",
+    "inbound-mail": "operational",
     "voice-mode": "degraded",
-    "mailbox": "degraded",
+    "mailbox": "operational",
     "repository-changes": "degraded",
     "comment-replies": "not-measured",
     "ad-reporting": "not-measured",
@@ -225,18 +225,11 @@
   "slowTargets": [
     "https://app.orvayos.com",
     "https://app.orvayos.com/login",
-    "https://app.orvayos.com/scim/v2/ServiceProviderConfig",
     "https://app.orvayos.com/studio",
     "https://app.orvayos.com/login",
     "https://app.orvayos.com/api/health/agent-runs",
-    "https://app.orvayos.com/api/health/in-app-notifications",
-    "https://app.orvayos.com/api/health/independent-verification",
-    "https://app.orvayos.com/api/health/webhook-delivery",
     "https://app.orvayos.com/api/health/scheduled-work",
     "https://app.orvayos.com/api/health/evidence-archive",
-    "https://app.orvayos.com/api/health/checkout-and-billing",
-    "https://app.orvayos.com/api/health/inbound-mail",
-    "https://app.orvayos.com/api/health/mailbox",
     "https://app.orvayos.com/api/health/repository-changes"
   ],
   "sourceCommit": "444879a1d"
