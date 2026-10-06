@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791297011106,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791297011106,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791297011106,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791297011106,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791297011106,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791297011106,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791295212741,
       "component": "directory-sync",
       "label": "Directory sync",
