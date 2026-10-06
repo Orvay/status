@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791309611713,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791309611713,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791309611713,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791309611713,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791307821161,
       "component": "directory-sync",
       "label": "Directory sync",
