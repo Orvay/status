@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791316272745,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791316272745,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791316272745,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791315047164,
       "component": "control-plane",
       "label": "Company control plane",
