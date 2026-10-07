@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791360048909,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791360048909,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791360048909,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791360048909,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791360048909,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791360048909,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791358212939,
       "component": "agent-runs",
       "label": "Agent runs",
