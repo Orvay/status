@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791367214080,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791367214080,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791367214080,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791367214080,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791365410379,
       "component": "directory-sync",
       "label": "Directory sync",

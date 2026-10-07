@@ -5,7 +5,35 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-07T09:30:10.379Z</updated>
+  <updated>2026-10-07T10:00:14.080Z</updated>
+  <entry>
+    <id>tag:status,2026-10-07:control-plane:1791367214080</id>
+    <title>Company control plane is now degraded</title>
+    <updated>2026-10-07T10:00:14.080Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from operational to degraded at 2026-10-07T10:00:14.080Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:website-studio:1791367214080</id>
+    <title>Site builder is now degraded</title>
+    <updated>2026-10-07T10:00:14.080Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Site builder changed from operational to degraded at 2026-10-07T10:00:14.080Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:agent-runs:1791367214080</id>
+    <title>Agent runs is now operational</title>
+    <updated>2026-10-07T10:00:14.080Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Agent runs changed from degraded to operational at 2026-10-07T10:00:14.080Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:evidence-archive:1791367214080</id>
+    <title>Evidence archive is now operational</title>
+    <updated>2026-10-07T10:00:14.080Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Evidence archive changed from degraded to operational at 2026-10-07T10:00:14.080Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-07:directory-sync:1791365410379</id>
     <title>Directory sync is now operational</title>
@@ -1377,33 +1405,5 @@
     <updated>2026-09-06T05:54:17.523Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Our check timed out and called the database unreachable. Other checks read it in the same run, so it was not. A read that does not finish now reads as slow rather than as an outage. We recorded Connected mailbox changing from operational to a major outage at 2026-09-06T05:54:17.523Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-09-06:repository-changes:1788674057523</id>
-    <title>Repository changes: a fault in our own checking, not in the service</title>
-    <updated>2026-09-06T05:54:17.523Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Our check timed out and called the database unreachable. Other checks read it in the same run, so it was not. A read that does not finish now reads as slow rather than as an outage. We recorded Repository changes changing from operational to a major outage at 2026-09-06T05:54:17.523Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-09-05:agent-runs:1788595590458</id>
-    <title>Agent runs is now operational</title>
-    <updated>2026-09-05T08:06:30.458Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Agent runs changed from not measured to operational at 2026-09-05T08:06:30.458Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-09-05:in-app-notifications:1788595590458</id>
-    <title>Notifications in the product is now operational</title>
-    <updated>2026-09-05T08:06:30.458Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Notifications in the product changed from not measured to operational at 2026-09-05T08:06:30.458Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-09-05:independent-verification:1788595590458</id>
-    <title>Independent verification is now operational</title>
-    <updated>2026-09-05T08:06:30.458Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Independent verification changed from not measured to operational at 2026-09-05T08:06:30.458Z.</content>
   </entry>
 </feed>
