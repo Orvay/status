@@ -5,7 +5,63 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-07T08:00:48.909Z</updated>
+  <updated>2026-10-07T08:30:11.206Z</updated>
+  <entry>
+    <id>tag:status,2026-10-07:sign-in:1791361811206</id>
+    <title>Sign in is now operational</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:directory-sync:1791361811206</id>
+    <title>Directory sync is now operational</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Directory sync changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:agent-runs:1791361811206</id>
+    <title>Agent runs is now degraded</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Agent runs changed from operational to degraded at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:scheduled-work:1791361811206</id>
+    <title>Scheduled work is now degraded</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Scheduled work changed from operational to degraded at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:checkout-and-billing:1791361811206</id>
+    <title>Checkout and billing is now degraded</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Checkout and billing changed from operational to degraded at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:inbound-mail:1791361811206</id>
+    <title>Mail sent to your company is now operational</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Mail sent to your company changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:voice-mode:1791361811206</id>
+    <title>Voice mode is now operational</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:repository-changes:1791361811206</id>
+    <title>Repository changes is now operational</title>
+    <updated>2026-10-07T08:30:11.206Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Repository changes changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-07:sign-in:1791360048909</id>
     <title>Sign in is now degraded</title>
@@ -1349,54 +1405,5 @@
     <updated>2026-08-20T16:05:53.270Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Public website changed from a partial outage to operational at 2026-08-20T16:05:53.270Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-20:marketing-site:1787241384373</id>
-    <title>Public website: a fault in our own checking, not in the service</title>
-    <updated>2026-08-20T15:56:24.373Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Our check looked for a sentence that had since been rewritten. The page was serving normally throughout. The check now reads page structure instead of copy. We recorded Public website changing from operational to a partial outage at 2026-08-20T15:56:24.373Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-20:control-plane:1787232442801</id>
-    <title>Company control plane is now operational</title>
-    <updated>2026-08-20T13:27:22.801Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Company control plane changed from degraded to operational at 2026-08-20T13:27:22.801Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-20:control-plane:1787228927904</id>
-    <title>Company control plane is now degraded</title>
-    <updated>2026-08-20T12:28:47.904Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Company control plane changed from operational to degraded at 2026-08-20T12:28:47.904Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-20:tenant-sites:1787200642170</id>
-    <title>Published websites is now operational</title>
-    <updated>2026-08-20T04:37:22.170Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Published websites changed from unknown, because we could not measure it to operational at 2026-08-20T04:37:22.170Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-19:tenant-sites:1787115591437</id>
-    <title>Published websites: a fault in our own checking, not in the service</title>
-    <updated>2026-08-19T04:59:51.437Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">The same bot filter, once the check learned to recognise it. This records our check becoming honest about being blocked, not a change in the service. We recorded Published websites changing from a partial outage to unknown, because we could not measure it at 2026-08-19T04:59:51.437Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-19:tenant-sites:1787115089486</id>
-    <title>Published websites: a fault in our own checking, not in the service</title>
-    <updated>2026-08-19T04:51:29.486Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">A bot filter in front of the sites blocked our check, and it graded being blocked as the sites being broken. Every published website was serving normally. We recorded Published websites changing from operational to a partial outage at 2026-08-19T04:51:29.486Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-18:website-studio:1787087533380</id>
-    <title>Website studio: a fault in our own checking, not in the service</title>
-    <updated>2026-08-18T21:12:13.380Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Our check was wrong, not the studio. It expected the page to turn a signed-out visitor away, and the page was right to serve one. Fixed the same day. We recorded Website studio changing from a partial outage to operational at 2026-08-18T21:12:13.380Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
   </entry>
 </feed>

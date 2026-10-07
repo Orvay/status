@@ -2,6 +2,62 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791361811206,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791361811206,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791361811206,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791361811206,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791361811206,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791361811206,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791361811206,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791361811206,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791360048909,
       "component": "sign-in",
       "label": "Sign in",
