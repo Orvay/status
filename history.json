@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791388813374,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791388813374,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791388813374,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791388813374,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791388813374,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791388813374,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791387013793,
       "component": "email-notifications",
       "label": "Email notifications",
