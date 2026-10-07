@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791387013793,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791387013793,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791385213795,
       "component": "directory-sync",
       "label": "Directory sync",
