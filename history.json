@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791381616118,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791381616118,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791381616118,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791381616118,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791381616118,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791381616118,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791379810912,
       "component": "in-app-notifications",
       "label": "Notifications in the product",
