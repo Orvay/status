@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791364458650,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791364458650,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791364458650,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791364458650,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791364458650,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791363611899,
       "component": "website-studio",
       "label": "Site builder",

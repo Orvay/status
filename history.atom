@@ -5,7 +5,42 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-07T09:00:11.899Z</updated>
+  <updated>2026-10-07T09:14:18.650Z</updated>
+  <entry>
+    <id>tag:status,2026-10-07:sign-in:1791364458650</id>
+    <title>Sign in is now degraded</title>
+    <updated>2026-10-07T09:14:18.650Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from operational to degraded at 2026-10-07T09:14:18.650Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:directory-sync:1791364458650</id>
+    <title>Directory sync is now degraded</title>
+    <updated>2026-10-07T09:14:18.650Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Directory sync changed from operational to degraded at 2026-10-07T09:14:18.650Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:website-studio:1791364458650</id>
+    <title>Site builder is now operational</title>
+    <updated>2026-10-07T09:14:18.650Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Site builder changed from degraded to operational at 2026-10-07T09:14:18.650Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:inbound-mail:1791364458650</id>
+    <title>Mail sent to your company is now degraded</title>
+    <updated>2026-10-07T09:14:18.650Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Mail sent to your company changed from operational to degraded at 2026-10-07T09:14:18.650Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-07:voice-mode:1791364458650</id>
+    <title>Voice mode is now degraded</title>
+    <updated>2026-10-07T09:14:18.650Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from operational to degraded at 2026-10-07T09:14:18.650Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-07:website-studio:1791363611899</id>
     <title>Site builder is now degraded</title>
@@ -1370,40 +1405,5 @@
     <updated>2026-09-05T08:06:30.458Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Connected mailbox changed from not measured to operational at 2026-09-05T08:06:30.458Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-09-05:repository-changes:1788595590458</id>
-    <title>Repository changes is now operational</title>
-    <updated>2026-09-05T08:06:30.458Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Repository changes changed from not measured to operational at 2026-09-05T08:06:30.458Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-30:voice-mode:1788093670073</id>
-    <title>Voice mode is now operational</title>
-    <updated>2026-08-30T12:41:10.073Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Voice mode changed from not measured to operational at 2026-08-30T12:41:10.073Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-22:email-notifications:1787398980908</id>
-    <title>Email notifications is now operational</title>
-    <updated>2026-08-22T11:43:00.908Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Email notifications changed from not measured to operational at 2026-08-22T11:43:00.908Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-21:control-plane:1787345473163</id>
-    <title>Company control plane is now operational</title>
-    <updated>2026-08-21T20:51:13.163Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Company control plane changed from a partial outage to operational at 2026-08-21T20:51:13.163Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-21:control-plane:1787338403574</id>
-    <title>Company control plane: a fault in our own checking, not in the service</title>
-    <updated>2026-08-21T18:53:23.574Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Our check was wrong, not the app. The app improved how it turns signed-out visitors away, and the check was still looking for the old behaviour. Fixed the same day. We recorded Company control plane changing from operational to a partial outage at 2026-08-21T18:53:23.574Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
   </entry>
 </feed>
