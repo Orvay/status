@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791372611124,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791372611124,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791372611124,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791372611124,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791372611124,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791372611124,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791370811633,
       "component": "evidence-archive",
       "label": "Evidence archive",
