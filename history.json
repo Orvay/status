@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791379810912,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791379810912,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791379810912,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791378017662,
       "component": "evidence-archive",
       "label": "Evidence archive",
