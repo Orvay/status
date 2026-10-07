@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791406812571,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791406812571,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791406812571,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791406812571,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791406812571,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791406812571,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791405011000,
       "component": "sign-in",
       "label": "Sign in",
