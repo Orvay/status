@@ -5,7 +5,14 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-07T08:30:11.206Z</updated>
+  <updated>2026-10-07T09:00:11.899Z</updated>
+  <entry>
+    <id>tag:status,2026-10-07:website-studio:1791363611899</id>
+    <title>Site builder is now degraded</title>
+    <updated>2026-10-07T09:00:11.899Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Site builder changed from operational to degraded at 2026-10-07T09:00:11.899Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-07:sign-in:1791361811206</id>
     <title>Sign in is now operational</title>
@@ -1398,12 +1405,5 @@
     <updated>2026-08-21T18:53:23.574Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Our check was wrong, not the app. The app improved how it turns signed-out visitors away, and the check was still looking for the old behaviour. Fixed the same day. We recorded Company control plane changing from operational to a partial outage at 2026-08-21T18:53:23.574Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-08-20:marketing-site:1787241953270</id>
-    <title>Public website is now operational</title>
-    <updated>2026-08-20T16:05:53.270Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Public website changed from a partial outage to operational at 2026-08-20T16:05:53.270Z.</content>
   </entry>
 </feed>
