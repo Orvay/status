@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791374411958,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791374411958,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791374411958,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791372611124,
       "component": "in-app-notifications",
       "label": "Notifications in the product",
