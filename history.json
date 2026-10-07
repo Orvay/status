@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791358212939,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791358212939,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791358212939,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791358212939,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791358212939,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791356414049,
       "component": "sign-in",
       "label": "Sign in",
