@@ -2,6 +2,55 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791356414049,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791356414049,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791356414049,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791356414049,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791356414049,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791356414049,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791356414049,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791354650018,
       "component": "directory-sync",
       "label": "Directory sync",
