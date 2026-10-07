@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791401410949,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791401410949,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791401410949,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791399613522,
       "component": "agent-runs",
       "label": "Agent runs",
