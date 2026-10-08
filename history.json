@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791468013008,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791468013008,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791468013008,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791468013008,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791464414988,
       "component": "sign-in",
       "label": "Sign in",
