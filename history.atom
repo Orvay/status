@@ -5,7 +5,35 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-08T12:30:15.142Z</updated>
+  <updated>2026-10-08T13:00:14.988Z</updated>
+  <entry>
+    <id>tag:status,2026-10-08:sign-in:1791464414988</id>
+    <title>Sign in is now degraded</title>
+    <updated>2026-10-08T13:00:14.988Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from operational to degraded at 2026-10-08T13:00:14.988Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-08:control-plane:1791464414988</id>
+    <title>Company control plane is now degraded</title>
+    <updated>2026-10-08T13:00:14.988Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from operational to degraded at 2026-10-08T13:00:14.988Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-08:voice-mode:1791464414988</id>
+    <title>Voice mode is now degraded</title>
+    <updated>2026-10-08T13:00:14.988Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from operational to degraded at 2026-10-08T13:00:14.988Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-08:repository-changes:1791464414988</id>
+    <title>Repository changes is now operational</title>
+    <updated>2026-10-08T13:00:14.988Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Repository changes changed from degraded to operational at 2026-10-08T13:00:14.988Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-08:repository-changes:1791462615142</id>
     <title>Repository changes is now degraded</title>
@@ -1377,33 +1405,5 @@
     <updated>2026-10-06T17:30:21.161Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Directory sync changed from degraded to operational at 2026-10-06T17:30:21.161Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-06:in-app-notifications:1791307821161</id>
-    <title>Notifications in the product is now operational</title>
-    <updated>2026-10-06T17:30:21.161Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Notifications in the product changed from degraded to operational at 2026-10-06T17:30:21.161Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-06:independent-verification:1791307821161</id>
-    <title>Independent verification is now operational</title>
-    <updated>2026-10-06T17:30:21.161Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Independent verification changed from degraded to operational at 2026-10-06T17:30:21.161Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-06:webhook-delivery:1791307821161</id>
-    <title>Webhook delivery is now operational</title>
-    <updated>2026-10-06T17:30:21.161Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Webhook delivery changed from degraded to operational at 2026-10-06T17:30:21.161Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-06:checkout-and-billing:1791307821161</id>
-    <title>Checkout and billing is now operational</title>
-    <updated>2026-10-06T17:30:21.161Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Checkout and billing changed from degraded to operational at 2026-10-06T17:30:21.161Z.</content>
   </entry>
 </feed>
