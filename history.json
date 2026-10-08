@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791477013613,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791477013613,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791475234140,
       "component": "mailbox",
       "label": "Connected mailbox",

@@ -5,7 +5,21 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-08T16:00:34.140Z</updated>
+  <updated>2026-10-08T16:30:13.613Z</updated>
+  <entry>
+    <id>tag:status,2026-10-08:directory-sync:1791477013613</id>
+    <title>Directory sync is now degraded</title>
+    <updated>2026-10-08T16:30:13.613Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Directory sync changed from operational to degraded at 2026-10-08T16:30:13.613Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-08:mailbox:1791477013613</id>
+    <title>Connected mailbox is now operational</title>
+    <updated>2026-10-08T16:30:13.613Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Connected mailbox changed from degraded to operational at 2026-10-08T16:30:13.613Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-08:mailbox:1791475234140</id>
     <title>Connected mailbox is now degraded</title>
@@ -1391,19 +1405,5 @@
     <updated>2026-10-06T19:00:12.651Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Sign in changed from degraded to operational at 2026-10-06T19:00:12.651Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-06:control-plane:1791313212651</id>
-    <title>Company control plane is now degraded</title>
-    <updated>2026-10-06T19:00:12.651Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Company control plane changed from operational to degraded at 2026-10-06T19:00:12.651Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-06:in-app-notifications:1791313212651</id>
-    <title>Notifications in the product is now degraded</title>
-    <updated>2026-10-06T19:00:12.651Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Notifications in the product changed from operational to degraded at 2026-10-06T19:00:12.651Z.</content>
   </entry>
 </feed>
