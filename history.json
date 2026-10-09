@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791536415047,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791536415047,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791534611530,
       "component": "evidence-archive",
       "label": "Evidence archive",
