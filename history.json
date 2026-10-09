@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791574215681,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791574215681,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791574215681,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791572411539,
       "component": "inbound-mail",
       "label": "Mail sent to your company",
