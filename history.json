@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791558012429,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791558012429,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791558012429,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791556216706,
       "component": "sign-in",
       "label": "Sign in",
