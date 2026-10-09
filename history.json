@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791577812124,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791577812124,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791577812124,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791577812124,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791576009927,
       "component": "sign-in",
       "label": "Sign in",

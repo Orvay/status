@@ -5,7 +5,35 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-09T20:00:09.927Z</updated>
+  <updated>2026-10-09T20:30:12.124Z</updated>
+  <entry>
+    <id>tag:status,2026-10-09:sign-in:1791577812124</id>
+    <title>Sign in is now operational</title>
+    <updated>2026-10-09T20:30:12.124Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from degraded to operational at 2026-10-09T20:30:12.124Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-09:control-plane:1791577812124</id>
+    <title>Company control plane is now degraded</title>
+    <updated>2026-10-09T20:30:12.124Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from operational to degraded at 2026-10-09T20:30:12.124Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-09:scheduled-work:1791577812124</id>
+    <title>Scheduled work is now operational</title>
+    <updated>2026-10-09T20:30:12.124Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Scheduled work changed from degraded to operational at 2026-10-09T20:30:12.124Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-09:voice-mode:1791577812124</id>
+    <title>Voice mode is now operational</title>
+    <updated>2026-10-09T20:30:12.124Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from degraded to operational at 2026-10-09T20:30:12.124Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-09:sign-in:1791576009927</id>
     <title>Sign in is now degraded</title>
@@ -1377,33 +1405,5 @@
     <updated>2026-10-07T09:00:11.899Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Site builder changed from operational to degraded at 2026-10-07T09:00:11.899Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:sign-in:1791361811206</id>
-    <title>Sign in is now operational</title>
-    <updated>2026-10-07T08:30:11.206Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Sign in changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:directory-sync:1791361811206</id>
-    <title>Directory sync is now operational</title>
-    <updated>2026-10-07T08:30:11.206Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Directory sync changed from degraded to operational at 2026-10-07T08:30:11.206Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:agent-runs:1791361811206</id>
-    <title>Agent runs is now degraded</title>
-    <updated>2026-10-07T08:30:11.206Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Agent runs changed from operational to degraded at 2026-10-07T08:30:11.206Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:scheduled-work:1791361811206</id>
-    <title>Scheduled work is now degraded</title>
-    <updated>2026-10-07T08:30:11.206Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Scheduled work changed from operational to degraded at 2026-10-07T08:30:11.206Z.</content>
   </entry>
 </feed>
