@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791545412090,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791545412090,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791545412090,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791543614862,
       "component": "scheduled-work",
       "label": "Scheduled work",
