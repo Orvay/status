@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791547213315,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791547213315,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791547213315,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791547213315,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791545412090,
       "component": "sign-in",
       "label": "Sign in",
