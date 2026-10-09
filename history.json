@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791531011409,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791531011409,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791531011409,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791529210170,
       "component": "sign-in",
       "label": "Sign in",
