@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791631812395,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791631812395,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791631812395,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791631812395,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791631812395,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791630011868,
       "component": "agent-runs",
       "label": "Agent runs",
