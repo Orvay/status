@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791630011868,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791630011868,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791630011868,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791628211169,
       "component": "control-plane",
       "label": "Company control plane",
