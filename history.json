@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791659030600,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791659030600,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791659030600,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791658811120,
       "component": "agent-runs",
       "label": "Agent runs",
