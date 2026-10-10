@@ -2,6 +2,62 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791653411222,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791653411222,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791653411222,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791653411222,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791653411222,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791653411222,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791653411222,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791653411222,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791651611223,
       "component": "control-plane",
       "label": "Company control plane",
