@@ -5,7 +5,21 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-10T15:00:12.490Z</updated>
+  <updated>2026-10-10T15:30:10.429Z</updated>
+  <entry>
+    <id>tag:status,2026-10-10:checkout-and-billing:1791646210429</id>
+    <title>Checkout and billing is now degraded</title>
+    <updated>2026-10-10T15:30:10.429Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Checkout and billing changed from operational to degraded at 2026-10-10T15:30:10.429Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-10:mailbox:1791646210429</id>
+    <title>Connected mailbox is now degraded</title>
+    <updated>2026-10-10T15:30:10.429Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Connected mailbox changed from operational to degraded at 2026-10-10T15:30:10.429Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-10:sign-in:1791644412490</id>
     <title>Sign in is now degraded</title>
@@ -1391,19 +1405,5 @@
     <updated>2026-10-07T16:29:56.288Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Repository changes changed from degraded to operational at 2026-10-07T16:29:56.288Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:directory-sync:1791388813374</id>
-    <title>Directory sync is now operational</title>
-    <updated>2026-10-07T16:00:13.374Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Directory sync changed from degraded to operational at 2026-10-07T16:00:13.374Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:control-plane:1791388813374</id>
-    <title>Company control plane is now degraded</title>
-    <updated>2026-10-07T16:00:13.374Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Company control plane changed from operational to degraded at 2026-10-07T16:00:13.374Z.</content>
   </entry>
 </feed>
