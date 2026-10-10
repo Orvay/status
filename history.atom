@@ -5,7 +5,21 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-10T14:30:13.704Z</updated>
+  <updated>2026-10-10T15:00:12.490Z</updated>
+  <entry>
+    <id>tag:status,2026-10-10:sign-in:1791644412490</id>
+    <title>Sign in is now degraded</title>
+    <updated>2026-10-10T15:00:12.490Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from operational to degraded at 2026-10-10T15:00:12.490Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-10:voice-mode:1791644412490</id>
+    <title>Voice mode is now degraded</title>
+    <updated>2026-10-10T15:00:12.490Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from operational to degraded at 2026-10-10T15:00:12.490Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-10:directory-sync:1791642613704</id>
     <title>Directory sync is now operational</title>
@@ -1391,19 +1405,5 @@
     <updated>2026-10-07T16:00:13.374Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Company control plane changed from operational to degraded at 2026-10-07T16:00:13.374Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:independent-verification:1791388813374</id>
-    <title>Independent verification is now operational</title>
-    <updated>2026-10-07T16:00:13.374Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Independent verification changed from degraded to operational at 2026-10-07T16:00:13.374Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:webhook-delivery:1791388813374</id>
-    <title>Webhook delivery is now degraded</title>
-    <updated>2026-10-07T16:00:13.374Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Webhook delivery changed from operational to degraded at 2026-10-07T16:00:13.374Z.</content>
   </entry>
 </feed>
