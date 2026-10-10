@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791639011760,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791639011760,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791639011760,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791637210586,
       "component": "sign-in",
       "label": "Sign in",
