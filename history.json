@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791655211514,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791655211514,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791655211514,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791655211514,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791653411222,
       "component": "sign-in",
       "label": "Sign in",
