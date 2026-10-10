@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791666011661,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791666011661,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791666011661,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791666011661,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791662412372,
       "component": "independent-verification",
       "label": "Independent verification",
