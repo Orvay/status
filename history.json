@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791658811120,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791658811120,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791657010710,
       "component": "agent-runs",
       "label": "Agent runs",

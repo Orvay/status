@@ -5,7 +5,21 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-10T18:30:10.710Z</updated>
+  <updated>2026-10-10T19:00:11.120Z</updated>
+  <entry>
+    <id>tag:status,2026-10-10:agent-runs:1791658811120</id>
+    <title>Agent runs is now operational</title>
+    <updated>2026-10-10T19:00:11.120Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Agent runs changed from degraded to operational at 2026-10-10T19:00:11.120Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-10:checkout-and-billing:1791658811120</id>
+    <title>Checkout and billing is now degraded</title>
+    <updated>2026-10-10T19:00:11.120Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Checkout and billing changed from operational to degraded at 2026-10-10T19:00:11.120Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-10:agent-runs:1791657010710</id>
     <title>Agent runs is now degraded</title>
@@ -1391,19 +1405,5 @@
     <updated>2026-10-07T21:00:12.571Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Repository changes changed from operational to degraded at 2026-10-07T21:00:12.571Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:sign-in:1791405011000</id>
-    <title>Sign in is now degraded</title>
-    <updated>2026-10-07T20:30:11.000Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Sign in changed from operational to degraded at 2026-10-07T20:30:11.000Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-07:directory-sync:1791405011000</id>
-    <title>Directory sync is now operational</title>
-    <updated>2026-10-07T20:30:11.000Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Directory sync changed from degraded to operational at 2026-10-07T20:30:11.000Z.</content>
   </entry>
 </feed>
