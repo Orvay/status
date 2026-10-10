@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791624611189,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791624611189,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791624611189,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791622810821,
       "component": "sign-in",
       "label": "Sign in",
