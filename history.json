@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791754211968,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791754211968,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791754211968,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791754211968,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791752412082,
       "component": "checkout-and-billing",
       "label": "Checkout and billing",
