@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791736210056,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791736210056,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791736210056,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791734410506,
       "component": "control-plane",
       "label": "Company control plane",
