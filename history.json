@@ -2,6 +2,55 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791721810200,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791721810200,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791721810200,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791721810200,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791721810200,
+      "component": "evidence-archive",
+      "label": "Evidence archive",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791721810200,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791721810200,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791720011487,
       "component": "in-app-notifications",
       "label": "Notifications in the product",
