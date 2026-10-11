@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791734410506,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791734410506,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791734410506,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791732611694,
       "component": "directory-sync",
       "label": "Directory sync",
