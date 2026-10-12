@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791788414399,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791788414399,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791788414399,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791786613558,
       "component": "control-plane",
       "label": "Company control plane",
