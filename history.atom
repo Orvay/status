@@ -5,7 +5,21 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-11T22:00:13.323Z</updated>
+  <updated>2026-10-12T06:30:13.558Z</updated>
+  <entry>
+    <id>tag:status,2026-10-12:control-plane:1791786613558</id>
+    <title>Company control plane is now degraded</title>
+    <updated>2026-10-12T06:30:13.558Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from operational to degraded at 2026-10-12T06:30:13.558Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-12:checkout-and-billing:1791786613558</id>
+    <title>Checkout and billing is now degraded</title>
+    <updated>2026-10-12T06:30:13.558Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Checkout and billing changed from operational to degraded at 2026-10-12T06:30:13.558Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-11:sign-in:1791756013323</id>
     <title>Sign in is now operational</title>
@@ -1391,19 +1405,5 @@
     <updated>2026-10-09T18:00:14.997Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Checkout and billing changed from degraded to operational at 2026-10-09T18:00:14.997Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-09:evidence-archive:1791567011599</id>
-    <title>Evidence archive is now degraded</title>
-    <updated>2026-10-09T17:30:11.599Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Evidence archive changed from operational to degraded at 2026-10-09T17:30:11.599Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-09:checkout-and-billing:1791565211900</id>
-    <title>Checkout and billing is now degraded</title>
-    <updated>2026-10-09T17:00:11.900Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Checkout and billing changed from operational to degraded at 2026-10-09T17:00:11.900Z.</content>
   </entry>
 </feed>
