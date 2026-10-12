@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791806412854,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791806412854,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791804610836,
       "component": "sign-in",
       "label": "Sign in",
