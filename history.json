@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791817211370,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791817211370,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791817211370,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791811814503,
       "component": "sign-in",
       "label": "Sign in",
