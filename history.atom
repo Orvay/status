@@ -5,7 +5,35 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-13T07:30:15.337Z</updated>
+  <updated>2026-10-13T08:00:10.959Z</updated>
+  <entry>
+    <id>tag:status,2026-10-13:control-plane:1791878410959</id>
+    <title>Company control plane is now degraded</title>
+    <updated>2026-10-13T08:00:10.959Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from operational to degraded at 2026-10-13T08:00:10.959Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-13:website-studio:1791878410959</id>
+    <title>Site builder is now degraded</title>
+    <updated>2026-10-13T08:00:10.959Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Site builder changed from operational to degraded at 2026-10-13T08:00:10.959Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-13:checkout-and-billing:1791878410959</id>
+    <title>Checkout and billing is now operational</title>
+    <updated>2026-10-13T08:00:10.959Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Checkout and billing changed from degraded to operational at 2026-10-13T08:00:10.959Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-13:repository-changes:1791878410959</id>
+    <title>Repository changes is now operational</title>
+    <updated>2026-10-13T08:00:10.959Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Repository changes changed from degraded to operational at 2026-10-13T08:00:10.959Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-13:agent-runs:1791876615337</id>
     <title>Agent runs is now operational</title>
@@ -1377,33 +1405,5 @@
     <updated>2026-10-10T17:00:11.223Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Mail sent to your company changed from operational to degraded at 2026-10-10T17:00:11.223Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-10:repository-changes:1791651611223</id>
-    <title>Repository changes is now degraded</title>
-    <updated>2026-10-10T17:00:11.223Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Repository changes changed from operational to degraded at 2026-10-10T17:00:11.223Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-10:directory-sync:1791649813658</id>
-    <title>Directory sync is now degraded</title>
-    <updated>2026-10-10T16:30:13.658Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Directory sync changed from operational to degraded at 2026-10-10T16:30:13.658Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-10:sign-in:1791648013678</id>
-    <title>Sign in is now operational</title>
-    <updated>2026-10-10T16:00:13.678Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Sign in changed from degraded to operational at 2026-10-10T16:00:13.678Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-10:agent-runs:1791648013678</id>
-    <title>Agent runs is now degraded</title>
-    <updated>2026-10-10T16:00:13.678Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Agent runs changed from operational to degraded at 2026-10-10T16:00:13.678Z.</content>
   </entry>
 </feed>
