@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791901818975,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791901818975,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791900014496,
       "component": "in-app-notifications",
       "label": "Notifications in the product",
