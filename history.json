@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791909012192,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791909012192,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791909012192,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791909012192,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791909012192,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791907210625,
       "component": "control-plane",
       "label": "Company control plane",
