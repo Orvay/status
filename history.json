@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791876615337,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791876615337,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791876615337,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791876615337,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791874814741,
       "component": "sign-in",
       "label": "Sign in",
