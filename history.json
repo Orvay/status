@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791905413614,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791905413614,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791905413614,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791903615495,
       "component": "in-app-notifications",
       "label": "Notifications in the product",
