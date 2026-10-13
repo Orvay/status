@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791923413226,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791923413226,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791923413226,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791923413226,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791921612299,
       "component": "scheduled-work",
       "label": "Scheduled work",
