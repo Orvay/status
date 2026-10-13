@@ -2,6 +2,20 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791898211679,
+      "component": "in-app-notifications",
+      "label": "Notifications in the product",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791898211679,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1791896412896,
       "component": "evidence-archive",
       "label": "Evidence archive",
