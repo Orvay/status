@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791970211372,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1791970211372,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791970211372,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791968411457,
       "component": "checkout-and-billing",
       "label": "Checkout and billing",
