@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1791943215872,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791943215872,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1791943215872,
+      "component": "inbound-mail",
+      "label": "Mail sent to your company",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1791941752302,
       "component": "in-app-notifications",
       "label": "Notifications in the product",
