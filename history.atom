@@ -5,7 +5,28 @@
   <id>https://status.orvayos.com/</id>
   <link rel="self" href="https://status.orvayos.com/history.atom"/>
   <link rel="alternate" href="https://status.orvayos.com/"/>
-  <updated>2026-10-14T14:00:10.884Z</updated>
+  <updated>2026-10-14T14:30:12.521Z</updated>
+  <entry>
+    <id>tag:status,2026-10-14:sign-in:1791988212521</id>
+    <title>Sign in is now degraded</title>
+    <updated>2026-10-14T14:30:12.521Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from operational to degraded at 2026-10-14T14:30:12.521Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-14:control-plane:1791988212521</id>
+    <title>Company control plane is now operational</title>
+    <updated>2026-10-14T14:30:12.521Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Company control plane changed from degraded to operational at 2026-10-14T14:30:12.521Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-10-14:voice-mode:1791988212521</id>
+    <title>Voice mode is now degraded</title>
+    <updated>2026-10-14T14:30:12.521Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from operational to degraded at 2026-10-14T14:30:12.521Z.</content>
+  </entry>
   <entry>
     <id>tag:status,2026-10-14:control-plane:1791986410884</id>
     <title>Company control plane is now degraded</title>
@@ -1384,26 +1405,5 @@
     <updated>2026-10-12T15:00:11.370Z</updated>
     <link rel="alternate" href="https://status.orvayos.com/"/>
     <content type="text">Connected mailbox changed from operational to degraded at 2026-10-12T15:00:11.370Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-12:repository-changes:1791817211370</id>
-    <title>Repository changes is now degraded</title>
-    <updated>2026-10-12T15:00:11.370Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Repository changes changed from operational to degraded at 2026-10-12T15:00:11.370Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-12:sign-in:1791811814503</id>
-    <title>Sign in is now operational</title>
-    <updated>2026-10-12T13:30:14.503Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Sign in changed from degraded to operational at 2026-10-12T13:30:14.503Z.</content>
-  </entry>
-  <entry>
-    <id>tag:status,2026-10-12:scheduled-work:1791811814503</id>
-    <title>Scheduled work is now operational</title>
-    <updated>2026-10-12T13:30:14.503Z</updated>
-    <link rel="alternate" href="https://status.orvayos.com/"/>
-    <content type="text">Scheduled work changed from degraded to operational at 2026-10-12T13:30:14.503Z.</content>
   </entry>
 </feed>
