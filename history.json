@@ -2,6 +2,55 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1792090813644,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792090813644,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792090813644,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792090813644,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792090813644,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792090813644,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792090813644,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1792089013220,
       "component": "website-studio",
       "label": "Site builder",
