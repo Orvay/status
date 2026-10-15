@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1792071014042,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792071014042,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792071014042,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1792069212564,
       "component": "webhook-delivery",
       "label": "Webhook delivery",
