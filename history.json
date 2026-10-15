@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1792094416906,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792094416906,
+      "component": "control-plane",
+      "label": "Company control plane",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792094416906,
+      "component": "scheduled-work",
+      "label": "Scheduled work",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792094416906,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792094416906,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1792092614045,
       "component": "agent-runs",
       "label": "Agent runs",
