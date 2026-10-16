@@ -276,6 +276,19 @@
   --o-ink-solid-dark: oklch(0.170 0.008 260);
   --o-ink-solid-light: oklch(0.985 0.004 260);
 
+  /* A SYMBOL A CAMERA READS: dark modules on a light tile, in every theme.
+
+     Declared once, here, and absent from both dark blocks, so it cannot invert.
+     A QR code drawn in the dark theme's light-on-dark would be the inverse of
+     what the standard specifies, and a large share of authenticator scanners
+     never try the inverse: the enrolment code would fail silently on exactly
+     the readers who chose a dark screen. The pair is the solid inks above,
+     about 17:1, far past what any scanner needs. Theme-invariant for the same
+     reason as the night scene: the thing being drawn is a picture of a printed
+     symbol, not a surface of this product. */
+  --scan-tile: var(--o-ink-solid-light);
+  --scan-ink: var(--o-ink-solid-dark);
+
   /* ---- Weight ramp: off the CSS keyword ladder (§4.1), and capped ----
 
      Off the ladder so that `font-weight: bold` can never be reached for by
