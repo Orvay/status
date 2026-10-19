@@ -521,6 +521,22 @@
   --o-dur-considered: 240ms;
   --o-ease-standard: cubic-bezier(0.32, 0.08, 0.24, 1);
 
+  /* THE SIGN-IN SURFACE'S FOCUS RING ARRIVES, IT DOES NOT APPEAR (the operator,
+     2026-10-16: "smoother and not so instantly and flashy"). The product ring
+     fades over --o-dur-quick on --o-ease-standard, a curve that holds back and
+     then snaps, so on a field whose ring sits INSIDE its 1px hairline
+     (--field-focus-offset: -2px) the blue reads as a 2px frame landing at once.
+     This is a quick start and a long settle. Read only by apps/app/src/app/auth.css.
+
+     DECLARED HERE, ABOVE THE REDUCED-MOTION BLOCK, AND THAT IS THE WHOLE POINT.
+     The first version sat with the auth family at the end of the file, a :root
+     rule of equal specificity AFTER the media block, so it beat the block's zero
+     and a reader who asked for less motion still got the 260ms fade. Review,
+     2026-10-16; `tokens.test.ts` now asserts no zeroed duration is declared
+     again below the block. */
+  --o-dur-auth-focus: 260ms;
+  --o-ease-auth-focus: cubic-bezier(0.22, 1, 0.36, 1);
+
   /* AMBIENT: a cycle that repeats for as long as a state lasts, rather than a
      transition between two states.
 
@@ -548,6 +564,23 @@
      click is waiting on. An exit may accelerate away, because nobody is waiting
      for a thing that has already left. */
   --o-ease-exit: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* THE LIGHT'S OWN PACE, and the step's (2026-10-17, docs/design/app-design.md
+     §4). The light rising as setup progresses is the one thing on a screen that
+     is not the reader's, so it moves slowly and only upward: 900ms on an expo
+     out that arrives early and settles long. A step changing is the reader's
+     move and answers faster. Both are tokens so the reduced-motion block below
+     can zero them; a literal in a component would escape it. */
+  --o-dur-unveil: 900ms;
+  --o-ease-unveil: cubic-bezier(0.16, 1, 0.3, 1);
+  --o-dur-step: 420ms;
+  /* THE ONE OVERSHOOT, and only for a confirmation: a mark arriving because a
+     person chose something (a check filling its ring). docs/plan/26 §2 says the
+     SITE has no overshoot and that still stands; the app may differ (§9e) and
+     spends it on 12px of glyph, never on a panel, a page or the light. */
+  --o-ease-confirm: cubic-bezier(0.34, 1.35, 0.64, 1);
+  /* Forward rises in from the right, Back from the left, by this much. */
+  --o-travel-step: 16px;
 
   /* Reveals travel 4px, not 24px, and run once.
      Measured: `whileInView opacity 0 -> 1, translateY(4px) -> 0`, 0.225s, 0.1s
@@ -1680,7 +1713,22 @@
      cold at the foot, the one place on the site where colour is spent as
      colour. Decorative by declaration: nothing reads on them, nothing is
      encoded by them, and pairing.test.ts makes no claim about them because
-     none is named as a fill or an ink. */
+     none is named as a fill or an ink.
+
+     THESE ARE THE ORVAY PALETTE, NAMED (2026-10-17). The operator fixed the
+     landing's colours as the brand's for every surface, the app included, and
+     published them on the brand page. The names are the brand's, the values
+     are here and nowhere else:
+
+       Paper    --v6-paper     Ember  --v6-heat-1   Seal  --v6-seal
+       Ink      --v6-ink       Flare  --v6-heat-2   Void  --v6-void
+       Graphite --v6-ink-2     Sun    --v6-heat-3   Blue  --v6-blue
+       Pewter   --v6-ink-3     Sky    --v6-heat-4
+       Hairline --v6-rule      Deep   --v6-heat-5
+
+     The five heat stops are THE LIGHT, the palette's one accent: always
+     blended, never one hue alone, never text, never a status, and only where
+     Orvay itself is at work. docs/design/app-design.md §2 is the brief. */
   --v6-heat-1: oklch(0.62 0.25 20);
   --v6-heat-2: oklch(0.72 0.19 50);
   --v6-heat-3: oklch(0.9 0.18 95);
@@ -1825,6 +1873,7 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     --o-loop-iterations: 0;
+    --o-dur-auth-focus: 0ms;
     --o-dur-instant: 0ms;
     --o-dur-quick: 0ms;
     --o-dur-considered: 0ms;
@@ -1832,12 +1881,15 @@
     --o-dur-enter: 0ms;
     --o-dur-exit: 0ms;
     --o-dur-reveal: 0ms;
+    --o-dur-unveil: 0ms;
+    --o-dur-step: 0ms;
     --o-stagger-unit: 0ms;
     /* The travel and the blur are stood down too. A 0ms transition on a 4px
        translate still paints the element 4px out of place on the first frame
        if the travel itself survives, and an enter blur with no duration is a
        permanently blurred element. */
     --o-travel-reveal: 0px;
+    --o-travel-step: 0px;
     /* A lean is movement even without a duration: a thumb that jumps 15% wider
        the instant a pointer arrives is exactly what somebody asking for stillness
        asked not to have. */
@@ -2663,6 +2715,94 @@
   /* The sign-in screen's framed panel: rounder than a sheet, because it is a
      window onto the landing rather than a surface of the product. */
   --app-auth-panel-radius: 20px;
+  /* Onboarding is one centred column (docs/design/app-design.md §7): a short
+     form on most steps, and the wider measure on the last, which holds the
+     tagline at display size and a two-column choice. */
+  --app-onboarding-measure: 24rem;
+  --app-onboarding-measure-wide: 40rem;
+  /* A row of choice tiles: wide enough for three, no wider; four for roles. */
+  --app-onboarding-measure-tiles: 33rem;
+  --app-onboarding-measure-roles: 40rem;
+  /* ONBOARDING'S MATERIAL (2026-10-17), measured from Lovable's own system and
+     redrawn in our neutrals: a quiet ground the light rises from, controls that
+     are lit from above (a highlight along the top edge, a shade along the
+     bottom, two soft drops), and one inverse pill for the decision. The light
+     values here; the night block below redefines every one. Literals live in
+     this file and nowhere else (CLAUDE.md §5). */
+  --app-onb-ground: oklch(0.968 0.002 260);
+  --app-onb-surface: color-mix(in oklab, var(--o-paper-sheet) 82%, transparent);
+  --app-onb-surface-solid: var(--o-paper-sheet);
+  --app-onb-edge: color-mix(in oklab, var(--o-paper-ink) 12%, transparent);
+  --app-onb-edge-strong: color-mix(in oklab, var(--o-paper-ink) 24%, transparent);
+  --app-onb-lift:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.9),
+    0 2px 2px -1px oklch(0 0 0 / 0.04),
+    0 4px 4px -2px oklch(0 0 0 / 0.03);
+  --app-onb-cta-top: oklch(0.34 0.006 260);
+  --app-onb-cta-bottom: oklch(0.13 0.006 260);
+  --app-onb-cta-ink: var(--o-paper-sheet);
+  --app-onb-cta-shadow:
+    inset 0 0 0 1px oklch(0 0 0),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.24),
+    inset 0 -1px 0 0 oklch(1 0 0 / 0.16),
+    0 2px 2px -1px oklch(0 0 0 / 0.12),
+    0 4px 4px -2px oklch(0 0 0 / 0.12);
+  --app-onb-track: color-mix(in oklab, var(--o-paper-ink) 6%, transparent);
+  --app-onb-track-shadow:
+    inset 0 2px 2px -1px oklch(0 0 0 / 0.04),
+    inset 0 4px 4px -2px oklch(0 0 0 / 0.04),
+    inset 0 0 0 1px oklch(0 0 0 / 0.08);
+  --app-onb-thumb: var(--o-paper-sheet);
+  --app-onb-thumb-shadow:
+    inset 0 0 0 1px oklch(1 0 0),
+    0 2px 2px -1px oklch(0 0 0 / 0.08),
+    0 4px 4px -2px oklch(0 0 0 / 0.05),
+    0 0 0 1px oklch(0 0 0 / 0.14);
+  --app-onb-ring: var(--o-paper-ink);
+  /* A choice tile, matched to Lovable's: a faint surface the ground shows
+     through and one hairline. Chosen: a sleek blue (a deeper one for the words,
+     4.5:1 on its own wash). Blue now marks links AND a chosen tile, by the
+     operator's choice (docs/design/app-design.md §2). */
+  --app-onb-tile: oklch(1 0 0 / 0.22);
+  --app-onb-tile-edge: oklch(0 0 0 / 0.16);
+  --app-onb-tile-edge-hover: oklch(0 0 0 / 0.2);
+  --app-onb-tile-hover: oklch(0 0 0 / 0.06);
+  --app-onb-select: oklch(0.58 0.19 264);
+  /* 0.42, not 0.45 (2026-10-18): on a phone the chosen tile's wash sits over the
+     glow, and the label measured 4.15:1 there. */
+  --app-onb-select-text: oklch(0.42 0.19 264);
+  /* The chosen tile's wash, from its top corner to its lower one. */
+  --app-onb-select-wash-a: color-mix(in oklab, var(--app-onb-select) 8%, transparent);
+  --app-onb-select-wash-b: color-mix(in oklab, var(--app-onb-select) 24%, transparent);
+  /* How strongly the hill shows behind onboarding: quieter than the landing's
+     (the operator: "not so hard"). */
+  /* How strongly the arch of light shows behind onboarding: the landing
+     hero's full colours, by day and at night. */
+  --app-onb-arch-strength: 1;
+  --app-onb-float:
+    0 12px 32px -12px oklch(0 0 0 / 0.18),
+    0 2px 6px -2px oklch(0 0 0 / 0.06);
+  /* The slider's thumb as glass: a lit gradient, a bright inner rim, a soft
+     shade along the bottom, and a drop. Lovable's switch, in our neutrals. */
+  --app-onb-glass: linear-gradient(180deg, oklch(1 0 0 / 0.96), oklch(1 0 0 / 0.78));
+  --app-onb-glass-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.9),
+    inset 0 -1px 1px oklch(0 0 0 / 0.05),
+    0 0 0 0.5px oklch(0 0 0 / 0.14),
+    0 1px 2px oklch(0 0 0 / 0.08),
+    0 4px 10px -4px oklch(0 0 0 / 0.16);
+  /* The two theme previews on the style step draw the OTHER theme as well as
+     this one, so they name both grounds rather than reading the live ones. */
+  --app-preview-light-ground: var(--o-paper-quiet);
+  --app-preview-light-panel: var(--o-paper-sheet);
+  --app-preview-light-line: var(--o-paper-component);
+  --app-preview-light-sheet: var(--o-paper-quiet);
+  --app-preview-light-ink: var(--o-paper-ink);
+  --app-preview-dark-ground: var(--o-night-component);
+  --app-preview-dark-panel: var(--o-night-sheet);
+  --app-preview-dark-line: var(--o-night-hover);
+  --app-preview-dark-sheet: var(--o-night-quiet);
+  --app-preview-dark-ink: var(--o-night-ink);
   --app-chat-measure: 46rem;
   --docs-card-radius: var(--o-radius-lg);
   --app-rail-bg: var(--bg-subtle);
@@ -2767,6 +2907,55 @@
    and a paper surface with no theme attribute is paper, which is the default
    the spec asks for. */
 [data-surface='paper'][data-theme='dark'] {
+  /* Onboarding's material at night: the ground near black so the light reads
+     the way it does on Lovable's, a white pill for the decision. */
+  --app-onb-ground: oklch(0.13 0.006 260);
+  --app-onb-surface: color-mix(in oklab, var(--o-night-quiet) 84%, transparent);
+  --app-onb-surface-solid: var(--o-night-quiet);
+  --app-onb-edge: color-mix(in oklab, var(--o-night-ink) 14%, transparent);
+  --app-onb-edge-strong: color-mix(in oklab, var(--o-night-ink) 28%, transparent);
+  --app-onb-lift:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.06),
+    0 2px 2px -1px oklch(0 0 0 / 0.2),
+    0 4px 4px -2px oklch(0 0 0 / 0.2);
+  --app-onb-cta-top: oklch(1 0 0);
+  --app-onb-cta-bottom: oklch(0.9 0.003 260);
+  --app-onb-cta-ink: var(--o-night-sheet);
+  --app-onb-cta-shadow:
+    inset 0 0 0 1px oklch(1 0 0),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.16),
+    0 2px 2px -1px oklch(0 0 0 / 0.24),
+    0 4px 4px -2px oklch(0 0 0 / 0.24);
+  --app-onb-track: color-mix(in oklab, var(--o-night-ink) 7%, transparent);
+  --app-onb-track-shadow:
+    inset 0 2px 2px -1px oklch(0 0 0 / 0.16),
+    inset 0 4px 4px -2px oklch(0 0 0 / 0.16),
+    inset 0 0 0 1px oklch(1 0 0 / 0.12);
+  --app-onb-thumb: var(--o-night-hover);
+  --app-onb-thumb-shadow:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.14),
+    0 2px 2px -1px oklch(0 0 0 / 0.3),
+    0 4px 4px -2px oklch(0 0 0 / 0.3),
+    0 0 0 1px oklch(1 0 0 / 0.1);
+  --app-onb-ring: var(--o-night-ink);
+  /* At night Lovable's tiles sit darker than the ground, and a chosen one is a
+     deep navy with a vivid blue edge and blue words (the operator compared
+     the two, 2026-10-18). */
+  --app-onb-tile: oklch(0 0 0 / 0.45);
+  --app-onb-tile-edge: oklch(1 0 0 / 0.13);
+  --app-onb-tile-edge-hover: oklch(1 0 0 / 0.2);
+  --app-onb-tile-hover: oklch(1 0 0 / 0.06);
+  --app-onb-select: oklch(0.58 0.2 266);
+  --app-onb-select-text: oklch(0.74 0.14 266);
+  --app-onb-select-wash-a: oklch(0.22 0.08 266 / 0.9);
+  --app-onb-select-wash-b: oklch(0.25 0.1 266 / 0.95);
+  --app-onb-arch-strength: 1;
+  --app-onb-float: 0 16px 40px -12px oklch(0 0 0 / 0.6);
+  --app-onb-glass: linear-gradient(180deg, oklch(1 0 0 / 0.17), oklch(1 0 0 / 0.07));
+  --app-onb-glass-shadow:
+    inset 0 0 0 1px oklch(1 0 0 / 0.16),
+    inset 0 1px 0 0 oklch(1 0 0 / 0.22),
+    0 2px 8px -2px oklch(0 0 0 / 0.5);
   color-scheme: dark;
 
   --bg-canvas: var(--o-night-sheet);
@@ -2892,6 +3081,164 @@
   --companion-body: var(--accent-solid);
   --companion-face: var(--accent-on-solid);
 
+}
+
+/* =============================================================================
+   THE AUTHENTICATION SURFACE — the sign-in pages, owned apart from the product.
+
+   The operator's decision, 2026-10-16: the sign-in screen is finished (it is the
+   template, docs/rules/design.md) and the product is about to be redesigned, so
+   the two must not share a palette. Until now the sign-in pages read the PAPER
+   scope above, which means a new ink, accent, radius or button fill chosen for
+   the product would have repainted the sign-in pages in the same commit, with
+   nobody looking at them.
+
+   SO THE AUTH SHELL STAMPS `data-surface="auth"` ON ITS OWN ROOT, and this scope
+   binds every Tier 2 token those pages consume to the auth family below. A
+   product redesign that rebinds paper, or moves a --o-paper-* value, leaves the
+   sign-in pages exactly where they are; changing them is a change made here, on
+   purpose, and screenshotted. `apps/app/src/app/auth.css` holds the rules.
+
+   THE VALUES START AS COPIES OF PAPER, and that is the point rather than a
+   duplication to tidy away later. On the day this was written the two surfaces
+   looked the same and were measured to (a computed-style snapshot of every
+   element on the six sign-in pages, before and after). They are copies so that
+   they can stop being the same. Every ratio quoted for paper holds here,
+   because every value is the paper value; the paper notes above are the
+   measurements.
+
+   WHAT IS DELIBERATELY STILL SHARED. The meaning families (--risk-*, --verified-*)
+   because a refusal means the same thing on both sides of sign-in; the type
+   ramp, spacing and the brand light, which are the brand rather than the
+   product's styling; and the controls' markup in @orvay/ui (§4, §9b to §9d),
+   whose colours, radii and depth all arrive through the tokens bound here.
+
+   ALWAYS LIGHT (the operator, 2026-10-06), so there is no dark arm. `ThemeLock`
+   still pins <html> while these pages are open, for the browser's own chrome
+   and the bot check's iframe; this scope is what the page's own pixels read.
+   ============================================================================= */
+:root {
+  /* Tier 1, internal. Hue 260, the paper ladder, copied value for value. */
+  --o-auth-sheet: oklch(1.000 0.0000 260);
+  --o-auth-quiet: oklch(0.985 0.0020 260);
+  --o-auth-component: oklch(0.960 0.0030 260);
+  --o-auth-hover: oklch(0.930 0.0040 260);
+  --o-auth-active: oklch(0.900 0.0050 260);
+  --o-auth-rule: oklch(0.905 0.0030 260);
+  --o-auth-rule-2: oklch(0.840 0.0040 260);
+  --o-auth-rule-3: oklch(0.740 0.0050 260);
+  /* The control boundary: 3.45:1 on the active rung, 4.65:1 on the sheet. */
+  --o-auth-edge: oklch(0.560 0.0050 260);
+  /* 19.12:1 and 9.21:1 on the sheet. */
+  --o-auth-ink: oklch(0.170 0.0080 260);
+  --o-auth-ink-2: oklch(0.400 0.0080 260);
+  /* The one accent: the focus ring. 6.48:1 on the sheet, 4.81:1 on the worst rung. */
+  --o-auth-blue: oklch(0.470 0.1300 236);
+  --o-auth-blue-hover: oklch(0.370 0.1100 236);
+
+  /* The focus ring's timing, --o-dur-auth-focus and --o-ease-auth-focus, is with
+     the other durations near the top of this file, AHEAD of the reduced-motion
+     block: declared down here it would win over that block's zero. */
+}
+
+[data-surface='auth'] {
+  color-scheme: light;
+
+  --bg-canvas: var(--o-auth-sheet);
+  --bg-raised: var(--o-auth-sheet);
+  --bg-subtle: var(--o-auth-quiet);
+  --bg-component: var(--o-auth-component);
+  --bg-hover: var(--o-auth-hover);
+  --bg-active: var(--o-auth-active);
+
+  --line-rule: var(--o-auth-rule);
+  --line-border: var(--o-auth-rule-2);
+  --line-strong: var(--o-auth-rule-3);
+  --line-control: var(--o-auth-edge);
+
+  --fg-primary: var(--o-auth-ink);
+  --fg-secondary: var(--o-auth-ink-2);
+
+  /* The primary control: a flat ink slab, both stops bound to one ink. 19.12:1. */
+  --control-solid-top: var(--o-auth-ink);
+  --control-solid-bottom: var(--o-auth-ink);
+  --control-solid-ink: var(--o-ink-solid-light);
+  /* Derived from the inputs above, so restated where they move (token-scopes.test). */
+  --control-solid-hover: color-mix(in oklab, var(--control-solid-top) 88%, var(--bg-subtle));
+  --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
+  --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
+  --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+
+  --accent-solid: var(--o-auth-blue);
+  --accent-hover: var(--o-auth-blue-hover);
+  --accent-line: var(--o-auth-blue);
+  --accent-text: var(--o-auth-blue);
+  --accent-on-solid: var(--o-ink-solid-light);
+  --focus-ring: var(--o-auth-blue);
+
+  /* Geometry: the sign-in screen's own, so a product radius change stops here. */
+  --o-radius-sm: 4px;
+  --o-radius-md: 6px;
+  --o-radius-lg: 8px;
+  --o-radius-panel: 12px;
+  --control-radius: var(--o-radius-md);
+  --o-weight-medium: 500;
+  --o-weight-strong: 500;
+  --app-auth-measure: 26rem;
+  --app-auth-panel-radius: 20px;
+
+  /* Depth: a hairline at rest, nothing lifted, the slab flat. */
+  --o-bevel-control-solid: none;
+  --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);
+  --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);
+  --o-bevel-raised:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    0 1px 2px -1px color-mix(in oklab, black 10%, transparent),
+    0 12px 28px -14px color-mix(in oklab, black 20%, transparent);
+  --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
+  --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
+  --control-hover-shadow: var(--o-bevel-resting);
+  --surface-floating-shadow:
+    inset 0 0 0 var(--o-hairline) var(--line-border),
+    0 4px 12px -4px color-mix(in oklab, black 12%, transparent),
+    0 18px 48px -16px color-mix(in oklab, black 20%, transparent);
+
+  --field-flat-border: var(--line-control);
+  --field-flat-hover-border: var(--line-control);
+  --field-flat-border-width: var(--o-hairline);
+  --field-focus-offset: -2px;
+  --field-focus-shadow: none;
+  --field-flat-focus-offset: var(--field-focus-offset);
+
+  /* EVERY OUTPUT OF AN INPUT THIS SCOPE MOVES, restated because a property is
+     computed where it is declared (tests/schema/token-scopes.test.ts). Most are
+     inert inside the sign-in pages (the rail, the card, the docs families);
+     they are here for the reason the paper block gives: twenty correct lines
+     cost less than an exception list somebody later reads as permission. */
+  --o-orb-core: color-mix(in oklab, var(--accent-solid) 18%, var(--o-auth-sheet));
+  --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-auth-sheet));
+  --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-auth-ink));
+  --companion-body: var(--accent-solid);
+  --companion-face: var(--accent-on-solid);
+  --app-frame-bg: var(--bg-subtle);
+  --app-rail-bg: var(--bg-subtle);
+  --app-rail-fg: var(--fg-secondary);
+  --app-rail-fg-active: var(--fg-primary);
+  --app-card-bg: var(--bg-raised);
+  --app-card-line: var(--line-rule);
+  --docs-page-bg: var(--bg-canvas);
+  --docs-card-bg: var(--bg-raised);
+  --docs-card-line: var(--line-rule);
+  --docs-card-radius: var(--o-radius-lg);
+  --app-card-radius: var(--o-radius-panel);
+  --docs-rail-fg: var(--fg-secondary);
+  --docs-rail-fg-active: var(--fg-primary);
+  --docs-toc-fg: var(--fg-secondary);
+  --docs-toc-fg-active: var(--fg-primary);
+  --docs-toc-rail: var(--line-rule);
+  --docs-toc-rail-active: var(--fg-primary);
+  --syntax-comment: var(--fg-secondary);
+  --syntax-punctuation: var(--fg-secondary);
 }
 
 /*
@@ -3463,6 +3810,32 @@ ul.updates .when { font: var(--o-text-mono-13); }
   color: var(--risk-critical-on);
 }
 
+/* QUIET: the way out beside a decision (Back, Skip). Text in the second ink with
+   the full hit area; a translucent neutral fills it under the pointer, the way
+   every hover in the product should, and the ink comes up to the first. Never a
+   border, never a bevel: an edge would make it a second choice. Padding is
+   trimmed so the text sits nearer the column's edge, which is where a reader
+   looks for a way back. */
+.o-button[data-intent='quiet'] {
+  padding-inline: var(--o-space-3);
+  background: transparent;
+  color: var(--fg-secondary);
+  border-color: transparent;
+  box-shadow: none;
+}
+.o-button[data-intent='quiet']:hover:not(:disabled):not([aria-disabled='true']) {
+  background: color-mix(in oklab, var(--fg-primary) 6%, transparent);
+  color: var(--fg-primary);
+}
+
+@media (forced-colors: active) {
+  /* No fill and no edge leaves nothing a system palette can draw, so the quiet
+     button is told apart from text by an outline in that mode. */
+  .o-button[data-intent='quiet'] {
+    border-color: ButtonText;
+  }
+}
+
 /* `[aria-disabled]`, NOT `:disabled`, and the difference was a shipped defect.
 
    Button sets `aria-disabled` rather than the native attribute on purpose: the
@@ -3812,6 +4185,48 @@ ul.updates .when { font: var(--o-text-mono-13); }
 .o-nf--standalone {
   min-block-size: 100svh;
   padding-inline: var(--o-space-5);
+}
+
+/* THE PRODUCT'S 404 (`look="quiet"`, 2026-10-18): the same composition as the
+   route error page (`feedback.css`, `.o-error[data-placement='page']`), so a
+   missing page and a failed one read as one family. Declared last so it wins
+   over the lockup's sizes at equal weight. */
+.o-nf.o-nf--quiet {
+  justify-content: center;
+  align-items: center;
+  gap: var(--o-space-3);
+  text-align: center;
+}
+
+.o-nf--quiet .o-nf__quiet-mark {
+  inline-size: 44px;
+  block-size: 44px;
+  margin-block-end: var(--o-space-3);
+  color: var(--fg-primary);
+}
+
+.o-nf--quiet .o-nf__title {
+  margin: 0;
+  font: var(--o-text-title-24);
+  letter-spacing: var(--o-tracking-title-24);
+  font-weight: var(--o-weight-medium);
+}
+
+.o-nf--quiet .o-nf__body {
+  margin: 0;
+  max-inline-size: 28rem;
+  color: var(--fg-secondary);
+}
+
+.o-nf--quiet .o-nf__actions {
+  margin-block-start: var(--o-space-3);
+}
+
+.o-nf__status {
+  margin: var(--o-space-4) 0 0;
+  font: var(--o-text-mono-13);
+  font-family: var(--o-font-mono);
+  color: var(--fg-secondary);
 }
 
 </style>
