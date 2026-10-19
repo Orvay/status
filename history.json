@@ -2,6 +2,27 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1792373412688,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792373412688,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792373412688,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1792372319848,
       "component": "independent-verification",
       "label": "Independent verification",
