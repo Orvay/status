@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1792607412394,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792607412394,
+      "component": "agent-runs",
+      "label": "Agent runs",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792607412394,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792607412394,
+      "component": "webhook-delivery",
+      "label": "Webhook delivery",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792607412394,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792607412394,
+      "component": "repository-changes",
+      "label": "Repository changes",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1792605614355,
       "component": "sign-in",
       "label": "Sign in",
