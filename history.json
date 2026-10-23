@@ -2,6 +2,48 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1792765574440,
+      "component": "directory-sync",
+      "label": "Directory sync",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792765574440,
+      "component": "website-studio",
+      "label": "Site builder",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1792765574440,
+      "component": "independent-verification",
+      "label": "Independent verification",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792765574440,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792765574440,
+      "component": "email-notifications",
+      "label": "Email notifications",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1792765574440,
+      "component": "mailbox",
+      "label": "Connected mailbox",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1792764011723,
       "component": "website-studio",
       "label": "Site builder",
