@@ -2,6 +2,41 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1793054191760,
+      "component": "checkout-and-billing",
+      "label": "Checkout and billing",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1793054191760,
+      "component": "ad-reporting",
+      "label": "Ad accounts",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1793054191760,
+      "component": "outside-execution",
+      "label": "Work by outside agents",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1793054191760,
+      "component": "team-chat",
+      "label": "Team chat",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1793054191760,
+      "component": "contact-form",
+      "label": "Contact form",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
       "at": 1793054022501,
       "component": "ad-reporting",
       "label": "Ad accounts",
