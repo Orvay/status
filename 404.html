@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Page not found · Orvay Status</title>
-<meta name="description" content="There is no page at this address.">
+<meta name="description" content="Page not found">
 <meta name="robots" content="noindex, follow">
 
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -302,6 +302,14 @@
   --o-weight-regular: 400;
   --o-weight-medium: 460;
   --o-weight-strong: 530;
+  /* A HEADING'S WEIGHT, AND IT IS LIGHTER THAN THE MEDIUM STEP ON PURPOSE.
+     Measured on Lovable's settings pages (2026-10-21): the page title and every
+     section heading are 450, which is the weight that separates a heading from
+     the body beside it by a hair while its SIZE does the work. Geist is loaded
+     as the variable file (next/font's Geist with no `weight` option carries a
+     wght axis from 100 to 900), so 450 is drawn, not rounded to a neighbour.
+     Inside the 530 cap that tokens.test.ts holds the ramp to. */
+  --o-weight-heading: 450;
   /* ---- Type scale: tracking is a function of size and inverts (§4.3) ---- */
   /* The first entry in each stack is the face next/font generates in every app's
      root layout, which resolves to the self-hosted family plus the fallback Next
@@ -373,18 +381,51 @@
   --o-tracking-title-24: -0.03em;
   --o-text-title-19: 1.1875rem/1.5rem var(--o-font-sans);
   --o-tracking-title-19: -0.025em;
+  /* THE PAGE TITLE IN THE APP'S STRIP: 20px on a 25px line, Lovable's page
+     heading as measured (2026-10-21). The tracking is NOT measured: it sits on
+     the scale's own inversion between 19 and 24, which is the one value this
+     line asserts without a reading behind it. */
+  --o-text-title-20: 1.25rem/1.5625rem var(--o-font-sans);
+  --o-tracking-title-20: -0.02em;
+  /* A DIALOG'S TITLE: 18px on a 23.4px line, tracked -0.09px, read off
+     Lovable's plan dialog (2026-10-23). */
+  --o-text-title-18: 1.125rem/1.4625rem var(--o-font-sans);
+  --o-tracking-title-18: -0.005em;
   --brand-light-rose: var(--v6-heat-1);
   --brand-light-orange: var(--v6-heat-2);
   --brand-light-gold: var(--v6-heat-3);
   --brand-light-sky: var(--v6-heat-4);
   --brand-light-blue: var(--v6-heat-5);
   --brand-light-blur: 28px;
+  /* THE ORB'S LIGHT (phase 3, docs/design/app-design.md §6): the same five
+     stops, as the gradient every dot of the agent's orb fills from. Tier 3,
+     so `packages/ui/src/motion/orb/orb.css` never names a primitive. */
+  --orb-light-1: var(--v6-heat-1);
+  --orb-light-2: var(--v6-heat-2);
+  --orb-light-3: var(--v6-heat-3);
+  --orb-light-4: var(--v6-heat-4);
+  --orb-light-5: var(--v6-heat-5);
   --o-text-body-16: 1rem/1.625rem var(--o-font-sans);
   --o-tracking-body-16: -0.01em;
+  /* A section heading is body-16 in size and a heading in name, so a heading
+     stops borrowing the body token and the two can part without a hunt. */
+  --o-text-heading-16: var(--o-text-body-16);
+  --o-tracking-heading-16: var(--o-tracking-body-16);
+  /* 14px PROSE, which the scale did not have: label-14 is set on a 16px line
+     for a control's one line, and a description that wraps on a 16px line
+     reads as a stack of captions. A 21px line for the sentence under a heading,
+     the muted line under a row, and the term in a list of facts. */
+  --o-text-body-14: 0.875rem/1.3125rem var(--o-font-sans);
+  --o-tracking-body-14: -0.01em;
   --o-text-body-15: 0.9375rem/1.5rem var(--o-font-sans);
   --o-tracking-body-15: -0.015em;
   --o-text-label-14: 0.875rem/1rem var(--o-font-sans);
   --o-tracking-label-14: -0.0125em;
+  /* A badge's word on paper: one line, never wrapped, a step above micro-11 so
+     the word that carries a tone (the badge has no fill there) is read rather
+     than squinted at. */
+  --o-text-label-12: 0.75rem/1rem var(--o-font-sans);
+  --o-tracking-label-12: -0.005em;
   --o-text-mono-13: 0.8125rem/1.25rem var(--o-font-mono);
   --o-tracking-mono-13: 0em;
   --o-text-micro-11: 0.6875rem/0.875rem var(--o-font-sans);
@@ -417,6 +458,20 @@
      drifting into a dozen near-identical corner radii. */
   --o-radius-pill: 1000px;
   --o-radius-panel: 30px;
+  /* THE APP'S SHEET AND THE CARDS ON IT, 16px (Lovable's measured sheet).
+     A step of its own rather than a rebinding of --o-radius-panel, which the
+     paper scope sets to 12px for the sign-in panel's copy and which the auth
+     scope copies: moving that number would reach sign-in. Nothing rebinds this
+     one, so it means 16px everywhere it is read. */
+  --o-radius-sheet: 16px;
+  /* A DIALOG'S PANEL, 24px (Lovable's plan dialog, `rounded-6`, measured
+     2026-10-23): rounder than the sheet it floats over. Nothing rebinds it. */
+  --o-radius-dialog: 1.5rem;
+  /* THE COMPOSER'S CORNER (phase 3, 2026-10-21). The one surface between the
+     two shapes above, on purpose: at paper's 12px the composer reads as a form
+     field, and at a pill it cannot hold three lines. Declared once here and
+     restated by no surface, so it is 1.5rem on paper and night alike. */
+  --o-radius-composer: 1.5rem;
 
   /* ---------------------------------------------------------------------------
      Bevel — where the "glass" impression actually comes from.
@@ -500,6 +555,14 @@
   --o-row-pad-inline: 12px;
 
   --o-hairline: 1px;
+  /* HALF A PIXEL, for a divider and never for a boundary. Lovable draws every
+     hairline at .5px (2026-10-21). Spent only as a BORDER WIDTH, because a
+     border under 1px is drawn as one device pixel: half a CSS pixel on a 2x
+     screen, a whole one on a 1x screen, never nothing. A 0.5px-tall box with a
+     background has no such floor and can vanish at 1x. A control's boundary
+     stays --o-hairline: WCAG 1.4.11 asks a boundary to be seen. Forced colours
+     take it to a whole pixel (the media block after the reduced-motion one). */
+  --o-hairline-fine: 0.5px;
   --o-tap-min: 44px;
 
   /* ---- Motion: meaning only, never decoration (§6) ----
@@ -579,8 +642,64 @@
      SITE has no overshoot and that still stands; the app may differ (§9e) and
      spends it on 12px of glyph, never on a panel, a page or the light. */
   --o-ease-confirm: cubic-bezier(0.34, 1.35, 0.64, 1);
+  /* THE RAIL CHANGING LAYER (2026-10-20, phase 2 of the app redesign), and a
+     group of its rows folding (ADR-0145). Shorter than a step, because the rail
+     is chrome the reader is moving THROUGH rather than a screen they arrived
+     at: 200ms, 12px of travel, each row 10ms behind the one before for the
+     first four only (`nav-links.tsx` caps it), so the last row lands at 230ms,
+     inside the app's 240ms ceiling. It was 25ms across eight rows, which put
+     the last at 375ms. The same expo out as the light, which arrives early and
+     settles long. All of them are stood down in the block below. */
+  --o-dur-layer: 200ms;
+  --o-ease-layer: cubic-bezier(0.16, 1, 0.3, 1);
+  --o-travel-layer: 12px;
+  --o-stagger-layer: 10ms;
   /* Forward rises in from the right, Back from the left, by this much. */
   --o-travel-step: 16px;
+
+  /* THE PRODUCT'S MENUS AND ITS HOVER (2026-10-20, the phase 2 shell).
+
+     A menu in the product is a tool somebody is reaching for, so it opens on the
+     same short clock it closes on: 150ms each way, 2px of travel and a 0.97 scale
+     out of the trigger's edge. The reference pair above (225ms in) stays the
+     site's and the docs'; `packages/ui/src/menu.css` reads these only under the
+     product's own surface, so a sign-in page never sees them.
+
+     A HOVER ARRIVES AT ONCE AND LEAVES OVER 150ms. A highlight that fades in
+     lags the pointer it is answering; one that vanishes in a frame flickers as
+     the pointer crosses a list. So the delay lives on the way out only, on an
+     ease-out cubic that is already most of the way gone by the time a reader
+     looks at the row they left.
+
+     Declared here, above the reduced-motion block, which stands down the four
+     that move something: both durations to 0ms, the travel to 0px and the scale
+     to 1. The hover curve is left as it is, because an easing with no duration
+     to run over moves nothing. */
+  --o-dur-menu: 150ms;
+  --o-travel-menu: 2px;
+  --o-menu-scale: 0.97;
+  --o-dur-hover-out: 150ms;
+  --o-ease-hover-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+
+  /* THE CONTROLS' OWN MOVEMENT (2026-10-22, phase 4c). A pressed button settles
+     to 98% of itself; a dialog grows from 95% (Lovable's measured base dialog)
+     and, on a phone, rises its own height as a sheet. Here, above the
+     reduced-motion block, which puts both scales back to 1 and the travel to 0:
+     a scale with no duration is still a jump. */
+  --o-button-press-scale: 0.98;
+  --o-dialog-scale: 0.95;
+  --o-travel-sheet: 100%;
+  /* A DIALOG COMES AND GOES ON ONE CLOCK: 200ms both ways on the standard
+     curve, rising 1rem on the way in (Lovable's plan dialog, 2026-10-23). Its
+     own pair, not the enter and exit ones the drawer runs on. The command
+     palette is quicker: 80ms in on an ease-out, 50ms out on a straight line
+     (the palette, measured 2026-10-21), because it is summoned to be typed
+     into. */
+  --o-dur-dialog: 200ms;
+  --o-ease-dialog: cubic-bezier(0.4, 0, 0.2, 1);
+  --o-travel-dialog: 1rem;
+  --o-ease-palette-in: cubic-bezier(0, 0, 0.2, 1);
+  --o-dur-palette-out: 50ms;
 
   /* Reveals travel 4px, not 24px, and run once.
      Measured: `whileInView opacity 0 -> 1, translateY(4px) -> 0`, 0.225s, 0.1s
@@ -1123,6 +1242,13 @@
 
   --fg-primary: var(--o-neutral-12);
   --fg-secondary: var(--o-neutral-11);
+  /* THE THIRD INK: labels, descriptions, metadata. The neutral ramp has no AA
+     step below 11 (step 10 is a control boundary at 3:1, not an ink), so here
+     it is the second ink, and a surface that reads it is never below 4.5:1.
+     The paper scope is where it becomes a step of its own. Bound to the ramp
+     rather than to --fg-secondary, so a scope that moves the second ink is
+     not thereby owed a third. */
+  --fg-tertiary: var(--o-neutral-11);
   --fg-on-solid: var(--o-neutral-on-9);
 
   --control-solid-top: var(--o-slab-top);
@@ -1883,20 +2009,46 @@
     --o-dur-reveal: 0ms;
     --o-dur-unveil: 0ms;
     --o-dur-step: 0ms;
+    --o-dur-menu: 0ms;
+    --o-dur-hover-out: 0ms;
+    --o-dur-layer: 0ms;
     --o-stagger-unit: 0ms;
+    --o-stagger-layer: 0ms;
+    --o-travel-layer: 0px;
     /* The travel and the blur are stood down too. A 0ms transition on a 4px
        translate still paints the element 4px out of place on the first frame
        if the travel itself survives, and an enter blur with no duration is a
        permanently blurred element. */
     --o-travel-reveal: 0px;
     --o-travel-step: 0px;
+    --o-travel-menu: 0px;
+    /* A menu that still grows from 97% with no duration is a menu drawn at 97%
+       for a frame; at 1 it simply appears where it rests. */
+    --o-menu-scale: 1;
     /* A lean is movement even without a duration: a thumb that jumps 15% wider
        the instant a pointer arrives is exactly what somebody asking for stillness
        asked not to have. */
     --o-lean-scale: 1;
     --o-press-scale-x: 1;
     --o-press-scale-y: 1;
+    --o-button-press-scale: 1;
+    --o-dialog-scale: 1;
+    --o-travel-sheet: 0%;
+    --o-dur-dialog: 0ms;
+    --o-travel-dialog: 0px;
+    --o-dur-palette-out: 0ms;
     --o-blur-enter: 0px;
+  }
+}
+
+/* FORCED COLOURS DRAW EVERY LINE AT A WHOLE PIXEL. The system palette replaces
+   the rule's colour with one of its own, and a half-pixel line in a high
+   contrast theme is the one line the person who chose that theme cannot see.
+   Each component that draws a fine rule names `CanvasText` in its own
+   forced-colours block; this is the width. */
+@media (forced-colors: active) {
+  :root {
+    --o-hairline-fine: 1px;
   }
 }
 
@@ -2055,6 +2207,12 @@
      costly nor irreversible.
   */
   --app-rail-row-h: 32px;
+  /* 8px on a 32px row: a soft rectangle rather than a pill. The rail's own,
+     because `--o-radius-md` means 12px here and 6px on paper. */
+  --app-rail-row-radius: 8px;
+  /* A group label and a layer's name: 13px, a step under the 14px row, so the
+     label files the rows without competing with them. */
+  --app-rail-group-size: 0.8125rem;
 
   --app-rail-fg: var(--fg-secondary);
   --app-rail-fg-active: var(--fg-primary);
@@ -2562,15 +2720,15 @@
   /* The v6 ink ramp. 19.12:1 and 9.21:1 on the sheet; 14.19:1 and 6.83:1 on
      the worst rung.
 
-     TWO STEPS, NOT v6's THREE. The third, L 0.490, is the AA floor v6 spends on
-     mono labels and metadata, and it is not declared here because nothing in
-     this scope would bind it: --fg-primary is the first ink and --fg-secondary
-     is the second, and there is no Tier 2 token for meta text yet. A primitive
-     no semantic reads is the §4 case of a value that looks owned and is not, so
-     the third ink arrives with `--fg-meta` and the tabular rows that consume
-     it, and not before. */
+     THE THIRD STEP ARRIVED WITH ITS READER (2026-10-21): `--fg-tertiary`, the
+     ink of a section's description, a row's muted line and a fact's term in
+     the page schema (`packages/ui/src/sheet.css`). It is v6's own third ink,
+     L 0.490, value for value, so the product's metadata is the landing's.
+     6.26:1 on the sheet and 4.65:1 on the worst rung, so it holds the AA floor
+     on a hovered or pressed row, not only at rest. */
   --o-paper-ink: oklch(0.170 0.0080 260);
   --o-paper-ink-2: oklch(0.400 0.0080 260);
+  --o-paper-ink-3: oklch(0.490 0.0060 260);
 
   /* The one accent, the v6 blue, spent on the active row, the focus ring and a
      link. 4.81:1 as ink on the worst rung, 6.48:1 on the sheet, and 6.48:1
@@ -2583,8 +2741,8 @@
      reference, because there is no dark reference: the spec asks for the paper
      ramp read the other way.
 
-     17.28:1 and 8.91:1 on the sheet; 11.25:1 and 5.80:1 on the worst rung. Two
-     steps, for the reason the paper ramp above gives. The blue moves up the
+     17.28:1 and 8.91:1 on the sheet; 11.25:1 and 5.80:1 on the worst rung. The
+     third ink is with the other two below. The blue moves up the
      ramp because a L 0.47 blue is 4.11:1 on a L 0.17 ground and would fail as
      ink. */
   --o-night-sheet: oklch(0.170 0.0080 260);
@@ -2601,6 +2759,14 @@
 
   --o-night-ink: oklch(0.965 0.0040 260);
   --o-night-ink-2: oklch(0.760 0.0080 260);
+  /* THE THIRD INK AT NIGHT, MEASURED RATHER THAN MIRRORED. The paper step's
+     6.26:1 on the sheet would be L 0.67 here, and that is 4.16:1 on the active
+     rung, under the floor on a pressed row. L 0.70 is the lowest step that
+     clears 4.5:1 on every rung: 7.16:1 on the sheet, 4.66:1 on the worst. It
+     sits closer to the second ink than paper's does (0.06 against 0.09), and
+     that is the price of the floor; `the third ink` in tokens.test.ts holds it
+     on every rung of both scopes. */
+  --o-night-ink-3: oklch(0.700 0.0080 260);
 
   /* 4.75:1 as ink on the worst rung, 7.29:1 on the sheet. The fill is a
      separate step because a fill is chosen to CARRY ink and is therefore too
@@ -2643,6 +2809,7 @@
 
   --fg-primary: var(--o-paper-ink);
   --fg-secondary: var(--o-paper-ink-2);
+  --fg-tertiary: var(--o-paper-ink-3);
 
   /* THE PRIMARY CONTROL IS A FLAT BLACK PILL, and it is flattened here rather
      than in button.css. The rule reads
@@ -2695,7 +2862,9 @@
      hairline derives from both, so a full-height sheet gets a full-height
      edge with no second rule. */
   --app-gutter: var(--o-space-3);
-  --app-card-radius: var(--o-radius-panel);
+  /* The sheet and every card on it: 16px, Lovable's measured sheet (2026-10-21).
+     The night arm restates it because it restated the old binding. */
+  --app-card-radius: var(--o-radius-sheet);
   /* App geometry: squared sheets, softly eased controls, floating overlays.
      These extend the existing scale and never reach the marketing/docs hosts. */
   --o-radius-sm: 4px;
@@ -2705,10 +2874,35 @@
   --control-radius: var(--o-radius-md);
   --o-weight-medium: 500;
   --o-weight-strong: 500;
-  --app-content-gutter: var(--o-space-6);
-  --app-content-max: 78rem;
+  /* THE PAGE'S COLUMN, Lovable's measured content area (2026-10-21): 1280px at
+     most, 48px of gutter at 64rem and wider (the media block after this
+     scope), 16px below it, where a phone cannot spare 48px a side. The gutter
+     is the card body's padding and the bar's, so both move with it, and a
+     settings page keeps a gutter at every width (`settings/gutter.test.ts`).
+     Geometry is declared once, here: the night arm matches the same element,
+     so it is not restated there. */
+  --app-content-gutter: var(--o-space-4);
+  --app-content-max: 80rem;
+  /* The settings column (`Page width="narrow"`), today's 60rem until a reading
+     replaces it. */
+  --app-content-narrow: 60rem;
   --app-section-gap: var(--o-space-6);
-  --app-rail-row-h: 36px;
+  /* THE PAGE SCHEMA'S RHYTHM (`packages/ui/src/sheet.css`), measured off
+     Lovable's settings cards: a card pads 20px by 24px, and a row inside it
+     20px above and below and nothing at the sides, because the card's padding
+     is the row's inset and the divider between rows is inset by the same
+     amount. 20px is not on the space scale (space-5 is 24px), which is why
+     these are tokens rather than steps. */
+  --app-card-pad: 1.25rem var(--o-space-5);
+  --app-row-pad-block: 1.25rem;
+  --app-row-pad: var(--app-row-pad-block) 0;
+  /* A section's heading to its description, and its head to its body. NOT
+     MEASURED: chosen on the scale until a reading replaces them. */
+  --app-section-head-gap: var(--o-space-1);
+  --app-section-body-gap: var(--o-space-4);
+  /* 32px on paper as everywhere (2026-10-20): the row is a navigation row, not a
+     costly control, so §7a rule 4's 32px floor is its number. */
+  --app-rail-row-h: 32px;
   --app-bar-h: 56px;
   --app-auth-measure: 26rem;
   --app-context-measure: 25rem;
@@ -2868,17 +3062,21 @@
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --control-hover-shadow: var(--o-bevel-resting);
+  /* FLOATING IS A HALF-PIXEL RING AND A STACK OF DROPS THAT DOUBLE AS THEY GO
+     (Lovable's floating shadow, measured 2026-10-21), in place of an inset
+     hairline and two blurs. Menus, the dropdown's list, dialogs, toasts and the
+     floating notice read it. The ring sits OUTSIDE the box, so a scrolling list
+     cannot clip it. */
   --surface-floating-shadow:
-    inset 0 0 0 var(--o-hairline) var(--line-border),
-    0 4px 12px -4px color-mix(in oklab, black 12%, transparent),
-    0 18px 48px -16px color-mix(in oklab, black 20%, transparent);
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-paper-ink) 18%, transparent),
+    0 1px 1px -0.5px color-mix(in oklab, black 6%, transparent),
+    0 3px 3px -1.5px color-mix(in oklab, black 6%, transparent),
+    0 6px 6px -3px color-mix(in oklab, black 6%, transparent),
+    0 12px 12px -6px color-mix(in oklab, black 6%, transparent),
+    0 24px 24px -12px color-mix(in oklab, black 6%, transparent);
 
-  --field-flat-border: var(--line-control);
-  --field-flat-hover-border: var(--line-control);
-  --field-flat-border-width: var(--o-hairline);
   --field-focus-offset: -2px;
   --field-focus-shadow: none;
-  --field-flat-focus-offset: var(--field-focus-offset);
 
   --app-frame-bg: var(--bg-subtle);
   --app-card-shadow:
@@ -2888,6 +3086,161 @@
   --companion-body: var(--accent-solid);
   --companion-face: var(--accent-on-solid);
 
+  /* =========================================================================
+     THE CONTROLS (2026-10-22, phase 4c of the app redesign), measured off
+     Lovable's dashboard and redrawn in this palette.
+
+     A BUTTON IS HALF-PIXEL HAIRLINES AND A TWO-STEP DROP, never a 1px border: a
+     ring, a shade along the bottom edge (a highlight along the top on a filled
+     one), and `0 2px 2px -1px` over `0 4px 4px -2px`. A hover is a wash of the
+     ink that arrives with the pointer and leaves over 150ms; a press settles
+     the control to 98%. Pills, 36px by default with the hit area grown to 44px
+     (§7a rule 4), 32px small, 44px large.
+
+     MOST ARE READ IN packages/ui WITH THE OLD VALUE AS THEIR FALLBACK, so a
+     host without this scope (the status page) draws what it drew; the rest,
+     all the button's, are read bare (PAPER_ONLY, SIZES and PRESSED in
+     packages/ui/src/controls.test.tsx list them). [data-surface='auth'] below
+     pins the old value again, so the sign-in pages do not move. The night arm
+     restates the ones that weigh more in the dark.
+     ========================================================================= */
+  --o-button-height: 36px;
+  --o-button-height-small: 32px;
+  --o-button-height-large: var(--o-tap-min);
+  --o-button-pad: 0.875rem;
+  --o-button-pad-small: var(--o-space-3);
+  --o-button-pad-large: 1.125rem;
+  --o-button-radius: var(--o-radius-pill);
+  --o-button-weight: var(--o-weight-heading);
+  --o-button-numerals: tabular-nums;
+  --o-button-bg: var(--bg-raised);
+  --o-button-border: transparent;
+  --o-button-secondary-shadow:
+    inset 0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 16%, transparent),
+    inset 0 calc(var(--o-hairline-fine) * -1) 0 color-mix(in oklab, var(--fg-primary) 12%, transparent),
+    0 2px 2px -1px color-mix(in oklab, black 6%, transparent),
+    0 4px 4px -2px color-mix(in oklab, black 4%, transparent);
+  --o-button-shadow: var(--o-button-secondary-shadow);
+  /* The filled control: flat ink (the stops above stay equal), a white
+     highlight along its top edge, and the same two drops at twice the weight. */
+  --o-button-primary-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 18%, transparent),
+    inset 0 calc(var(--o-hairline-fine) * -1) 0 color-mix(in oklab, white 8%, transparent),
+    0 2px 2px -1px color-mix(in oklab, black 12%, transparent),
+    0 4px 4px -2px color-mix(in oklab, black 12%, transparent);
+  --o-button-danger-shadow: var(--o-button-primary-shadow);
+  --o-button-secondary-hover: color-mix(in oklab, var(--fg-primary) 4%, var(--bg-raised));
+  --o-button-secondary-press: color-mix(in oklab, var(--fg-primary) 7%, var(--bg-raised));
+  --o-button-quiet-hover: color-mix(in oklab, var(--fg-primary) 6%, transparent);
+  --o-button-quiet-press: color-mix(in oklab, var(--fg-primary) 9%, transparent);
+  --o-button-primary-press: var(--control-solid-press-top);
+  /* Toward the paper ink in BOTH themes, so the hover darkens under its white
+     label; toward --fg-primary it lightened at night, to 4.1:1. */
+  --o-button-danger-hover: color-mix(in oklab, var(--risk-critical-solid) 90%, var(--o-paper-ink));
+  /* At rest the list is the way OUT of a hover (150ms, ease-out cubic); under
+     the pointer every paint is instant and only the press moves, on 80ms. */
+  --o-button-transition:
+    background-color var(--o-dur-hover-out) var(--o-ease-hover-out),
+    box-shadow var(--o-dur-hover-out) var(--o-ease-hover-out),
+    color var(--o-dur-hover-out) var(--o-ease-hover-out),
+    transform var(--o-dur-quick) var(--o-ease-hover-out),
+    --o-button-top var(--o-dur-hover-out) var(--o-ease-hover-out),
+    --o-button-bottom var(--o-dur-hover-out) var(--o-ease-hover-out);
+  --o-button-transition-hover:
+    background-color 0s,
+    box-shadow 0s,
+    color 0s,
+    transform var(--o-dur-instant) var(--o-ease-hover-out),
+    --o-button-top 0s,
+    --o-button-bottom 0s;
+  --o-button-press: scale(var(--o-button-press-scale));
+  /* Positioned, so the hit-area extension (button.css, `::after`) has a box. */
+  --o-button-position: relative;
+  --o-button-slop: '';
+
+  /* Fields are RECESSED where a button is raised: the 1px boundary an empty
+     input needs (WCAG 1.4.11) over a soft inner shade along the top. The focus
+     ring replaces the boundary and keeps the shade, so there is one ring. The
+     focused shade is the input's own token, not --field-focus-shadow: that one
+     is shared with fields that draw their edge as a border (flat fields, the
+     app's textareas), which have no shade at rest to keep. */
+  --o-input-height: 36px;
+  --o-input-pad: var(--o-space-3);
+  --o-input-recess: inset 0 1px 2px -1px color-mix(in oklab, black 8%, transparent);
+  --o-input-shadow: inset 0 0 0 var(--o-hairline) var(--line-control), var(--o-input-recess);
+  --o-input-hover-shadow: inset 0 0 0 var(--o-hairline) var(--line-strong), var(--o-input-recess);
+  --o-input-focus-shadow: var(--o-input-recess);
+  --o-checkbox-shadow:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    0 1px 2px -1px color-mix(in oklab, black 10%, transparent);
+  --o-checkbox-checked-shadow: var(--o-button-primary-shadow);
+  --o-switch-track-shadow: inset 0 0 0 var(--o-hairline) var(--line-border), var(--o-input-recess);
+  --o-switch-thumb-shadow:
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, black 14%, transparent),
+    0 2px 2px -1px color-mix(in oklab, black 12%, transparent),
+    0 4px 4px -2px color-mix(in oklab, black 8%, transparent);
+  /* 38: each option is the track less 3px either side, so 32px, the house
+     target. The button height would leave it at 30. */
+  --o-segmented-height: calc(var(--o-button-height-small) + 6px);
+  --o-segmented-radius: var(--o-radius-pill);
+  --o-segmented-checked-shadow: var(--o-button-secondary-shadow);
+
+  /* A trigger (the menu's, the dropdown's) is a button that opens something:
+     the secondary material at the button's height, 8px round like Lovable's
+     workspace switcher, because it sits in a form beside 8px fields. */
+  --o-trigger-height: var(--o-button-height);
+  --o-trigger-pad: var(--o-space-3);
+  --o-trigger-radius: var(--o-radius-lg);
+  --o-trigger-shadow: var(--o-button-secondary-shadow);
+  --o-trigger-hover-shadow: var(--o-button-secondary-shadow);
+  --o-trigger-hover-bg: var(--o-button-secondary-hover);
+
+  /* The surfaces that float: 12px panels with 8px rows (Lovable's menu), on the
+     product's menu clock (150ms each way, 2px, 97%), rows that light at once
+     and fade over 150ms. */
+  --o-popover-radius: var(--o-radius-panel);
+  --o-popover-item-radius: var(--o-radius-lg);
+  --o-popover-scale: var(--o-menu-scale);
+  --o-popover-travel: var(--o-travel-menu);
+  --o-popover-enter: var(--o-dur-menu);
+  --o-popover-exit: var(--o-dur-menu);
+  --o-option-transition: background-color var(--o-dur-hover-out) var(--o-ease-hover-out);
+  --o-option-hover: 0s;
+  --o-option-hover-bg: var(--bg-hover);
+  --o-toast-radius: var(--o-radius-panel);
+  --o-toast-shadow: var(--surface-floating-shadow);
+  --o-tooltip-radius: var(--o-radius-md);
+  --o-tooltip-font: var(--o-text-label-12);
+  --o-tooltip-tracking: var(--o-tracking-label-12);
+  --o-tooltip-shadow:
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 18%, transparent),
+    0 2px 4px -2px color-mix(in oklab, black 10%, transparent);
+  /* The ink at 60%, the light counterpart of the measured black at 70% at
+     night (Lovable's light scrim was not measured; a browser check owns the
+     exact number). No blur (overlay.css, trap 11). */
+  --o-dialog-scrim: color-mix(in oklab, var(--o-paper-ink) 60%, transparent);
+  /* A DIALOG FLOATS HIGHER THAN A MENU: Lovable's `shadow-floating-lg`, a
+     half-pixel ring, a crisp step under the edge, then six drops that double to
+     48px, each half a pixel lower than the menus' stack. At the light theme's
+     weight, a third over the menus' 6%. */
+  --o-dialog-shadow:
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-paper-ink) 18%, transparent),
+    0 1.5px 0 0 color-mix(in oklab, black 8%, transparent),
+    0 1.5px 1px -0.5px color-mix(in oklab, black 8%, transparent),
+    0 3.5px 3px -1.5px color-mix(in oklab, black 8%, transparent),
+    0 6.5px 6px -3px color-mix(in oklab, black 8%, transparent),
+    0 12.5px 12px -6px color-mix(in oklab, black 8%, transparent),
+    0 24.5px 24px -12px color-mix(in oklab, black 8%, transparent),
+    0 48.5px 48px -24px color-mix(in oklab, black 8%, transparent);
+}
+
+/* THE DESKTOP GUTTER, 48px from 64rem, where the rail stands beside the sheet
+   and the sheet is its own scrollport. After the scope it overrides, because
+   the two have the same specificity and the later one wins. */
+@media (min-width: 64rem) {
+  [data-surface='paper'] {
+    --app-content-gutter: var(--o-space-7);
+  }
 }
 
 /* A NOTE FOR WHOEVER RE-ARMS THE BUILDER. `[data-surface='builder']` above is
@@ -2972,6 +3325,7 @@
 
   --fg-primary: var(--o-night-ink);
   --fg-secondary: var(--o-night-ink-2);
+  --fg-tertiary: var(--o-night-ink-3);
 
   /* The pill inverts, as the slab does everywhere else in this system: a black
      pill on a near-black sheet is the 1.21:1 button §12c records. 17.28:1. */
@@ -3011,7 +3365,7 @@
      hairline derives from both, so a full-height sheet gets a full-height
      edge with no second rule. */
   --app-gutter: var(--o-space-3);
-  --app-card-radius: var(--o-radius-panel);
+  --app-card-radius: var(--o-radius-sheet);
   --docs-card-radius: var(--o-radius-lg);
   --app-rail-bg: var(--bg-canvas);
   --app-rail-fg: var(--fg-secondary);
@@ -3061,17 +3415,20 @@
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --control-hover-shadow: var(--o-bevel-resting);
+  /* The paper arm's ring and stack, heavier: a drop on near-black needs four
+     times the black to read, and a whole-pixel black ring under the half-pixel
+     ink one keeps the edge off the sheet it floats over. */
   --surface-floating-shadow:
-    inset 0 0 0 var(--o-hairline) var(--line-border),
-    0 4px 12px -4px color-mix(in oklab, black 12%, transparent),
-    0 18px 48px -16px color-mix(in oklab, black 20%, transparent);
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-night-ink) 18%, transparent),
+    0 0 0 1px color-mix(in oklab, black 32%, transparent),
+    0 1px 1px -0.5px color-mix(in oklab, black 16%, transparent),
+    0 3px 3px -1.5px color-mix(in oklab, black 16%, transparent),
+    0 6px 6px -3px color-mix(in oklab, black 16%, transparent),
+    0 12px 12px -6px color-mix(in oklab, black 16%, transparent),
+    0 24px 24px -12px color-mix(in oklab, black 16%, transparent);
 
-  --field-flat-border: var(--line-control);
-  --field-flat-hover-border: var(--line-control);
-  --field-flat-border-width: var(--o-hairline);
   --field-focus-offset: -2px;
   --field-focus-shadow: none;
-  --field-flat-focus-offset: var(--field-focus-offset);
 
   --app-frame-bg: var(--bg-canvas);
   --app-card-shadow:
@@ -3081,6 +3438,51 @@
   --companion-body: var(--accent-solid);
   --companion-face: var(--accent-on-solid);
 
+  /* THE CONTROLS IN THE DARK (phase 4c). Lovable's dark neutral: the half-pixel
+     ring of the light ink, a highlight along the TOP edge rather than a shade
+     along the bottom, and drops at four times the light arm's weight. The
+     washes are twice as strong, as measured (.08/.12 against .04/.06). */
+  --o-button-secondary-shadow:
+    inset 0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 16%, transparent),
+    inset 0 var(--o-hairline-fine) 0 color-mix(in oklab, white 10%, transparent),
+    0 2px 2px -1px color-mix(in oklab, black 24%, transparent),
+    0 4px 4px -2px color-mix(in oklab, black 24%, transparent);
+  /* The slab is light here, so a white highlight would vanish: a shade along
+     its bottom edge instead. */
+  --o-button-primary-shadow:
+    inset 0 calc(var(--o-hairline-fine) * -1) 0 color-mix(in oklab, black 16%, transparent),
+    0 2px 2px -1px color-mix(in oklab, black 24%, transparent),
+    0 4px 4px -2px color-mix(in oklab, black 24%, transparent);
+  --o-button-secondary-hover: color-mix(in oklab, var(--fg-primary) 8%, var(--bg-raised));
+  --o-button-secondary-press: color-mix(in oklab, var(--fg-primary) 12%, var(--bg-raised));
+  --o-button-quiet-hover: color-mix(in oklab, var(--fg-primary) 10%, transparent);
+  --o-button-quiet-press: color-mix(in oklab, var(--fg-primary) 14%, transparent);
+  --o-input-recess: inset 0 1px 2px -1px color-mix(in oklab, black 40%, transparent);
+  --o-checkbox-shadow:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    0 1px 2px -1px color-mix(in oklab, black 40%, transparent);
+  --o-switch-thumb-shadow:
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, black 32%, transparent),
+    0 2px 2px -1px color-mix(in oklab, black 32%, transparent),
+    0 4px 4px -2px color-mix(in oklab, black 24%, transparent);
+  --o-tooltip-shadow:
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 18%, transparent),
+    0 0 0 1px color-mix(in oklab, black 24%, transparent),
+    0 2px 4px -2px color-mix(in oklab, black 40%, transparent);
+  /* Measured: black at 70%, no blur. */
+  --o-dialog-scrim: color-mix(in oklab, black 70%, transparent);
+  /* The stack as measured at night: the ring, a whole-pixel black one under
+     it, and the seven steps at black 16%. */
+  --o-dialog-shadow:
+    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-night-ink) 18%, transparent),
+    0 0 0 1px color-mix(in oklab, black 32%, transparent),
+    0 1.5px 0 0 color-mix(in oklab, black 16%, transparent),
+    0 1.5px 1px -0.5px color-mix(in oklab, black 16%, transparent),
+    0 3.5px 3px -1.5px color-mix(in oklab, black 16%, transparent),
+    0 6.5px 6px -3px color-mix(in oklab, black 16%, transparent),
+    0 12.5px 12px -6px color-mix(in oklab, black 16%, transparent),
+    0 24.5px 24px -12px color-mix(in oklab, black 16%, transparent),
+    0 48.5px 48px -24px color-mix(in oklab, black 16%, transparent);
 }
 
 /* =============================================================================
@@ -3203,12 +3605,8 @@
     0 4px 12px -4px color-mix(in oklab, black 12%, transparent),
     0 18px 48px -16px color-mix(in oklab, black 20%, transparent);
 
-  --field-flat-border: var(--line-control);
-  --field-flat-hover-border: var(--line-control);
-  --field-flat-border-width: var(--o-hairline);
   --field-focus-offset: -2px;
   --field-focus-shadow: none;
-  --field-flat-focus-offset: var(--field-focus-offset);
 
   /* EVERY OUTPUT OF AN INPUT THIS SCOPE MOVES, restated because a property is
      computed where it is declared (tests/schema/token-scopes.test.ts). Most are
@@ -3239,6 +3637,82 @@
   --docs-toc-rail-active: var(--fg-primary);
   --syntax-comment: var(--fg-secondary);
   --syntax-punctuation: var(--fg-secondary);
+
+  /* THE CONTROLS, PINNED AT THEIR PRE-REDESIGN VALUES (2026-10-22, phase 4c).
+     The product's controls read these tokens with the old value as fallback and
+     the paper scope gives them new ones; this scope restates the old ones, so
+     every computed style on /login, /login/verify, /invite and /suspended stays
+     where it was. `packages/ui/src/controls.test.tsx` holds each line to the
+     value it replaced; change one only to change sign-in on purpose. */
+  --o-button-height: var(--o-tap-min);
+  --o-button-pad: var(--o-space-5);
+  /* Sign-in had one size. These keep a `size` set there later at it. */
+  --o-button-height-small: var(--o-tap-min);
+  --o-button-pad-small: var(--o-space-5);
+  --o-button-height-large: var(--o-tap-min);
+  --o-button-pad-large: var(--o-space-5);
+  --o-button-radius: var(--control-radius);
+  --o-button-weight: var(--o-weight-medium);
+  --o-button-numerals: normal;
+  --o-button-bg: var(--bg-component);
+  --o-button-border: var(--line-control);
+  --o-button-shadow: none;
+  --o-button-secondary-shadow: var(--o-bevel-control);
+  --o-button-primary-shadow: var(--o-bevel-control-solid);
+  --o-button-danger-shadow: none;
+  --o-button-secondary-hover: var(--bg-subtle);
+  --o-button-quiet-hover: color-mix(in oklab, var(--fg-primary) 6%, transparent);
+  --o-button-danger-hover: var(--risk-critical-solid);
+  --o-button-transition:
+    background-color var(--o-dur-quick) var(--o-ease-standard),
+    border-color var(--o-dur-quick) var(--o-ease-standard),
+    transform var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-top var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-bottom var(--o-dur-quick) var(--o-ease-standard);
+  --o-button-transition-hover:
+    background-color var(--o-dur-quick) var(--o-ease-standard),
+    border-color var(--o-dur-quick) var(--o-ease-standard),
+    transform var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-top var(--o-dur-quick) var(--o-ease-standard),
+    --o-button-bottom var(--o-dur-quick) var(--o-ease-standard);
+  --o-button-press: translateY(1px);
+  --o-button-position: static;
+  --o-button-slop: none;
+  --o-input-height: var(--o-tap-min);
+  --o-input-pad: var(--o-space-4);
+  --o-input-shadow: var(--o-bevel-resting);
+  --o-input-hover-shadow: var(--control-hover-shadow);
+  --o-input-focus-shadow: var(--field-focus-shadow, var(--control-hover-shadow));
+  --o-checkbox-shadow: var(--o-bevel-resting);
+  --o-checkbox-checked-shadow: var(--o-bevel-control-solid);
+  --o-switch-track-shadow: var(--o-bevel-inset), inset 0 0 0 var(--o-hairline) var(--line-border);
+  --o-switch-thumb-shadow: var(--o-bevel-control);
+  --o-trigger-height: var(--o-tap-min);
+  --o-trigger-pad: var(--o-space-4);
+  --o-trigger-radius: var(--control-radius);
+  --o-trigger-shadow: var(--o-bevel-control);
+  --o-trigger-hover-shadow: var(--control-hover-shadow);
+  --o-trigger-hover-bg: var(--bg-subtle);
+  --o-popover-radius: var(--o-radius-md);
+  --o-popover-item-radius: var(--o-radius-sm);
+  --o-popover-scale: 0.98;
+  --o-popover-travel: var(--o-travel-reveal);
+  --o-popover-enter: var(--o-dur-enter);
+  --o-popover-exit: var(--o-dur-exit);
+  --o-option-transition: background-color var(--o-dur-quick) var(--o-ease-standard);
+  --o-option-hover: var(--o-dur-quick);
+  --o-option-hover-bg: var(--bg-canvas);
+  /* Not drawn on sign-in today, pinned all the same: a tooltip, a toast or a
+     segmented choice added there later should not arrive in the product's look. */
+  --o-segmented-height: var(--o-tap-min);
+  --o-segmented-radius: var(--control-radius);
+  --o-segmented-checked-shadow: var(--o-bevel-control);
+  --o-toast-radius: var(--o-radius-sm);
+  --o-toast-shadow: var(--o-bevel-raised);
+  --o-tooltip-radius: var(--o-radius-sm);
+  --o-tooltip-font: var(--o-text-label-14);
+  --o-tooltip-tracking: var(--o-tracking-label-14);
+  --o-tooltip-shadow: var(--o-bevel-raised);
 }
 
 /*
@@ -3689,17 +4163,25 @@ ul.updates .when { font: var(--o-text-mono-13); }
    in this package or its partials targets `.o-button`, so there is nothing for
    the move to reorder. The app's own overrides live in `apps/app/src/app/app.css`
    and still come after this file in full.
+
+   THE PRODUCT'S LOOK IS IN TOKENS, NOT IN SELECTORS (phase 4c, 2026-10-22).
+   Every value the redesign changed is read through a `--o-button-*` token whose
+   fallback is the value it replaced. The paper scope in tokens.css gives the new
+   ones; `[data-surface='auth']` pins the old ones, because the sign-in pages
+   share this class and must not move by a pixel; and the status page, which has
+   neither scope, falls through to exactly what it drew before.
    ============================================================================= */
 
 /* -------------------------------------------------------------- button ---- */
 
 .o-button {
+  position: var(--o-button-position, static);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--o-space-2);
-  min-height: var(--o-tap-min);
-  padding: 0 var(--o-space-5);
+  gap: var(--o-button-gap, var(--o-space-2));
+  min-height: var(--o-button-height, var(--o-tap-min));
+  padding: 0 var(--o-button-pad, var(--o-space-5));
   font: var(--o-text-label-14);
   /* The control tracking, not the label tracking. This is the exact element the
      flip was measured on: `.Button .Paragraph` OVERRIDES the paragraph's -1.5%
@@ -3709,10 +4191,12 @@ ul.updates .when { font: var(--o-text-mono-13); }
      value, which put a 14px button label at half the tracking of a 14px menu
      item in the same font. */
   letter-spacing: var(--o-tracking-control);
-  font-weight: var(--o-weight-medium);
+  font-weight: var(--o-button-weight, var(--o-weight-medium));
+  /* Figures in a label line up with the figures in the rows beside it. */
+  font-variant-numeric: var(--o-button-numerals, normal);
   /* Fully round. Controls and surfaces are the only two shapes in the system,
      which is what stops a UI drifting into a dozen near-identical radii. */
-  border-radius: var(--control-radius);
+  border-radius: var(--o-button-radius, var(--control-radius));
   border: var(--o-hairline) solid transparent;
   cursor: pointer;
   /* An <a> wearing this class is a real case: "go home" on the 404 page is a
@@ -3727,9 +4211,12 @@ ul.updates .when { font: var(--o-text-mono-13); }
      theme purely because the two agreed there, and put near-white ink on a
      near-white face in dark. A control in a themed system paints its own
      surface, so that the surface and the ink are decided in the same place. */
-  background: var(--bg-component);
+  background: var(--o-button-bg, var(--bg-component));
   color: var(--fg-primary);
-  border-color: var(--line-control);
+  border-color: var(--o-button-border, var(--line-control));
+  /* On paper the edge is drawn here, as half-pixel rings, and the border is
+     transparent: a 1px border is the one line Lovable's controls never use. */
+  box-shadow: var(--o-button-shadow, none);
   /* Padding is animated deliberately: the control breathes on interaction
      rather than only changing colour, which reads as physical. */
   transition:
@@ -3766,17 +4253,20 @@ ul.updates .when { font: var(--o-text-mono-13); }
   initial-value: transparent;
 }
 
+/* A HOST THAT DRAWS ITS OWN DECISION (the onboarding wizard's lit pill) sets
+   the `--o-button-primary-*` tokens on its scope instead of restyling this
+   selector. Each falls back to what the rule drew before it was a token. */
 .o-button[data-intent='primary'] {
-  --o-button-top: var(--control-solid-top);
-  --o-button-bottom: var(--control-solid-bottom);
+  --o-button-top: var(--o-button-primary-top, var(--control-solid-top));
+  --o-button-bottom: var(--o-button-primary-bottom, var(--control-solid-bottom));
   background: linear-gradient(var(--o-button-top) 0%, var(--o-button-bottom) 100%);
   /* --control-solid-ink, NOT --fg-on-solid. The slab inverts between themes and
      --o-neutral-9 (which --fg-on-solid is the ink for) does not, so the two
      drift apart: this rule rendered near-black text on a near-black button at
      1.21:1 in the LIGHT theme — the default one — on every primary button in
      the product. A fill and its ink are one decision, made in tokens.css. */
-  color: var(--control-solid-ink);
-  box-shadow: var(--o-bevel-control-solid);
+  color: var(--o-button-primary-ink, var(--control-solid-ink));
+  box-shadow: var(--o-button-primary-shadow, var(--o-bevel-control-solid));
 }
 .o-button[data-intent='primary']:hover:not(:disabled) {
   /* ONE DECLARED COLOUR, NOT THE BOTTOM STOP PAINTED TWICE.
@@ -3788,8 +4278,8 @@ ul.updates .when { font: var(--o-text-mono-13); }
      lower stop, which is exactly what this rule used to paint, and paper mixes
      toward `--bg-subtle` so the direction matches `:active` without going as
      far. */
-  --o-button-top: var(--control-solid-hover);
-  --o-button-bottom: var(--control-solid-hover);
+  --o-button-top: var(--o-button-primary-hover-top, var(--control-solid-hover));
+  --o-button-bottom: var(--o-button-primary-hover-bottom, var(--control-solid-hover));
 }
 
 /* The raised control: white, lifted off the ground by a white inset highlight
@@ -3799,7 +4289,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
   background: var(--bg-raised);
   color: var(--fg-primary);
   border-color: transparent;
-  box-shadow: var(--o-bevel-control);
+  box-shadow: var(--o-button-secondary-shadow, var(--o-bevel-control));
 }
 .o-button[data-intent='secondary']:hover:not(:disabled) {
   padding-inline: var(--o-space-6);
@@ -3808,6 +4298,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
 .o-button[data-intent='danger'] {
   background: var(--risk-critical-solid);
   color: var(--risk-critical-on);
+  box-shadow: var(--o-button-danger-shadow, none);
 }
 
 /* QUIET: the way out beside a decision (Back, Skip). Text in the second ink with
@@ -3817,14 +4308,14 @@ ul.updates .when { font: var(--o-text-mono-13); }
    trimmed so the text sits nearer the column's edge, which is where a reader
    looks for a way back. */
 .o-button[data-intent='quiet'] {
-  padding-inline: var(--o-space-3);
-  background: transparent;
-  color: var(--fg-secondary);
+  padding-inline: var(--o-button-quiet-pad, var(--o-space-3));
+  background: var(--o-button-quiet-bg, transparent);
+  color: var(--o-button-quiet-ink, var(--fg-secondary));
   border-color: transparent;
-  box-shadow: none;
+  box-shadow: var(--o-button-quiet-shadow, none);
 }
 .o-button[data-intent='quiet']:hover:not(:disabled):not([aria-disabled='true']) {
-  background: color-mix(in oklab, var(--fg-primary) 6%, transparent);
+  background: var(--o-button-quiet-hover, color-mix(in oklab, var(--fg-primary) 6%, transparent));
   color: var(--fg-primary);
 }
 
@@ -3855,7 +4346,8 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
 .o-button:focus-visible {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  /* Inside a clipped list the ring is drawn inward, or the clip removes it. */
+  outline-offset: var(--o-button-focus-offset, 2px);
 }
 
 /* ===================================================================== actions ===
@@ -3899,25 +4391,155 @@ ul.updates .when { font: var(--o-text-mono-13); }
   margin-inline-start: auto;
 }
 
-/* The product keeps a stable hit area while its state changes. The original
-   measured marketing treatment remains scoped to hosts without paper. */
+/* =========================================================== the product ===
+   On paper (the app). Each value is a token the paper scope sets and the
+   sign-in scope pins at what this block said before phase 4c, so these rules
+   change the product's controls without reaching /login.
+   ============================================================================ */
+
+/* A HOVER ARRIVES AT ONCE AND LEAVES OVER 150ms, on the same clock as the
+   sheet's rows (sheet.css): the rest state carries the way out, and the hover
+   zeroes every paint and keeps only the press, so the wash lands with the
+   pointer while the press still eases. */
 [data-surface='paper'] .o-button {
-  transition:
-    background-color var(--o-dur-quick) var(--o-ease-standard),
-    border-color var(--o-dur-quick) var(--o-ease-standard),
-    transform var(--o-dur-quick) var(--o-ease-standard),
-    --o-button-top var(--o-dur-quick) var(--o-ease-standard),
-    --o-button-bottom var(--o-dur-quick) var(--o-ease-standard);
+  transition: var(--o-button-transition);
+}
+[data-surface='paper'] .o-button:hover {
+  transition: var(--o-button-transition-hover);
+}
+[data-surface='paper'] .o-button[data-intent='primary'] {
+  transition: var(--o-button-primary-transition, var(--o-button-transition));
+}
+[data-surface='paper'] .o-button[data-intent='primary']:hover {
+  transition: var(--o-button-primary-transition-hover, var(--o-button-transition-hover));
 }
 [data-surface='paper'] .o-button[data-intent='secondary']:hover:not([aria-disabled='true']):not(:disabled) {
-  padding-inline: var(--o-space-5);
-  background-color: var(--bg-subtle);
+  padding-inline: var(--o-button-pad);
+  background-color: var(--o-button-secondary-hover);
 }
-[data-surface='paper'] .o-button:active:not([aria-disabled='true']):not(:disabled) {
-  transform: translateY(1px);
+/* A press one step past the hover. Not on the sign-in pages, which had no
+   pressed fill: a key held on a focused button there is :active without :hover,
+   and a pin could only restate the hover, which is a fill they never showed.
+   EACH PRESS WEIGHS EXACTLY WHAT ITS OWN HOVER WEIGHS (the rest sits in
+   `:where()`) and wins on order alone, so a caller that restyles a hover more
+   specifically keeps it under the press as well. A host that wants its own
+   pressed primary sets `--o-button-primary-press-top` and `-bottom`. */
+[data-surface='paper'] .o-button[data-intent='secondary']:active:not([aria-disabled='true']):not(:disabled):where(:not([data-surface='auth'] *)) {
+  background-color: var(--o-button-secondary-press);
 }
+:where([data-surface='paper']) .o-button[data-intent='quiet']:active:not(:disabled):not([aria-disabled='true']):where(:not([data-surface='auth'] *)) {
+  background-color: var(--o-button-quiet-press);
+}
+:where([data-surface='paper']) .o-button[data-intent='primary']:active:not(:disabled):where(:not([aria-disabled='true']):not([data-surface='auth'] *)) {
+  --o-button-top: var(--o-button-primary-press-top, var(--o-button-primary-press));
+  --o-button-bottom: var(--o-button-primary-press-bottom, var(--o-button-primary-press));
+}
+[data-surface='paper'] .o-button[data-intent='danger']:hover:not([aria-disabled='true']):not(:disabled) {
+  background-color: var(--o-button-danger-hover);
+}
+/* THE PRESS IS A SCALE, NOT A NUDGE: the control settles into the page rather
+   than sliding down it. `--o-button-press-scale` is 1 under reduced motion. A
+   loading button ignores the press, so it does not answer one either. That
+   test sits in `:where()`, so the rule weighs exactly what it did before it
+   (0,5,0), and a caller's own press of that weight wins again on order. A
+   host sets `--o-button-press` on its scope for a press of its own. */
+[data-surface='paper'] .o-button:active:not([aria-disabled='true']):not(:disabled):where(:not([data-loading])) {
+  transform: var(--o-button-press);
+}
+/* The non-paper secondary hover widens the padding, and a refused control must
+   not breathe. */
 [data-surface='paper'] .o-button[aria-disabled='true']:hover {
-  padding-inline: var(--o-space-5);
+  padding-inline: var(--o-button-pad);
+}
+/* The rule above also overruled quiet's trimmed padding, so a refused quiet
+   button grew under the pointer. Fixed for the product only: on the sign-in
+   pages it keeps the old box, hover included. An icon button keeps its 0, or a
+   refused one squeezes its glyph under the pointer. */
+[data-surface='paper'] .o-button[data-intent='quiet'][aria-disabled='true']:not([data-shape='icon']):hover:not([data-surface='auth'] *) {
+  padding-inline: var(--o-space-3);
+}
+
+/* ================================================================= sizes ===
+   Three, each a pair of tokens. Outside paper the small and large values do not
+   exist, the pair is invalid, and the fallbacks above draw the old 44px
+   control, so a size cannot break a host that has not adopted it. Sign-in sits
+   inside paper and inherits them, so its scope pins all four at the old 44px.
+   ============================================================================ */
+.o-button[data-size='small'] {
+  --o-button-height: var(--o-button-height-small);
+  --o-button-pad: var(--o-button-pad-small);
+}
+.o-button[data-size='large'] {
+  --o-button-height: var(--o-button-height-large);
+  --o-button-pad: var(--o-button-pad-large);
+  /* The one action a screen exists for may hold a width of its own, and an
+     edge of its own (the onboarding pill: 11rem, its ring drawn by its shadow). */
+  min-inline-size: var(--o-button-min-inline-large, auto);
+  border-width: var(--o-button-border-large, var(--o-hairline));
+}
+
+/* ICON ONLY: a square of the button's own height with the glyph centred. Its
+   name is a visually hidden label inside it (patterns.tsx), never a tooltip. */
+.o-button[data-shape='icon'] {
+  --o-button-pad: 0;
+  flex: none;
+  inline-size: var(--o-button-height, var(--o-tap-min));
+  padding-inline: 0;
+}
+
+.o-button__icon {
+  flex: none;
+  color: var(--o-button-icon-ink, inherit);
+}
+
+/* A LOADING BUTTON KEEPS ITS WIDTH AND SAYS WHAT IT IS DOING, IN WORDS.
+   No spinner (docs/design/app-design.md §4: nothing flashes). Both labels share
+   one grid cell, so the box is as wide as the longer one and never reflows, and
+   the working label replaces the other only after 350ms, so a quick answer
+   shows nothing at all. A delay is not motion, so reduced motion keeps it. */
+.o-button__stack {
+  display: inline-grid;
+  justify-items: center;
+}
+.o-button__stack > * {
+  grid-area: 1 / 1;
+}
+.o-button__pending {
+  visibility: hidden;
+}
+.o-button[data-loading] {
+  cursor: progress;
+}
+.o-button[data-loading] .o-button__label,
+.o-button[data-loading] .o-button__pending {
+  transition: visibility 0s linear 350ms;
+}
+.o-button[data-loading] .o-button__label {
+  visibility: hidden;
+}
+.o-button[data-loading] .o-button__pending {
+  visibility: visible;
+}
+
+/* THE HIT AREA REACHES 44px WHERE THE PICTURE DOES NOT (§7a rule 4: a costly
+   control keeps 44px, "hit area if not visually"). A transparent box above and
+   below the 36px button and none at the sides, so a row of buttons never
+   overlaps. The small size is the dense one and keeps its 32px. On the sign-in
+   pages `--o-button-slop` is `none`, which draws no box at all. */
+[data-surface='paper'] .o-button:not([data-size='small'])::after {
+  content: var(--o-button-slop);
+  position: absolute;
+  inset-inline: 0;
+  inset-block: min(0px, calc((100% - var(--o-tap-min)) / 2));
+}
+/* A small control that is still a costly one (the builder's Publish) asks for
+   the same box by setting `--o-button-slop-small: ''`. Unset, it draws none, so
+   every other small button, sign-in's included, is unchanged. */
+[data-surface='paper'] .o-button[data-size='small']::after {
+  content: var(--o-button-slop-small, none);
+  position: absolute;
+  inset-inline: 0;
+  inset-block: min(0px, calc((100% - var(--o-tap-min)) / 2));
 }
 
 /* =============================================================================
@@ -4244,8 +4866,8 @@ ul.updates .when { font: var(--o-text-mono-13); }
 
 
   <div class="o-nf">
-    <h1 class="o-nf__title">There is no page at this address.</h1>
-    <p class="o-nf__body">The link that leads here is out of date, or the address has a typo in it.</p>
+    <h1 class="o-nf__title">Page not found</h1>
+    <p class="o-nf__body">This link is out of date, or the address has a typo.</p>
     <p class="o-nf__code" role="img" aria-label="404">
       <span class="o-nf__digit">4</span>
       <svg class="o-nf__mark" viewBox="133.6 122.9 756.8 778.2" focusable="false"><path fill="currentColor" fill-rule="nonzero" d="M359.5 122.9 L606.0 122.9 L722.7 239.6 L722.7 353.8 L822.0 353.8 L890.4 422.2 L890.4 675.2 L664.5 901.1 L418.0 901.1 L301.3 784.4 L301.3 670.2 L202.0 670.2 L133.6 601.8 L133.6 348.8 Z M284.0 400.7 L284.0 566.3 L466.0 748.3 L610.2 748.3 L737.6 620.9 L737.6 455.3 L555.6 273.3 L411.4 273.3 Z"/></svg>
