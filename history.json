@@ -2,6 +2,34 @@
   "schema": 1,
   "entries": [
     {
+      "at": 1793054022501,
+      "component": "ad-reporting",
+      "label": "Ad accounts",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1793054022501,
+      "component": "outside-execution",
+      "label": "Work by outside agents",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1793054022501,
+      "component": "routine-webhooks",
+      "label": "Routine webhooks",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1793054022501,
+      "component": "taught-workflows",
+      "label": "Taught workflows",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
       "at": 1793054002490,
       "component": "single-sign-on",
       "label": "Single sign-on",
