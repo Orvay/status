@@ -526,6 +526,32 @@
   --o-bevel-rim:
     inset 0 -0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 16%, transparent),
     inset 0 0.5px 0.25px 0 color-mix(in oklab, var(--o-neutral-12) 12%, transparent);
+  /* ---------------------------------------------------------------------------
+     THE SHADOW LADDER: an edge that is a 1px RING rather than a drawn border,
+     and height as a stack of soft drops (ADR-0163, measured on ElevenLabs'
+     dashboard, docs/research/elevenlabs-dashboard-measurements.md §4). The ring
+     does a border's job without drawing a line; the drops below it read as
+     height. Three rungs: the ring alone (a card resting on the sheet), raised
+     (a control that can be pressed), popover (a surface floating over the page).
+
+     Mixed from black in the light themes and from white at night, never from an
+     ink step, so a theme flip cannot invert a drop into a glow. A shadow is
+     discarded under forced colours, so every owner that uses the ring as an
+     element's ONLY edge keeps a border in its own forced-colours block.
+     Restated by each theme block and by both paper arms.
+     ------------------------------------------------------------------------- */
+  --o-shadow-ring: 0 0 0 1px color-mix(in oklab, black 8%, transparent);
+  --o-shadow-raised:
+    var(--o-shadow-ring),
+    0 1px 1px -0.5px color-mix(in oklab, black 6%, transparent),
+    0 3px 3px -1.5px color-mix(in oklab, black 6%, transparent);
+  --o-shadow-popover:
+    var(--o-shadow-ring),
+    0 1px 1px -0.5px color-mix(in oklab, black 6%, transparent),
+    0 3px 3px -1.5px color-mix(in oklab, black 6%, transparent),
+    0 6px 6px -3px color-mix(in oklab, black 6%, transparent),
+    0 12px 12px -6px color-mix(in oklab, black 4%, transparent),
+    0 24px 24px -12px color-mix(in oklab, black 4%, transparent);
   /* ---- Density: a property of the SURFACE, never of the person (08 §5.2) ---- */
   /*
     THE THREE RUNGS, AND THE RULE THAT PICKS ONE. 08 §5.2 is explicit that there
@@ -680,6 +706,21 @@
   --o-menu-scale: 0.97;
   --o-dur-hover-out: 150ms;
   --o-ease-hover-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  /* THE PRODUCT'S HOVER IS 75ms BOTH WAYS ON ONE STANDARD CURVE (ADR-0163,
+     the ElevenLabs blend, 2026-10-27). Measured on their dashboard: thirty of
+     the transitions on one page are a colour, a background or a border on a
+     control, every one at 75ms on cubic-bezier(.4, 0, .2, 1). At 75ms a hover
+     reads as instant without the one-frame snap of a 0ms one, and the same
+     clock on the way out leaves no trail behind a pointer crossing a list.
+
+     `--o-dur-hover-in` is the arriving half that hover rules read. It is 0ms
+     here, so every surface outside the product keeps "at once in, 150ms out";
+     `[data-surface='paper']` points both halves at `--o-dur-hover`. Entrances
+     and exits of SURFACES keep the measured pair above: this is control
+     feedback only. All three are stood down in the block below. */
+  --o-dur-hover: 75ms;
+  --o-ease-hover: cubic-bezier(0.4, 0, 0.2, 1);
+  --o-dur-hover-in: 0ms;
 
   /* THE CONTROLS' OWN MOVEMENT (2026-10-22, phase 4c). A pressed button settles
      to 98% of itself; a dialog grows from 95% (Lovable's measured base dialog)
@@ -982,6 +1023,21 @@
     --o-bevel-rim:
       inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),
       inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);
+    /* The ladder in the dark: the ring is a film of white, because a black
+       ring on a near-black ground draws nothing; the drops are black at four
+       times the light weight, which is what a drop needs to read here. */
+    --o-shadow-ring: 0 0 0 1px color-mix(in oklab, white 10%, transparent);
+    --o-shadow-raised:
+      var(--o-shadow-ring),
+      0 1px 1px -0.5px color-mix(in oklab, black 24%, transparent),
+      0 3px 3px -1.5px color-mix(in oklab, black 24%, transparent);
+    --o-shadow-popover:
+      var(--o-shadow-ring),
+      0 1px 1px -0.5px color-mix(in oklab, black 24%, transparent),
+      0 3px 3px -1.5px color-mix(in oklab, black 24%, transparent),
+      0 6px 6px -3px color-mix(in oklab, black 24%, transparent),
+      0 12px 12px -6px color-mix(in oklab, black 16%, transparent),
+      0 24px 24px -12px color-mix(in oklab, black 16%, transparent);
   }
 }
 
@@ -1198,6 +1254,21 @@
     --o-bevel-rim:
       inset 0 0.5px 0.25px 0 color-mix(in oklab, white 9%, transparent),
       inset 0 -0.5px 0.25px 0 color-mix(in oklab, black 45%, transparent);
+    /* The ladder in the dark: the ring is a film of white, because a black
+       ring on a near-black ground draws nothing; the drops are black at four
+       times the light weight, which is what a drop needs to read here. */
+    --o-shadow-ring: 0 0 0 1px color-mix(in oklab, white 10%, transparent);
+    --o-shadow-raised:
+      var(--o-shadow-ring),
+      0 1px 1px -0.5px color-mix(in oklab, black 24%, transparent),
+      0 3px 3px -1.5px color-mix(in oklab, black 24%, transparent);
+    --o-shadow-popover:
+      var(--o-shadow-ring),
+      0 1px 1px -0.5px color-mix(in oklab, black 24%, transparent),
+      0 3px 3px -1.5px color-mix(in oklab, black 24%, transparent),
+      0 6px 6px -3px color-mix(in oklab, black 24%, transparent),
+      0 12px 12px -6px color-mix(in oklab, black 16%, transparent),
+      0 24px 24px -12px color-mix(in oklab, black 16%, transparent);
 }
 
 /* =============================================================================
@@ -2011,6 +2082,8 @@
     --o-dur-step: 0ms;
     --o-dur-menu: 0ms;
     --o-dur-hover-out: 0ms;
+    --o-dur-hover: 0ms;
+    --o-dur-hover-in: 0ms;
     --o-dur-layer: 0ms;
     --o-stagger-unit: 0ms;
     --o-stagger-layer: 0ms;
@@ -2717,18 +2790,21 @@
      2.70:1 here, so this is derived for the job rather than borrowed. */
   --o-paper-edge: oklch(0.560 0.0050 260);
 
-  /* The v6 ink ramp. 19.12:1 and 9.21:1 on the sheet; 14.19:1 and 6.83:1 on
-     the worst rung.
+  /* TWO INKS (ADR-0163, the ElevenLabs blend, 2026-10-27). The first is the
+     v6 ink, 19.12:1 on the sheet and 14.19:1 on the worst rung. The second is
+     the ONE secondary ink every quieter line in the product uses: v6's third
+     step, L 0.490, which the page schema already spent on a section's
+     description, a row's muted line and a fact's term. 6.26:1 on the sheet
+     (above the 5.74:1 that 60% black reaches, the floor the blend asked for)
+     and 4.65:1 on the worst rung, so it holds AA on a hovered or pressed row.
 
-     THE THIRD STEP ARRIVED WITH ITS READER (2026-10-21): `--fg-tertiary`, the
-     ink of a section's description, a row's muted line and a fact's term in
-     the page schema (`packages/ui/src/sheet.css`). It is v6's own third ink,
-     L 0.490, value for value, so the product's metadata is the landing's.
-     6.26:1 on the sheet and 4.65:1 on the worst rung, so it holds the AA floor
-     on a hovered or pressed row, not only at rest. */
+     There used to be a third step between them (L 0.400, 9.21:1) carrying the
+     same jobs at a different grey. It carried no meaning a reader could name,
+     only variety, and ElevenLabs runs a denser screen than ours on exactly two
+     inks. `--fg-tertiary` stays as a NAME, bound to this same step, so the
+     callers that chose it keep compiling and draw the one secondary ink. */
   --o-paper-ink: oklch(0.170 0.0080 260);
-  --o-paper-ink-2: oklch(0.400 0.0080 260);
-  --o-paper-ink-3: oklch(0.490 0.0060 260);
+  --o-paper-ink-2: oklch(0.490 0.0060 260);
 
   /* The one accent, the v6 blue, spent on the active row, the focus ring and a
      link. 4.81:1 as ink on the worst rung, 6.48:1 on the sheet, and 6.48:1
@@ -2741,8 +2817,8 @@
      reference, because there is no dark reference: the spec asks for the paper
      ramp read the other way.
 
-     17.28:1 and 8.91:1 on the sheet; 11.25:1 and 5.80:1 on the worst rung. The
-     third ink is with the other two below. The blue moves up the
+     17.28:1 on the sheet and 11.25:1 on the worst rung for the first ink; the
+     second is below. The blue moves up the
      ramp because a L 0.47 blue is 4.11:1 on a L 0.17 ground and would fail as
      ink. */
   --o-night-sheet: oklch(0.170 0.0080 260);
@@ -2750,6 +2826,13 @@
   --o-night-component: oklch(0.245 0.0080 260);
   --o-night-hover: oklch(0.285 0.0080 260);
   --o-night-active: oklch(0.325 0.0080 260);
+  /* THE RAISED STEP AT NIGHT (2026-10-31): a card on the sheet and a dialog over
+     it sit one step lighter than the sheet, the way Lovable lifts a card
+     (sheet L .247, card .272) and Linear its settings panes. The operator, on
+     settings drawn as a ring on the sheet's own ground: a box "should be a bit
+     raised, and ours is not". Between the sheet and a control's ground, so a
+     button inside a card still has a ground of its own. */
+  --o-night-raised: oklch(0.228 0.0080 260);
 
   --o-night-rule: oklch(0.300 0.0080 260);
   --o-night-rule-2: oklch(0.360 0.0080 260);
@@ -2758,15 +2841,13 @@
   --o-night-edge: oklch(0.620 0.0100 260);
 
   --o-night-ink: oklch(0.965 0.0040 260);
-  --o-night-ink-2: oklch(0.760 0.0080 260);
-  /* THE THIRD INK AT NIGHT, MEASURED RATHER THAN MIRRORED. The paper step's
-     6.26:1 on the sheet would be L 0.67 here, and that is 4.16:1 on the active
-     rung, under the floor on a pressed row. L 0.70 is the lowest step that
-     clears 4.5:1 on every rung: 7.16:1 on the sheet, 4.66:1 on the worst. It
-     sits closer to the second ink than paper's does (0.06 against 0.09), and
-     that is the price of the floor; `the third ink` in tokens.test.ts holds it
-     on every rung of both scopes. */
-  --o-night-ink-3: oklch(0.700 0.0080 260);
+  /* THE SECOND INK AT NIGHT, MEASURED RATHER THAN MIRRORED (ADR-0163). The
+     paper step's 6.26:1 on the sheet would be L 0.67 here, and that is 4.16:1
+     on the active rung, under the floor on a pressed row. L 0.70 is the lowest
+     step that clears 4.5:1 on every rung: 7.16:1 on the sheet, 4.66:1 on the
+     worst. `two inks` in tokens.test.ts holds it on every rung of both scopes.
+     The L 0.76 step it replaces was the old second of three. */
+  --o-night-ink-2: oklch(0.700 0.0080 260);
 
   /* 4.75:1 as ink on the worst rung, 7.29:1 on the sheet. The fill is a
      separate step because a fill is chosen to CARRY ink and is therefore too
@@ -2809,7 +2890,7 @@
 
   --fg-primary: var(--o-paper-ink);
   --fg-secondary: var(--o-paper-ink-2);
-  --fg-tertiary: var(--o-paper-ink-3);
+  --fg-tertiary: var(--o-paper-ink-2);
 
   /* THE PRIMARY CONTROL IS A FLAT BLACK PILL, and it is flattened here rather
      than in button.css. The rule reads
@@ -2843,10 +2924,17 @@
   --accent-text: var(--o-paper-blue);
   --accent-on-solid: var(--o-ink-solid-light);
 
-  /* Derived upstream from --fg-primary, which this scope moves. The spec spends
-     the accent on the active row, the focus ring and a link, so the ring is the
-     blue rather than the ink: 4.81:1 at its worst rung against a 3:1 floor. */
-  --focus-ring: var(--o-paper-blue);
+  /* THE FOCUS RING IS THE CONTROL EDGE, NOT THE BLUE (2026-10-31). The operator
+     on a blue frame around every clicked field: "remove those blue outlines,
+     the app needs something different". Linear, Lovable and app-zenovay mark
+     focus with a neutral edge. The control boundary is already measured for the
+     job: 4.65:1 on the sheet, 3.45:1 on the worst rung, over WCAG 1.4.11's 3:1,
+     so §7a rule 3 still holds and only the hue goes. Sign-in keeps its blue
+     (the auth scope restates its own ring). */
+  --focus-ring: var(--o-paper-edge);
+  /* Onboarding keeps the blue it was approved with (operator, 2026-10-31: "for
+     the onboarding you can leave it"); the wizard points its ring here. */
+  --app-onb-focus: var(--o-paper-blue);
 
   /* Derived upstream from --accent-solid and the neutral ramp. The light
      formulation, because this surface is paper whatever the reader chose. */
@@ -2883,9 +2971,11 @@
      so it is not restated there. */
   --app-content-gutter: var(--o-space-4);
   --app-content-max: 80rem;
-  /* The settings column (`Page width="narrow"`), today's 60rem until a reading
-     replaces it. */
-  --app-content-narrow: 60rem;
+  /* THE SETTINGS COLUMN (`Page width="narrow"`), 46rem (2026-10-31), between the
+     references measured that day: Linear's settings cards are 640px, Lovable's
+     816px, app-zenovay's column 896px. At 60rem a label stood 960px from its
+     control and the operator read every setting row as two unrelated things. */
+  --app-content-narrow: 46rem;
   --app-section-gap: var(--o-space-6);
   /* THE PAGE SCHEMA'S RHYTHM (`packages/ui/src/sheet.css`), measured off
      Lovable's settings cards: a card pads 20px by 24px, and a row inside it
@@ -2894,16 +2984,36 @@
      amount. 20px is not on the space scale (space-5 is 24px), which is why
      these are tokens rather than steps. */
   --app-card-pad: 1.25rem var(--o-space-5);
-  --app-row-pad-block: 1.25rem;
+  /* A SETTING IS 16px ABOVE AND BELOW, A RECORD 10px (2026-10-30). The 20px
+     both used to share made a list of five records fill a laptop screen: a
+     one-line row was 64px where Linear's issue row is 44px and app-zenovay's
+     table row 40px (docs/research/2026-10-30-app-polish-audit.md). A setting
+     keeps more air than a record because it carries a description and a
+     control; ElevenLabs' settings rows pad 16px. */
+  --app-row-pad-block: var(--o-space-4);
   --app-row-pad: var(--app-row-pad-block) 0;
+  --app-list-row-pad-block: 0.625rem;
+  /* A record's wash reaches 12px past its words on both sides, so the hover is
+     a shape around the row rather than a band flush with the text, and the
+     words still line up with the section heading above them. */
+  --app-list-row-inset: var(--o-space-3);
+  /* A box on the sheet is rounder than nothing and squarer than the sheet:
+     the same 16px twice read as a box nested in a box. */
+  --app-panel-radius: var(--o-radius-panel);
   /* A section's heading to its description, and its head to its body. NOT
      MEASURED: chosen on the scale until a reading replaces them. */
   --app-section-head-gap: var(--o-space-1);
-  --app-section-body-gap: var(--o-space-4);
+  --app-section-body-gap: var(--o-space-3);
   /* 32px on paper as everywhere (2026-10-20): the row is a navigation row, not a
      costly control, so §7a rule 4's 32px floor is its number. */
   --app-rail-row-h: 32px;
-  --app-bar-h: 56px;
+  /* 48px, app-zenovay's bar; Linear's is 44px (2026-10-30). At 56px a bar
+     holding one name was the emptiest band on every page. */
+  --app-bar-h: 48px;
+  /* The band to the first thing on the page: one section gap, not the 48px
+     page gutter it used to borrow, which put 104px of nothing above the
+     first word on every page. */
+  --app-strip-gap: var(--o-space-6);
   --app-auth-measure: 26rem;
   --app-context-measure: 25rem;
   /* The sign-in screen's framed panel: rounder than a sheet, because it is a
@@ -3062,18 +3172,30 @@
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --control-hover-shadow: var(--o-bevel-resting);
-  /* FLOATING IS A HALF-PIXEL RING AND A STACK OF DROPS THAT DOUBLE AS THEY GO
-     (Lovable's floating shadow, measured 2026-10-21), in place of an inset
-     hairline and two blurs. Menus, the dropdown's list, dialogs, toasts and the
-     floating notice read it. The ring sits OUTSIDE the box, so a scrolling list
-     cannot clip it. */
-  --surface-floating-shadow:
-    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-paper-ink) 18%, transparent),
+  /* THE SHADOW LADDER ON PAPER (ADR-0163): a 1px ring of the ink at low alpha
+     in place of a drawn border, and drops that double as they go. The ring is
+     the ink at 10% rather than black, so it takes the sheet's hue; ElevenLabs'
+     is 6%, but a card here rests on the sheet with no drop under it, and at 8%
+     a card's edge measured too faint to find on the brand brief. The drops
+     are black, as every shadow here is. Restated, not inherited from :root,
+     because the ring moves.
+
+     FLOATING IS THE POPOVER RUNG. Menus, the dropdown's list, toasts and the
+     floating notice read `--surface-floating-shadow`; the ring sits OUTSIDE the
+     box, so a scrolling list cannot clip it. */
+  --o-shadow-ring: 0 0 0 1px color-mix(in oklab, var(--o-paper-ink) 10%, transparent);
+  --o-shadow-raised:
+    var(--o-shadow-ring),
+    0 1px 1px -0.5px color-mix(in oklab, black 6%, transparent),
+    0 3px 3px -1.5px color-mix(in oklab, black 6%, transparent);
+  --o-shadow-popover:
+    var(--o-shadow-ring),
     0 1px 1px -0.5px color-mix(in oklab, black 6%, transparent),
     0 3px 3px -1.5px color-mix(in oklab, black 6%, transparent),
     0 6px 6px -3px color-mix(in oklab, black 6%, transparent),
-    0 12px 12px -6px color-mix(in oklab, black 6%, transparent),
-    0 24px 24px -12px color-mix(in oklab, black 6%, transparent);
+    0 12px 12px -6px color-mix(in oklab, black 4%, transparent),
+    0 24px 24px -12px color-mix(in oklab, black 4%, transparent);
+  --surface-floating-shadow: var(--o-shadow-popover);
 
   --field-focus-offset: -2px;
   --field-focus-shadow: none;
@@ -3115,11 +3237,10 @@
   --o-button-numerals: tabular-nums;
   --o-button-bg: var(--bg-raised);
   --o-button-border: transparent;
-  --o-button-secondary-shadow:
-    inset 0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 16%, transparent),
-    inset 0 calc(var(--o-hairline-fine) * -1) 0 color-mix(in oklab, var(--fg-primary) 12%, transparent),
-    0 2px 2px -1px color-mix(in oklab, black 6%, transparent),
-    0 4px 4px -2px color-mix(in oklab, black 4%, transparent);
+  /* THE RAISED RUNG (ADR-0163): the 1px ring and two short drops, in place of a
+     half-pixel inset ring and a shade along the bottom. The trigger and the
+     segmented choice read it through this token. */
+  --o-button-secondary-shadow: var(--o-shadow-raised);
   --o-button-shadow: var(--o-button-secondary-shadow);
   /* The filled control: flat ink (the stops above stay equal), a white
      highlight along its top edge, and the same two drops at twice the weight. */
@@ -3137,22 +3258,23 @@
   /* Toward the paper ink in BOTH themes, so the hover darkens under its white
      label; toward --fg-primary it lightened at night, to 4.1:1. */
   --o-button-danger-hover: color-mix(in oklab, var(--risk-critical-solid) 90%, var(--o-paper-ink));
-  /* At rest the list is the way OUT of a hover (150ms, ease-out cubic); under
-     the pointer every paint is instant and only the press moves, on 80ms. */
+  /* A HOVER'S COLOUR TAKES 75ms EACH WAY on the standard curve (ADR-0163),
+     so the two lists differ only in the press: it settles on 80ms under the
+     pointer and lets go over --o-dur-quick at rest. */
   --o-button-transition:
-    background-color var(--o-dur-hover-out) var(--o-ease-hover-out),
-    box-shadow var(--o-dur-hover-out) var(--o-ease-hover-out),
-    color var(--o-dur-hover-out) var(--o-ease-hover-out),
+    background-color var(--o-dur-hover) var(--o-ease-hover),
+    box-shadow var(--o-dur-hover) var(--o-ease-hover),
+    color var(--o-dur-hover) var(--o-ease-hover),
     transform var(--o-dur-quick) var(--o-ease-hover-out),
-    --o-button-top var(--o-dur-hover-out) var(--o-ease-hover-out),
-    --o-button-bottom var(--o-dur-hover-out) var(--o-ease-hover-out);
+    --o-button-top var(--o-dur-hover) var(--o-ease-hover),
+    --o-button-bottom var(--o-dur-hover) var(--o-ease-hover);
   --o-button-transition-hover:
-    background-color 0s,
-    box-shadow 0s,
-    color 0s,
+    background-color var(--o-dur-hover) var(--o-ease-hover),
+    box-shadow var(--o-dur-hover) var(--o-ease-hover),
+    color var(--o-dur-hover) var(--o-ease-hover),
     transform var(--o-dur-instant) var(--o-ease-hover-out),
-    --o-button-top 0s,
-    --o-button-bottom 0s;
+    --o-button-top var(--o-dur-hover) var(--o-ease-hover),
+    --o-button-bottom var(--o-dur-hover) var(--o-ease-hover);
   --o-button-press: scale(var(--o-button-press-scale));
   /* Positioned, so the hit-area extension (button.css, `::after`) has a box. */
   --o-button-position: relative;
@@ -3169,7 +3291,7 @@
   --o-input-recess: inset 0 1px 2px -1px color-mix(in oklab, black 8%, transparent);
   --o-input-shadow: inset 0 0 0 var(--o-hairline) var(--line-control), var(--o-input-recess);
   --o-input-hover-shadow: inset 0 0 0 var(--o-hairline) var(--line-strong), var(--o-input-recess);
-  --o-input-focus-shadow: var(--o-input-recess);
+  --o-input-focus-shadow: inset 0 0 0 var(--o-hairline) var(--focus-ring), var(--o-input-halo), var(--o-input-recess);
   --o-checkbox-shadow:
     inset 0 0 0 var(--o-hairline) var(--line-control),
     0 1px 2px -1px color-mix(in oklab, black 10%, transparent);
@@ -3194,37 +3316,112 @@
   --o-trigger-shadow: var(--o-button-secondary-shadow);
   --o-trigger-hover-shadow: var(--o-button-secondary-shadow);
   --o-trigger-hover-bg: var(--o-button-secondary-hover);
+  --o-trigger-transition:
+    background-color var(--o-dur-hover) var(--o-ease-hover),
+    box-shadow var(--o-dur-hover) var(--o-ease-hover);
 
   /* The surfaces that float: 12px panels with 8px rows (Lovable's menu), on the
      product's menu clock (150ms each way, 2px, 97%), rows that light at once
      and fade over 150ms. */
   --o-popover-radius: var(--o-radius-panel);
   --o-popover-item-radius: var(--o-radius-lg);
+  /* A menu row is 32px, ElevenLabs' and Lovable's measured row. At the house
+     44px the account menu's ten rows ran past a 779px-tall window and its last
+     row, sign out, could only be reached by scrolling inside the menu. Sign out
+     keeps its 44px (§7a rule 4); the others are not costly. */
+  --o-menu-item-h: 2rem;
+  /* A loading placeholder in the product: a tint of the ink, no hatch, after a
+     350ms wait (skeleton.css). */
+  --o-skeleton-bg: color-mix(in oklab, var(--fg-primary) 7%, transparent);
+  --o-skeleton-pattern: none;
+  --o-skeleton-delay: 350ms;
+  --o-menu-item-weight: var(--o-weight-regular);
   --o-popover-scale: var(--o-menu-scale);
   --o-popover-travel: var(--o-travel-menu);
   --o-popover-enter: var(--o-dur-menu);
   --o-popover-exit: var(--o-dur-menu);
-  --o-option-transition: background-color var(--o-dur-hover-out) var(--o-ease-hover-out);
-  --o-option-hover: 0s;
+  --o-option-transition:
+    background-color var(--o-dur-hover) var(--o-ease-hover),
+    color var(--o-dur-hover) var(--o-ease-hover);
+  --o-option-hover: var(--o-dur-hover);
   --o-option-hover-bg: var(--bg-hover);
+
+  /* EVERY OTHER HOVER IN THE PRODUCT, ON THE SAME CLOCK. The rows, tabs and
+     links that `packages/ui` and `apps/app` draw read the arriving half as
+     `--o-dur-hover-in` and the leaving half as `--o-dur-hover-out`; outside
+     this scope those are 0ms and 150ms, here both are 75ms on the standard
+     curve (ADR-0163). Pointed at `--o-dur-hover` rather than written as 75ms,
+     so the reduced-motion block's zero still reaches them. */
+  --o-dur-hover-in: var(--o-dur-hover);
+  --o-dur-hover-out: var(--o-dur-hover);
+  --o-ease-hover-out: var(--o-ease-hover);
+
+  /* THE CHROME'S TYPE IS 14px AT 500 (ADR-0163). A nav or rail row, a tab, a
+     menu or dropdown item, a field label and a row's title are all set in the
+     medium weight; reading text (a paragraph, the console's answers, an
+     editor) is not chrome and keeps the regular one. Weight does the hierarchy
+     between a title and its supporting line, which is set in the second ink at
+     the regular weight. Owners read it with the regular weight as fallback, so
+     a surface outside this scope draws what it drew. */
+  --o-weight-ui: var(--o-weight-medium);
+
+  /* A ROW IN A LIST is 14px (ADR-0163): its title at the UI weight, its
+     metadata at the regular one in the second ink. Was 15px, one step larger
+     than every label beside it. */
+  --o-row-font: var(--o-text-body-14);
+  --o-row-tracking: var(--o-tracking-body-14);
+
+  /* A CARD RESTS ON THE SHEET, SO IT TAKES THE RING AND NO DROP. Its half-pixel
+     border stays in the box, transparent, so the box keeps its size and the
+     forced-colours block in sheet.css still has a line to colour. */
+  --o-card-line: transparent;
+  /* A CARD IS LIFTED, NOT ONLY RINGED (2026-10-31): white on a white sheet, so
+     the ring and two short drops are what say where it begins (Lovable's
+     settings card, measured: a half-pixel ring and a ladder under it). At night
+     the fill does the lifting and the drops are invisible, so only the ring. */
+  --o-card-shadow: var(--o-shadow-raised);
+  --o-card-bg: var(--o-paper-sheet);
+  --o-dialog-bg: var(--o-paper-sheet);
+  /* MENUS ARE GLASS (2026-10-31, the operator's second ask, pointing at
+     ElevenLabs' switcher: white at 90% over a blur). A menu, a dropdown's list
+     and a popover float over the PAGE, which is the varied ground §9a keeps
+     glass for; a card and a dialog rest on it and stay opaque. The fill stays
+     dense enough that the inks keep their contrast whatever passes under. */
+  --o-popover-bg: color-mix(in oklab, var(--o-paper-sheet) 86%, transparent);
+  --o-popover-blur: blur(20px) saturate(1.5);
+  --o-halt-line: transparent;
+  --o-halt-shadow: var(--o-button-secondary-shadow);
+  /* A FIELD'S FOCUS IS ITS EDGE (2026-10-31): the hairline turns to the focus
+     ink and a soft 3px film of the ink spreads outside it, as Lovable's and
+     Linear's fields do. No outline, so nothing jumps 2px away from the box. */
+  --o-input-focus-outline: transparent;
+  --o-input-halo: 0 0 0 3px color-mix(in oklab, var(--o-paper-ink) 8%, transparent);
+
+  /* A SETTING'S CURRENT VALUE, shown as a small pill tinted with the ink and
+     followed by a chevron (`Dropdown appearance="value"`, ADR-0163). A tint of
+     the ink rather than a grey, so it sits correctly on any rung beneath it.
+     The hover is one step deeper. */
+  --o-value-pill-bg: color-mix(in oklab, var(--o-paper-ink) 5%, transparent);
+  --o-value-pill-hover-bg: color-mix(in oklab, var(--o-paper-ink) 9%, transparent);
   --o-toast-radius: var(--o-radius-panel);
   --o-toast-shadow: var(--surface-floating-shadow);
   --o-tooltip-radius: var(--o-radius-md);
   --o-tooltip-font: var(--o-text-label-12);
   --o-tooltip-tracking: var(--o-tracking-label-12);
   --o-tooltip-shadow:
-    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 18%, transparent),
+    var(--o-shadow-ring),
     0 2px 4px -2px color-mix(in oklab, black 10%, transparent);
-  /* The ink at 60%, the light counterpart of the measured black at 70% at
-     night (Lovable's light scrim was not measured; a browser check owns the
-     exact number). No blur (overlay.css, trap 11). */
-  --o-dialog-scrim: color-mix(in oklab, var(--o-paper-ink) 60%, transparent);
-  /* A DIALOG FLOATS HIGHER THAN A MENU: Lovable's `shadow-floating-lg`, a
-     half-pixel ring, a crisp step under the edge, then six drops that double to
+  /* THE PAGE STAYS LEGIBLE BEHIND A DIALOG (2026-10-31). ElevenLabs veils the
+     page lightly (measured: a 30% film and a 2.5px blur) where this was the ink
+     at 60%, which the operator read as overwhelming. The ink at 24%, and still
+     no blur (overlay.css: glass only over a photograph). */
+  --o-dialog-scrim: color-mix(in oklab, var(--o-paper-ink) 24%, transparent);
+  /* A DIALOG FLOATS HIGHER THAN A MENU: Lovable's `shadow-floating-lg`, the
+     ladder's 1px ring (ADR-0163), a crisp step under the edge, then six drops that double to
      48px, each half a pixel lower than the menus' stack. At the light theme's
      weight, a third over the menus' 6%. */
   --o-dialog-shadow:
-    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-paper-ink) 18%, transparent),
+    var(--o-shadow-ring),
     0 1.5px 0 0 color-mix(in oklab, black 8%, transparent),
     0 1.5px 1px -0.5px color-mix(in oklab, black 8%, transparent),
     0 3.5px 3px -1.5px color-mix(in oklab, black 8%, transparent),
@@ -3325,7 +3522,7 @@
 
   --fg-primary: var(--o-night-ink);
   --fg-secondary: var(--o-night-ink-2);
-  --fg-tertiary: var(--o-night-ink-3);
+  --fg-tertiary: var(--o-night-ink-2);
 
   /* The pill inverts, as the slab does everywhere else in this system: a black
      pill on a near-black sheet is the 1.21:1 button §12c records. 17.28:1. */
@@ -3354,7 +3551,9 @@
   --accent-line: var(--o-night-blue);
   --accent-text: var(--o-night-blue);
   --accent-on-solid: var(--o-ink-solid-dark);
-  --focus-ring: var(--o-night-blue);
+  /* The edge, as on paper: 5.25:1 on the sheet, 3.42:1 on the worst rung. */
+  --focus-ring: var(--o-night-edge);
+  --app-onb-focus: var(--o-night-blue);
 
   --o-orb-core: color-mix(in oklab, var(--accent-solid) 22%, var(--o-night-ink));
   --o-orb-body: color-mix(in oklab, var(--accent-solid) 82%, var(--o-night-ink));
@@ -3415,17 +3614,22 @@
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --control-hover-shadow: var(--o-bevel-resting);
-  /* The paper arm's ring and stack, heavier: a drop on near-black needs four
-     times the black to read, and a whole-pixel black ring under the half-pixel
-     ink one keeps the edge off the sheet it floats over. */
-  --surface-floating-shadow:
-    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-night-ink) 18%, transparent),
-    0 0 0 1px color-mix(in oklab, black 32%, transparent),
+  /* The paper arm's ladder, heavier (ADR-0163): the ring is the night ink at
+     12%, a light film, because a dark ring on a near-black sheet draws nothing;
+     a drop on near-black needs four times the black to read. */
+  --o-shadow-ring: 0 0 0 1px color-mix(in oklab, var(--o-night-ink) 12%, transparent);
+  --o-shadow-raised:
+    var(--o-shadow-ring),
+    0 1px 1px -0.5px color-mix(in oklab, black 24%, transparent),
+    0 3px 3px -1.5px color-mix(in oklab, black 24%, transparent);
+  --o-shadow-popover:
+    var(--o-shadow-ring),
     0 1px 1px -0.5px color-mix(in oklab, black 16%, transparent),
     0 3px 3px -1.5px color-mix(in oklab, black 16%, transparent),
     0 6px 6px -3px color-mix(in oklab, black 16%, transparent),
     0 12px 12px -6px color-mix(in oklab, black 16%, transparent),
     0 24px 24px -12px color-mix(in oklab, black 16%, transparent);
+  --surface-floating-shadow: var(--o-shadow-popover);
 
   --field-focus-offset: -2px;
   --field-focus-shadow: none;
@@ -3442,11 +3646,7 @@
      ring of the light ink, a highlight along the TOP edge rather than a shade
      along the bottom, and drops at four times the light arm's weight. The
      washes are twice as strong, as measured (.08/.12 against .04/.06). */
-  --o-button-secondary-shadow:
-    inset 0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 16%, transparent),
-    inset 0 var(--o-hairline-fine) 0 color-mix(in oklab, white 10%, transparent),
-    0 2px 2px -1px color-mix(in oklab, black 24%, transparent),
-    0 4px 4px -2px color-mix(in oklab, black 24%, transparent);
+  --o-button-secondary-shadow: var(--o-shadow-raised);
   /* The slab is light here, so a white highlight would vanish: a shade along
      its bottom edge instead. */
   --o-button-primary-shadow:
@@ -3458,6 +3658,17 @@
   --o-button-quiet-hover: color-mix(in oklab, var(--fg-primary) 10%, transparent);
   --o-button-quiet-press: color-mix(in oklab, var(--fg-primary) 14%, transparent);
   --o-input-recess: inset 0 1px 2px -1px color-mix(in oklab, black 40%, transparent);
+  /* A light film reads weaker than a dark one, so the value pill is a step
+     stronger at night, as the rail's washes are. */
+  --o-value-pill-bg: color-mix(in oklab, var(--o-night-ink) 9%, transparent);
+  --o-value-pill-hover-bg: color-mix(in oklab, var(--o-night-ink) 14%, transparent);
+  /* The raised step carries a card and a dialog at night; the drops vanish on a
+     dark ground, so a card keeps only its ring. */
+  --o-card-bg: var(--o-night-raised);
+  --o-card-shadow: var(--o-shadow-ring);
+  --o-dialog-bg: var(--o-night-raised);
+  --o-popover-bg: color-mix(in oklab, var(--o-night-raised) 84%, transparent);
+  --o-input-halo: 0 0 0 3px color-mix(in oklab, var(--o-night-ink) 10%, transparent);
   --o-checkbox-shadow:
     inset 0 0 0 var(--o-hairline) var(--line-control),
     0 1px 2px -1px color-mix(in oklab, black 40%, transparent);
@@ -3466,16 +3677,15 @@
     0 2px 2px -1px color-mix(in oklab, black 32%, transparent),
     0 4px 4px -2px color-mix(in oklab, black 24%, transparent);
   --o-tooltip-shadow:
-    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--fg-primary) 18%, transparent),
-    0 0 0 1px color-mix(in oklab, black 24%, transparent),
+    var(--o-shadow-ring),
     0 2px 4px -2px color-mix(in oklab, black 40%, transparent);
-  /* Measured: black at 70%, no blur. */
-  --o-dialog-scrim: color-mix(in oklab, black 70%, transparent);
-  /* The stack as measured at night: the ring, a whole-pixel black one under
-     it, and the seven steps at black 16%. */
+  /* Lovable's measured black at 70% was the heavy half of the same complaint;
+     at night the veil is black at 50%, still no blur. */
+  --o-dialog-scrim: color-mix(in oklab, black 50%, transparent);
+  /* The stack as measured at night: the ladder's ring, and the seven steps
+     at black 16%. */
   --o-dialog-shadow:
-    0 0 0 var(--o-hairline-fine) color-mix(in oklab, var(--o-night-ink) 18%, transparent),
-    0 0 0 1px color-mix(in oklab, black 32%, transparent),
+    var(--o-shadow-ring),
     0 1.5px 0 0 color-mix(in oklab, black 16%, transparent),
     0 1.5px 1px -0.5px color-mix(in oklab, black 16%, transparent),
     0 3.5px 3px -1.5px color-mix(in oklab, black 16%, transparent),
@@ -3693,8 +3903,25 @@
   --o-trigger-shadow: var(--o-bevel-control);
   --o-trigger-hover-shadow: var(--control-hover-shadow);
   --o-trigger-hover-bg: var(--bg-subtle);
+  --o-trigger-transition: box-shadow var(--o-dur-quick) var(--o-ease-standard);
   --o-popover-radius: var(--o-radius-md);
   --o-popover-item-radius: var(--o-radius-sm);
+  /* The product's 32px, regular-weight menu row (2026-10-30) stops here. */
+  --o-menu-item-h: var(--o-tap-min);
+  --o-menu-item-weight: var(--o-weight-ui, var(--o-weight-regular));
+  --o-skeleton-bg: var(--bg-subtle);
+  --o-skeleton-pattern: var(--provenance-hatch);
+  --o-skeleton-delay: 0ms;
+  /* The 2026-10-31 surfaces, pinned to what sign-in drew: no card fill, opaque
+     panels, and the blue ring as an outline. */
+  --o-card-bg: none;
+  --o-dialog-bg: var(--bg-raised);
+  --o-popover-bg: var(--bg-raised);
+  --o-popover-blur: none;
+  --o-halt-line: var(--line-control);
+  --o-halt-shadow: var(--o-bevel-control);
+  --o-input-focus-outline: var(--focus-ring);
+  --o-input-halo: 0 0 transparent;
   --o-popover-scale: 0.98;
   --o-popover-travel: var(--o-travel-reveal);
   --o-popover-enter: var(--o-dur-enter);
@@ -3702,6 +3929,13 @@
   --o-option-transition: background-color var(--o-dur-quick) var(--o-ease-standard);
   --o-option-hover: var(--o-dur-quick);
   --o-option-hover-bg: var(--bg-canvas);
+  /* The ElevenLabs blend (ADR-0163) stops here: sign-in keeps its regular
+     weight in a list, its cards' drawn hairline, and no value pill. */
+  --o-weight-ui: var(--o-weight-regular);
+  --o-card-line: var(--line-border);
+  --o-card-shadow: none;
+  --o-value-pill-bg: var(--bg-component);
+  --o-value-pill-hover-bg: var(--bg-hover);
   /* Not drawn on sign-in today, pinned all the same: a tooltip, a toast or a
      segmented choice added there later should not arrive in the product's look. */
   --o-segmented-height: var(--o-tap-min);
@@ -4529,16 +4763,22 @@ ul.updates .when { font: var(--o-text-mono-13); }
 [data-surface='paper'] .o-button:not([data-size='small'])::after {
   content: var(--o-button-slop);
   position: absolute;
-  inset-inline: 0;
+  inset-inline: var(--o-button-slop-inline, 0);
   inset-block: min(0px, calc((100% - var(--o-tap-min)) / 2));
 }
 /* A small control that is still a costly one (the builder's Publish) asks for
    the same box by setting `--o-button-slop-small: ''`. Unset, it draws none, so
-   every other small button, sign-in's included, is unchanged. */
+   every other small button, sign-in's included, is unchanged.
+
+   SIDEWAYS ONLY WHEN ASKED. `--o-button-slop-inline` (a negative length) grows
+   the box past the sides as well, for a glyph button whose neighbours sit far
+   enough off that the boxes cannot meet (the console's Send and Talk, 12px
+   apart, 6px each). Unset it is 0, the rule above: in a row of buttons a
+   sideways box would press the one beside it. */
 [data-surface='paper'] .o-button[data-size='small']::after {
   content: var(--o-button-slop-small, none);
   position: absolute;
-  inset-inline: 0;
+  inset-inline: var(--o-button-slop-inline, 0);
   inset-block: min(0px, calc((100% - var(--o-tap-min)) / 2));
 }
 
