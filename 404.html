@@ -426,6 +426,15 @@
      than squinted at. */
   --o-text-label-12: 0.75rem/1rem var(--o-font-sans);
   --o-tracking-label-12: -0.005em;
+  /* LINEAR'S SETTINGS DENSITY (2026-10-31, measured: row labels 13/500, their
+     line 12/450, section titles 15/500). Prose steps, so a wrapped line keeps
+     its air. */
+  --o-text-body-13: 0.8125rem/1.25rem var(--o-font-sans);
+  --o-tracking-body-13: -0.006em;
+  --o-text-body-12: 0.75rem/1.125rem var(--o-font-sans);
+  --o-tracking-body-12: -0.003em;
+  --o-text-heading-15: 0.9375rem/1.375rem var(--o-font-sans);
+  --o-tracking-heading-15: -0.012em;
   --o-text-mono-13: 0.8125rem/1.25rem var(--o-font-mono);
   --o-tracking-mono-13: 0em;
   --o-text-micro-11: 0.6875rem/0.875rem var(--o-font-sans);
@@ -464,14 +473,28 @@
      scope copies: moving that number would reach sign-in. Nothing rebinds this
      one, so it means 16px everywhere it is read. */
   --o-radius-sheet: 16px;
-  /* A DIALOG'S PANEL, 24px (Lovable's plan dialog, `rounded-6`, measured
-     2026-10-23): rounder than the sheet it floats over. Nothing rebinds it. */
-  --o-radius-dialog: 1.5rem;
+  /* A DIALOG'S PANEL, 16px (2026-11-01, the operator, showing the shortcuts
+     sheet at 24px beside app-zenovay's and Linear's, about 12 to 16px: "not
+     like this"). Was 24px, Lovable's plan dialog (`rounded-6`, 2026-10-23).
+     The sheet's step now, not a rounder one. Nothing rebinds it. */
+  --o-radius-dialog: 1rem;
   /* THE COMPOSER'S CORNER (phase 3, 2026-10-21). The one surface between the
      two shapes above, on purpose: at paper's 12px the composer reads as a form
      field, and at a pill it cannot hold three lines. Declared once here and
      restated by no surface, so it is 1.5rem on paper and night alike. */
   --o-radius-composer: 1.5rem;
+  /* THE ONE KEY CAP (`Keycap` in @orvay/ui, 2026-11-01): the shortcuts sheet's
+     22px cap at 5px corners, Linear's and app-zenovay's, and the 18px cap a
+     tooltip or a menu row carries at 4px. Its fill and edge are washes of the
+     ink mixed where the cap is drawn (keycap.css), not here: a custom property
+     resolves its var() on the element that declares it, so a wash declared on
+     the root would carry the root's ink into the night scope. */
+  --o-keycap-size: 1.375rem;
+  --o-keycap-size-compact: 1.125rem;
+  --o-keycap-radius: 5px;
+  --o-keycap-radius-compact: 4px;
+  --o-keycap-fill: 6%;
+  --o-keycap-edge: 12%;
 
   /* ---------------------------------------------------------------------------
      Bevel — where the "glass" impression actually comes from.
@@ -637,6 +660,22 @@
      because the reduced-motion block below is the single control §9 allows and a
      literal would escape it. */
   --o-dur-ambient: 3200ms;
+  /* THE VALLEY OF LIGHT: the landing hero's five colours climbing both sides, the centre clear for the words.
+     ONE OWNER for the two grounds that draw it (the operator, 2026-11-06): onboarding, and the console before its
+     first message. Each band resolves the theme's own `--brand-light-*` where it is used, so day and night differ
+     without a second copy. Paint it blurred (36px) over a box 10% larger than its frame. */
+  --app-light-valley:
+    radial-gradient(40% 20% at 50% 114%, var(--brand-light-gold) 0%, transparent 72%),
+    radial-gradient(50% 36% at 4% 108%, var(--brand-light-orange) 0%, transparent 72%),
+    radial-gradient(50% 36% at 96% 108%, var(--brand-light-orange) 0%, transparent 72%),
+    radial-gradient(64% 46% at 4% 99%, var(--brand-light-rose) 0%, transparent 74%),
+    radial-gradient(64% 46% at 96% 99%, var(--brand-light-rose) 0%, transparent 74%),
+    radial-gradient(48% 30% at 50% 102%, var(--brand-light-blue) 0%, transparent 74%),
+    radial-gradient(74% 46% at 50% 90%, color-mix(in oklab, var(--brand-light-sky) 70%, transparent) 0%, transparent 70%),
+    radial-gradient(60% 50% at 0% 86%, var(--brand-light-sky) 0%, transparent 72%),
+    radial-gradient(60% 50% at 100% 86%, var(--brand-light-sky) 0%, transparent 72%),
+    radial-gradient(66% 58% at 0% 74%, var(--brand-light-blue) 0%, transparent 72%),
+    radial-gradient(66% 58% at 100% 74%, var(--brand-light-blue) 0%, transparent 72%);
 
   /* The measured pair, verbatim rather than rounded to the duration scale. A
      motion curve is not a spacing rung: 225 and 150 are the values that were
@@ -645,6 +684,30 @@
   --o-dur-enter: 225ms;
   --o-ease-enter: cubic-bezier(0.23, 1, 0.32, 1);
   --o-dur-exit: 150ms;
+  /* THE TOAST, app-zenovay's (2026-10-31; docs/research/zenovay-settings-port.md §5.12). The card rises 16px over
+     400ms on sonner's curve, which settles a hair past rest, and leaves in 200ms. Its badge's disc pops over 350ms on
+     a back-out curve (0 to 110% to 100%), then the check draws over 400ms from 200ms, an X's two strokes over 250ms
+     from 200ms and 300ms, and a static glyph fades in over 250ms from 180ms. */
+  /* A theme change crossfades the whole page over 400ms (theme.tsx, ui.css). */
+  --o-dur-theme: 400ms;
+  --o-ease-theme: cubic-bezier(0.4, 0, 0.2, 1);
+  --o-dur-toast-in: 400ms;
+  --o-dur-toast-out: 200ms;
+  --o-ease-toast: cubic-bezier(0.21, 1.02, 0.73, 1);
+  --o-travel-toast: 16px;
+  /* A toast the same setting answers again bumps (2026-11-01): to 103% and back over 200ms, out and in on one curve. */
+  --o-dur-toast-bump: 200ms;
+  --o-ease-toast-bump: cubic-bezier(0.4, 0, 0.2, 1);
+  --o-scale-toast-bump: 1.03;
+  --o-dur-badge-pop: 350ms;
+  --o-ease-badge-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --o-dur-badge-draw: 400ms;
+  --o-dur-badge-stroke: 250ms;
+  --o-dur-badge-glyph: 250ms;
+  --o-ease-badge-draw: cubic-bezier(0.22, 1, 0.36, 1);
+  --o-delay-badge-draw: 200ms;
+  --o-delay-badge-late: 300ms;
+  --o-delay-badge-glyph: 180ms;
   /* Previously cubic-bezier(0.4, 0, 1, 1), a plain ease-in, and referenced by
      nothing. docs/plan/08 §6.3 states there is no ease-in curve in the token
      set; that was already untrue of --o-ease-standard, whose first control
@@ -663,11 +726,21 @@
   --o-dur-unveil: 900ms;
   --o-ease-unveil: cubic-bezier(0.16, 1, 0.3, 1);
   --o-dur-step: 420ms;
+  /* THE GLIDE (2026-11-07, the console's composer between a conversation's foot and the empty console's middle):
+     an even ease over a little more than half a second, so a move of 400px reads as one travel rather than a jump
+     that settles. Slower in, slower out than the unveil curve, which spends most of its travel in its first frames. */
+  --o-dur-glide: 560ms;
+  --o-ease-glide: cubic-bezier(0.32, 0.72, 0, 1);
   /* THE ONE OVERSHOOT, and only for a confirmation: a mark arriving because a
      person chose something (a check filling its ring). docs/plan/26 §2 says the
      SITE has no overshoot and that still stands; the app may differ (§9e) and
      spends it on 12px of glyph, never on a panel, a page or the light. */
   --o-ease-confirm: cubic-bezier(0.34, 1.35, 0.64, 1);
+  /* The switch's thumb, standing in for app-zenovay's spring (stiffness 380, damping 28, mass 0.6). That spring is
+     nearly critically damped (ratio about 0.93) and barely overshoots; this curve peaks about 1% past its stop
+     (a fraction of a pixel on 14px of travel), so what it buys is the spring's late, soft arrival, not a bounce. Stands down with the
+     duration it rides (--o-dur-considered). */
+  --o-ease-switch: cubic-bezier(0.34, 1.18, 0.64, 1);
   /* THE RAIL CHANGING LAYER (2026-10-20, phase 2 of the app redesign), and a
      group of its rows folding (ADR-0145). Shorter than a step, because the rail
      is chrome the reader is moving THROUGH rather than a screen they arrived
@@ -680,6 +753,44 @@
   --o-ease-layer: cubic-bezier(0.16, 1, 0.3, 1);
   --o-travel-layer: 12px;
   --o-stagger-layer: 10ms;
+  /* THE WHOLE PAGE CHANGING (2026-10-31, the operator: "zoom them like in, or just smoothly replace the whole
+     site"). Moving into or out of a page with no chrome (two-step setup, the sign-in pages, the wizard) replaces
+     the screen: it fades in from 98% over 280ms on the enter curve, and never slides. Stood down below, the scale
+     to 1 as well, so a reader who asked for stillness gets the new page simply there. */
+  --o-dur-page-swap: 360ms;
+  --o-page-swap-scale: 0.97;
+  /* The plan's arrival (`billing/checkout/plan-arrival.module.css`): the two halves of the mark drawing, closing, the
+     fused mark's settle and its echoes, the words rising, and the beat every delay is a multiple of. */
+  --o-dur-arrival-draw: 760ms;
+  --o-dur-arrival-close: 620ms;
+  --o-dur-arrival-settle: 720ms;
+  --o-dur-arrival-echo: 1200ms;
+  --o-dur-arrival-rise: 520ms;
+  --o-dur-arrival-trace: 1800ms;
+  --o-arrival-beat: 80ms;
+  /* ONE SETTINGS PAGE GIVING WAY TO THE NEXT (2026-11-01, the operator: "it flashes away and flashes then back
+     in"). The page being left stays until the next one replaces it, which settles from 0.9 to 1 over 120ms on the
+     enter curve: never from 0, so there is no frame of an empty panel. A slow answer dims the page being left to
+     0.85 over 120ms, and a very slow one crossfades the skeleton in over it in 150ms (`nav-pending.ts` says when).
+     Opacity only, never travel. The durations are 0ms in the block below; the dim stays, since it is a state and
+     not a motion. */
+  --o-dur-panel-in: 120ms;
+  --o-panel-enter-opacity: 0.9;
+  --o-dur-panel-dim: 120ms;
+  --o-panel-wait-opacity: 0.85;
+  --o-dur-panel-cross: 150ms;
+  /* A PENDING BUTTON'S RING (`spinner` on Button, Lovable's, 2026-10-31): 14px, a stroke and a half of hairline, one
+     turn in 800ms, linear because a turning ring has no start or end to ease into. Stood down below: the ring is
+     drawn and stays still. */
+  --o-dur-spin: 800ms;
+  --o-spinner-size: 14px;
+  --o-spinner-stroke: 1.5px;
+  /* The ring's track: the label's own ink at a third, so it follows every intent and theme. A custom property keeps
+     `currentColor` unresolved until the ring uses it, so it is the ring's ink and not the root's. */
+  --o-spinner-track: color-mix(in oklab, currentColor 30%, transparent);
+  /* A drawn caret (the two-step code boxes, whose real input is invisible) blinks once a little over a second, the
+     platform's own rhythm. Stood down below: the caret stays drawn and still. */
+  --o-dur-caret: 1060ms;
   /* Forward rises in from the right, Back from the left, by this much. */
   --o-travel-step: 16px;
 
@@ -704,6 +815,19 @@
   --o-dur-menu: 150ms;
   --o-travel-menu: 2px;
   --o-menu-scale: 0.97;
+  /* THE SIDE PANEL beside a menu row (2026-10-31, app-zenovay's account menu, which fades its flyouts over 200ms).
+     It arrives over 180ms on the enter curve from 6px towards the menu's edge, and a panel being replaced by another
+     fades out over 120ms with no travel, alongside the next one rather than before it. All three stood down under
+     reduced motion below. */
+  --o-dur-menu-sub: 180ms;
+  --o-dur-menu-sub-out: 120ms;
+  --o-travel-menu-sub: 6px;
+  /* THE TOOLTIP, app-zenovay's (2026-10-31, docs/research/zenovay-settings-port.md 5.11): it waits 200ms under a
+     resting pointer (`TOOLTIP_DELAY_MS` in tooltip.tsx), comes in over 120ms from 3px toward its trigger and leaves
+     in 80ms. All three stood down under reduced motion below. */
+  --o-dur-tooltip-in: 120ms;
+  --o-dur-tooltip-out: 80ms;
+  --o-travel-tooltip: 3px;
   --o-dur-hover-out: 150ms;
   --o-ease-hover-out: cubic-bezier(0.215, 0.61, 0.355, 1);
   /* THE PRODUCT'S HOVER IS 75ms BOTH WAYS ON ONE STANDARD CURVE (ADR-0163,
@@ -729,6 +853,25 @@
      a scale with no duration is still a jump. */
   --o-button-press-scale: 0.98;
   --o-dialog-scale: 0.95;
+  /* A surface the size of a page ZOOMS in (the integrations overlay, 2026-11-04): from further away and over longer,
+     on a curve that lands softly, so it reads as a view opening rather than a box appearing. */
+  --o-dialog-zoom-scale: 0.9;
+  --o-dur-dialog-zoom: 340ms;
+  /* Leaving is arriving played backwards, and quicker (the operator, 2026-11-04: "fade away faster"): the mirrored
+     curve, so it starts slowly and is gone fast (`integrations/overlay.tsx` waits this long). */
+  --o-dur-dialog-zoom-out: 200ms;
+  --o-ease-dialog-zoom-out: cubic-bezier(0.7, 0, 0.84, 0);
+  --o-ease-dialog-zoom: cubic-bezier(0.16, 1, 0.3, 1);
+  /* A FLOATING SURFACE (2026-11-05, the operator: "centralize the zoom ins and zoom outs"): a card that rises from the
+     control that opened it (the inbox card from the rail) and the bar a table's select mode floats. The overlay's
+     curves at a smaller distance: it grows from just short of its size and a few pixels down, lands softly, and
+     leaves on the mirrored curve, quicker. `.o-float` (float.css) draws it; `usePresence` waits the exit. */
+  --o-surface-scale: 0.96;
+  --o-surface-travel: 8px;
+  --o-dur-surface-in: 300ms;
+  --o-ease-surface-in: var(--o-ease-dialog-zoom);
+  --o-dur-surface-out: 180ms;
+  --o-ease-surface-out: var(--o-ease-dialog-zoom-out);
   --o-travel-sheet: 100%;
   /* A DIALOG COMES AND GOES ON ONE CLOCK: 200ms both ways on the standard
      curve, rising 1rem on the way in (Lovable's plan dialog, 2026-10-23). Its
@@ -764,6 +907,22 @@
   /* 0.05s x index, measured. Staggering beyond a handful of items turns a list
      into a performance, so this is for rows arriving, never for rows present. */
   --o-stagger-unit: 50ms;
+
+  /* A PORTRAIT THAT CAN BE CHANGED, after app-zenovay's profile photo (the
+     account page's Profile photo row). On hover or focus the photo lifts to this
+     scale over --o-dur-photo; under reduced motion the scale is 1 below, because
+     a photo that jumps 5% larger the instant a pointer arrives is movement even
+     with no duration. The veil's blur is not motion and stays. The shimmer runs
+     while a new photo uploads, for --o-loop-iterations, so it stops under
+     reduced motion and the veil's word carries the state instead. */
+  --o-photo-lift-scale: 1.05;
+  /* The veil over the photo, from the glass family's fixed ink so it is dark in
+     both themes: 55% clears 4.5:1 for --o-glass-ink over a WHITE photograph,
+     where --o-ground-veil's note puts the floor at 40%. */
+  --o-photo-veil: color-mix(in oklab, var(--o-glass-scrim) 55%, transparent);
+  --o-photo-veil-blur: 3px;
+  --o-dur-photo: 200ms;
+  --o-dur-shimmer: 1500ms;
 
   /* Kept as aliases of the measured pair. They are the names apps already use,
      and repointing them here is what makes the correction reach every consumer
@@ -1272,6 +1431,111 @@
 }
 
 /* =============================================================================
+   Identity — the generated faces and workspace marks (`packages/ui/src/avatar-art.ts`).
+
+   THE SAME IN BOTH THEMES, ON PURPOSE, which is why this is one block on `:root` and the dark theme does not restate
+   it. A face is an identity rather than a surface: a person who is a navy disc with a peach orbit in the light theme
+   and a different colour in the dark one would be two people. Every pair is measured against ITSELF, never against a
+   canvas, so the theme cannot change whether it reads: `tokens.test.ts` (`identity`) holds each face's motif at 3:1
+   on its ground and each workspace letter at 4.5:1 on both stops of its ground, and every value inside sRGB.
+
+   TWELVE FACE PAIRS, half dark ground with a light motif and half the reverse, so a roster is not one tone. EIGHT
+   WORKSPACE GROUNDS, all soft, because a workspace mark carries a letter that has to read at 20px.
+
+   §9a's three opaque colours govern surfaces and chrome; a 20 to 44px identity tile is neither, and these values
+   are reached only through `.o-avatar` in `packages/ui/src/data.css`.
+   ============================================================================= */
+
+:root, :root[data-theme='dark'] {
+  /* navy, peach */
+  --o-face-0-ground: oklch(0.320 0.0700 258);
+  --o-face-0-ink: oklch(0.860 0.0800 55);
+  /* terracotta, cream */
+  --o-face-1-ground: oklch(0.520 0.1300 38);
+  --o-face-1-ink: oklch(0.950 0.0300 85);
+  /* sage, forest */
+  --o-face-2-ground: oklch(0.870 0.0500 150);
+  --o-face-2-ink: oklch(0.400 0.0800 155);
+  /* plum, pink */
+  --o-face-3-ground: oklch(0.350 0.0900 330);
+  --o-face-3-ink: oklch(0.850 0.0800 350);
+  /* sky, cobalt */
+  --o-face-4-ground: oklch(0.890 0.0450 235);
+  --o-face-4-ink: oklch(0.440 0.1300 258);
+  /* mustard, cocoa */
+  --o-face-5-ground: oklch(0.830 0.1200 88);
+  --o-face-5-ink: oklch(0.380 0.0600 55);
+  /* teal, mint */
+  --o-face-6-ground: oklch(0.440 0.0700 200);
+  --o-face-6-ink: oklch(0.900 0.0500 175);
+  /* blush, wine */
+  --o-face-7-ground: oklch(0.910 0.0350 20);
+  --o-face-7-ink: oklch(0.430 0.1300 15);
+  /* graphite, lime */
+  --o-face-8-ground: oklch(0.290 0.0120 260);
+  --o-face-8-ink: oklch(0.890 0.1500 125);
+  /* lavender, indigo */
+  --o-face-9-ground: oklch(0.870 0.0500 295);
+  --o-face-9-ink: oklch(0.420 0.1400 285);
+  /* sand, rust */
+  --o-face-10-ground: oklch(0.930 0.0300 75);
+  --o-face-10-ink: oklch(0.520 0.1400 40);
+  /* pine, gold */
+  --o-face-11-ground: oklch(0.370 0.0600 165);
+  --o-face-11-ink: oklch(0.870 0.1100 88);
+  /* steel */
+  --o-mark-0-from: oklch(0.900 0.0500 240);
+  --o-mark-0-to: oklch(0.820 0.0800 265);
+  --o-mark-0-ink: oklch(0.300 0.0700 262);
+  /* verdant */
+  --o-mark-1-from: oklch(0.910 0.0600 160);
+  --o-mark-1-to: oklch(0.830 0.0800 180);
+  --o-mark-1-ink: oklch(0.320 0.0600 170);
+  /* amber */
+  --o-mark-2-from: oklch(0.930 0.0700 85);
+  --o-mark-2-to: oklch(0.850 0.1000 60);
+  --o-mark-2-ink: oklch(0.360 0.0700 50);
+  /* rose */
+  --o-mark-3-from: oklch(0.910 0.0400 10);
+  --o-mark-3-to: oklch(0.840 0.0600 350);
+  --o-mark-3-ink: oklch(0.370 0.0900 355);
+  /* violet */
+  --o-mark-4-from: oklch(0.890 0.0500 300);
+  --o-mark-4-to: oklch(0.810 0.0800 275);
+  --o-mark-4-ink: oklch(0.330 0.1000 285);
+  /* ember */
+  --o-mark-5-from: oklch(0.900 0.0500 55);
+  --o-mark-5-to: oklch(0.830 0.0800 35);
+  --o-mark-5-ink: oklch(0.370 0.0800 40);
+  /* teal */
+  --o-mark-6-from: oklch(0.900 0.0500 200);
+  --o-mark-6-to: oklch(0.830 0.0550 220);
+  --o-mark-6-ink: oklch(0.330 0.0500 215);
+  /* slate */
+  --o-mark-7-from: oklch(0.920 0.0100 260);
+  --o-mark-7-to: oklch(0.840 0.0200 250);
+  --o-mark-7-ink: oklch(0.300 0.0200 260);
+  /* THE SHIMMER'S TINT (the operator, 2026-11-08, from two reference screenshots): the leading edge of a working
+     label's sweep is a quiet lavender before it brightens to the first ink. Measured off the references at about
+     oklch(0.75 0.04 280) on a dark canvas; `shimmer.css` mixes this into the first ink of whatever scope it is in,
+     so one hue serves both themes (lighter than the second ink on dark, darker on light). */
+  --o-shimmer-lavender: oklch(0.620 0.1300 280);
+  /* How much of the second ink a working label keeps at rest, the rest being the canvas. The references rest the
+     word well below the band; on dark that is 75% (about 5:1 on the canvas, still above §7a's 4.5:1), on light the
+     second ink is already at the floor, so it stays whole. Restated in the dark blocks below. */
+  --o-shimmer-rest: 100%;
+}
+
+/* A RELOAD IS NOT AN ARRIVAL (the operator, 2026-11-08: "really not looking like the page was refreshed"). While a
+   reloaded page draws itself (`reload-boot.ts`, the attribute lives seconds), nothing that means "this just appeared"
+   plays: the page is simply there, as it was. Motion that carries a state (a shimmer, a spinner) has its own tokens. */
+:root[data-reloaded] {
+  --o-dur-enter: 0ms;
+  --o-dur-unveil: 0ms;
+  --o-dur-layer: 0ms;
+}
+
+/* =============================================================================
    Tier 2 — semantic. The only tier components consume.
    ============================================================================= */
 
@@ -1359,6 +1623,14 @@
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+  /* THE SWITCH IS THE ACCENT, NOT THE SLAB (2026-10-31, the operator beside app-zenovay's): ON is the accent solid
+     mixed 85% over the off ground, as the reference mixes it over its overlay surface; a press previews 70% toward
+     on, or 78% back toward off. Derived from --accent-solid and --bg-subtle, so restated in every scope that moves
+     either (token-scopes.test). The thumb is the near-white solid ink in both themes, as the reference's is. */
+  --switch-on: color-mix(in oklab, var(--accent-solid) 85%, var(--bg-subtle));
+  --switch-on-press: color-mix(in oklab, var(--accent-solid) 70%, var(--bg-subtle));
+  --switch-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--accent-solid));
+  --switch-thumb: var(--o-ink-solid-light);
 
 
   /* ---------------------------------------------------------------- orb ----
@@ -1961,6 +2233,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --bg-canvas: var(--o-neutral-1);
+    --o-shimmer-rest: 75%;
     --bg-subtle: var(--o-neutral-2);
     --bg-raised: var(--o-neutral-3);
     /* The orb's three stops, restated because "lighter" and "darker" reverse.
@@ -1973,6 +2246,7 @@
 }
 :root[data-theme='dark'] {
   --bg-canvas: var(--o-neutral-1);
+  --o-shimmer-rest: 75%;
   --bg-subtle: var(--o-neutral-2);
   --bg-raised: var(--o-neutral-3);
   /* The orb's three stops, for the reader who CHOSE dark rather than inheriting
@@ -2077,14 +2351,45 @@
     --o-dur-ambient: 0ms;
     --o-dur-enter: 0ms;
     --o-dur-exit: 0ms;
+    --o-dur-theme: 0ms;
+    --app-handle-dur-on: 0ms;
+    --app-handle-dur-off: 0ms;
+    --o-dur-toast-in: 0ms;
+    --o-dur-toast-out: 0ms;
+    --o-travel-toast: 0px;
+    --o-dur-toast-bump: 0ms;
+    --o-scale-toast-bump: 1;
+    --o-dur-badge-pop: 0ms;
+    --o-dur-badge-draw: 0ms;
+    --o-dur-badge-stroke: 0ms;
+    --o-dur-badge-glyph: 0ms;
+    --o-delay-badge-draw: 0ms;
+    --o-delay-badge-late: 0ms;
+    --o-delay-badge-glyph: 0ms;
     --o-dur-reveal: 0ms;
     --o-dur-unveil: 0ms;
     --o-dur-step: 0ms;
+    --o-dur-glide: 0ms;
     --o-dur-menu: 0ms;
     --o-dur-hover-out: 0ms;
     --o-dur-hover: 0ms;
     --o-dur-hover-in: 0ms;
     --o-dur-layer: 0ms;
+    --o-dur-page-swap: 0ms;
+    --o-page-swap-scale: 1;
+    --o-dur-arrival-draw: 0ms;
+    --o-dur-arrival-close: 0ms;
+    --o-dur-arrival-settle: 0ms;
+    --o-dur-arrival-echo: 0ms;
+    --o-dur-arrival-rise: 0ms;
+    --o-dur-arrival-trace: 0ms;
+    --o-arrival-beat: 0ms;
+    --o-dur-panel-in: 0ms;
+    --o-panel-enter-opacity: 1;
+    --o-dur-panel-dim: 0ms;
+    --o-dur-panel-cross: 0ms;
+    --o-dur-spin: 0ms;
+    --o-dur-caret: 0ms;
     --o-stagger-unit: 0ms;
     --o-stagger-layer: 0ms;
     --o-travel-layer: 0px;
@@ -2095,6 +2400,12 @@
     --o-travel-reveal: 0px;
     --o-travel-step: 0px;
     --o-travel-menu: 0px;
+    --o-dur-menu-sub: 0ms;
+    --o-dur-menu-sub-out: 0ms;
+    --o-travel-menu-sub: 0px;
+    --o-dur-tooltip-in: 0ms;
+    --o-dur-tooltip-out: 0ms;
+    --o-travel-tooltip: 0px;
     /* A menu that still grows from 97% with no duration is a menu drawn at 97%
        for a frame; at 1 it simply appears where it rests. */
     --o-menu-scale: 1;
@@ -2106,11 +2417,21 @@
     --o-press-scale-y: 1;
     --o-button-press-scale: 1;
     --o-dialog-scale: 1;
+    --o-dialog-zoom-scale: 1;
+    --o-dur-dialog-zoom: 0ms;
+    --o-dur-dialog-zoom-out: 0ms;
+    --o-surface-scale: 1;
+    --o-surface-travel: 0px;
+    --o-dur-surface-in: 0ms;
+    --o-dur-surface-out: 0ms;
     --o-travel-sheet: 0%;
     --o-dur-dialog: 0ms;
     --o-travel-dialog: 0px;
     --o-dur-palette-out: 0ms;
     --o-blur-enter: 0px;
+    --o-photo-lift-scale: 1;
+    --o-dur-photo: 0ms;
+    --o-dur-shimmer: 0ms;
   }
 }
 
@@ -2217,13 +2538,44 @@
      several rules have to agree about them: the well clears the rail, the card
      subtracts the gutter twice, and the card's own header row is subtracted
      again by the scrollport inside it. */
-  --app-rail-w: 15rem;
-  /* The collapsed rail, and it is a WIDTH rather than an absence: 56px holds a
-     32px tile centred in 12px of padding, which is the spec's icon rail
-     (26 §5.2). `rail-state.tsx` carries the same number for the width it
-     reserves; that file's note says why the two must agree. */
-  --app-rail-icon: 56px;
-  --app-gutter: var(--o-space-3);
+  /* 16rem, app-zenovay's 256px default (2026-10-31). `rail-state.tsx` carries
+     the same number; the two must agree or the first paint and the hydrated
+     rail differ by the gap. */
+  --app-rail-w: 16rem;
+  /*
+     THE RAIL'S MOTION, APP-ZENOVAY'S NUMBERS (2026-10-31), measured in its
+     source rather than eyeballed: `ModernSidebar.tsx`, `globals.css` and
+     `design-system/motion.ts`.
+
+     COLLAPSE AND EXPAND: one transform on the panel, 280ms on the expo-out
+     `cubic-bezier(0.22, 1, 0.36, 1)`, and the well's padding on the same clock,
+     so the two land together. The panel leaves at its FULL width and drops 48px
+     as it goes (`-translate-x-full translate-y-12`), a curtain pulled down and
+     left rather than a column folding, so nothing inside it reflows or clips.
+
+     THE PEEK: an edge hover raises the same panel as a floating card that slides
+     in from one gutter past its own width, 320ms on `cubic-bezier(0.2, 0, 0, 1)`,
+     in and out alike. 12px corners, inset one gutter from the frame.
+
+     THE REVEAL CONTROL in the card's bar grows from nothing to its box over
+     200ms ease-out as the rail leaves, and shrinks away as it returns. 32px
+     rather than the reference's 28, the house floor (§7a rule 4).
+
+     Zeroed under reduced motion with the rest of the durations below.
+  */
+  --app-rail-dur: 280ms;
+  --app-rail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --app-rail-drop: 3rem;
+  --app-peek-dur: 320ms;
+  --app-peek-ease: cubic-bezier(0.2, 0, 0, 1);
+  --app-peek-radius: 12px;
+  --app-reveal-size: 32px;
+  --app-reveal-dur: 200ms;
+  /* Tailwind 4's `ease-out` (the reference's `duration-200 ease-out`), which is
+     NOT the CSS keyword: (0, 0, 0.2, 1), where the keyword is (0, 0, 0.58, 1). */
+  --app-reveal-ease: cubic-bezier(0, 0, 0.2, 1);
+  /* 8px between the panel and the window's edges (2026-11-01, the operator beside Linear's), where 12px read loose. */
+  --app-gutter: var(--o-space-2);
   --companion-size-inline: 2rem;
   --companion-size-welcome: 4.5rem;
   --companion-body: var(--accent-solid);
@@ -2231,6 +2583,8 @@
   --app-frame-bg: var(--bg-canvas);
   --app-card-shadow: none;
   --app-bar-h: 3rem;
+  /* The halt band at the top of the panel, one line (2026-11-01): 40px, Supabase's and Lovable's slim bar. */
+  --app-halt-bar-h: 2.5rem;
 
   /* REGISTERED, and this is load-bearing rather than decoration.
 
@@ -2283,20 +2637,41 @@
   /* 8px on a 32px row: a soft rectangle rather than a pill. The rail's own,
      because `--o-radius-md` means 12px here and 6px on paper. */
   --app-rail-row-radius: 8px;
-  /* A group label and a layer's name: 13px, a step under the 14px row, so the
-     label files the rows without competing with them. */
-  --app-rail-group-size: 0.8125rem;
+  /* A group label and a layer's name: 12px, a step under the 13px row, so the
+     label files the rows without competing with them (Linear's, 2026-10-31). */
+  --app-rail-group-size: 0.75rem;
+  /* A TAB BEING DRAGGED LIFTS (2026-11-01, the rail's reorder, after ElevenLabs'):
+     2% larger, on the popover's soft shadow (`--o-shadow-popover`, read where it
+     is drawn so each surface's own shadow applies), so it reads as held above
+     the list while the others slide under it. The scale is 1 under reduced
+     motion (the rail's block below): a row that jumps larger the instant it is
+     pressed is movement even with no duration. The shadow is not motion. */
+  --app-rail-lift-scale: 1.02;
 
   --app-rail-fg: var(--fg-secondary);
   --app-rail-fg-active: var(--fg-primary);
   --app-rail-hover-bg: var(--o-neutral-a3);
   --app-rail-active-bg: var(--o-neutral-a4);
+  /* THE RAIL'S TWO DOORS (the head's collapse, the card bar's reveal) HOVER AS
+     APP-ZENOVAY'S ICON BUTTONS DO: a quiet wash of the surface's own ink, its
+     `--hover-bg` (ink at 5% on light, 6% on dark below). The row wash above is
+     the raised rung, a LIGHTER fill, which is right for a row on the rail's
+     quiet ground and read as a near-white tile on the card's bar (operator,
+     2026-10-31). A mix of `--fg-primary`, so it darkens on paper and lifts
+     faintly on night, and never turns into a slab in either. */
+  --app-rail-control-hover-bg: color-mix(in oklab, var(--fg-primary) 5%, transparent);
 
   /* How strongly the resize hairline lights on hover. An OPACITY rather than a
      colour, because the line is `--fg-primary` and must read the same way in
      both themes; a fixed colour would be near-invisible in one of them. The
      reference's own value, kept rather than re-picked. */
-  --app-handle-lit: 0.32;
+  /* The lamp's peak, a touch above the flat line's old 0.32 (the gradient spends most of its length fading); 0.55 read
+     too bright at the middle (the operator, 2026-11-01). */
+  --app-handle-lit: 0.38;
+  /* It comes on over 320ms and goes off over 200ms; off, it rests at 40% of its length, drawn into the middle. */
+  --app-handle-dur-on: 320ms;
+  --app-handle-dur-off: 200ms;
+  --app-handle-off-scale: 0.4;
 
   /* THE PEEK'S SHADOW, AND IT IS THE ONE PLACE THE RESTRAINT RULE DOES NOT APPLY.
 
@@ -2307,11 +2682,16 @@
      layers, because one large blur is a smear and a tight layer under a wide one
      is what reads as an object with a height above the page.
 
-     Built from `--o-neutral-a*` rather than a literal, so it inverts with the
-     theme instead of becoming a black bruise on a dark canvas. */
+     BUILT FROM THE SCRIM'S INK, WHICH DOES NOT INVERT, and that is the fix for
+     the banded strip down the peek's edge. It was `--o-neutral-a6` and `-a5`,
+     which flip to WHITE washes in the dark theme: the panel cast a pale halo
+     onto the dark card, two stacked bands of it, and read as a broken blur. A
+     shadow is darker than what it falls on in both themes; the reference's are
+     black at 45% and 25%, and these are its two layers in the product's own
+     near-black. */
   --app-peek-shadow:
-    0 20px 50px -12px var(--o-neutral-a6),
-    0 8px 20px -8px var(--o-neutral-a5);
+    0 20px 50px -12px color-mix(in oklab, var(--o-glass-scrim) 45%, transparent),
+    0 8px 20px -8px color-mix(in oklab, var(--o-glass-scrim) 25%, transparent);
 
   /* Three tokens used to sit here and no longer do: `--app-rail-marker` and
      `--app-rail-marker-w` fed a 2px bar down the inline-start edge of the
@@ -2341,6 +2721,24 @@
   --app-card-bg: var(--bg-raised);
   --app-card-line: var(--line-rule);
   --app-card-radius: var(--o-radius-md);
+  /* A MODULE INSIDE A CARD that should read as its own thing (the operator, 2026-11-05: "some modules have a different
+     background than the standard background"): a connector's head, its drawing, a section that folds, a table, a card
+     of permissions. One step off the card in both themes, because it is the canvas the card sits on; the ink pairs on
+     --bg-canvas are already measured (tokens.test.ts), so nothing new needs a contrast check. Use this, never a
+     hand-picked fill, for the next surface of the same kind. */
+  --app-module-bg: var(--bg-canvas);
+}
+
+/* THE RAIL'S DURATIONS UNDER REDUCED MOTION, after the block that declares them:
+   the reduced-motion block above sits earlier in the file, so it cannot reach a
+   custom property a later `:root` rule sets. The rail then moves in one frame. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --app-rail-dur: 0ms;
+    --app-peek-dur: 0ms;
+    --app-reveal-dur: 0ms;
+    --app-rail-lift-scale: 1;
+  }
 }
 
 /* =============================================================================
@@ -2618,6 +3016,7 @@
   --syntax-property: var(--o-steel-11);
 
   --bg-canvas: var(--o-workbench-pane);
+  --app-module-bg: var(--bg-canvas);
   --bg-subtle: var(--o-workbench-shell);
   --bg-raised: var(--o-workbench-raised);
   --bg-component: var(--o-workbench-bubble);
@@ -2661,6 +3060,7 @@
      somewhere else entirely.
   */
   --app-rail-bg: var(--bg-canvas);
+  --app-rail-control-hover-bg: color-mix(in oklab, var(--fg-primary) 5%, transparent);
 
   /* THE HOVER OF THE SOLID CONTROL, DECLARED RATHER THAN IMPLIED BY THE GRADIENT.
      `.o-button[data-intent='primary']:hover` used to paint
@@ -2675,6 +3075,9 @@
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+  --switch-on: color-mix(in oklab, var(--accent-solid) 85%, var(--bg-subtle));
+  --switch-on-press: color-mix(in oklab, var(--accent-solid) 70%, var(--bg-subtle));
+  --switch-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--accent-solid));
   --control-solid-ink: var(--o-ink-solid-dark);
 
   --accent-solid: var(--o-workbench-accent);
@@ -2773,22 +3176,33 @@
        --o-paper-active     0.900   the worst rung, and what every ink below is
                                     held against
   */
-  --o-paper-sheet: oklch(1.000 0.0000 260);
-  --o-paper-quiet: oklch(0.985 0.0020 260);
-  --o-paper-component: oklch(0.960 0.0030 260);
-  --o-paper-hover: oklch(0.930 0.0040 260);
-  --o-paper-active: oklch(0.900 0.0050 260);
+  /* CREAM, app-zenovay's light ramp (2026-10-31, the operator: "the cream one is just way better for the
+     eyes"): its sidebar 96.5%, page 98.5% and elevated card 99.5% at hue 85, chroma .005 and .003. The sheet
+     is the page, the quiet rung the rail and frame, the raised rung a card and a dialog; the control rungs
+     step down from the page in the same warm hue. */
+  --o-paper-sheet: oklch(0.985 0.0050 85);
+  --o-paper-raised: oklch(0.995 0.0030 85);
+  --o-paper-quiet: oklch(0.965 0.0050 85);
+  --o-paper-component: oklch(0.945 0.0060 85);
+  --o-paper-hover: oklch(0.925 0.0060 85);
+  --o-paper-active: oklch(0.905 0.0070 85);
 
   /* The two hairlines, taken from v6 unchanged. 1.33:1 on the sheet, which is a
      divider and not a boundary, exactly the honest range the note above
      --line-control describes. A line that must be SEEN is --o-paper-edge. */
-  --o-paper-rule: oklch(0.905 0.0030 260);
-  --o-paper-rule-2: oklch(0.840 0.0040 260);
-  --o-paper-rule-3: oklch(0.740 0.0050 260);
+  --o-paper-rule: oklch(0.910 0.0060 85);
+  --o-paper-rule-2: oklch(0.850 0.0060 85);
+  --o-paper-rule-3: oklch(0.740 0.0060 85);
   /* The control boundary. 3.45:1 on --bg-active and 4.65:1 on the sheet,
      against WCAG 1.4.11's 3:1 floor. v6's ornament step is L 0.62 and reads
      2.70:1 here, so this is derived for the job rather than borrowed. */
   --o-paper-edge: oklch(0.560 0.0050 260);
+  /* A FIELD'S RESTING EDGE AND ITS HOVER STEP (2026-11-02). WCAG 1.4.11: when the edge is what tells a reader a
+     field is there, it needs 3:1, and a text field has nothing else. So the edge sits ON the line, not under it:
+     L 0.655 is 3.1:1 on the raised paper the field and its card share, quieter than --o-paper-edge (4.6:1),
+     which stays the focus ink drawn twice as wide. Hover is the step between. */
+  --o-paper-field-edge: oklch(0.655 0.0050 85);
+  --o-paper-field-edge-hover: oklch(0.615 0.0050 85);
 
   /* TWO INKS (ADR-0163, the ElevenLabs blend, 2026-10-27). The first is the
      v6 ink, 19.12:1 on the sheet and 14.19:1 on the worst rung. The second is
@@ -2821,24 +3235,32 @@
      second is below. The blue moves up the
      ramp because a L 0.47 blue is 4.11:1 on a L 0.17 ground and would fail as
      ink. */
-  --o-night-sheet: oklch(0.170 0.0080 260);
-  --o-night-quiet: oklch(0.205 0.0080 260);
-  --o-night-component: oklch(0.245 0.0080 260);
-  --o-night-hover: oklch(0.285 0.0080 260);
-  --o-night-active: oklch(0.325 0.0080 260);
+  /* THE NIGHT RAMP IS LOVABLE'S (2026-10-31, measured on its settings: sidebar oklch .23, panel .247, card
+     .272, its lines .372, at hue 107 and chroma .002, a warm neutral that sits with the cream above). The
+     operator rejected the blue-grey and then the near-black. The rail is the sheet rung, the page the quiet
+     rung, a card the raised rung; the control rungs step up from the card at Lovable's spacing. */
+  --o-night-sheet: oklch(0.230 0.0020 107);
+  --o-night-quiet: oklch(0.247 0.0020 107);
+  --o-night-component: oklch(0.300 0.0025 107);
+  --o-night-hover: oklch(0.330 0.0025 107);
+  --o-night-active: oklch(0.360 0.0030 107);
   /* THE RAISED STEP AT NIGHT (2026-10-31): a card on the sheet and a dialog over
      it sit one step lighter than the sheet, the way Lovable lifts a card
      (sheet L .247, card .272) and Linear its settings panes. The operator, on
      settings drawn as a ring on the sheet's own ground: a box "should be a bit
      raised, and ours is not". Between the sheet and a control's ground, so a
      button inside a card still has a ground of its own. */
-  --o-night-raised: oklch(0.228 0.0080 260);
+  --o-night-raised: oklch(0.272 0.0020 107);
 
-  --o-night-rule: oklch(0.300 0.0080 260);
-  --o-night-rule-2: oklch(0.360 0.0080 260);
-  --o-night-rule-3: oklch(0.440 0.0080 260);
+  --o-night-rule: oklch(0.320 0.0025 107);
+  --o-night-rule-2: oklch(0.372 0.0040 107);
+  --o-night-rule-3: oklch(0.450 0.0040 107);
   /* 3.42:1 on --bg-active, 5.25:1 on the sheet. */
-  --o-night-edge: oklch(0.620 0.0100 260);
+  --o-night-edge: oklch(0.680 0.0040 107);
+  /* A field's resting edge and hover step, on the 3:1 line against the field's own fill (--o-night-component, the
+     lighter of its two neighbours): L 0.585 is 3.2:1 there; focus stays --o-night-edge at twice the width. */
+  --o-night-field-edge: oklch(0.585 0.0040 107);
+  --o-night-field-edge-hover: oklch(0.625 0.0040 107);
 
   --o-night-ink: oklch(0.965 0.0040 260);
   /* THE SECOND INK AT NIGHT, MEASURED RATHER THAN MIRRORED (ADR-0163). The
@@ -2847,7 +3269,7 @@
      step that clears 4.5:1 on every rung: 7.16:1 on the sheet, 4.66:1 on the
      worst. `two inks` in tokens.test.ts holds it on every rung of both scopes.
      The L 0.76 step it replaces was the old second of three. */
-  --o-night-ink-2: oklch(0.700 0.0080 260);
+  --o-night-ink-2: oklch(0.760 0.0030 107);
 
   /* 4.75:1 as ink on the worst rung, 7.29:1 on the sheet. The fill is a
      separate step because a fill is chosen to CARRY ink and is therefore too
@@ -2877,6 +3299,7 @@
      inset on a darker ground is the frame-inside-a-frame this redesign deletes,
      and on paper the hairline is what says where a surface begins. */
   --bg-canvas: var(--o-paper-sheet);
+  --app-module-bg: var(--bg-canvas);
   --bg-raised: var(--o-paper-sheet);
   --bg-subtle: var(--o-paper-quiet);
   --bg-component: var(--o-paper-component);
@@ -2887,6 +3310,8 @@
   --line-border: var(--o-paper-rule-2);
   --line-strong: var(--o-paper-rule-3);
   --line-control: var(--o-paper-edge);
+  --line-field: var(--o-paper-field-edge);
+  --line-field-hover: var(--o-paper-field-edge-hover);
 
   --fg-primary: var(--o-paper-ink);
   --fg-secondary: var(--o-paper-ink-2);
@@ -2917,6 +3342,9 @@
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+  --switch-on: color-mix(in oklab, var(--accent-solid) 85%, var(--bg-subtle));
+  --switch-on-press: color-mix(in oklab, var(--accent-solid) 70%, var(--bg-subtle));
+  --switch-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--accent-solid));
 
   --accent-solid: var(--o-paper-blue);
   --accent-hover: var(--o-paper-blue-hover);
@@ -2949,7 +3377,7 @@
      names stay so app.css keeps stating no values, and the handle's own
      hairline derives from both, so a full-height sheet gets a full-height
      edge with no second rule. */
-  --app-gutter: var(--o-space-3);
+  --app-gutter: var(--o-space-2);
   /* The sheet and every card on it: 16px, Lovable's measured sheet (2026-10-21).
      The night arm restates it because it restated the old binding. */
   --app-card-radius: var(--o-radius-sheet);
@@ -2971,11 +3399,21 @@
      so it is not restated there. */
   --app-content-gutter: var(--o-space-4);
   --app-content-max: 80rem;
-  /* THE SETTINGS COLUMN (`Page width="narrow"`), 46rem (2026-10-31), between the
-     references measured that day: Linear's settings cards are 640px, Lovable's
-     816px, app-zenovay's column 896px. At 60rem a label stood 960px from its
-     control and the operator read every setting row as two unrelated things. */
-  --app-content-narrow: 46rem;
+  /* THE SETTINGS COLUMN (`Page width="narrow"`), ONE WIDTH FOR EVERY SETTINGS PAGE: Lovable's 816px (2026-11-06,
+     the operator: "at Lovable all settings pages are the same wide"). It replaced three measures (Linear's 640px for
+     stacked forms, a 752px column, 1280px for the connector tables), and the references measured on 2026-10-31 were
+     Linear 640px, Lovable 816px, app-zenovay 896px. At 60rem a label stood 960px from its control and the operator
+     read every setting row as two unrelated things; 51rem stays clear of that. */
+  --app-content-narrow: 51rem;
+  /* APP-ZENOVAY'S SETTINGS PAGE (docs/research/zenovay-settings-port.md, 2026-10-31, the operator: "take it 1:1"):
+     a 752px column whose title stands 56px under the panel's top, cards rounded 16px, a row 20px above and below
+     (24px for a row holding a field, whose control column is a fixed 360px so "Update" becoming "Saving" never moves
+     the label). Scoped to the settings column by `[data-width='narrow']` below, so a work page keeps its density. */
+  --app-settings-head-top: 3.5rem;
+  --app-settings-card-radius: 16px;
+  --app-settings-row-pad: 1.25rem;
+  --app-settings-field-row-pad: 1.5rem;
+  --app-settings-field-col: 22.5rem;
   --app-section-gap: var(--o-space-6);
   /* THE PAGE SCHEMA'S RHYTHM (`packages/ui/src/sheet.css`), measured off
      Lovable's settings cards: a card pads 20px by 24px, and a row inside it
@@ -2983,14 +3421,39 @@
      is the row's inset and the divider between rows is inset by the same
      amount. 20px is not on the space scale (space-5 is 24px), which is why
      these are tokens rather than steps. */
-  --app-card-pad: 1.25rem var(--o-space-5);
+  --app-card-pad: 1rem var(--o-space-5);
+  /* THE SETTINGS PAGE'S TYPE, one step under the work pages' (Linear's, measured 2026-10-31): a setting's name at
+     13px, its line at 12px, a section's title at 15px, the rail's rows at 13px with a 15px glyph. Read by
+     sheet.css and app.css with the old size as the fallback, and pinned to it for sign-in. */
+  --app-setting-label-font: var(--o-text-body-13);
+  --app-setting-label-tracking: var(--o-tracking-body-13);
+  --app-setting-desc-font: var(--o-text-body-12);
+  --app-setting-desc-tracking: var(--o-tracking-body-12);
+  /* A section's title at 14px in the strongest weight and its line at 13px in the SECOND ink, a row's line at 12px in
+     the third: app-zenovay's three steps, so the section reads above the rows it names. */
+  --app-section-title-font: var(--o-text-body-14);
+  --app-section-title-tracking: var(--o-tracking-body-14);
+  --app-section-title-weight: var(--o-weight-strong);
+  --app-section-desc-font: var(--o-text-body-13);
+  --app-section-desc-tracking: var(--o-tracking-body-13);
+  --app-section-desc-ink: var(--fg-secondary);
+  /* THE RAIL'S ROWS ARE LINEAR'S, A STEP SMALLER (the operator, 2026-10-31, over the 14px rows of the same day):
+     13px with a 16px glyph 8px from it, 8px of padding at the sides on 6px corners, held at the 32px floor (§7a rule
+     4 allows 32px for a dense navigation list, and no less). The rows sit 1px apart (app.css). */
+  --app-rail-font: var(--o-text-body-13);
+  --app-rail-tracking: var(--o-tracking-body-13);
+  --app-rail-glyph: 16px;
+  --app-rail-gap: var(--o-space-2);
+  --app-rail-pad: 0 var(--o-space-2);
+  --app-rail-row-radius: 6px;
+  --app-dialog-width: 28rem;
   /* A SETTING IS 16px ABOVE AND BELOW, A RECORD 10px (2026-10-30). The 20px
      both used to share made a list of five records fill a laptop screen: a
      one-line row was 64px where Linear's issue row is 44px and app-zenovay's
      table row 40px (docs/research/2026-10-30-app-polish-audit.md). A setting
      keeps more air than a record because it carries a description and a
      control; ElevenLabs' settings rows pad 16px. */
-  --app-row-pad-block: var(--o-space-4);
+  --app-row-pad-block: 0.875rem;
   --app-row-pad: var(--app-row-pad-block) 0;
   --app-list-row-pad-block: 0.625rem;
   /* A record's wash reaches 12px past its words on both sides, so the hover is
@@ -3034,8 +3497,28 @@
      values here; the night block below redefines every one. Literals live in
      this file and nowhere else (CLAUDE.md §5). */
   --app-onb-ground: oklch(0.968 0.002 260);
-  --app-onb-surface: color-mix(in oklab, var(--o-paper-sheet) 82%, transparent);
-  --app-onb-surface-solid: var(--o-paper-sheet);
+  /* THE CONSOLE BY DAY, AS LOVABLE'S (the operator, 2026-11-07, after measuring their light theme against ours): a
+     white ground with the light painted at full strength in its own colours, rising from about a quarter of the way
+     down, and a pure white composer with no edge, told from the ground by its soft drop alone. This replaces the
+     2026-11-06 warm grey and the multiplied light, which read as muddy beside theirs: on white the light's palest
+     band is the ground's own white, so painting it normally leaves no haze. */
+  --app-composer-bg: var(--app-onb-surface-solid);
+  --app-valley-strength: 1;
+  --app-valley-blend: normal;
+  --app-console-ground: oklch(0.995 0.002 260);
+  /* How far up the light reaches, as a stretch from the foot: Lovable's colour starts ~25% from the top by day. */
+  --app-valley-reach: 1.45;
+  /* THE COMPOSER'S DROP, WITH NO RING (2026-11-07): the popover's shadow begins with `--o-shadow-ring`, which drew the
+     hairline the operator asked to be gone; this is its soft stack alone, wider and lighter, as Lovable's reads. */
+  --app-composer-shadow:
+    0 1px 2px color-mix(in oklab, black 4%, transparent),
+    0 8px 24px -6px color-mix(in oklab, black 10%, transparent),
+    0 24px 48px -18px color-mix(in oklab, black 12%, transparent);
+  /* The mark's hairlines need more ink on paper than at night to read at all. */
+  --app-mark-ink: 34%;
+  /* Setup keeps the white it was approved with (2026-10-31), not the product's cream. */
+  --app-onb-surface: color-mix(in oklab, oklch(1.000 0.0000 260) 82%, transparent);
+  --app-onb-surface-solid: oklch(1.000 0.0000 260);
   --app-onb-edge: color-mix(in oklab, var(--o-paper-ink) 12%, transparent);
   --app-onb-edge-strong: color-mix(in oklab, var(--o-paper-ink) 24%, transparent);
   --app-onb-lift:
@@ -3044,7 +3527,7 @@
     0 4px 4px -2px oklch(0 0 0 / 0.03);
   --app-onb-cta-top: oklch(0.34 0.006 260);
   --app-onb-cta-bottom: oklch(0.13 0.006 260);
-  --app-onb-cta-ink: var(--o-paper-sheet);
+  --app-onb-cta-ink: oklch(1.000 0.0000 260);
   --app-onb-cta-shadow:
     inset 0 0 0 1px oklch(0 0 0),
     inset 0 1px 0 0 oklch(1 0 0 / 0.24),
@@ -3056,7 +3539,7 @@
     inset 0 2px 2px -1px oklch(0 0 0 / 0.04),
     inset 0 4px 4px -2px oklch(0 0 0 / 0.04),
     inset 0 0 0 1px oklch(0 0 0 / 0.08);
-  --app-onb-thumb: var(--o-paper-sheet);
+  --app-onb-thumb: oklch(1.000 0.0000 260);
   --app-onb-thumb-shadow:
     inset 0 0 0 1px oklch(1 0 0),
     0 2px 2px -1px oklch(0 0 0 / 0.08),
@@ -3112,8 +3595,18 @@
   --app-rail-bg: var(--bg-subtle);
   --app-rail-fg: var(--fg-secondary);
   --app-rail-fg-active: var(--fg-primary);
+  --app-rail-control-hover-bg: color-mix(in oklab, var(--fg-primary) 5%, transparent);
   --app-card-bg: var(--bg-raised);
   --app-card-line: var(--line-rule);
+  /* THE HALT BAND AT THE TOP OF THE PANEL (`halt-banner.tsx`, 2026-11-01): a soft tint of the danger hue on the
+     panel's own ground, never the saturated fill, with the primary ink for its words. Its glyph and its Resume are in
+     the danger ink (`--risk-critical-text`, the 4.5:1 text step), and a hairline of that ink, thinned toward the band,
+     closes it at the bottom. Night restates the mix, because a tint that reads as pink on paper is lost on a dark
+     sheet at the same strength. */
+  --app-halt-band-bg: color-mix(in oklab, var(--o-signal-9) 7%, var(--app-card-bg));
+  --app-halt-band-line: color-mix(in oklab, var(--risk-critical-text) 40%, var(--app-halt-band-bg));
+  --app-halt-band-ink: var(--risk-critical-text);
+  --app-halt-band-hover: color-mix(in oklab, var(--o-signal-9) 12%, var(--app-halt-band-bg));
 
   /* THE RAIL'S TWO WASHES, WHICH THE DERIVATION SCAN CANNOT SEE.
      They are `--o-neutral-a3` and `--o-neutral-a4`, alphas of the NEUTRAL ramp,
@@ -3127,8 +3620,11 @@
      Restated as mixes of the surface's OWN ink, which is the rule: a wash on
      paper is pulled toward the ink, never inherited from a ramp that was
      lightening a different ground. */
-  --app-rail-hover-bg: color-mix(in oklab, var(--o-paper-ink) 5%, transparent);
-  --app-rail-active-bg: color-mix(in oklab, var(--o-paper-ink) 9%, transparent);
+  /* APP-ZENOVAY'S NAV (2026-10-31): the current row takes the card's raised rung, lighter than the quiet rung the
+     rail sits on, and a hovered row 60% of it. App-zenovay hovers at 40%, which computes to 4.6/255 off the rail and
+     fails the 6/255 floor below (tokens.test.ts), the floor that exists because a rail once had no visible state. */
+  --app-rail-hover-bg: color-mix(in oklab, var(--o-paper-raised) 60%, transparent);
+  --app-rail-active-bg: color-mix(in oklab, var(--o-paper-raised) 100%, transparent);
 
   /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.
      tests/schema/token-scopes.test.ts walks the derivation graph and reported
@@ -3165,10 +3661,14 @@
      spec asks for "a hairline pill in ink" rather than an outlined one. */
   --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);
   --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);
-  --o-bevel-raised:
-    inset 0 0 0 var(--o-hairline) var(--line-control),
+  /* The raised bevel's two drops on their own, so a surface that draws its own
+     edge (the console composer, which keeps the field ladder) keeps the lift. */
+  --o-bevel-raised-drop:
     0 1px 2px -1px color-mix(in oklab, black 10%, transparent),
     0 12px 28px -14px color-mix(in oklab, black 20%, transparent);
+  --o-bevel-raised:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    var(--o-bevel-raised-drop);
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --control-hover-shadow: var(--o-bevel-resting);
@@ -3229,11 +3729,13 @@
   --o-button-height: 36px;
   --o-button-height-small: 32px;
   --o-button-height-large: var(--o-tap-min);
-  --o-button-pad: 0.875rem;
+  /* APP-ZENOVAY'S BUTTON (2026-10-31, the operator: "squarer is even a bit better", amending ADR-0163's pill): 8px
+     corners, 16px at the sides (12px small), at the UI weight. Heights were already its 36 and 32. */
+  --o-button-pad: var(--o-space-4);
   --o-button-pad-small: var(--o-space-3);
-  --o-button-pad-large: 1.125rem;
-  --o-button-radius: var(--o-radius-pill);
-  --o-button-weight: var(--o-weight-heading);
+  --o-button-pad-large: 1.25rem;
+  --o-button-radius: var(--o-radius-lg);
+  --o-button-weight: var(--o-weight-medium);
   --o-button-numerals: tabular-nums;
   --o-button-bg: var(--bg-raised);
   --o-button-border: transparent;
@@ -3280,8 +3782,8 @@
   --o-button-position: relative;
   --o-button-slop: '';
 
-  /* Fields are RECESSED where a button is raised: the 1px boundary an empty
-     input needs (WCAG 1.4.11) over a soft inner shade along the top. The focus
+  /* Fields are RECESSED where a button is raised: a 1px boundary over a soft
+     inner shade along the top. The focus
      ring replaces the boundary and keeps the shade, so there is one ring. The
      focused shade is the input's own token, not --field-focus-shadow: that one
      is shared with fields that draw their edge as a border (flat fields, the
@@ -3289,9 +3791,21 @@
   --o-input-height: 36px;
   --o-input-pad: var(--o-space-3);
   --o-input-recess: inset 0 1px 2px -1px color-mix(in oklab, black 8%, transparent);
-  --o-input-shadow: inset 0 0 0 var(--o-hairline) var(--line-control), var(--o-input-recess);
-  --o-input-hover-shadow: inset 0 0 0 var(--o-hairline) var(--line-strong), var(--o-input-recess);
-  --o-input-focus-shadow: inset 0 0 0 var(--o-hairline) var(--focus-ring), var(--o-input-halo), var(--o-input-recess);
+  /* AT REST A FIELD IS QUIET; ONLY FOCUS LIGHTS IT (2026-11-01, the operator: fields "already lit up even though
+     the user isn't hovering or clicked in"). The resting edge was --line-control, which on paper and at night is
+     the SAME primitive as --focus-ring, so an idle field wore the focus ink at 1px and a focused one at 2px, and
+     hover stepped DOWN to the lighter --line-strong. Now the ladder climbs: rest is --line-field, hover
+     --line-field-hover, focus the 2px ring below in the focus ink. REST SITS ON THE 3:1 LINE, NOT UNDER IT
+     (2026-11-02): for one night it was the soft --line-border at 1.4 to 1.6:1, and WCAG 1.4.11 refuses that,
+     because a text field's edge is the only thing that says a field is there. Quiet comes from the ladder
+     (1px at 3:1, then a step, then 2px in the focus ink), not from an edge a low-vision reader cannot find.
+     Outside paper and night, the fallback is --line-control. forced-colors draws a CanvasText border. */
+  --o-input-shadow: inset 0 0 0 var(--o-hairline) var(--line-field, var(--line-control)), var(--o-input-recess);
+  --o-input-hover-shadow: inset 0 0 0 var(--o-hairline) var(--line-field-hover, var(--line-control)), var(--o-input-recess);
+  /* FOCUS IS A 2px EDGE IN THE FOCUS INK, drawn INWARD (2026-10-31): app-zenovay's strong edge plus its 1px ring.
+     At 1px it was the resting edge in another grey and a focused field could not be told from an idle one (§7a
+     rule 3); inward, it never blurs past the field's box. */
+  --o-input-focus-shadow: inset 0 0 0 calc(var(--o-hairline) * 2) var(--focus-ring), var(--o-input-recess);
   --o-checkbox-shadow:
     inset 0 0 0 var(--o-hairline) var(--line-control),
     0 1px 2px -1px color-mix(in oklab, black 10%, transparent);
@@ -3375,27 +3889,29 @@
      border stays in the box, transparent, so the box keeps its size and the
      forced-colours block in sheet.css still has a line to colour. */
   --o-card-line: transparent;
-  /* A CARD IS LIFTED, NOT ONLY RINGED (2026-10-31): white on a white sheet, so
-     the ring and two short drops are what say where it begins (Lovable's
-     settings card, measured: a half-pixel ring and a ladder under it). At night
-     the fill does the lifting and the drops are invisible, so only the ring. */
-  --o-card-shadow: var(--o-shadow-raised);
-  --o-card-bg: var(--o-paper-sheet);
-  --o-dialog-bg: var(--o-paper-sheet);
+  /* A CARD IS RINGED AND LIGHTER, NOT DROPPED (2026-10-31, app-zenovay's settings card): on cream the raised rung
+     is lighter than the page, so the fill and the 1px ring say where a card begins and no shadow is needed. The
+     drops it carried while the card was white on a white sheet are gone with the white. */
+  --o-card-shadow: var(--o-shadow-ring);
+  --o-card-bg: var(--o-paper-raised);
+  --o-dialog-bg: var(--o-paper-raised);
   /* MENUS ARE GLASS (2026-10-31, the operator's second ask, pointing at
      ElevenLabs' switcher: white at 90% over a blur). A menu, a dropdown's list
      and a popover float over the PAGE, which is the varied ground §9a keeps
      glass for; a card and a dialog rest on it and stay opaque. The fill stays
      dense enough that the inks keep their contrast whatever passes under. */
-  --o-popover-bg: color-mix(in oklab, var(--o-paper-sheet) 86%, transparent);
-  --o-popover-blur: blur(20px) saturate(1.5);
+  /* GLASS THAT READS AS GLASS (2026-10-31, the operator: "not at all transparent"). At 78% with a 24px blur, cream over
+     a cream rail was indistinguishable from an opaque card: the blur smeared the text behind into nothing and the fill
+     covered what was left. 62% and 12px leave what is behind as a soft smudge, as macOS's and Linear's menus do. */
+  --o-popover-bg: color-mix(in oklab, var(--o-paper-raised) 62%, transparent);
+  --o-popover-blur: blur(12px) saturate(1.8);
   --o-halt-line: transparent;
   --o-halt-shadow: var(--o-button-secondary-shadow);
   /* A FIELD'S FOCUS IS ITS EDGE (2026-10-31): the hairline turns to the focus
-     ink and a soft 3px film of the ink spreads outside it, as Lovable's and
-     Linear's fields do. No outline, so nothing jumps 2px away from the box. */
+     ink, as Lovable's and Linear's fields do, and nothing else. A 3px film of
+     the ink spread outside it for an afternoon and the operator read it as the
+     field blurring outward. No outline either, so nothing jumps off the box. */
   --o-input-focus-outline: transparent;
-  --o-input-halo: 0 0 0 3px color-mix(in oklab, var(--o-paper-ink) 8%, transparent);
 
   /* A SETTING'S CURRENT VALUE, shown as a small pill tinted with the ink and
      followed by a chevron (`Dropdown appearance="value"`, ADR-0163). A tint of
@@ -3404,8 +3920,19 @@
   --o-value-pill-bg: color-mix(in oklab, var(--o-paper-ink) 5%, transparent);
   --o-value-pill-hover-bg: color-mix(in oklab, var(--o-paper-ink) 9%, transparent);
   --o-toast-radius: var(--o-radius-panel);
+  /* A FIELD ALWAYS DIFFERS FROM WHAT IT SITS ON (2026-11-01, the operator: "textfields should have a different
+     background than the normal background"). On cream a field is the raised near-white; `--o-input-pressed-bg` is
+     the step a box takes while it is being typed into, pressed in rather than framed. */
+  --o-input-bg: var(--o-paper-raised);
+  --o-input-pressed-bg: var(--o-paper-quiet);
+  /* A row hovered inside a card steps down to the quiet rung (2026-10-31): visible on cream, softer than the
+     general hover, as Linear's and app-zenovay's lists inside a card. */
+  --o-card-row-hover: var(--o-paper-quiet);
+  /* The toast sits on the card's raised rung (app-zenovay, 2026-10-31). */
+  --o-toast-bg: var(--o-card-bg);
   --o-toast-shadow: var(--surface-floating-shadow);
-  --o-tooltip-radius: var(--o-radius-md);
+  /* A step under the menus' 6px (2026-11-01, the operator: "a tiny bit less rounded"), app-zenovay's 4px. */
+  --o-tooltip-radius: var(--o-radius-sm);
   --o-tooltip-font: var(--o-text-label-12);
   --o-tooltip-tracking: var(--o-tracking-label-12);
   --o-tooltip-shadow:
@@ -3457,11 +3984,25 @@
    and a paper surface with no theme attribute is paper, which is the default
    the spec asks for. */
 [data-surface='paper'][data-theme='dark'] {
+  /* App-zenovay's dark `--hover-bg` is its ink at 6% (see the light rule). */
+  --app-rail-control-hover-bg: color-mix(in oklab, var(--fg-primary) 6%, transparent);
   /* Onboarding's material at night: the ground near black so the light reads
      the way it does on Lovable's, a white pill for the decision. */
   --app-onb-ground: oklch(0.13 0.006 260);
-  --app-onb-surface: color-mix(in oklab, var(--o-night-quiet) 84%, transparent);
-  --app-onb-surface-solid: var(--o-night-quiet);
+  /* The console at night: the composer is the raised surface, and the valley is onboarding's full strength. */
+  --app-composer-bg: var(--bg-raised);
+  --app-valley-strength: 1;
+  --app-valley-blend: normal;
+  --app-console-ground: transparent;
+  --app-valley-reach: 1;
+  --app-composer-shadow:
+    0 1px 2px color-mix(in oklab, black 24%, transparent),
+    0 8px 24px -6px color-mix(in oklab, black 36%, transparent),
+    0 24px 48px -18px color-mix(in oklab, black 40%, transparent);
+  --app-mark-ink: 22%;
+  /* Setup keeps the night values it was approved with (operator, 2026-10-31), not the darker product ramp. */
+  --app-onb-surface: color-mix(in oklab, oklch(0.205 0.0080 260) 84%, transparent);
+  --app-onb-surface-solid: oklch(0.205 0.0080 260);
   --app-onb-edge: color-mix(in oklab, var(--o-night-ink) 14%, transparent);
   --app-onb-edge-strong: color-mix(in oklab, var(--o-night-ink) 28%, transparent);
   --app-onb-lift:
@@ -3470,7 +4011,7 @@
     0 4px 4px -2px oklch(0 0 0 / 0.2);
   --app-onb-cta-top: oklch(1 0 0);
   --app-onb-cta-bottom: oklch(0.9 0.003 260);
-  --app-onb-cta-ink: var(--o-night-sheet);
+  --app-onb-cta-ink: oklch(0.170 0.0080 260);
   --app-onb-cta-shadow:
     inset 0 0 0 1px oklch(1 0 0),
     inset 0 1px 0 0 oklch(1 0 0 / 0.16),
@@ -3481,7 +4022,7 @@
     inset 0 2px 2px -1px oklch(0 0 0 / 0.16),
     inset 0 4px 4px -2px oklch(0 0 0 / 0.16),
     inset 0 0 0 1px oklch(1 0 0 / 0.12);
-  --app-onb-thumb: var(--o-night-hover);
+  --app-onb-thumb: oklch(0.285 0.0080 260);
   --app-onb-thumb-shadow:
     inset 0 1px 0 0 oklch(1 0 0 / 0.14),
     0 2px 2px -1px oklch(0 0 0 / 0.3),
@@ -3509,6 +4050,7 @@
   color-scheme: dark;
 
   --bg-canvas: var(--o-night-sheet);
+  --app-module-bg: var(--bg-canvas);
   --bg-raised: var(--o-night-sheet);
   --bg-subtle: var(--o-night-quiet);
   --bg-component: var(--o-night-component);
@@ -3519,6 +4061,8 @@
   --line-border: var(--o-night-rule-2);
   --line-strong: var(--o-night-rule-3);
   --line-control: var(--o-night-edge);
+  --line-field: var(--o-night-field-edge);
+  --line-field-hover: var(--o-night-field-edge-hover);
 
   --fg-primary: var(--o-night-ink);
   --fg-secondary: var(--o-night-ink-2);
@@ -3543,6 +4087,9 @@
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+  --switch-on: color-mix(in oklab, var(--accent-solid) 85%, var(--bg-subtle));
+  --switch-on-press: color-mix(in oklab, var(--accent-solid) 70%, var(--bg-subtle));
+  --switch-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--accent-solid));
 
   /* The fill and the ink are two steps, because a fill is chosen to CARRY ink
      and is therefore too light to BE ink. 4.95:1 and 4.75:1 respectively. */
@@ -3563,7 +4110,7 @@
      names stay so app.css keeps stating no values, and the handle's own
      hairline derives from both, so a full-height sheet gets a full-height
      edge with no second rule. */
-  --app-gutter: var(--o-space-3);
+  --app-gutter: var(--o-space-2);
   --app-card-radius: var(--o-radius-sheet);
   --docs-card-radius: var(--o-radius-lg);
   --app-rail-bg: var(--bg-canvas);
@@ -3571,12 +4118,17 @@
   --app-rail-fg-active: var(--fg-primary);
   --app-card-bg: var(--bg-subtle);
   --app-card-line: var(--line-rule);
+  /* The halt band at night (see paper's): the same family, mixed stronger so the tint is still seen on a dark sheet. */
+  --app-halt-band-bg: color-mix(in oklab, var(--o-signal-9) 14%, var(--app-card-bg));
+  --app-halt-band-line: color-mix(in oklab, var(--risk-critical-text) 45%, var(--app-halt-band-bg));
+  --app-halt-band-ink: var(--risk-critical-text);
+  --app-halt-band-hover: color-mix(in oklab, var(--o-signal-9) 18%, var(--app-halt-band-bg));
 
   /* The same two washes, pulled the other way. "Toward the ink" is toward
      near-white here, and the percentages are higher because a light film over a
      dark ground carries less than a dark film over a light one. */
-  --app-rail-hover-bg: color-mix(in oklab, var(--o-night-ink) 8%, transparent);
-  --app-rail-active-bg: color-mix(in oklab, var(--o-night-ink) 14%, transparent);
+  --app-rail-hover-bg: color-mix(in oklab, var(--o-night-raised) 65%, transparent);
+  --app-rail-active-bg: color-mix(in oklab, var(--o-night-raised) 100%, transparent);
 
   /* THE ELEVEN OUTPUTS THE SCAN NAMED, restated rather than frozen.
      tests/schema/token-scopes.test.ts walks the derivation graph and reported
@@ -3607,17 +4159,19 @@
      boundary on an input that has no label inside it. */
   --o-bevel-control: inset 0 0 0 var(--o-hairline) var(--line-border);
   --o-bevel-resting: inset 0 0 0 var(--o-hairline) var(--line-control);
-  --o-bevel-raised:
-    inset 0 0 0 var(--o-hairline) var(--line-control),
+  --o-bevel-raised-drop:
     0 1px 2px -1px color-mix(in oklab, black 40%, transparent),
     0 12px 28px -14px color-mix(in oklab, black 60%, transparent);
+  --o-bevel-raised:
+    inset 0 0 0 var(--o-hairline) var(--line-control),
+    var(--o-bevel-raised-drop);
   --o-bevel-inset: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --o-bevel-rim: inset 0 0 0 var(--o-hairline) var(--line-rule);
   --control-hover-shadow: var(--o-bevel-resting);
   /* The paper arm's ladder, heavier (ADR-0163): the ring is the night ink at
      12%, a light film, because a dark ring on a near-black sheet draws nothing;
      a drop on near-black needs four times the black to read. */
-  --o-shadow-ring: 0 0 0 1px color-mix(in oklab, var(--o-night-ink) 12%, transparent);
+  --o-shadow-ring: 0 0 0 1px color-mix(in oklab, var(--o-night-ink) 7%, transparent);
   --o-shadow-raised:
     var(--o-shadow-ring),
     0 1px 1px -0.5px color-mix(in oklab, black 24%, transparent),
@@ -3665,10 +4219,15 @@
   /* The raised step carries a card and a dialog at night; the drops vanish on a
      dark ground, so a card keeps only its ring. */
   --o-card-bg: var(--o-night-raised);
+  /* At night a field is one rung LIGHTER than both the page and a card (Lovable's dark fields), and pressed in it
+     drops back to the card's rung. */
+  --o-input-bg: var(--o-night-component);
+  --o-input-pressed-bg: var(--o-night-raised);
+  /* At night a hovered row in a card lifts one rung instead, toward the reader, as Linear's does. */
+  --o-card-row-hover: var(--o-night-component);
   --o-card-shadow: var(--o-shadow-ring);
   --o-dialog-bg: var(--o-night-raised);
-  --o-popover-bg: color-mix(in oklab, var(--o-night-raised) 84%, transparent);
-  --o-input-halo: 0 0 0 3px color-mix(in oklab, var(--o-night-ink) 10%, transparent);
+  --o-popover-bg: color-mix(in oklab, var(--o-night-raised) 70%, transparent);
   --o-checkbox-shadow:
     inset 0 0 0 var(--o-hairline) var(--line-control),
     0 1px 2px -1px color-mix(in oklab, black 40%, transparent);
@@ -3757,6 +4316,7 @@
   color-scheme: light;
 
   --bg-canvas: var(--o-auth-sheet);
+  --app-module-bg: var(--bg-canvas);
   --bg-raised: var(--o-auth-sheet);
   --bg-subtle: var(--o-auth-quiet);
   --bg-component: var(--o-auth-component);
@@ -3780,6 +4340,9 @@
   --control-solid-press-top: color-mix(in oklab, var(--control-solid-top) 78%, var(--bg-subtle));
   --control-solid-press-bottom: color-mix(in oklab, var(--control-solid-bottom) 78%, var(--bg-subtle));
   --control-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--control-solid-top));
+  --switch-on: color-mix(in oklab, var(--accent-solid) 85%, var(--bg-subtle));
+  --switch-on-press: color-mix(in oklab, var(--accent-solid) 70%, var(--bg-subtle));
+  --switch-off-press: color-mix(in oklab, var(--bg-subtle) 78%, var(--accent-solid));
 
   --accent-solid: var(--o-auth-blue);
   --accent-hover: var(--o-auth-blue-hover);
@@ -3832,6 +4395,7 @@
   --app-rail-bg: var(--bg-subtle);
   --app-rail-fg: var(--fg-secondary);
   --app-rail-fg-active: var(--fg-primary);
+  --app-rail-control-hover-bg: color-mix(in oklab, var(--fg-primary) 5%, transparent);
   --app-card-bg: var(--bg-raised);
   --app-card-line: var(--line-rule);
   --docs-page-bg: var(--bg-canvas);
@@ -3920,8 +4484,17 @@
   --o-popover-blur: none;
   --o-halt-line: var(--line-control);
   --o-halt-shadow: var(--o-bevel-control);
+  /* The settings density, pinned to what sign-in drew. */
+  --app-setting-label-font: var(--o-text-body-14);
+  --app-setting-label-tracking: var(--o-tracking-body-14);
+  --app-setting-desc-font: var(--o-text-body-14);
+  --app-setting-desc-tracking: var(--o-tracking-body-14);
+  --app-section-title-font: var(--o-text-heading-16);
+  --app-section-title-tracking: var(--o-tracking-heading-16);
+  --app-section-desc-font: var(--o-text-body-14);
+  --app-section-desc-tracking: var(--o-tracking-body-14);
+  --app-dialog-width: 32rem;
   --o-input-focus-outline: var(--focus-ring);
-  --o-input-halo: 0 0 transparent;
   --o-popover-scale: 0.98;
   --o-popover-travel: var(--o-travel-reveal);
   --o-popover-enter: var(--o-dur-enter);
@@ -3942,6 +4515,8 @@
   --o-segmented-radius: var(--control-radius);
   --o-segmented-checked-shadow: var(--o-bevel-control);
   --o-toast-radius: var(--o-radius-sm);
+  --o-toast-bg: var(--bg-raised);
+  --o-input-bg: var(--bg-raised);
   --o-toast-shadow: var(--o-bevel-raised);
   --o-tooltip-radius: var(--o-radius-sm);
   --o-tooltip-font: var(--o-text-label-14);
@@ -4690,7 +5265,9 @@ ul.updates .when { font: var(--o-text-mono-13); }
    pages it keeps the old box, hover included. An icon button keeps its 0, or a
    refused one squeezes its glyph under the pointer. */
 [data-surface='paper'] .o-button[data-intent='quiet'][aria-disabled='true']:not([data-shape='icon']):hover:not([data-surface='auth'] *) {
-  padding-inline: var(--o-space-3);
+  /* Quiet's own padding, its variable included, so a host that sets the variable (the selection bar) keeps its box
+     under the pointer too: the literal 12px here made a waiting action in the bar shrink when hovered. */
+  padding-inline: var(--o-button-quiet-pad, var(--o-space-3));
 }
 
 /* ================================================================= sizes ===
@@ -4741,8 +5318,48 @@ ul.updates .when { font: var(--o-text-mono-13); }
 .o-button__pending {
   visibility: hidden;
 }
+/* NO WAIT CURSOR (the operator, 2026-10-31: the macOS wait cursor must not
+   appear). The busy state is said by the label, the ring and `aria-busy`; a
+   pointer that turns into a spinning wheel over the page says it a fourth time
+   and reads as the browser hanging. */
 .o-button[data-loading] {
-  cursor: progress;
+  cursor: default;
+}
+
+/* THE TURNING RING (`spinner` on Button, Lovable's pending button): a 14px
+   ring in the label's ink before the label, which stays. At rest it takes no
+   room (no width, the gap given back), so a button that never loads is the
+   width it always was; loading opens the room over the quick duration rather
+   than snapping the label sideways. The track is the ink at a third, the arc
+   the ink itself. Under reduced motion `--o-dur-spin` is 0ms, so the ring is
+   drawn and does not turn (tokens.css). Forced colours keep it: a border in
+   `currentColor` survives where a background would not. */
+.o-button__spinner {
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 0;
+  block-size: var(--o-spinner-size);
+  margin-inline-end: calc(var(--o-button-gap, var(--o-space-2)) * -1);
+  border: var(--o-spinner-stroke) solid var(--o-spinner-track);
+  border-block-start-color: currentColor;
+  /* A border-box keeps its borders at zero width, so they go too at rest. */
+  border-inline-width: 0;
+  border-radius: 50%;
+  opacity: 0;
+  transition:
+    inline-size var(--o-dur-quick) var(--o-ease-enter),
+    margin-inline-end var(--o-dur-quick) var(--o-ease-enter),
+    opacity var(--o-dur-quick) var(--o-ease-enter);
+}
+.o-button[data-loading] .o-button__spinner {
+  inline-size: var(--o-spinner-size);
+  margin-inline-end: 0;
+  border-inline-width: var(--o-spinner-stroke);
+  opacity: 1;
+  animation: o-button-spin var(--o-dur-spin) linear infinite;
+}
+@keyframes o-button-spin {
+  to { rotate: 1turn; }
 }
 .o-button[data-loading] .o-button__label,
 .o-button[data-loading] .o-button__pending {
@@ -5049,43 +5666,46 @@ ul.updates .when { font: var(--o-text-mono-13); }
   padding-inline: var(--o-space-5);
 }
 
-/* THE PRODUCT'S 404 (`look="quiet"`, 2026-10-18): the same composition as the
-   route error page (`feedback.css`, `.o-error[data-placement='page']`), so a
-   missing page and a failed one read as one family. Declared last so it wins
-   over the lockup's sizes at equal weight. */
+/* THE PRODUCT'S 404 (`look="quiet"`, redrawn 2026-11-01): the same block as
+   the route error page (`feedback.css`, `.o-error[data-placement='page']`),
+   whose glyph tile it borrows by class, so a missing page and a failed one read
+   as one family. The same heading, sentence and spacing values as that block.
+   Declared last so it wins over the lockup's sizes at equal weight. */
 .o-nf.o-nf--quiet {
   justify-content: center;
   align-items: center;
-  gap: var(--o-space-3);
+  gap: 0;
   text-align: center;
 }
 
-.o-nf--quiet .o-nf__quiet-mark {
-  inline-size: 44px;
-  block-size: 44px;
-  margin-block-end: var(--o-space-3);
-  color: var(--fg-primary);
+.o-nf--quiet .o-nf__tile {
+  margin-block-end: var(--o-space-5);
 }
 
 .o-nf--quiet .o-nf__title {
   margin: 0;
-  font: var(--o-text-title-24);
-  letter-spacing: var(--o-tracking-title-24);
-  font-weight: var(--o-weight-medium);
+  max-inline-size: 30rem;
+  font: var(--o-text-title-20);
+  letter-spacing: var(--o-tracking-title-20);
+  font-weight: var(--o-weight-strong);
+  text-wrap: balance;
 }
 
 .o-nf--quiet .o-nf__body {
-  margin: 0;
-  max-inline-size: 28rem;
+  margin: var(--o-space-2) 0 0;
+  max-inline-size: 26rem;
+  font: var(--o-text-body-14);
+  letter-spacing: var(--o-tracking-body-14);
   color: var(--fg-secondary);
+  text-wrap: pretty;
 }
 
 .o-nf--quiet .o-nf__actions {
-  margin-block-start: var(--o-space-3);
+  margin-block-start: var(--o-space-6);
 }
 
 .o-nf__status {
-  margin: var(--o-space-4) 0 0;
+  margin: var(--o-space-5) 0 0;
   font: var(--o-text-mono-13);
   font-family: var(--o-font-mono);
   color: var(--fg-secondary);
