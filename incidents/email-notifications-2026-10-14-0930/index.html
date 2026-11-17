@@ -3937,7 +3937,9 @@
   /* GLASS THAT READS AS GLASS (2026-10-31, the operator: "not at all transparent"). At 78% with a 24px blur, cream over
      a cream rail was indistinguishable from an opaque card: the blur smeared the text behind into nothing and the fill
      covered what was left. 62% and 12px leave what is behind as a soft smudge, as macOS's and Linear's menus do. */
-  --o-popover-bg: color-mix(in oklab, var(--o-paper-raised) 62%, transparent);
+  /* LESS SEE-THROUGH (2026-11-17, the operator: make every dropdown less transparent). At 62% the words of the page
+     under an open menu still read through it; 90% keeps a hint of what is behind, softened by the blur. */
+  --o-popover-bg: color-mix(in oklab, var(--o-paper-raised) 90%, transparent);
   --o-popover-blur: blur(12px) saturate(1.8);
   --o-halt-line: transparent;
   --o-halt-shadow: var(--o-button-secondary-shadow);
@@ -4261,7 +4263,7 @@
   --o-card-row-hover: var(--o-night-component);
   --o-card-shadow: var(--o-shadow-ring);
   --o-dialog-bg: var(--o-night-raised);
-  --o-popover-bg: color-mix(in oklab, var(--o-night-raised) 70%, transparent);
+  --o-popover-bg: color-mix(in oklab, var(--o-night-raised) 92%, transparent);
   --o-checkbox-shadow:
     inset 0 0 0 var(--o-hairline) var(--line-control),
     0 1px 2px -1px color-mix(in oklab, black 40%, transparent);
@@ -5050,7 +5052,7 @@ ul.updates .when { font: var(--o-text-mono-13); }
   <section class="card">
     <div class="card-head">
       <h2>Affected component</h2>
-      <p>Messages we send you about your own company. We check that this deployment can still send, not that a message arrived.</p>
+      <p>Messages we send you about your own company, including at most one email a day about decisions waiting for you. We check that this deployment can still send, not that a message arrived or that the daily email ran.</p>
     </div>
     <div class="row">
       <div class="row-head"><h3 class="row-label">Email notifications</h3></div>
