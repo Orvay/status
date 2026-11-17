@@ -225,6 +225,14 @@
     --o-signal-9: oklch(0.560 0.1960 25);
     --o-signal-10: oklch(0.515 0.1921 25);
     --o-signal-11: oklch(0.505 0.1411 25);
+    /* The effort scale (2026-11-11, the model picker's effort track): a cool low end and a violet high end that the
+       track mixes between by how high the chosen effort is; the inks are for the effort word, at 4.5:1 or better. */
+    --o-iris-low: oklch(0.620 0.1000 255);
+    --o-iris-high: oklch(0.560 0.2000 300);
+    --o-iris-low-ink: oklch(0.480 0.1200 255);
+    --o-iris-high-ink: oklch(0.470 0.2000 300);
+    --o-iris-spark: oklch(1 0 0 / 0.9);
+    --o-iris-thumb: oklch(0.995 0 0);
     --o-signal-12: oklch(0.255 0.0823 25);
     --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);
     --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);
@@ -1094,6 +1102,12 @@
     --o-signal-9: oklch(0.560 0.1784 25);
     --o-signal-10: oklch(0.605 0.1748 25);
     --o-signal-11: oklch(0.760 0.1284 25);
+    --o-iris-low: oklch(0.560 0.0900 255);
+    --o-iris-high: oklch(0.640 0.1700 300);
+    --o-iris-low-ink: oklch(0.780 0.0800 255);
+    --o-iris-high-ink: oklch(0.800 0.1200 300);
+    --o-iris-spark: oklch(1 0 0 / 0.85);
+    --o-iris-thumb: oklch(0.995 0 0);
     --o-signal-12: oklch(0.955 0.0749 25);
     --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);
     --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);
@@ -1325,6 +1339,12 @@
     --o-signal-9: oklch(0.560 0.1784 25);
     --o-signal-10: oklch(0.605 0.1748 25);
     --o-signal-11: oklch(0.760 0.1284 25);
+    --o-iris-low: oklch(0.560 0.0900 255);
+    --o-iris-high: oklch(0.640 0.1700 300);
+    --o-iris-low-ink: oklch(0.780 0.0800 255);
+    --o-iris-high-ink: oklch(0.800 0.1200 300);
+    --o-iris-spark: oklch(1 0 0 / 0.85);
+    --o-iris-thumb: oklch(0.995 0 0);
     --o-signal-12: oklch(0.955 0.0749 25);
     --o-signal-a1: color-mix(in oklab, var(--o-signal-1) 4%, transparent);
     --o-signal-a2: color-mix(in oklab, var(--o-signal-2) 8%, transparent);
@@ -1652,6 +1672,20 @@
   --o-orb-body: color-mix(in oklab, var(--accent-solid) 78%, var(--o-neutral-1));
   --o-orb-rim: color-mix(in oklab, var(--accent-solid) 72%, var(--o-neutral-12));
 
+  /* How hard the model is asked to think: the track, the word and the thumb in the model picker's effort view. */
+  --effort-low: var(--o-iris-low);
+  --effort-high: var(--o-iris-high);
+  --effort-low-ink: var(--o-iris-low-ink);
+  --effort-high-ink: var(--o-iris-high-ink);
+  --effort-spark: var(--o-iris-spark);
+  --effort-thumb: var(--o-iris-thumb);
+  /* The context card's five parts (2026-11-11, after Claude Code's context card): one hue each, named in words beside
+     every swatch, so the colour is never the only thing telling two parts apart. */
+  --usage-instructions: var(--o-neutral-9);
+  --usage-tools: var(--o-iris-high);
+  --usage-material: var(--o-verdant-9);
+  --usage-conversation: var(--o-amber-9);
+  --usage-summary: var(--o-steel-9);
   --accent-solid: var(--o-steel-9);
   --accent-hover: var(--o-steel-10);
   --accent-line: var(--o-steel-a8);
@@ -4523,6 +4557,36 @@
   --o-tooltip-tracking: var(--o-tracking-label-14);
   --o-tooltip-shadow: var(--o-bevel-raised);
 }
+
+/* FOLDER TINTS (2026-11-11): the colours a person may mark a folder with, as ink on the canvas, so each is drawn from a
+   family's step 11, the text step, which clears 4.5:1 on every canvas in both themes. A person's marking, never a
+   meaning: the folder's name is always beside it.
+
+   DECLARED ON THE MARK ITSELF, NOT ON :root. A custom property is computed where it is declared and inherits as a
+   finished value, so a token derived at :root would keep the default theme's ink inside a surface that redefines the
+   inputs (paper, builder, auth). Declared on the element that carries `data-folder-mark`, it resolves against
+   whatever surface the mark sits in. `:where()` keeps it at zero specificity, so any component may still override. */
+:where([data-folder-mark]) { --folder-tint: var(--accent-text); }
+:where([data-folder-mark][data-tint='blue']) { --folder-tint: var(--o-steel-11); }
+:where([data-folder-mark][data-tint='green']) { --folder-tint: var(--o-verdant-11); }
+:where([data-folder-mark][data-tint='yellow']) { --folder-tint: var(--o-amber-11); }
+:where([data-folder-mark][data-tint='orange']) { --folder-tint: var(--o-ember-11); }
+:where([data-folder-mark][data-tint='red']) { --folder-tint: var(--o-signal-11); }
+:where([data-folder-mark][data-tint='grey']) { --folder-tint: var(--fg-secondary); }
+
+/* WHAT IS TAKING THE SPACE: one fill per kind of file in the storage bar (the files library's storage panel, after
+   Google One and iCloud). Solids from the hue scales, so a segment holds 3:1 against the bar's track in both themes;
+   the hue echoes the kind's own family (a document's blue, a sheet's green, a deck's orange, a PDF's red). NEVER THE
+   ONLY CARRIER: every segment has a legend row with the kind's name and its percentage beside the same swatch.
+   Declared on the element carrying `data-storage-kind`, as the folder tint is, for the same reason. */
+:where([data-storage-kind]) { --storage-kind: var(--o-neutral-9); }
+:where([data-storage-kind='documents']) { --storage-kind: var(--o-steel-9); }
+:where([data-storage-kind='spreadsheets']) { --storage-kind: var(--o-verdant-9); }
+:where([data-storage-kind='presentations']) { --storage-kind: var(--o-ember-9); }
+:where([data-storage-kind='pdfs']) { --storage-kind: var(--o-signal-9); }
+:where([data-storage-kind='pictures']) { --storage-kind: var(--o-amber-9); }
+:where([data-storage-kind='media']) { --storage-kind: color-mix(in oklab, var(--o-steel-9) 50%, var(--o-signal-9)); }
+:where([data-storage-kind='other']) { --storage-kind: var(--o-neutral-9); }
 
 /*
  * The status pages' own styles. Every colour is a token from tokens.css, which
