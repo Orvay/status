@@ -2205,6 +2205,25 @@ var COMPONENTS = [
     summary: "The page at your website address listing the fixes production confirmed, with a receipt for each, for companies that turned it on, and taking it down when they turn it off.",
     budget: { staleAfterMs: 45 * MINUTE },
     notMeasuredWhy: "This page does not measure the verified fixes page yet. The settings page shows whether your address holds it, and turning it off removes it, normally within a minute."
+  },
+  {
+    id: "crm-deals",
+    /*
+          ADDED WITH THE SURFACE (§13c), NOT MEASURED (ADR-0220). The Deals tab reads a company's connected HubSpot when a
+          member opens it, through that company's tool server and HubSpot's search tool, and keeps nothing.
+    
+          WHY NOTHING WATCHES IT. The read is per company, needs that company's credential and reaches HubSpot's server, so a
+          probe would have to pick a tenant and spend their vendor's limits (the reasoning on `connected-tools`). And this
+          read records no `tool.called` outcome, so the `connected-tools` health endpoint does not count it either. What a
+          customer relies on instead, and what the sentence below promises, is the tab itself: a read that fails says why in
+          words and never shows an empty pipeline. The measurable version is a mark the read writes per answer, read through
+          a signed health endpoint; not built.
+        */
+    group: "work",
+    label: "Deals from your CRM",
+    summary: "Reading the deals in the HubSpot account your company connected, each time the Deals tab opens.",
+    budget: { staleAfterMs: 45 * MINUTE },
+    notMeasuredWhy: "This page does not measure reading deals from your CRM yet. If a read fails, the Deals tab says why instead of showing an empty list."
   }
   /*
       TWO SURFACES FROM THE SAME RELEASE HAVE NO ROW, DELIBERATELY, AND THE REASON EXPIRES.
@@ -10410,10 +10429,10 @@ var PRODUCT_SOURCE_BASE = {
   "files.lib.move.submit": "Move here",
   "files.lib.move.busy": "Moving",
   "files.lib.move.none": "There is no other folder here you can move it into.",
-  "files.lib.move.failed": "The folders could not be read. Close this and try again.",
+  "files.lib.move.failed": "The folders could not be read.",
   "files.lib.share.title": "Share {name}",
   "files.lib.share.loading": "Loading who has access",
-  "files.lib.share.failed": "Who has access could not be read. Close this and try again.",
+  "files.lib.share.failed": "Who has access could not be read.",
   "files.lib.share.who": "Who has access",
   "files.lib.share.people": "People",
   "files.lib.share.agents": "Agents",
@@ -13938,7 +13957,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "files.history.title": "Version history",
   "files.history.close": "Close version history",
   "files.history.loading": "Reading the versions",
-  "files.history.unavailable": "The versions could not be read. Try again in a moment.",
+  "files.history.unavailable": "The versions could not be read.",
   "files.history.versions": "Versions",
   "files.history.current": "Current",
   "files.history.showing": "Showing",
@@ -17116,7 +17135,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "files.import.google.open": "Pick in Google Drive",
   "files.import.google.title": "Pick files in Google Drive",
   "files.import.google.picking": "Opening Google Drive.",
-  "files.import.google.unavailable": "Google Drive could not be opened here. Go back and try again.",
+  "files.import.google.unavailable": "Google Drive could not be opened here.",
   "files.import.status.connected": "Connected. Choose what to bring over.",
   "files.import.status.declined": "Nothing was connected: the request was declined at the provider.",
   "files.import.status.expired": "That took too long and was not completed. Try again.",
@@ -21993,7 +22012,34 @@ var MODEL_SELECTION_SOURCE = {
   "home.health.loop.zenovayLastRead": "Website errors last read",
   "export.dataset.website-errors": "The errors Zenovay recorded on each website your company mapped to a repository: the website, the key Orvay gave each error, its type and message with email addresses, credentials, the query part of addresses, IP addresses and long identifiers removed, and when Orvay first and last read it.",
   "product.receipt.proof.possible.zenovaySameError": "After the fix went live, Zenovay recorded an error with the same words under a new group. That is likely the same error, so Orvay does not call this fix proven: a person decides.",
-  "onboarding.errors.toolServers.plan": "Sentry and Zenovay connect as tool servers, and your plan does not include tool servers. You can change your plan under Billing once setup is finished."
+  "onboarding.errors.toolServers.plan": "Sentry and Zenovay connect as tool servers, and your plan does not include tool servers. You can change your plan under Billing once setup is finished.",
+  // Deals read from the connected CRM, beside the deals kept in Orvay (ADR-0220, workstream AB), 2026-11-18.
+  // English only and on TRANSLATION_DEFERRED below, for the separate translation pass.
+  "deals.crm.heading": "Deals in {vendor}",
+  "deals.crm.waiting": "Reading deals from your CRM",
+  "deals.crm.integrations": "Open Integrations",
+  "deals.crm.read.statement": "Read from {vendor} at {time}, live. Orvay keeps no copy and changes nothing there.",
+  "deals.crm.read.empty": "{vendor} answered with no deals.",
+  "deals.crm.read.more": "Showing the first {shown} of {total} deals. The rest are in {vendor}.",
+  "deals.crm.read.moreUncounted": "Showing the first {shown} deals. The rest are in {vendor}.",
+  "deals.crm.deal.untitled": "A deal with no name",
+  "deals.crm.deal.stage": "Stage in {vendor}: {stage}",
+  "deals.crm.deal.noStage": "No stage",
+  "deals.crm.deal.noAmount": "No amount",
+  "deals.crm.deal.asWritten": "{amount}, currency not given",
+  "deals.crm.deal.closes": "Closes {date}",
+  "deals.crm.notRead.title": "{vendor} is connected, and Orvay does not read its deals yet",
+  "deals.crm.notRead.body": "{vendor} does not document what its tools answer, and Orvay shows a deal only when it can read the answer exactly. Your deals stay in {vendor}.",
+  "deals.crm.refused.title": "Orvay could not read deals from {vendor}",
+  "deals.crm.refused.asks": "Your company\u2019s rules ask a person before Orvay uses {vendor}\u2019s search tool, and opening this tab does not approve it. On the Integrations page, you can let {vendor}\u2019s read-only tools run on their own.",
+  "deals.crm.refused.refused": "Your company\u2019s rules do not let your role read {vendor} through Orvay.",
+  "deals.crm.refused.notPinned": "Nobody has approved {vendor}\u2019s list of tools yet. Open it on the Integrations page to approve it.",
+  "deals.crm.refused.paused": "{vendor} changed its list of tools since a person approved it. The new list waits on the Integrations page for somebody to approve it.",
+  "deals.crm.refused.unauthorized": "Somebody needs to sign in to {vendor} again on the Integrations page.",
+  "deals.crm.refused.toolNotListed": "The tools approved for {vendor} include none for searching its records.",
+  "deals.crm.refused.requestNotOffered": "{vendor}\u2019s search tool does not take the request Orvay sends, so nothing was asked.",
+  "deals.crm.refused.callRefused": "{vendor} could not be reached or refused the request. Try again later.",
+  "deals.crm.refused.unreadable": "{vendor} answered in a form Orvay does not read, so nothing from it is shown."
 };
 var PRODUCT_SOURCE = {
   ...PRODUCT_SOURCE_BASE,
@@ -22958,7 +23004,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "e1a833da0" : "unknown";
+var sourceCommit = true ? "ad12d2d16" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
