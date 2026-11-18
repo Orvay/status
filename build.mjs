@@ -125,6 +125,7 @@ var MEETINGS_INVITE = [
   "meetings.record:erase:company"
 ];
 var MEETINGS_ERASE_ANY = ["meetings.record:erase_any:company"];
+var ORGANIZATION_AUDIT_READ = ["organization.audit:read:organization"];
 var GUEST = [
   "company:read:company",
   ...OWN_DATA,
@@ -169,6 +170,20 @@ var MEMBER = [
       decides in the product first (or recorded a standing approval for it).
     */
   "contract:claim:company",
+  /*
+      ALWAYS ALLOW, AS AN OVERRIDE THE MEMBER ACCEPTS WITH THE TERMS (ADR-0217, ADR-0218). Copies of
+      `OVERRIDE_RECORD_CAPABILITY` and `REVOKE_OVERRIDE_CAPABILITY` in `apps/app/src/server/overrides.ts`.
+  
+      Member, and it widens nothing a member holds. The scope segment is the AREA (`policy.override:record:social`),
+      and the company's own rule for that area decides whether anybody may record one there: `DEFAULT_GRANTS` starts
+      every area at `never`, so this bundle entry does nothing until an owner switches an area on. Inside an
+      open area `recordOverride` refuses a capability outside the member's own envelope (`isAttenuationOf`), a forbidden
+      one, a data right, work a runner always asks for, and any override without a risk ceiling, a reversibility ceiling,
+      a credit cap, a total or daily cap, an expiry, a fresh sign-in and the accepted terms. Taking one's own override
+      back never waits, for the reason `api.key:revoke:company` never waits.
+    */
+  "policy.override:record:*",
+  "policy.override:revoke:company",
   "research:read:*",
   "draft:create:*",
   "analyze:*:company",
@@ -601,6 +616,9 @@ var ADMIN = [
   */
   "policy.delegation:record:company",
   "policy.delegation:revoke:company",
+  // An admin holds everything a member does; see MEMBER for the override (ADR-0217, ADR-0218).
+  "policy.override:record:*",
+  "policy.override:revoke:company",
   /*
       THE BROWSER LANE (ADR-0070 section 10, ADR-0071), all seven. Copies of the
       strings and shapes in `apps/app/src/server/browser-capabilities.ts`.
@@ -725,7 +743,8 @@ var ADMIN = [
   "skill:manage:company",
   ...MEETINGS_READ,
   ...MEETINGS_INVITE,
-  ...MEETINGS_ERASE_ANY
+  ...MEETINGS_ERASE_ANY,
+  ...ORGANIZATION_AUDIT_READ
 ];
 var OWNER = ["*:*:*"];
 var ROLES = Object.freeze({
@@ -2059,10 +2078,14 @@ var COMPONENTS = [
     
           ADR-0208: a repository's own CI is the second error source, read by the loop's own pass through the company's
           GitHub connection. The same row covers it, with the same reason: probing it would read a customer's repository.
+    
+          ADR-0221: a website's JavaScript errors in Zenovay are the third, read through the company's Zenovay tool server.
+          Same row, same reason: probing it would read a customer's website errors. Its reads feed the same per-company
+          connector alarm (`noteSourceReads` on the Zenovay server).
         */
     group: "work",
     label: "Fixes in your product",
-    summary: "Reading your error tracker, or your repository's own CI, for failures in the repository it is mapped to, and opening a pull request with a fix: once a person approves it, or on its own where your company lets fixes start automatically.",
+    summary: "Reading your error tracker, the errors your website reports to Zenovay, or your repository's own CI, for failures in the repository it is mapped to, and opening a pull request with a fix: once a person approves it, or on its own where your company lets fixes start automatically.",
     budget: { staleAfterMs: 45 * MINUTE },
     notMeasuredWhy: "This page does not measure fixes yet. When a connection they read from or write to stops answering, the people who can act on incidents are told in Orvay, and by email where they allowed it; this page shows none of that."
   },
@@ -2409,7 +2432,8 @@ var PLANS = {
       "site_unbranded",
       "integration_mcp",
       "goal_schedule",
-      "meetings"
+      "meetings",
+      "organization_audit_log"
     ],
     limits: { members: 25, departments: 10, concurrentRuns: 8, concurrentCrossings: 16, mcpServers: 5, workspaces: 5 },
     storageGb: 100,
@@ -2431,7 +2455,8 @@ var PLANS = {
       "crypto_shred",
       "custom_policy",
       "voice",
-      "meetings"
+      "meetings",
+      "organization_audit_log"
     ],
     limits: {
       members: 100,
@@ -2460,7 +2485,8 @@ var PLANS = {
       "crypto_shred",
       "custom_policy",
       "voice",
-      "meetings"
+      "meetings",
+      "organization_audit_log"
     ],
     limits: {
       members: 250,
@@ -2497,7 +2523,8 @@ var PLANS = {
       "custom_policy",
       "byo_model_keys",
       "voice",
-      "meetings"
+      "meetings",
+      "organization_audit_log"
     ],
     limits: {
       members: Number.MAX_SAFE_INTEGER,
@@ -4195,6 +4222,20 @@ var PRODUCT_SOURCE_BASE = {
   "onboarding.authority.autonomous.sublabel": "Internal work that can be undone runs without asking, such as reading and drafting. Anything public waits for you.",
   "onboarding.authority.later": "Always is how a new company starts: choosing it changes no rule. The Policies page offers the same three choices, and sets each rule on its own.",
   "onboarding.authority.mail.lead": "Email about this company",
+  // Where errors show up (2026-11-17, audit wave 2, workstream L item 4, W18.3; ADR-0208): the error sources the
+  // product loop reads, each with its own connect press, and Skip. English only, on TRANSLATION_DEFERRED under the same
+  // date (the operator's standing rule: a separate pass translates). The buttons reuse the Product tab's own words.
+  "onboarding.errors.heading": "Where do your errors show up?",
+  "onboarding.errors.body": "Orvay reads a source of errors, writes the fix in your repository, and checks it against that source. Connecting one is optional: the Product tab offers the same later.",
+  "onboarding.errors.sentry.note": "Errors from your running product. A fix can be confirmed in production.",
+  "onboarding.errors.ci.name": "CI on GitHub",
+  "onboarding.errors.ci.note": "Failing checks on your repository's default branch. A fix found this way can reach merged with CI green. CI cannot confirm it in production.",
+  "onboarding.errors.connected": "Connected",
+  "onboarding.errors.connecting": "Connecting",
+  "onboarding.errors.sentry.signedIn": "Signed in",
+  "onboarding.errors.sentry.toolsWaiting": "Sentry is signed in, and its list of tools waits for your approval on the Integrations page once setup is finished. Until then Orvay reads nothing from it.",
+  "onboarding.errors.sentry.plan": "Sentry connects as a tool server, and your plan does not include tool servers. You can change your plan under Billing once setup is finished.",
+  "onboarding.errors.later": "After setup, the Product tab asks which repository each source watches.",
   "onboarding.timezone.label": "Time zone",
   // Where the company is established, asked on the company step (2026-11-17, W0b.7). The zone the name screen asked is
   // offered as one press ("Use {country}"), never filled in. Written through `company-establishment.ts`, as the settings
@@ -6193,7 +6234,7 @@ var PRODUCT_SOURCE_BASE = {
   "workflows.webhooks.done": "Done",
   "workflows.list.publishedAt": "Published {when}",
   "workflows.new.teach": "Show it in a browser",
-  "nav.record": "Record",
+  "nav.history": "History",
   "activity.chain.details": "Details",
   "activity.kind.label": "Kind of entry",
   "activity.kind.all": "All",
@@ -6203,6 +6244,65 @@ var PRODUCT_SOURCE_BASE = {
   "activity.kind.halts": "Halts and incidents",
   "activity.kind.showing": "Showing {shown} of the latest {window} entries.",
   "activity.kind.clear": "Show the whole record",
+  // History's link to the company export, which holds every entry and never reads a plan (ADR-0215).
+  "history.record.download": "Download the full record",
+  // The Organization page's Audit log section (ADR-0215): the log is not built; its door and its shape are.
+  "org.audit.title": "Audit log",
+  "org.audit.body": "One list of what happened in every workspace of the organization, with filters, search and an export. Each workspace also keeps its own History, and its full record downloads on every plan.",
+  "org.audit.history.label": "History of this workspace",
+  "org.audit.history.body": "Every proposal, decision, run, check and halt in the workspace you are in, checked in your browser.",
+  "org.audit.history.open": "Open History",
+  "org.audit.record.label": "Full record",
+  "org.audit.record.body": "The company export of this workspace holds every entry, hash-chained, on every plan.",
+  "org.audit.locked.label": "Who reads the audit log",
+  "org.audit.locked.not_held": "Reading the organization's audit log needs a permission of its own. Owners and admins hold it.",
+  "org.audit.locked.not_everywhere": "You may read the audit log in this workspace but not in every workspace of the organization, and the log covers all of them.",
+  "org.audit.locked.unavailable": "Whether you may read the audit log could not be checked just now. Reload the page to try again.",
+  // The organization's audit log (ADR-0219), 2026-11-18. English only, TRANSLATION_DEFERRED.
+  "org.audit.log.label": "Every workspace",
+  "org.audit.log.body": "What happened in every workspace of the organization, newest first, with filters, search and an export.",
+  "org.audit.log.open": "Open the audit log",
+  // The plan is named by the badge beside this sentence, derived from PLANS, so the sentence names none.
+  "org.audit.plan.body": "One list across every workspace is not part of this organization's plan. Each workspace's History, and its full record, stay on every plan.",
+  "org.auditlog.slow": "This search took too long and was stopped. Narrow it to one workspace or one kind, then try again.",
+  "org.auditlog.export.slow": "The export took too long and was stopped. Narrow the filters to one workspace or one kind, then try again.",
+  "org.auditlog.lead": "What happened in every workspace of the organization, newest first. Each entry is read from that workspace's own hash-chained record when this page opens.",
+  "org.auditlog.filter.label": "Narrow the audit log",
+  "org.auditlog.filter.workspace": "Workspace",
+  "org.auditlog.filter.workspace.all": "Every workspace",
+  "org.auditlog.filter.kind": "Kind",
+  "org.auditlog.filter.kind.all": "Every kind",
+  "org.auditlog.kind.changes": "Settings and permissions",
+  "org.auditlog.filter.who": "Who",
+  "org.auditlog.filter.who.all": "Anyone",
+  "org.auditlog.filter.who.people": "People",
+  "org.auditlog.filter.who.agents": "Agents",
+  "org.auditlog.filter.who.orvay": "Orvay",
+  "org.auditlog.filter.search": "Search",
+  "org.auditlog.filter.search.hint": "What happened, or a person's name. Nothing anybody wrote is searched.",
+  "org.auditlog.filter.submit": "Apply",
+  "org.auditlog.filter.clear": "Clear filters",
+  "org.auditlog.list.label": "Audit log entries",
+  "org.auditlog.who.person": "A person",
+  "org.auditlog.who.agent": "An agent",
+  "org.auditlog.who.staff": "Orvay staff",
+  "org.auditlog.who.orvay": "Orvay",
+  "org.auditlog.row.where": "{who} in {workspace}",
+  "org.auditlog.row.entry": "Entry {seq}",
+  "org.auditlog.change.role": "Role",
+  "org.auditlog.change.line": "{subject}: {before}, now {after}",
+  "org.auditlog.empty.title": "Nothing recorded yet",
+  "org.auditlog.empty.because": "No workspace of the organization has an entry in its record yet.",
+  "org.auditlog.narrowed.title": "Nothing matches",
+  "org.auditlog.narrowed.because": "No entry in any workspace matches these filters.",
+  "org.auditlog.older": "Older entries",
+  "org.auditlog.newest": "Back to the newest",
+  "org.auditlog.export.submit": "Export these entries",
+  "org.auditlog.export.limit": "Downloads the newest {limit} entries these filters show, one per line, in the words this page uses.",
+  "org.auditlog.export.refused": "The export was refused. Reload the page to see whether you may still read the audit log.",
+  "org.auditlog.export.unavailable": "The export could not be made just now. Try again in a moment.",
+  "settings.find.organization.auditLogPage": "audit log, audit trail, every workspace, who did what, filter, search, export, permissions changed, role changed",
+  "settings.find.organization.auditLog": "audit log, audit trail, history, record, who did what, download the record, export",
   "activity.narrowed.empty.title": "Nothing matches",
   "activity.narrowed.empty.because": "No entry here belongs to this department or kind.",
   "verification.page.lead": "Who checked the work, and was it someone else?",
@@ -6926,6 +7026,8 @@ var PRODUCT_SOURCE_BASE = {
   // Meetings (ADR-0211): on every paid plan and not built yet, so the pricing row says "Not built yet" beside it.
   "pricing.feature.meetings.name": "Meetings",
   "pricing.feature.meetings.detail": "Invite an Orvay agent into a Google Meet or Microsoft Teams call. The time it spends there uses credits.",
+  "pricing.feature.organization_audit_log.name": "Organization audit log",
+  "pricing.feature.organization_audit_log.detail": "One list of what happened in every workspace of your organization, with filters, search and an export of what the filters show. Each workspace's own History, and its full record, stay on every plan.",
   "pricing.feature.console_ask.name": "Asking the Agent",
   "pricing.feature.console_ask.detail": "Ask about your company in the Agent tab and get an answer from what Orvay knows about it. Each answer is paid from your credits, on every plan.",
   "pricing.feature.console_propose.name": "Proposing work from the Agent tab",
@@ -7276,6 +7378,23 @@ var PRODUCT_SOURCE_BASE = {
       here enforces.
     */
   "rooms.agentsNote": "Naming an agent asks it to work, which uses credits.",
+  /*
+    A SPECIALIST'S WORK IN ITS ROOM, AND AGENTS ANSWERING EACH OTHER (ADR-0222). A report is the record, read now, so its
+    words are states of the record and the queue's own check words (`result.mark.*`); nothing here restyles a receipt.
+    The reply note says every bound in one sentence, because which one held is not stored and a guess would be a lie.
+  */
+  "rooms.reports.hint": "Work an agent of {department} proposes after it joins this room appears here, with whether somebody else checked it.",
+  "rooms.report.kind": "Report",
+  "rooms.report.state.waiting": "Waits for a decision",
+  "rooms.report.state.approved": "Approved, not run yet",
+  "rooms.report.state.refused": "Refused",
+  "rooms.report.state.running": "Running",
+  "rooms.report.state.ended": "Did not finish",
+  "rooms.report.state.done": "Done",
+  "rooms.report.receipt": "Open the receipt",
+  "rooms.report.decideThere": "This room shows the decision for its five newest waiting reports. Decide this one on its own page.",
+  "rooms.reply.notAsked": "Named {agents}, who were not asked. An agent asks another agent only where Policies allow \u201CLet an agent pass work from a room to another agent\u201D without a person and the naming agent holds it too, at most two answers deep in a conversation, three from one answer, and ten a day in a room.",
+  "rooms.tasks.namedBy": "named by {agent}",
   "nav.search": "Search",
   "nav.search.placeholder": "Search or open a section",
   "cmd.search.scope": "{record}: latest {events} entries. {memory}: latest {facts} entries.",
@@ -7431,6 +7550,11 @@ var PRODUCT_SOURCE_BASE = {
   "account.notifications.email.enable": "Email me about this company",
   "account.notifications.email.on.body": "On. Sent to {address}. Every message has a one-click unsubscribe.",
   "account.notifications.email.off.body": "Off. Nothing is emailed to you. Agreeing records the sentence below, with the date.",
+  // An agreement under the notification consent's FIRST wording, which named none of these (2026-11-17): each kind of
+  // letter goes only to a person whose recorded sentence names it. English only, TRANSLATION_DEFERRED.
+  "account.notifications.email.firstWording.body": "The sentence you agreed to does not name the morning summary, so {brand} does not email it to you. Agreeing to the current sentence below sends it.",
+  "account.notifications.email.current.heading": "Agree to the current sentence",
+  "account.notifications.email.current.body": "Replaces the agreement above with the sentence below, recorded with the date.",
   "account.notifications.email.saved.on": "Email notifications are on.",
   "account.notifications.email.saved.off": "Email notifications are off.",
   "account.notifications.email.types.body": "What email carries while email notifications are on.",
@@ -7451,7 +7575,7 @@ var PRODUCT_SOURCE_BASE = {
   "settings.find.notifications.desktopTypes": "briefing, escalation, incident, push, what is shown",
   // The priority inbox and its list, after Linear's (2026-10-31). English only, TRANSLATION_DEFERRED.
   "account.notifications.inbox.title": "Inbox",
-  "account.notifications.inbox.body": "How your unread notifications are listed on the Record page.",
+  "account.notifications.inbox.body": "How your unread notifications are listed on the History page.",
   "account.notifications.priority.label": "Priority inbox",
   "account.notifications.priority.on": "On. Priority notifications are listed first, apart from the rest.",
   "account.notifications.priority.off": "Off. Unread notifications are listed together, newest first.",
@@ -9454,7 +9578,7 @@ var PRODUCT_SOURCE_BASE = {
   "inbox.openContract": "Open the contract for {objective}",
   "contract.tabs": "Views of this contract",
   "contract.tab.output": "Output",
-  "contract.tab.record": "Record",
+  "contract.tab.steps": "Steps",
   "contract.approvedBy": "Approved by {name} on {when}",
   "contract.refusedBy": "Refused by {name} on {when}",
   "contract.theirWords": "In their words",
@@ -9626,16 +9750,19 @@ var PRODUCT_SOURCE_BASE = {
   "settings.lead.billing": "Your plan, credit packs, automatic top up and invoices.",
   "settings.lead.general": "The basics your agents work from: time zone, country, runway, competitors.",
   "settings.lead.presence": "Your website, its domain, and what the public sees of this company.",
-  "settings.lead.brand": "How this company sounds and looks, and what it has posted.",
+  // What was made from the brief moved to Growth (W8, 2026-11-18); this page keeps the brief.
+  "settings.lead.brand": "How this company sounds, who it talks to and where its drafts may go.",
   "settings.lead.team": "The people in this company and the role each one holds.",
   "settings.lead.instructions": "Standing instructions and guides your agents follow.",
   "settings.lead.companyData": "What Orvay knows about this company, and the data you can export.",
-  "settings.lead.access": "Every workspace's API keys, and this organization's single sign-on and model keys.",
+  // The API keys moved to Developers (W8, 2026-11-18).
+  "settings.lead.access": "This organization's single sign-on and its own model keys.",
   // Access and keys moved to the organization, and the workspace kept its webhooks (2026-11-01, ADR-0168).
   // English only, TRANSLATION_DEFERRED.
   "settings.lead.webhooks": "Where this workspace sends its events.",
-  "settings.webhooks.moved": "API keys, single sign-on and model keys are in your organization's settings.",
-  "settings.webhooks.moved.link": "Open Access and keys",
+  // API keys moved on from Access and keys to Developers (W8, 2026-11-18), and the link goes where they are now.
+  "settings.webhooks.moved": "API keys are on your organization's Developers page; single sign-on and model keys are on Access and keys.",
+  "settings.webhooks.moved.link": "Open Developers",
   "settings.keys.workspace": "Workspace",
   "settings.keys.workspace.all": "All workspaces",
   "settings.keys.workspace.hint": "A key acts in one workspace, as you, never more.",
@@ -9658,14 +9785,14 @@ var PRODUCT_SOURCE_BASE = {
   "settings.find.billing": "payment, subscription, invoice, card, upgrade, pricing",
   "settings.find.general": "company, basics, details",
   "settings.find.presence": "website, site, public, web, domain",
-  "settings.find.brand": "voice, social, marketing, posts, content",
+  "settings.find.brand": "voice, tone, audience, brand guidelines, brief, channels",
   "settings.find.team": "people, members, users, seats, invite, colleagues",
   "settings.find.policies": "rules, permissions, approval, governance, guardrails",
   "settings.find.autonomy": "automation, agents, trust, autopilot",
   "settings.find.instructions": "prompts, guides, rules for agents, playbook",
   "settings.find.companyData": "privacy, contacts, import, company data",
   "settings.find.integrations": "connect, apps, connectors, github, slack, google, stripe, oauth",
-  "settings.find.access": "developer, api, keys, sso, saml, directory, model keys, organization",
+  "settings.find.access": "access, sso, saml, directory, model keys, organization",
   "settings.find.browser": "mail, email, browser, sign in, sites",
   "settings.find.account.profile": "name, email, photo, avatar, language, locale",
   "settings.find.account.security": "password, sign in, login, 2fa, mfa, two-step, two factor, authenticator, google, github, delete account, erase",
@@ -9700,12 +9827,6 @@ var PRODUCT_SOURCE_BASE = {
   "settings.find.presence.contactForm": "contact, enquiry, form, messages",
   "settings.find.presence.announcement": "launch, post, press, social, announce",
   "settings.find.brand.brief": "voice, tone, audience, channels, brand guidelines",
-  "settings.find.brand.drafts": "posts, content, write, draft",
-  "settings.find.brand.pictures": "images, photos, logo, media",
-  "settings.find.brand.schedules": "schedule, calendar, weekly, recurring",
-  "settings.find.brand.outcomes": "published, posted, results, performance",
-  "settings.find.brand.experiments": "a/b test, ab test, compare, experiment",
-  "settings.find.brand.inbox": "replies, mentions, comments, social inbox",
   "settings.find.team.members": "members, people, users, seats, remove, deactivate, invite, invitation, pending, add member, roles, permissions, admin, owner, access",
   "settings.find.team.invitations": "invite, invitation, pending, add member, seats",
   "settings.find.team.decisions": "decisions, approvals, history, who decided",
@@ -9721,7 +9842,6 @@ var PRODUCT_SOURCE_BASE = {
   "settings.find.instructions.instructions": "system prompt, prompt, tone, rules, never do, custom instructions",
   "settings.find.instructions.profile": "company profile, about us, offer, ideal customer, audience, brand voice, tone",
   "settings.find.instructions.guides": "playbook, how to, procedure, sop, knowledge",
-  "settings.find.instructions.codeChanges": "code, fix, pull request, merge, repository, protected paths, credits per fix, coding agent",
   "settings.find.companyData.dataUse": "privacy, training, analytics, consent",
   "settings.find.companyData.contacts": "import contacts, csv, list, crm, consent",
   "settings.find.companyData.structure": "import, export, org chart, departments, file, structure",
@@ -9937,7 +10057,7 @@ var PRODUCT_SOURCE_BASE = {
   "decision.ok.withdrawn": "Approval withdrawn. This will not run.",
   "decision.error.withdraw.needsWords": "Say why you are withdrawing this, so the record says more than that you did.",
   "decision.error.withdraw.notApproved": "This contract is not approved, so there is no approval to withdraw.",
-  "decision.error.withdraw.started": "This already started, so the approval can no longer be withdrawn. What happened is on the Record view.",
+  "decision.error.withdraw.started": "This already started, so the approval can no longer be withdrawn. What happened is on its Steps tab.",
   "decision.error.withdraw.already": "This approval was already withdrawn; the page has been refreshed.",
   // ADR-0149: stopping a run that has already begun, which a withdrawal cannot do. Offered while a step or a
   // crossing is on record and the run has not ended.
@@ -10665,7 +10785,11 @@ var PRODUCT_SOURCE_BASE = {
   "contract.fixCharge.title": "What this fix cost",
   "contract.fixCharge.charged": "Credits charged",
   "contract.fixCharge.returned": "Credits returned",
-  "contract.fixCharge.pending": "Kept or returned once the fix has been checked. A fix that fails is returned automatically.",
+  // The refund limit per period (ADR-0224), 2026-11-18. English only, TRANSLATION_DEFERRED: a separate pass translates.
+  "contract.fixCharge.pendingWithinLimit": "Kept or returned once the fix has been checked. A fix that fails is returned automatically, up to your plan's monthly limit for returned credits.",
+  "contract.fixCharge.charged.refund_limit_used": "Charged. This fix failed, but this month's limit for returned credits was already used, so nothing came back.",
+  "contract.fixCharge.charged.refund_fixes_used": "Charged. This fix failed, but on Free this month's limit for returned fixes was already reached, so nothing came back.",
+  "contract.fixCharge.partly_refunded": "Partly returned. This fix failed, and this month's limit for returned credits ran out before all of it came back. The rest is charged.",
   "contract.fixCharge.kept.established": "Kept. Production showed the error stopped after this fix.",
   "contract.fixCharge.kept.merged_by_person": "Kept. A person merged this fix.",
   "contract.fixCharge.charged.unverified": "Charged. Production could not show whether this fix worked before the check ended.",
@@ -11237,6 +11361,11 @@ var PRODUCT_SOURCE_BASE = {
   "pricing.differs.cost.body": "A credit is a fixed amount of what your usage costs us to serve. Another product may call its unit a credit and peg it near a dollar of what it charges you, which is a different quantity wearing the same word.",
   "pricing.differs.overage.title": "There is no overage, because work is refused instead",
   "pricing.differs.overage.body": "When the allowance and any packs are gone, the next action that would cost money is refused before the model is called. You cannot be billed afterwards for spend you did not buy in advance.",
+  // The refund limit per period (ADR-0224), 2026-11-18. English only, TRANSLATION_DEFERRED: a separate pass translates.
+  "pricing.refundLimit.heading": "When a fix fails",
+  "pricing.refundLimit.lead": "When a fix Orvay's own sandbox writes fails, the credits it used from your plan's allowance come back up to a monthly limit that depends on your plan, and past that limit a failed fix is charged like any other work.",
+  "pricing.refundLimit.label.credits": "credits a month",
+  "pricing.refundLimit.label.fixes": "failed fixes a month",
   "pricing.faq.heading": "Questions about the money",
   "pricing.faq.q.rollover": "Do unused credits roll over?",
   "pricing.faq.a.rollover": "On a paid plan, yes, once. Plan credits you do not use carry over into the next billing period, up to one period's allowance, and expire when that period ends. Free plan credits and welcome credits do not carry over. Credits you paid for separately, in a pack, stay spendable for twelve months, and the product spends the perishable ones first so the two cannot disagree about which went.",
@@ -11958,6 +12087,87 @@ var PRODUCT_SOURCE_BASE = {
   "trust.rights.halt": "Halt the company. It runs before entitlement and before authorization, so a halted company stops even for its owner.",
   "trust.docs.heading": "The documents behind this page",
   "trust.docs.lead": "This page summarises. These bind. Where the two disagree, the document is the one that counts.",
+  // -------------------------------------------------------------------------
+  // THE AI AGENT POLICY (ADR-0225), 2026-11-18
+  //
+  // A buyer's page: what an agent never does, what waits for a person, what it may do alone, what is written down.
+  // EVERY SENTENCE IS A CLAIM WITH AN ENFORCING FILE, listed in ADR-0225's table; the code half of each is pinned by
+  // `apps/app/src/server/agent-policy-truth.test.ts`. Present tense only for running behaviour (§11b). Each part says
+  // whether Orvay sets it for every company or the company sets it, because most of the middle is STARTER RULES a
+  // company changes. Never: "compliant", a certification, a quarantine shape, a cost (§7a, §11b). Not described on
+  // purpose: the standing override (workstream V, not shipped), quorums in larger companies (a known gap), the model
+  // vendors (the sub-processors page owns that list). Translated in package J4 (2026-11-18), shipped by the operator's word.
+  // -------------------------------------------------------------------------
+  "agentPolicy.title": "AI agent policy",
+  "agentPolicy.nav.blurb": "What an agent never does, and what waits for a person.",
+  "agentPolicy.eyebrow": "Agents",
+  "agentPolicy.lead": "What an Orvay agent never does, what waits for a person, and what it may do on its own. Each part says whether Orvay sets it for every company or your company sets it for itself.",
+  "agentPolicy.meta.description": "The rules every Orvay agent works under: what it never does, what waits for a person, what it may do alone and what is written down. What Orvay fixes, and what you set.",
+  // DEFAULT_GRANTS forbidden rows, a veto over every grant (packages/policy); gate 6 before gate 7 (ADR-0001, ADR-0209
+  // point 6); establish.ts `verifier_is_the_executor` and runs.ts UNCHECKED_WORK_RERUNS = 1 (K); gate 8 and no overage.
+  "agentPolicy.never.heading": "What an agent never does",
+  "agentPolicy.never.lead": "Set by Orvay, the same in every company. No rule, role, approval or plan on your side changes these.",
+  "agentPolicy.never.calls.term": "It never places a phone call",
+  "agentPolicy.never.calls.detail": "Placing a call is forbidden in every company. A forbidden rule outranks every other rule, a narrower one that allows included. This is Orvay's choice, and your Policies page shows it as one.",
+  "agentPolicy.never.meetings.term": "It never joins a meeting uninvited",
+  "agentPolicy.never.meetings.detail": "Joining a meeting nobody from your company invited the agent into is forbidden in every company, in the same way.",
+  "agentPolicy.never.leads.term": "It does not research people as sales leads",
+  "agentPolicy.never.leads.detail": "Orvay's own lead research, recording people it found as sales leads and reading that list back, is forbidden in every company today. The people on such a list never chose to be on it. What an agent may do in a CRM you connect is set by your own rules.",
+  "agentPolicy.never.consent.term": "It never contacts somebody who said no",
+  "agentPolicy.never.consent.detail": "When a person has refused or withdrawn their agreement to be contacted, the contact is refused before your own rules are read, and no approval changes that. It can be proposed again once they agree. A reply to somebody who wrote in first needs no recorded agreement.",
+  "agentPolicy.never.self.term": "It never checks its own work",
+  "agentPolicy.never.self.detail": "A check made by the agent that did the work does not count. When the independent check could not be held, the work is not shown as done: Orvay runs it again on its own at most once more, then stops, and it runs again only if a person proposes it again.",
+  "agentPolicy.never.spend.term": "It stops when your credits run out",
+  "agentPolicy.never.spend.detail": "Work is checked against the credits your company has left before it starts, and refused once they are gone. There is no overage: nothing is billed afterwards.",
+  // Fourteen starter rows at `approval`, each held by the presets (preset-scope.ts, ADR-0201); the approval digest of
+  // the words shown (ADR-0209 point 2); `elevated_by_untrusted_context` in admit.ts with ADR-0079's one discharge, the
+  // mailbox send setting; gate 3 and the admin bundle; approvals recorded before the run, naming the person;
+  // profileForOrgSize(1) `allowed_with_record`.
+  "agentPolicy.wait.heading": "What waits for a person",
+  "agentPolicy.wait.lead": "Some of these are your company's starting point or your company's judgement, and the rest Orvay sets for every company. Each line says which.",
+  "agentPolicy.wait.outward.term": "Work that reaches outside your company, under the starter rules",
+  "agentPolicy.wait.outward.detail": "Before an agent posts in public, replies to an email, a ticket or a mention, sends mail to a list or a newsletter, publishes a page of your site, opens or merges a pull request, deploys to production, starts or changes an ad campaign, or issues a refund, it asks a person. These are starter rules, set by your company: you can change each one on your Policies page, decide some of them in advance, or trust one agent with them on the Autonomy page. The presets that set many rules at once never loosen them.",
+  "agentPolicy.wait.words.term": "The exact words",
+  "agentPolicy.wait.words.detail": "When a person approves a mail, a reply or a post, they approve the words and the recipient shown on screen. If the work changed after the page was drawn, the approval is refused and nothing is recorded. Set by Orvay.",
+  "agentPolicy.wait.outside.term": "Work prompted by text from outside",
+  "agentPolicy.wait.outside.detail": "Text from outside your company, such as a web page, an incoming email or a support ticket, never widens what an agent may do, and work that rests on it waits for a person whatever your rules say. Set by Orvay, with one exception that is yours to switch on: a mailbox can be set to send replies to incoming email without a person when they pass its checks.",
+  "agentPolicy.wait.stop.term": "One stop for everything",
+  "agentPolicy.wait.stop.detail": "Under the starter rules every new company begins with, an owner or an admin can stop the whole company at once. A stopped company refuses new work, its owner's included, until a person releases the stop. Reading, and stopping work already under way, still work. The stop's own rule is a starter rule, set by your company.",
+  "agentPolicy.wait.person.term": "Decisions about a person",
+  "agentPolicy.wait.person.detail": "Article 22 of the GDPR gives a person the right not to be subject to a decision based solely on automated processing, including profiling, which produces legal effects concerning them or similarly significantly affects them. Orvay cannot tell which of your decisions are of that kind, so that judgement is yours: set the rules that touch them to ask. Deciding in advance and trusting an agent on the Autonomy page both remove the approval of each single decision. Every approval is recorded before the work runs, naming the person who gave it and whether it came through an API key. Set by your company.",
+  "agentPolicy.wait.solo.term": "In a company of one",
+  "agentPolicy.wait.solo.detail": "The one person approves their own work, and the record says each such approval was their own. Set by Orvay.",
+  // research:read:* and draft:create:* autonomous; modes.ts; ADR-0201; askLeaves (the notice fix, 2026-11-18); the
+  // delegations as operate/autonomy-and-policies.mdx publishes them (NOT workstream V's override).
+  "agentPolicy.alone.heading": "What an agent may do on its own",
+  "agentPolicy.alone.lead": "Set by your company. These are the starter rules every new company begins with, and the Policies page changes each one.",
+  "agentPolicy.alone.reads": "Under the starter rules, an agent reads, researches and writes drafts without asking, because none of that reaches anybody and a draft can be deleted.",
+  "agentPolicy.alone.modes": "Each rule has one of four settings: Never runs, Within limits, Asks first, or Runs without asking. A rule Orvay forbids is not one of them, and stays as it is.",
+  "agentPolicy.alone.presets": "Three presets set many rules at once: Within limits, Ask and Always. Ask and Always loosen only work that stays inside your company and can be undone. Anything that reaches outside it, moves money or cannot be undone is set one rule at a time.",
+  "agentPolicy.alone.ask": "Under Ask, Orvay still reads new support tickets, the social inbox and the sites it researches on its own, because reading changes nothing, and it asks before it acts.",
+  "agentPolicy.alone.advance": "A person can approve a kind of work in advance, within limits on how long and how often, and if they choose, how many credits each piece of work may use. A forbidden rule stays forbidden, and work that rests on text from outside still asks.",
+  // The hash chain (operate/the-record.mdx, with its caveat kept); History and the full record on every plan
+  // (ADR-0215); the organization audit log at Pro and up (ADR-0219, `organization_audit_log`).
+  "agentPolicy.record.heading": "What is written down",
+  "agentPolicy.record.lead": "Set by Orvay, on every plan unless a line says otherwise.",
+  "agentPolicy.record.chain.term": "Every decision, in order",
+  "agentPolicy.record.chain.detail": "Proposals, decisions, runs, checks and stops are written to your company's record. Each entry carries the hash of the one before it, so changing or removing one breaks the chain unless every entry after it is rewritten too. The chain is about the record: it does not show the work was right.",
+  "agentPolicy.record.who.term": "Who approved",
+  "agentPolicy.record.who.detail": "An approval names the person who gave it, says whether it came through an API key, and is recorded before the work it allows runs.",
+  "agentPolicy.record.history.term": "History, on every plan",
+  "agentPolicy.record.history.detail": "Your company's History, and a download of its full record, are on every plan.",
+  "agentPolicy.record.orglog.term": "One log across workspaces",
+  "agentPolicy.record.orglog.detail": "An organization's audit log, one list across all its workspaces, is on Pro and up.",
+  // The trust centre's residency lines; the sub-processors page is the one list of providers.
+  "agentPolicy.models.heading": "Where the models run",
+  "agentPolicy.models.lead": "Your company's database is in Zurich. The models that read it do not run in Switzerland. The trust centre names every store and where it is, and the sub-processors page names the providers.",
+  "agentPolicy.limits.heading": "What this page does not say",
+  "agentPolicy.limits.starter": "The first line of the second part, and all of the third, describe starter rules. Your company may have changed them, and its own Policies page is the answer for it.",
+  "agentPolicy.limits.judge": "Orvay cannot judge whether an agent's work is right for your business. The record shows what happened and who allowed it.",
+  "agentPolicy.limits.outside": "Nothing here is a finding by anybody outside Orvay. It describes what the software does today, and the trust centre lists what we do not hold.",
+  "agentPolicy.limits.asOf": "This page describes the product as it runs on {date}.",
+  "agentPolicy.links.heading": "Read further",
+  "agentPolicy.links.docs": "Autonomy and policies, in the documentation",
   // -------------------------------------------------------------------------
   // THE ACCESSIBILITY STATEMENT
   //
@@ -15215,6 +15425,98 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "capability.name.organization.profile.edit": "Change the organization\u2019s name and business address",
   "capability.name.policy.delegation.record": "Decide in advance what Orvay may do without asking",
   "capability.name.policy.delegation.revoke": "Take back a decision made in advance",
+  // Overrides (ADR-0217, ADR-0218), 2026-11-18. English only, TRANSLATION_DEFERRED under the same date.
+  "capability.name.policy.override.record": "Accept that one kind of work in an area runs without asking",
+  "capability.name.policy.override.revoke": "Take back an override you accepted",
+  "overrides.nav": "Overrides",
+  "overrides.title": "Overrides",
+  "overrides.lead": "An override lets Orvay do one kind of work without asking you first, within limits you set. You accept it once, with the terms, and you can take it back at any time.",
+  "overrides.does.title": "What an override lets Orvay do without asking",
+  "overrides.does.body": "Work of that one kind, proposed by any agent, up to the risk you choose, that can be undone as far as you choose, costing at most the credits you choose, as many times as you choose, until the day it ends.",
+  "overrides.asks.title": "What still asks you, or is refused",
+  "overrides.asks.body": "Work that cites text from outside your company, such as a website or a message somebody sent, still asks. So does work above the risk you chose, work that cannot be undone, work that costs more than your limit, and work that needs two people or a typed confirmation. Words that leave Orvay, such as a message, a reply or a post, are never covered: an override never makes them go out without a person. Anything your rules forbid stays refused, and Orvay never places a phone call. Orvay still checks a halt, consent and your budget every time.",
+  "overrides.warning": "Orvay will do this without asking you first. What it does is your action and your responsibility, as the terms say. Orvay still checks consent, your budget and anything it refuses outright.",
+  "overrides.areas.heading": "Areas",
+  "overrides.areas.lead": "People may accept an override only in an area you open. Every area starts closed. Closing one takes back every override in it.",
+  "overrides.area.open": "Open",
+  "overrides.area.closed": "Closed",
+  "overrides.area.openAction": "Open {area}",
+  "overrides.area.closeAction": "Close {area}",
+  "overrides.area.ok.opened": "{area} is open for overrides.",
+  "overrides.area.ok.closedTakenBack": "{area} is closed. Overrides taken back: {count}.",
+  "overrides.area.refused.permission": "Only somebody who may change the rules can open or close an area.",
+  "overrides.area.refused.locked": "This area cannot be changed here.",
+  "overrides.form.heading": "Accept an override",
+  "overrides.form.none": "No area is open to you, or nothing in an open area can be overridden. An owner opens areas here.",
+  "overrides.form.reauth.title": "Confirm it is you",
+  "overrides.form.reauth.body": "For security, reauthenticate to accept an override. The confirmation lasts ten minutes.",
+  "overrides.form.work": "Work",
+  "overrides.form.risk": "Highest risk",
+  "overrides.form.risk.low": "Low",
+  "overrides.form.risk.medium": "Medium",
+  "overrides.form.risk.high": "High",
+  "overrides.form.undo": "How far it can be undone",
+  "overrides.form.undo.reversible": "Can be undone completely",
+  "overrides.form.undo.compensatable": "Can be put right afterwards",
+  "overrides.form.spend": "Most credits for one piece of work",
+  "overrides.form.days": "Ends after",
+  "overrides.form.days.1": "1 day",
+  "overrides.form.days.7": "7 days",
+  "overrides.form.days.30": "30 days",
+  "overrides.form.perDay": "At most a day",
+  "overrides.form.total": "At most in total",
+  "overrides.form.noLimit": "No limit",
+  "overrides.form.rationale": "Why",
+  "overrides.form.rationale.hint": "Recorded with the override, for whoever reads the history.",
+  "overrides.form.accept": "I have read this, and I accept it under the terms.",
+  "overrides.form.warning.title": "Before you accept",
+  "overrides.form.terms": "Read the terms",
+  "overrides.form.submit": "Accept",
+  "overrides.form.submitting": "Recording",
+  "overrides.ok.recorded": "Recorded: {work}. When an agent proposes this work inside your limits, it runs without asking you. Work that cites text from outside your company still asks.",
+  "overrides.refused.gate": "Not recorded. {reason}",
+  "overrides.refused.halted": "The company is halted. Nothing new is accepted until the halt is released.",
+  "overrides.revoke.refused.halted": "The company is halted, so nothing runs under any override. Release the halt, then take this one back.",
+  "overrides.refused.unavailable": "Orvay could not reach its records. Nothing was recorded. Try again in a moment.",
+  "overrides.refused.signedOut": "You are signed out. Sign in again to accept an override.",
+  "overrides.refused.area_closed": "Overrides are not open for this kind of work. An owner opens areas on this page.",
+  "overrides.refused.may_not_approve": "You may not approve this kind of work, so you may not accept that it runs without asking.",
+  "overrides.refused.not_a_person": "Only a person can accept an override.",
+  "overrides.refused.not_fresh": "Your confirmation expired. Reauthenticate, then accept again.",
+  "overrides.refused.malformed": "This is not a kind of work Orvay knows.",
+  "overrides.refused.not_concrete": "Choose one kind of work, not a whole family of them.",
+  "overrides.refused.beyond_your_role": "You do not hold this kind of work yourself, so you cannot accept that it runs without asking.",
+  "overrides.refused.forbidden": "Your rules forbid this. Nothing can make it run.",
+  "overrides.refused.not_overridable": "An override cannot cover this kind of work yet. Only work Orvay has checked stays inside the company, with a known risk, way back and cost, can carry one.",
+  "overrides.refused.outgoing_words": "Words that leave Orvay are read by a person each time, so an override cannot cover them.",
+  "overrides.refused.bad_bound": "Choose the limits from the lists.",
+  "overrides.refused.missing_bound": "Choose a limit a day or a limit in total.",
+  "overrides.refused.missing_ceiling": "Choose the highest risk, how far it can be undone and the most credits for one piece of work.",
+  "overrides.refused.not_accepted": "Tick the box to say you read the warning and accept it under the terms.",
+  "overrides.refused.terms_changed": "The terms changed after this page was shown. Read the warning again, then accept.",
+  "overrides.refused.warning_changed": "The warning changed after this page was shown. Read it again, then accept.",
+  "overrides.refused.bad_rationale": "Say why, in at most 500 characters.",
+  "overrides.refused.alreadyLive": "An advance decision about this work is already in force, recorded by {name}. Take that one back first.",
+  "overrides.list.heading": "Overrides accepted",
+  "overrides.list.empty": "No override has been accepted.",
+  "overrides.list.empty.because": "Every kind of work asks as your rules say.",
+  // Unreachable while `override_acceptances_accepts_an_override` holds; said in words rather than guessed.
+  "overrides.list.risk.unknown": "not recorded",
+  "overrides.list.limits": "Highest risk: {risk}. {undo}. At most {spend} credits each. Until {until}.",
+  "overrides.list.accepted": "Accepted by {name} on {date}, under the terms of {terms}.",
+  "overrides.list.status.live": "In force",
+  "overrides.list.status.revoked": "Taken back",
+  "overrides.list.status.spent": "Used up",
+  "overrides.list.status.expired": "Ended",
+  "overrides.list.revoke": "Take back",
+  "overrides.list.revoke.label": "Take back the override for {work}",
+  "overrides.revoke.ok": "Taken back. {work} asks again as your rules say.",
+  "overrides.revoke.ok.already": "That override was already taken back.",
+  "overrides.revoke.refused.not_found": "That override is not here.",
+  "overrides.revoke.refused.not_yours": "Only the person who accepted it, an owner or an admin can take it back.",
+  "overrides.policies.row": "Overrides",
+  "overrides.policies.row.body": "Accept that one kind of work runs without asking, within limits, and see every override in force.",
+  "overrides.policies.row.open": "Open overrides",
   "capability.name.api.key.mint": "Create an API key",
   "capability.name.api.key.revoke": "Revoke an API key",
   "capability.name.company.sso.configure": "Set up single sign-on",
@@ -15259,6 +15561,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "capability.name.company.files.share": "Share a file by link with somebody who has no account",
   "capability.name.company.files.private.open": "Open a member's private files, read-only, with a written reason",
   "capability.name.organization.files.manage": "Manage the organization's shared files, in every company of it",
+  "capability.name.organization.audit.read": "Read the organization's audit log, in every company of it",
   "capability.name.company.files.sync": "Keep a synced copy of a company drive in the company\u2019s files",
   "capability.name.company.files.fetch": "Save a web page into the company\u2019s files",
   "capability.name.site.draft.any": "Build and change drafts of your website",
@@ -16492,6 +16795,18 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "policies.family.product": "Product operations",
   "policies.family.company": "Company and team",
   "policies.family.other": "Other",
+  // A readable Policies page (ADR-0225), 2026-11-18. A rule's exact permission id moves behind Details, and a row nothing
+  // on the page can change says why, as Orvay's choice and never as a law (capability-words.ts, forbiddenReason).
+  // Translated in package J4 (2026-11-18).
+  "policies.rule.details": "Details",
+  "policies.locked.voice": "Orvay's choice, in every company: an agent never places a phone call.",
+  "policies.locked.meeting": "Orvay's choice, in every company: an agent never joins a meeting nobody from the company invited it into.",
+  "policies.locked.leads": "Orvay's choice, in every company for now: an agent does not research people to record them as sales leads, because they never chose to be on a list.",
+  "policies.locked.other": "Forbidden. Nothing on this page changes it.",
+  // A company's own block on one agent, department or person (agent-grants.ts GRANT_MODES, slack-channel-agent.ts):
+  // never attributed to Orvay (wave 3 review T, B4).
+  "policies.locked.subject": "Blocked by your company for this one only. It is changed on its own page.",
+  "policies.rule.details.for": "Details for {rule}",
   // FIRST-9: since you were last here
   "home.since.summary": "Since you were last here, {when}: {summary}.",
   "home.since.events": { one: "{count} event recorded", other: "{count} events recorded" },
@@ -19351,6 +19666,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "saas.usageDecline.declare.busy": "Recording it",
   // 2026-10-05, growth loop wave 2 (docs/plan/44): what customers ask for, and an issue proposed from it (F6).
   "capability.name.github.issue.create": "Open an issue on your repository",
+  "capability.name.github.check.create": "Write Orvay's proof on its pull requests",
   "requests.heading": "What customers ask for",
   "requests.lead": "Feature requests, grouped by a model. Groups can be wrong, so read them before acting.",
   "requests.sort.noModel": "Unsorted: {count}. No model available.",
@@ -20510,6 +20826,42 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "loop.revert.close": "Close the revert pull request on GitHub.",
   "loop.fix.close": "Close the fix pull request on GitHub.",
   "loop.run.bySweep": "Approved. The product loop checks the evidence again and runs this on its next pass, within five minutes.",
+  // Orvay's proof on its own fix pull request (ADR-0216), 2026-11-17. Written on GitHub in English, whatever the
+  // company's language, and on the contract a person approves. English only, TRANSLATION_DEFERRED.
+  "loop.proof.objective": "Write Orvay's proof on pull request #{number} on {repo}",
+  "loop.proof.claim": "The exact words Orvay writes on the pull request, as its {via}:",
+  "loop.proof.via.check_run": "check",
+  "loop.proof.via.comment": "comment",
+  "loop.proof.citation": "The product loop's own record of this fix, at commit {sha}",
+  "loop.proof.describes": "GitHub answers the request that writes the check or the comment.",
+  "loop.proof.expectation": "GitHub reports the check or the comment written",
+  "loop.proof.undo": "Edit or delete the comment on GitHub. A check stays on its commit, and the next phase updates it in place.",
+  "loop.proof.title.review": "Reviewed before merge, not yet confirmed in production",
+  "loop.proof.title.reviewCi": "Reviewed before merge. A passing check is not a production outcome",
+  "loop.proof.title.confirmed": "Confirmed in production",
+  "loop.proof.title.regressed": "Not confirmed in production: the error was seen again",
+  "loop.proof.title.unconfirmed": "Not confirmed in production: not enough evidence in time",
+  "loop.proof.intro": "Orvay wrote this pull request to fix {issue}. This is Orvay's record of what was checked, and by whom.",
+  "loop.proof.introError": "Orvay wrote this pull request to fix an error your error tracker reported. This is Orvay's record of what was checked, and by whom.",
+  "loop.proof.introCi": "Orvay wrote this pull request to fix a check that failed on this repository. This is Orvay's record of what was checked, and by whom.",
+  "loop.proof.review.consistent": "Review: a second model, from {reviewer}, read the change at commit {sha} and found that it matches what it was meant to fix. The change was written with a model from {executor}.",
+  "loop.proof.review.inconsistent": "Review: a second model, from {reviewer}, read the change at commit {sha} and found that it does not match what it was meant to fix. A person should read it before it is merged. The change was written with a model from {executor}.",
+  "loop.proof.checks.passed": "The repository's own checks at that commit passed.",
+  "loop.proof.checks.failed": "At least one of the repository's own checks failed at that commit.",
+  "loop.proof.checks.pending": "The repository's own checks were still running at that commit when this was written.",
+  "loop.proof.checks.none": "No check of the repository ran at that commit.",
+  "loop.proof.sandbox": "The change was written in Orvay's sandbox. What the sandbox reported is the fixer's own account, and it is not counted as proof here.",
+  "loop.proof.next.production": "Not confirmed in production. If Orvay later reads a production result for this change, it updates this check.",
+  "loop.proof.next.productionComment": "Not confirmed in production. If Orvay later reads a production result for this change, it adds a comment.",
+  "loop.proof.next.ci": "Orvay reads the failing check again after the merge. A passing check shows that the check passed, not that the fix worked in production, so this will never say the fix was confirmed in production.",
+  "loop.proof.confirmed": "After the release that carried this change shipped, Orvay counted the error in production: {before} times before the change and {after} times after it. {unit} This was read from production, not taken from the fix's own report.",
+  "loop.proof.confirmedUncounted": "After the release that carried this change shipped, Orvay read production and found that the error stopped, with enough use to judge. This was read from production, not taken from the fix's own report.",
+  "loop.proof.unit.minutes": "The two were compared as a rate per minute of production running.",
+  "loop.proof.unit.pageviews": "The two were compared as a rate per page view.",
+  "loop.proof.regressed": "After the release that carried this change shipped, the error it was meant to fix was seen again in production. Orvay does not count it as fixed.",
+  "loop.proof.unconfirmed": "Production did not give enough evidence before the deadline to say whether this change fixed the error. Orvay does not count it as fixed.",
+  "loop.proof.footer": "Written by Orvay. It is updated in place, and it never marks this pull request as failed.",
+  "loop.proof.footerComment": "Written by Orvay. A later result is a new comment, and none marks this pull request as failed.",
   // The Product tab (docs/plan/49a F1 to F5, ADR-0186), 2026-11-11. English only, TRANSLATION_DEFERRED.
   "nav.product": "Product",
   "product.none.title": "Nothing is being fixed",
@@ -20678,6 +21030,18 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "product.receipt.changed.approval": "Merge approval",
   "product.receipt.changed.fixApproval": "Fix approval",
   "product.receipt.changed.openApproval": "Open the approval",
+  // The proof on the pull request, on the receipt (ADR-0216), 2026-11-17. English only, TRANSLATION_DEFERRED.
+  "product.receipt.proofCheck.term": "Proof on the pull request",
+  "product.receipt.proofCheck.posted.check_run": "Written as a check",
+  "product.receipt.proofCheck.posted.comment": "Written as a comment",
+  "product.receipt.proofCheck.open": "Open it on GitHub",
+  "product.receipt.proofCheck.waiting": "Waiting for a person to approve the words",
+  "product.receipt.proofCheck.proposed": "Proposed, not decided yet",
+  "product.receipt.proofCheck.unavailable.app_lacks_checks_write": "Not written. The GitHub App this company connected does not have permission to write checks yet. Orvay writes it once the App has that permission.",
+  "product.receipt.proofCheck.unavailable.mint_refused": "Not written. GitHub refused Orvay a token to write it. Orvay asks again tomorrow.",
+  "product.receipt.proofCheck.unavailable.not_connected": "Not written. GitHub is not connected.",
+  "product.receipt.proofCheck.refused": "Not written. The policy refused it.",
+  "product.receipt.proofCheck.failed": "Not written. GitHub refused the request.",
   "product.receipt.changed.none": "No pull request yet.",
   "product.receipt.changed.uncounted": "The changed files have not been counted yet.",
   "product.receipt.proof.title": "The proof",
@@ -20808,7 +21172,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "product.fixCap.link": "Open Code changes",
   // A fix that starts on its own (ADR-0195), 2026-11-12. English only, TRANSLATION_DEFERRED.
   "settings.codeChanges.autoStart.label": "Fixes that start on their own",
-  "settings.codeChanges.autoStart.hint": "Orvay starts a fix in a ticked repository without asking anybody, inside the daily limits below. The fix still has to pass your checks, the merge rules and production before it counts, and a fix that fails gives its credits back. Every repository is off until you tick it.",
+  "settings.codeChanges.autoStart.hint": "Orvay starts a fix in a ticked repository without asking anybody, inside the daily limits below. The fix still has to pass your checks, the merge rules and production before it counts, and a fix that fails gives its credits back, up to your plan's monthly limit for returned credits. Every repository is off until you tick it.",
   "settings.codeChanges.autoStart.none": "No repository is mapped to your error tracker yet, so there is nothing to start.",
   "settings.codeChanges.autoStart.fixes.label": "Fixes started on their own per day",
   "settings.codeChanges.autoStart.credits.label": "Credits they may hold per day",
@@ -20819,6 +21183,9 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "settings.codeChanges.refused.autoStartCreditsNotWhole": "Choose a whole number of credits per day, or leave it empty for the default.",
   "product.waiting.autoStart.auto_start_daily_fixes": "A person, or tomorrow: today's limit on fixes that start on their own is reached",
   "product.waiting.autoStart.auto_start_daily_credits": "A person, or tomorrow: today's credits for fixes that start on their own are used",
+  "loop.contract.closed.loopEnded": "Not needed any more: the fix this was for has ended, so nothing is left to decide here.",
+  "product.waiting.autoStart.closed_by_person": "A person: the last fix for this error was closed without merging, so Orvay does not start another on its own",
+  "product.waiting.autoStart.regression_stopped": "A person: the last fix for this error did not hold in production and Orvay stopped before undoing it, so it does not start another on its own",
   "product.waiting.start": "Start this fix",
   // The plain name of the sandbox row in the starter policy (ADR-0189), 2026-11-11. English only, TRANSLATION_DEFERRED.
   "capability.name.sandbox.command.execute": "Run your code in Orvay's sandbox to write a fix",
@@ -21163,7 +21530,9 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "contract.did": "What it did",
   "contract.answer.heading": "The answer",
   "contract.answer.full": "Read the full result",
-  "contract.more.label": "More actions"
+  "contract.more.label": "More actions",
+  // The step a result proposes under its answer (action.perform@10, Z), 2026-11-17. English only, TRANSLATION_DEFERRED.
+  "contract.answer.next": "Suggested next step"
 };
 var MODEL_SELECTION_SOURCE = {
   "workflows.model.answerMaximum": "Maximum answering usage (credit equivalent)",
@@ -21412,6 +21781,15 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.new.notice.said": "Said aloud",
   "meetings.new.notice.language": "Shown here in your language. In the meeting it is written and said in the meeting\u2019s language.",
   "meetings.detail.commitment.said": "What was said: {quote}",
+  // Work the sweep does not do because its rule asks and nobody is there (ADR-0212), said on the screen that shows it.
+  "policies.held.why": "Your company\u2019s rules ask before Orvay does this, and nobody is there to ask when it runs on its own.",
+  "policies.held.link": "See the rule on the Policies page",
+  "support.held.intake": "New tickets are not being pulled in from your connected inbox.",
+  "support.held.labels": "New tickets are not being labelled.",
+  "socialInbox.held": "Replies and mentions on your connected accounts are not being read.",
+  "publicFeed.held": "Your public record is not being updated. It stays as it was.",
+  "competitors.held": "These competitor sites are not being read: {hosts}.",
+  "policies.preset.reads": "Reading new tickets, the social inbox and competitor sites stays as it is: Orvay reads them on its own, and reading changes nothing.",
   // The meetings screens in the settings' look, and the agent's name (2026-11-17). An estimate is a value, and the word
   // "credits" its label (§8b): {low} and {high} are numbers already formatted.
   "meetings.new.estimate.range": "{low} to {high}",
@@ -21432,7 +21810,74 @@ var MODEL_SELECTION_SOURCE = {
   "settings.meetingAgent.error.long": "Use at most 20 characters.",
   "settings.meetingAgent.error.characters": "Use only letters, digits, spaces, hyphens, apostrophes and full stops.",
   "settings.meetingAgent.error.bot_word": "Other meeting tools remove bots named assistant, notetaker or recorder. Choose another name.",
-  "settings.meetingAgent.error.member": "A member of this company goes by that name. Choose another name."
+  "settings.meetingAgent.error.member": "A member of this company goes by that name. Choose another name.",
+  // Navigation and the Developers page (product audit W8 and W20, workstream Y), 2026-11-18. English only and on
+  // TRANSLATION_DEFERRED below, for the separate translation pass, except the one Home line, which is translated.
+  "nav.growth": "Growth",
+  "nav.growth.social": "Social posts",
+  "product.tabs.fixes": "Fixes",
+  "product.tabs.settings": "Settings",
+  "home.health.incidents.all": "See all incidents",
+  "settings.developers.title": "Developers",
+  "settings.lead.developers": "Where programs and agents reach this organization, and the keys they use.",
+  "settings.find.developers": "developer, api, mcp, keys, token, integration, agent",
+  "settings.find.developers.mcp": "mcp, model context protocol, agent, claude, cursor, tools, server",
+  "settings.find.developers.api": "rest, api, http, endpoint, curl, script, v1",
+  "settings.developers.mcp.title": "MCP server",
+  "settings.developers.mcp.lead": "An agent that speaks MCP connects here with an API key. Every tool call goes through the same gates as a person.",
+  "settings.developers.mcp.docs": "The MCP server in the docs",
+  "settings.developers.api.title": "REST API",
+  "settings.developers.api.lead": "A script or another system calls this address with an API key. Every call goes through the same gates as a person.",
+  "settings.developers.api.docs": "The REST API in the docs",
+  "settings.developers.address": "Address",
+  "brand.moved.title": "Drafts and posts are on the Growth page now.",
+  "brand.moved.body": "This page keeps the brief. Drafts, pictures, schedules, results, experiments and replies are under Growth.",
+  "brand.moved.open": "Open Growth",
+  "settings.codeChanges.moved.title": "How a fix may change your code is now in Product, under Settings.",
+  "settings.codeChanges.moved.open": "Open the fix rules",
+  // A website in Zenovay as an error source (ADR-0221), 2026-11-18. English only, TRANSLATION_DEFERRED under the same
+  // date (the operator's standing rule: a separate pass translates).
+  "loop.fix.zenovay.claim": "Zenovay reports error {issue} on the website mapped to {repo}, from its visitors' browsers. Orvay asked its sandbox to write the smallest fix, and the pull request it opens is checked by the repository CI, the merge rules and the website. Zenovay records no version on an error, so the fix counts as live when GitHub records the merge commit deployed to production, and as working when the error is not seen again after that. If the error is seen again, a person decides and Orvay does not undo the fix on its own, and the fix is charged.",
+  "loop.fix.zenovay.citation": "Orvay's record of website error {issue}, ranked on loop {loop}",
+  "loop.fix.zenovay.broken": "Zenovay reports error {issue} in the visitors' browsers on the live website. Make it stop without changing anything else.",
+  "product.setup.zenovay.title": "Before Orvay can fix your product",
+  "product.setup.zenovay.body": "Orvay finds an error in Sentry, in the errors Zenovay records on your website, or in a failing check in your repository's CI, and writes the fix in your repository. Sentry and Zenovay can confirm in production that a fix worked. CI can only show that the check passed after the fix merged.",
+  "product.setup.zenovay": "Or read the errors Zenovay records on your website",
+  "product.setup.zenovay.action": "Choose a website",
+  "product.zenovay.open": "Open Zenovay",
+  "product.zenovay.blind.notReady": "Zenovay is not ready for Orvay to read: it is not connected, its sign-in is not finished, or its list of tools waits for approval. Its page in Integrations says which.",
+  "product.zenovay.blind.alarm": "Orvay cannot read Zenovay right now. Its page in Integrations says why and what to do.",
+  "product.zenovay.blind.refused": "Zenovay refused Orvay's last read of your website's errors, so Orvay cannot see what is broken.",
+  "product.zenovay.blind.held": "Your company's rules hold Zenovay's error list for a person, so Orvay cannot see new errors. Zenovay's page in Integrations lets it run on its own.",
+  "product.zenovay.blind.failing": "The last read of your website's errors from Zenovay failed. Orvay keeps trying.",
+  "product.zenovay.blind.never": "Orvay has not read your website's errors in Zenovay yet, so it cannot see what is broken.",
+  "product.zenovay.blind.stale": "Orvay last read your website's errors in Zenovay too long ago to start a fix from them.",
+  "product.zenovay.blind.fixesOff": "Orvay reads your website's errors only while its sandbox can write a fix, and the most one fix may spend is too low for that. Raise it in Code changes.",
+  "product.zenovay.clean.body": "Orvay reads the errors Zenovay records on your website, and no error is waiting for a fix.",
+  "product.receipt.proof.possible.zenovaySeenAfter": "Zenovay saw this error again after the fix went live. Zenovay records no version on an error, and a page opened before the deploy still runs the old code, so this does not show the fix failed. Orvay does not undo the fix on its own: a person decides.",
+  "product.receipt.proof.atLeastOne": "At least one",
+  "settings.codeChanges.mappings.refused.website_mapped": "That Zenovay website already belongs to another repository.",
+  "settings.codeChanges.mappings.refused.website_format": "Choose a website from the list.",
+  "settings.codeChanges.mappings.zenovay.label": "Zenovay website",
+  "settings.codeChanges.mappings.zenovay.title": "Read the errors Zenovay records on a website",
+  "settings.codeChanges.mappings.zenovay.body": "Orvay reads the JavaScript errors Zenovay records from your visitors' browsers on the website you choose, and an open one becomes a fix in this repository. Zenovay records no version on an error, so a fix counts as live when GitHub records its merge commit deployed to the repository's production environment, and as working when the error is not seen again after that. A repository that does not record deployments on GitHub cannot be confirmed this way. If the error is seen again, a person decides and Orvay does not undo the fix on its own, and the fix is charged.",
+  "settings.codeChanges.mappings.zenovay.website": "Website",
+  "settings.codeChanges.mappings.zenovay.submit": "Read its errors",
+  "settings.codeChanges.mappings.zenovay.none": "Every website Zenovay lists is already mapped to a repository.",
+  "settings.codeChanges.mappings.zenovay.notConnected": "Zenovay is not connected. Connect it to choose a website.",
+  "settings.codeChanges.mappings.zenovay.waiting": "Zenovay is connected, and its list of websites waits for a person on its page in Integrations.",
+  "settings.codeChanges.mappings.zenovay.forbidden": "Your company's rules forbid reading Zenovay's list of websites.",
+  "settings.codeChanges.mappings.zenovay.unauthorized": "The sign-in for Zenovay stopped working. Sign in to it again on its page in Integrations.",
+  "settings.codeChanges.mappings.zenovay.unread": "Zenovay's list of websites could not be read. Its page in Integrations shows the connection.",
+  "settings.codeChanges.mappings.zenovay.connect": "Connect Zenovay",
+  "onboarding.errors.zenovay.note": "Errors from your visitors' browsers on your website. A fix can be confirmed in production once GitHub records it deployed.",
+  "onboarding.errors.zenovay.connect": "Connect Zenovay",
+  "onboarding.errors.zenovay.finishSignIn": "Finish signing in",
+  "onboarding.errors.zenovay.toolsWaiting": "Zenovay is signed in, and its list of tools waits for your approval on the Integrations page once setup is finished. Until then Orvay reads nothing from it.",
+  "home.health.loop.zenovayLastRead": "Website errors last read",
+  "export.dataset.website-errors": "The errors Zenovay recorded on each website your company mapped to a repository: the website, the key Orvay gave each error, its type and message with email addresses, credentials, the query part of addresses, IP addresses and long identifiers removed, and when Orvay first and last read it.",
+  "product.receipt.proof.possible.zenovaySameError": "After the fix went live, Zenovay recorded an error with the same words under a new group. That is likely the same error, so Orvay does not call this fix proven: a person decides.",
+  "onboarding.errors.toolServers.plan": "Sentry and Zenovay connect as tool servers, and your plan does not include tool servers. You can change your plan under Billing once setup is finished."
 };
 var PRODUCT_SOURCE = {
   ...PRODUCT_SOURCE_BASE,
@@ -22397,7 +22842,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "e85cf97ae" : "unknown";
+var sourceCommit = true ? "8d0b571fc" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
