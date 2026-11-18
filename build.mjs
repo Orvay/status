@@ -768,7 +768,8 @@ var CONSENT_PURPOSES = [
   "public_feed",
   "enquiry_reply",
   "newsletter",
-  "meeting_transcription"
+  "meeting_transcription",
+  "status_page"
 ];
 var SUPPRESSION_PURPOSES = CONSENT_PURPOSES.filter(
   (purpose) => purpose !== "meeting_transcription"
@@ -2183,6 +2184,27 @@ var COMPONENTS = [
     summary: "Writing down what is said in a meeting the agent joined, and the summary afterwards.",
     budget: { staleAfterMs: 45 * MINUTE },
     notMeasuredWhy: "This page does not measure meeting transcripts yet. If part of one is lost, the meeting\u2019s page and its summary say which part."
+  },
+  {
+    id: "verified-fixes-page",
+    /*
+          ADDED IN THE SAME CHANGE THAT BUILT THE SURFACE (§13c), NOT MEASURED. ADR-0223: a company that turned it on has
+          the fixes production confirmed listed at its own site address, with one receipt per fix, served by the tenants
+          Worker from an object forge writes; the unattended pass (`statusPages`) keeps it current and deletes it when it is
+          turned off. A SCHEDULED JOB WHOSE SILENCE IS PART OF THE FAILURE, as the public record's: if the pass stops, a page
+          goes stale, and a page turned off while forge was unreachable stays up until the pass deletes it.
+    
+          WHY NOTHING WATCHES IT. A probe needs a company that has the page turned on and a fix production confirmed, which
+          is a customer's decision and a real defect, and a synthetic company with both would be a product of its own. The
+          measurable version is the public record's: a mark the pass writes for this axis, read through a signed health
+          endpoint (`/api/health/public-record` is the pattern); not built. The settings page shows each company whether its
+          address holds the page. This row is also what the plan's "probes come in a second version" waits on.
+        */
+    group: "surfaces",
+    label: "Verified fixes page",
+    summary: "The page at your website address listing the fixes production confirmed, with a receipt for each, for companies that turned it on, and taking it down when they turn it off.",
+    budget: { staleAfterMs: 45 * MINUTE },
+    notMeasuredWhy: "This page does not measure the verified fixes page yet. The settings page shows whether your address holds it, and turning it off removes it, normally within a minute."
   }
   /*
       TWO SURFACES FROM THE SAME RELEASE HAVE NO ROW, DELIBERATELY, AND THE REASON EXPIRES.
@@ -4449,6 +4471,96 @@ var PRODUCT_SOURCE_BASE = {
   "publicFeed.check.http_response": "Confirmed on {date} by reading the HTTP response.",
   "publicFeed.check.exit_code": "Confirmed on {date} by the exit code of a command.",
   "publicFeed.check.database_read": "Confirmed on {date} by reading a database.",
+  // The page of fixes production confirmed (ADR-0223), 2026-11-18, workstream S. English, every key below on
+  // TRANSLATION_DEFERRED under the same date. `statusPage.wording` is the sentence the consent record stores, and the
+  // `statusPage.public.*` keys are the public page's own words (the tenants Worker renders it in English while any is deferred).
+  "settings.nav.statusPage": "Verified fixes",
+  "statusPage.intro": "Shows, on your website, the fixes that production confirmed. Off by default.",
+  "statusPage.wording": "{product} may show, at {address} and at the same path on any domain connected to this company\u2019s website, this company\u2019s fixes that production confirmed: the error a fix was written for stopped occurring after the release that carried it, as read from the company\u2019s production error tracker by a reader that did not write the fix. Each fix shows the day it was merged, shipped and confirmed, and how long it was watched, and, only if somebody here writes them, one sentence about it and a name for its repository, published as written. {product} never puts on the page anything it read from the error tracker or from GitHub: no error message, issue title, stack trace, file path or repository name, and no fix that only passed CI. Anyone with the address can read it, and search engines are asked not to list it. It can be turned off here at any time, and the page is then removed from that address, normally within a minute.",
+  "statusPage.state.on": "On. The page is public at {address}.",
+  "statusPage.state.onPending": "On. Publishing, retrying shortly.",
+  "statusPage.state.off": "Off. Nothing is shown at that address.",
+  "statusPage.state.offRemoving": "Off. Removing it, retrying shortly.",
+  "statusPage.noSite": "Add a website address first.",
+  "statusPage.held": "Your verified fixes page is not being updated. It stays as it was.",
+  "statusPage.on.submit": "Publish verified fixes",
+  "statusPage.on.busy": "Recording your agreement",
+  "statusPage.off.submit": "Turn it off",
+  "statusPage.off.busy": "Turning it off",
+  "statusPage.saved": "Saved.",
+  "statusPage.error.notPermitted": "You do not have permission to change this.",
+  "statusPage.error.unavailable": "This could not be changed right now, and nothing was changed.",
+  "statusPage.error.stale": "The address on this page changed. Read the sentence again before agreeing.",
+  "statusPage.error.notFound": "That fix or repository can no longer appear on the page. Reload to see the current list.",
+  "statusPage.error.notAPerson": "Only a person signed in here can put words on a public page.",
+  "statusPage.invalid.empty": "Write something first, or clear the field to remove it.",
+  "statusPage.invalid.too_long": "That is too long for this field.",
+  "statusPage.invalid.control": "Use one line, with no hidden characters.",
+  "statusPage.invalid.markup": "Leave out angle brackets, braces, backticks, backslashes and vertical bars.",
+  "statusPage.invalid.link": "Leave out links and web addresses.",
+  "statusPage.invalid.address": "Leave out email addresses and @ names.",
+  "statusPage.invalid.number": "Leave out phone numbers and other long numbers.",
+  "statusPage.invalid.identifier": "Leave out ids, commit hashes and long codes.",
+  "statusPage.invalid.path": "Leave out file paths.",
+  "statusPage.invalid.trace": "Leave out error messages and stack traces.",
+  "statusPage.invalid.characters": "Use letters, digits, spaces, dots, hyphens and underscores, starting with a letter or a digit.",
+  "statusPage.fixes.heading": "Fixes production confirmed",
+  "statusPage.fixes.empty": "None yet. A fix appears here once production has confirmed it. A fix that only passed CI never appears.",
+  "statusPage.fixes.hint": "Without a sentence, a fix is described in fixed words. A sentence is published as written, so write only what you would say in public: no customer names, error messages or internal details. Orvay refuses a sentence shaped like a web address, an email address or @ name, a long number, an id, a path with folders, or an error as a tracker prints it. It checks only the shape of the text, so it cannot catch every error message or link, and it cannot check that a sentence is true.",
+  "statusPage.fix.confirmed": "Confirmed in production on {date}.",
+  "statusPage.fix.repository": "Repository: {repository}.",
+  "statusPage.fix.state.shown": "Shown on the page.",
+  "statusPage.fix.state.hidden": "Hidden from the page.",
+  "statusPage.fix.state.offShown": "Will be shown when the page is on.",
+  "statusPage.fix.receipt": "Receipt address: {address}",
+  "statusPage.fix.sentence.label": "Sentence about this fix",
+  "statusPage.fix.sentence.limit": {
+    one: "One line, up to {count} character. Leave it empty to use the fixed words.",
+    other: "One line, up to {count} characters. Leave it empty to use the fixed words."
+  },
+  "statusPage.fix.sentence.submit": "Save sentence",
+  "statusPage.fix.sentence.busy": "Saving",
+  "statusPage.fix.hide.submit": "Hide this fix",
+  "statusPage.fix.show.submit": "Show this fix",
+  "statusPage.fix.toggle.busy": "Saving",
+  "statusPage.repositories.heading": "Repository names on the page",
+  "statusPage.repositories.hint": "The page shows a repository only by the name you give it here, published as written. Leave it empty to show none.",
+  "statusPage.repository.alias.label": "Name to show for {repository}",
+  "statusPage.repository.alias.submit": "Save name",
+  "statusPage.repository.alias.busy": "Saving",
+  "statusPage.public.title": "Fixes confirmed in production",
+  "statusPage.public.lead": "Each fix below was merged, shipped in a release and then watched in production until the error it was written for stopped occurring. The count was read from the production error tracker by {product}, not by the agent or person that wrote the fix. Fixes that only passed tests are not listed.",
+  "statusPage.public.empty": "No fix has been confirmed in production yet.",
+  "statusPage.public.foot": "Fixes checked by {product}.",
+  "statusPage.public.fix.generic": "A defect in production was fixed.",
+  "statusPage.public.fix.in": "In {repository}.",
+  "statusPage.public.fix.confirmedOn": "Confirmed in production on {date}.",
+  "statusPage.public.fix.watched": {
+    one: "Watched for {count} day after the release.",
+    other: "Watched for {count} days after the release."
+  },
+  "statusPage.public.fix.receipt": "Receipt",
+  "statusPage.public.fix.receiptLabel": "Receipt for the fix confirmed on {date}",
+  "statusPage.public.receipt.title": "Receipt for a fix",
+  "statusPage.public.receipt.repository": "Repository",
+  "statusPage.public.receipt.merged": "Merged",
+  "statusPage.public.receipt.shipped": "Shipped in a release",
+  "statusPage.public.receipt.confirmed": "Confirmed in production",
+  "statusPage.public.receipt.watched": "Watched in production",
+  "statusPage.public.receipt.days": {
+    one: "{count} day",
+    other: "{count} days"
+  },
+  "statusPage.public.receipt.basis": "Counted against",
+  "statusPage.public.basis.pageviews": "Page views",
+  "statusPage.public.basis.minutes": "Time",
+  "statusPage.public.receipt.source": "Read from",
+  "statusPage.public.source.error_tracker": "The production error tracker",
+  "statusPage.public.receipt.reader": "Read by",
+  "statusPage.public.receipt.readerValue": "{product}, not the agent or person that wrote the fix",
+  "statusPage.public.receipt.means": "What this shows: after the release that carried this fix, the error it was written for stopped occurring in production for the time above.",
+  "statusPage.public.receipt.limits": "What it does not show: that the software has no other errors, or that this one cannot come back.",
+  "statusPage.public.receipt.back": "All verified fixes",
   /*
       THE BRAND BRIEF. §5b: every one of these is a message id. English only for
       now, every key listed in TRANSLATION_DEFERRED under the same date.
@@ -9824,6 +9936,7 @@ var PRODUCT_SOURCE_BASE = {
   "settings.find.presence.website": "site, homepage, url, web",
   "settings.find.presence.domain": "custom domain, dns, url, hostname",
   "settings.find.presence.publicFeed": "public feed, verified work, showcase, transparency",
+  "settings.find.presence.statusPage": "status page, verified fixes, changelog, receipt, bugs fixed",
   "settings.find.presence.contactForm": "contact, enquiry, form, messages",
   "settings.find.presence.announcement": "launch, post, press, social, announce",
   "settings.find.brand.brief": "voice, tone, audience, channels, brand guidelines",
@@ -15294,6 +15407,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "contract.consent.purpose.enquiry_reply": "To be replied to about an enquiry they sent",
   // Meetings (ADR-0211), 2026-11-16: the subject is the meeting, not a person. English only, TRANSLATION_DEFERRED.
   "contract.consent.purpose.meeting_transcription": "To have what is said in the meeting transcribed",
+  "contract.consent.purpose.status_page": "To show the fixes production confirmed in public",
   // ADR-0085: gate 6 reads the records of each person a proposal names. This
   // said it refused every message before reading any record, which stopped
   // being true when proposals began naming their recipients to it.
@@ -20195,6 +20309,8 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "capability.name.crm.deal.write": "Keep deals: add, edit, move and delete them, and log what happened",
   "capability.name.company.public_feed.publish": "Show the company's verified work on a public page",
   "capability.name.company.public_feed.withdraw": "Take the company's public page of verified work down",
+  "capability.name.company.status_page.publish": "Publish the fixes production confirmed on a public page",
+  "capability.name.company.status_page.withdraw": "Take the company's public page of verified fixes down",
   "deals.title": "Deals",
   "deals.stage.lead": "Lead",
   "deals.stage.qualified": "Qualified",
@@ -22842,7 +22958,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "8d0b571fc" : "unknown";
+var sourceCommit = true ? "e1a833da0" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
