@@ -2242,6 +2242,24 @@ var COMPONENTS = [
     summary: "Reading the deals in the HubSpot account your company connected, each time the Deals tab opens.",
     budget: { staleAfterMs: 45 * MINUTE },
     notMeasuredWhy: "This page does not measure reading deals from your CRM yet. If a read fails, the Deals tab says why instead of showing an empty list."
+  },
+  {
+    id: "acquisition",
+    /*
+          ADDED WITH THE SURFACE (§13c), NOT MEASURED (ADR-0227). The Acquisition tab reads Hacker News's search (Algolia) when
+          a person presses for it and drafts listing kits through forge `/api/listing-kit`. Both are pressed by a person and
+          answer on the page, so a failure is seen where it happens; neither runs unattended.
+    
+          WHY NOTHING WATCHES IT. A probe of the search would send words to a third party on nobody's behalf, and a probe of
+          the kit route would spend on a model. The measurable version is a signed health endpoint reading whether the
+          deployed forge answers the route (a 404 there means forge was not deployed with it) and the age of the last read;
+          not built. The rest of the tab is reads of stored rows, covered by the control plane's row.
+        */
+    group: "work",
+    label: "Acquisition",
+    summary: "Reading Hacker News when you ask, and drafting listing kits, on the Acquisition tab.",
+    budget: { staleAfterMs: 45 * MINUTE },
+    notMeasuredWhy: "This page does not measure the Acquisition tab yet. If a Hacker News read or a kit draft fails, the tab says so when you press it."
   }
   /*
       TWO SURFACES FROM THE SAME RELEASE HAVE NO ROW, DELIBERATELY, AND THE REASON EXPIRES.
@@ -2420,38 +2438,7 @@ var humanDuration = (ms) => {
   return `${days} d ${hours % 24} h`;
 };
 
-// ../../packages/entitlements/src/experiments.ts
-var EXPERIMENTS = {
-  "trust.policy_mining": {
-    id: "trust.policy_mining",
-    changes: "repeated_approvals_are_proposed_as_bounded_delegations_for_a_person_to_sign",
-    graduatesWhen: "at least 20 signed proposals across companies, none followed within 30 days by a failed or compensated action it let through"
-  },
-  "trust.ladder_promotion": {
-    id: "trust.ladder_promotion",
-    changes: "a proposer whose verified record clears the next rung is proposed for promotion, for a person to sign",
-    graduatesWhen: "at least 50 signed promotions, with fewer than 5% demoted again within 30 days by a major or severe incident"
-  },
-  "trust.shadow_simulation": {
-    id: "trust.shadow_simulation",
-    changes: "a high-impact action shows a deterministic projection with its assumptions and missing inputs before approval",
-    graduatesWhen: "at least 100 projections scored against what happened, with interval coverage within 10 points of the stated level"
-  },
-  "trust.consent_rules": {
-    id: "trust.consent_rules",
-    changes: "a directed message shows the jurisdiction rule it was checked against, as decision support",
-    graduatesWhen: "the rule table has been reviewed by counsel and the review is recorded in an ADR"
-  },
-  "billing.outcome_preview": {
-    id: "billing.outcome_preview",
-    changes: "an open decision shows what the work would cost if priced by verified outcome, beside what it costs today, and charges nothing",
-    // Counted from records that exist (contracts and their receipts); nothing records that a preview was shown.
-    graduatesWhen: "at least 200 decided contracts across enrolled companies that the eligibility rule accepts, and each class of work has its verified rate known within five points (Wilson half-width at 95%)"
-  }
-};
-var ALL_EXPERIMENTS = Object.keys(EXPERIMENTS);
-
-// ../../packages/entitlements/src/index.ts
+// ../../packages/entitlements/src/core.ts
 var CREDIT_COST_MINOR = 6n;
 var CREDIT_CURRENCY = "USD";
 var PLANS = {
@@ -2618,6 +2605,37 @@ var BROWSER_CREDITS_PER_HOUR = 1;
 var BROWSER_MICRO_PER_MINUTE = BigInt(BROWSER_CREDITS_PER_HOUR) * CREDIT_COST_MINOR * MICRO_PER_MINOR / 60n;
 var FIX_CONTAINER_FLOOR_MICRO = 6451200n;
 var FIX_CAP_MINIMUM_CREDITS = Number(FIX_CONTAINER_FLOOR_MICRO / (CREDIT_COST_MINOR * MICRO_PER_MINOR)) + 1;
+
+// ../../packages/entitlements/src/experiments.ts
+var EXPERIMENTS = {
+  "trust.policy_mining": {
+    id: "trust.policy_mining",
+    changes: "repeated_approvals_are_proposed_as_bounded_delegations_for_a_person_to_sign",
+    graduatesWhen: "at least 20 signed proposals across companies, none followed within 30 days by a failed or compensated action it let through"
+  },
+  "trust.ladder_promotion": {
+    id: "trust.ladder_promotion",
+    changes: "a proposer whose verified record clears the next rung is proposed for promotion, for a person to sign",
+    graduatesWhen: "at least 50 signed promotions, with fewer than 5% demoted again within 30 days by a major or severe incident"
+  },
+  "trust.shadow_simulation": {
+    id: "trust.shadow_simulation",
+    changes: "a high-impact action shows a deterministic projection with its assumptions and missing inputs before approval",
+    graduatesWhen: "at least 100 projections scored against what happened, with interval coverage within 10 points of the stated level"
+  },
+  "trust.consent_rules": {
+    id: "trust.consent_rules",
+    changes: "a directed message shows the jurisdiction rule it was checked against, as decision support",
+    graduatesWhen: "the rule table has been reviewed by counsel and the review is recorded in an ADR"
+  },
+  "billing.outcome_preview": {
+    id: "billing.outcome_preview",
+    changes: "an open decision shows what the work would cost if priced by verified outcome, beside what it costs today, and charges nothing",
+    // Counted from records that exist (contracts and their receipts); nothing records that a preview was shown.
+    graduatesWhen: "at least 200 decided contracts across enrolled companies that the eligibility rule accepts, and each class of work has its verified rate known within five points (Wilson half-width at 95%)"
+  }
+};
+var ALL_EXPERIMENTS = Object.keys(EXPERIMENTS);
 
 // ../../packages/billing/src/prices.ts
 var PRICE_LOOKUP_KEYS = {
@@ -21622,8 +21640,9 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "contract.newsletter.listMembers": "This approves the list as it stands, with the number above as its ceiling. Who is on it when it is sent is the list's: anybody who withdraws before then is not sent to, and nobody who agreed after it was proposed is added.",
   // The room (ADR-0211 §4, plan 51 package H), 2026-11-17: what the meeting agent says and shows. Spoken lines are
   // said verbatim, synthesised in the meeting's language; the rest is relayed by the live voice or shown on its tile.
-  "meetings.bot.chat": "Hello, I am Orvay\u2019s AI agent for {company}, invited by one of its members. I am transcribing this meeting and I keep no audio. I answer questions and pass on requests from members of the company; nothing is done until the member who asked approves it in Orvay. To send me away, say \u201COrvay, please leave\u201D or remove me from the call.",
-  "meetings.bot.said": "Hello, I am Orvay\u2019s AI agent for {company}. I am transcribing this meeting and I keep no audio. To send me away, say: Orvay, please leave. Or remove me from the call.",
+  // The join line, rewritten 2026-11-18 (ADR-0211 addendum): the ONE chat message the agent posts on join; nothing
+  // is said aloud. `{agent}` is its name as the call shows it, AI mark included.
+  "meetings.bot.chat": "{agent} is transcribing this meeting. Say \u201COrvay, please leave\u201D and I will go.",
   "meetings.bot.leaving": "Of course. I am leaving the meeting now and I have stopped transcribing. Goodbye.",
   "meetings.bot.allowance": "The company\u2019s credits for this period are used up, so I am leaving the meeting now. Goodbye.",
   "meetings.bot.stopped": "I have been stopped, so I am leaving the meeting now. Goodbye.",
@@ -21639,12 +21658,11 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "meetings.bot.no-credits": "The company\u2019s credits for this period are used up, so I cannot answer that.",
   // The company names its agent (2026-11-17): the same disclosure, introducing itself by that name and still as Orvay's
   // AI agent for the company, and teaching that name for sending it away.
-  "meetings.bot.chat.named": "Hello, I am {name}, Orvay\u2019s AI agent for {company}, invited by one of its members. I am transcribing this meeting and I keep no audio. I answer questions and pass on requests from members of the company; nothing is done until the member who asked approves it in Orvay. To send me away, say \u201C{name}, please leave\u201D or remove me from the call.",
-  "meetings.bot.said.named": "Hello, I am {name}, Orvay\u2019s AI agent for {company}. I am transcribing this meeting and I keep no audio. To send me away, say: {name}, please leave. Or remove me from the call.",
+  "meetings.bot.chat.named": "{agent}, Orvay\u2019s AI agent for {company}, is transcribing this meeting. Say \u201C{name}, please leave\u201D and I will go.",
   "meetings.room.title": "Orvay meeting agent",
-  "meetings.room.speaking-for": "AI agent for {company}",
-  "meetings.room.transcribing": "Transcribing. No audio is kept.",
   "meetings.room.listening": "Listening",
+  "meetings.room.thinking": "Thinking",
+  "meetings.room.working": "Writing a proposal",
   "meetings.room.speaking": "Speaking",
   "meetings.room.leaving": "Leaving the meeting",
   // The one letter a day that lists decisions that waited a day for the reader (ADR-0214), and the page its way out
@@ -21783,6 +21801,8 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.results.commitment.due": "Due {date}",
   "meetings.results.commitment.evidence": "What was said",
   "meetings.results.transcript.gap": "The transcript is incomplete between {from} and {to}.",
+  "meetings.results.transcript.live": "Nothing has been transcribed yet. What people say appears here as it is transcribed, a few minutes late in languages other than English.",
+  "meetings.results.transcript.none": "Nothing was transcribed in this meeting.",
   "notification.headline.meeting.record_ready": "The summary of a meeting you were in is ready",
   "notification.headline.meeting.record_not_ready": "The summary of a meeting you were in could not be written",
   "account.notifications.category.meetings": "Meetings",
@@ -21817,7 +21837,7 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.list.someone": "a member",
   "meetings.new.title": "Invite the agent",
   "meetings.new.heading": "Invite the agent into a meeting",
-  "meetings.new.lead": "The agent joins as a participant the host has to admit. Before anything is kept, it tells everyone that it is an AI and that it transcribes.",
+  "meetings.new.lead": "The agent joins as a participant the host has to admit, and says nothing when it joins. Its name in the call marks it as an AI, and once it is admitted one line in the chat says that it transcribes and how to send it away. If the chat does not take that line, the agent says the same sentence aloud instead, and if it can do neither, it leaves.",
   "meetings.new.botName": "{company} (AI)",
   "meetings.new.link.label": "Meeting link",
   "meetings.new.link.hint": "A Google Meet or Microsoft Teams link. Orvay reads the address and does not open it.",
@@ -21826,9 +21846,9 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.new.link.platform": "Only Google Meet and Microsoft Teams links can be used.",
   "meetings.new.link.malformed": "This is not a meeting link. Copy the whole link from the invitation, starting with https.",
   "meetings.new.role.label": "Role",
-  "meetings.new.role.hint": "Fixed for the whole meeting.",
+  "meetings.new.role.costHint": "Fixed for the whole meeting. Beside each role, its credits an hour, waiting to be admitted included. For \u201CAnswers when addressed\u201D, the higher figure is its voice open the whole hour. Answers it writes come on top.",
   "meetings.new.role.unknown": "Choose a role.",
-  "meetings.new.role.listen_only.detail": "Transcribes the call and says once that it is there. It does not speak again.",
+  "meetings.new.role.listen_only.detail": "Transcribes the call. It speaks only to announce itself, and only when the meeting chat does not take its line.",
   "meetings.new.role.answers_when_addressed.detail": "Transcribes, and speaks only when someone addresses it by name. Members can ask it for work.",
   "meetings.new.role.participates.detail": "Transcribes, takes part in the conversation, and proposes work when a member asks for it.",
   "meetings.new.scope.label": "What it may read",
@@ -21838,16 +21858,11 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.new.scope.company": "The company\u2019s work and records",
   "meetings.new.scope.company_files": "The company\u2019s work, records and files",
   "meetings.new.language.label": "Meeting language",
-  "meetings.new.language.hint": "The agent announces itself in this language. English is transcribed as it is spoken; other languages arrive a few minutes late.",
+  "meetings.new.language.hint": "The agent writes and speaks in this language. English is transcribed as it is spoken; other languages arrive a few minutes late.",
   "meetings.new.language.unknown": "Choose the meeting\u2019s language.",
-  "meetings.new.estimate.label": "Credits an hour",
-  "meetings.new.estimate.hint": "For each hour the agent is in the call, waiting to be admitted included. For a role that speaks, the higher figure is its voice open the whole hour. Answers it writes come on top.",
   "meetings.new.submit": "Invite",
   "meetings.new.busy": "Inviting",
-  "meetings.new.notice.title": "What the people in the meeting are told",
-  "meetings.new.notice.body": "Only the transcript and what is taken from it are kept, under the meeting\u2019s own key, and you can erase them. No audio or video is kept.",
   "meetings.new.platforms.title": "Platforms",
-  "meetings.new.platforms.available": "Available",
   "meetings.new.platforms.unavailable": "Not available",
   "meetings.new.platforms.zoomWhy": "Zoom lets an agent into meetings outside its own account only through an app Zoom has reviewed, and Orvay does not have one yet.",
   "meetings.new.plan.title": "Meetings are part of every paid plan",
@@ -21860,7 +21875,6 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.new.refused.chain": "Something changed while the invite was being saved, so nothing was kept. Press Invite again.",
   "meetings.new.refused.unavailable": "The invite could not be saved just now. Nothing was kept and nothing was charged.",
   "meetings.detail.title": "Meeting",
-  "meetings.detail.back": "All meetings",
   "meetings.detail.notFound": "There is no such meeting here.",
   "meetings.detail.notYet": "Not yet",
   "meetings.detail.refused": "Refused at the {gate} gate: {reason}.",
@@ -21897,6 +21911,13 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.detail.end.member_stopped": "Somebody made the agent leave.",
   "meetings.detail.end.allowance_spent": "The company\u2019s credits ran out, so the agent left.",
   "meetings.detail.end.hard_cap": "The agent left at the four hour limit for one meeting.",
+  "meetings.detail.end.notice_not_given": "The agent could neither post its notice in the meeting chat nor say it aloud, so it left the call.",
+  "meetings.detail.facts.notice": "Notice in the call",
+  "meetings.detail.notice.awaiting": "Not given yet. The agent posts it in the chat once it is admitted.",
+  "meetings.detail.notice.chat": "Posted in the meeting chat.",
+  "meetings.detail.notice.speech_pending": "The meeting chat did not take it, so the agent is saying it aloud.",
+  "meetings.detail.notice.speech": "Said aloud, because the meeting chat did not take it.",
+  "meetings.detail.notice.none": "Neither posted nor said, so the agent left the call.",
   "meetings.detail.guessedAs": "Guessed to be {person}",
   "meetings.detail.commitment.open": "Open the proposal",
   "meetings.detail.transcript.speakerUnknown": "Speaker unknown",
@@ -21910,7 +21931,15 @@ var MODEL_SELECTION_SOURCE = {
   "capability.name.meetings.record.erase_any": "Erase any meeting in the company",
   "meetings.detail.erase.button": "Erase this meeting",
   "meetings.detail.erase.title": "Erase this meeting for good?",
-  "meetings.detail.erase.body": "Every name, the transcript, the summary, the commitments and Orvay\u2019s copy of its link become unreadable to everybody, Orvay included. The meeting service that ran the agent keeps the link and the agent\u2019s settings. This cannot be undone. Proposals already made from it stay as they are.",
+  "meetings.detail.erase.body": "Every name, the transcript, the summary, the commitments and Orvay\u2019s copy of its link become unreadable to everybody, Orvay included. The meeting service that ran the agent keeps the link and the agent\u2019s settings. This cannot be undone. Proposals already made from it stay, and none of them can run after it is erased.",
+  // What the erase confirmation says about the documents written from the meeting, and what a proposal whose work went
+  // with its meeting says in place of the work (2026-11-17, `meetings/documents.ts`). None has its own sentence; any other
+  // count takes the locale's own plural categories (§5b rule 8).
+  "meetings.detail.erase.documents.none": "No document has been written from it.",
+  "meetings.detail.erase.documents.some": { one: "{count} document written from it is erased with it, together with every copy and later version of it in your company\u2019s files and what Orvay learned from it.", other: "{count} documents written from it are erased with it, together with every copy and later version of them in your company\u2019s files and what Orvay learned from them." },
+  "meetings.work.erased.title": "Erased with its meeting",
+  "meetings.work.erased.body": "This work was written from what was said in a meeting, and that meeting was erased. The document, every copy of it in your company\u2019s files and what Orvay learned from it were erased with it. The record that the work ran, when, and who approved it stays.",
+  "meetings.work.erased.evidence": "Erased with the meeting this work was written from. The hash above is the one recorded when it was written, so it will not match what is stored now.",
   "meetings.approval.title": "Asked for in a meeting",
   "meetings.approval.body": "This proposal carries no word of what was said. The words are kept sealed with the meeting, and this is what they say:",
   "meetings.approval.erased": "The meeting was erased, so its words can no longer be read.",
@@ -21932,10 +21961,6 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.work.requests.notProposed": "It was not put forward, so nothing was proposed.",
   "meetings.detail.erase.confirm": "Erase for good",
   "meetings.detail.erase.done": "The meeting was erased.",
-  "meetings.new.notice.name": "Its name in the call",
-  "meetings.new.notice.chat": "In the chat",
-  "meetings.new.notice.said": "Said aloud",
-  "meetings.new.notice.language": "Shown here in your language. In the meeting it is written and said in the meeting\u2019s language.",
   "meetings.detail.commitment.said": "What was said: {quote}",
   // Work the sweep does not do because its rule asks and nobody is there (ADR-0212), said on the screen that shows it.
   "policies.held.why": "Your company\u2019s rules ask before Orvay does this, and nobody is there to ask when it runs on its own.",
@@ -21949,9 +21974,6 @@ var MODEL_SELECTION_SOURCE = {
   // The meetings screens in the settings' look, and the agent's name (2026-11-17). An estimate is a value, and the word
   // "credits" its label (§8b): {low} and {high} are numbers already formatted.
   "meetings.new.estimate.range": "{low} to {high}",
-  "meetings.new.estimate.unit": "credits an hour",
-  "meetings.new.details.title": "Details",
-  "meetings.new.notice.rename": "Change its name",
   "settings.find.general.meetingAgent": "meetings, agent name, bot name, call, Google Meet, Microsoft Teams, rename the agent",
   "settings.meetingAgent.title": "Meetings",
   "settings.meetingAgent.body": "How the agent presents itself when a member invites it into a call.",
@@ -21991,6 +22013,198 @@ var MODEL_SELECTION_SOURCE = {
   "brand.moved.open": "Open Growth",
   "settings.codeChanges.moved.title": "How a fix may change your code is now in Product, under Settings.",
   "settings.codeChanges.moved.open": "Open the fix rules",
+  // AA (ADR-0227), 2026-11-18: acquisition without lead mail. English only, TRANSLATION_DEFERRED.
+  "goals.measure.source.zenovayFunnel": "People who reached the last step of your main Zenovay funnel, last 30 days",
+  "goals.measured.zenovayFunnel": "your Zenovay funnel",
+  "goals.measured.none.noFunnel": "Not measured: {source} has no funnel with people in it yet",
+  "acquisition.feasibility.title": "Can this be reached?",
+  "acquisition.feasibility.noSource": "Choose a reading that measures this goal, and Orvay can say whether its target can be reached.",
+  "acquisition.feasibility.noTarget": "Set a target number, and Orvay can say whether it can be reached.",
+  "acquisition.feasibility.noDueDate": "Set a due date, and Orvay can say whether the target can be reached in time.",
+  "acquisition.feasibility.pastDue": "The due date has passed and the target is not reached.",
+  "acquisition.feasibility.notMeasured": "There is nothing to project from yet. {why}.",
+  "acquisition.feasibility.stale": "The newest reading is from {day}, too old to project from. Orvay does not guess a number in its place.",
+  "acquisition.feasibility.met": "Reached: the last 30 days hold {current}, against a target of {target}.",
+  "acquisition.feasibility.noRate": {
+    one: "The last 30 days hold none, so there is no rate to project from. One day is left.",
+    other: "The last 30 days hold none, so there is no rate to project from. {count} days are left."
+  },
+  "acquisition.feasibility.now": "The last 30 days hold {current}. At that rate, the 30 days before {due} hold about the same.",
+  "acquisition.feasibility.needs": {
+    one: "Reaching {target} needs {multiple} times today\u2019s rate on the one day left.",
+    other: "Reaching {target} needs {multiple} times today\u2019s rate over the {count} days left that count."
+  },
+  "acquisition.feasibility.within": "That is within twice today\u2019s rate.",
+  "acquisition.feasibility.beyond": "At today\u2019s numbers this target is not reached by {due}.",
+  "acquisition.feasibility.assumption": "The days already inside that window are taken at today\u2019s average, because the reading is one total.",
+  "acquisition.feasibility.funnel": "In {funnel}, {entered} people entered and {completed} reached the last step: {share}.",
+  "acquisition.feasibility.funnel.unnamed": "your funnel",
+  "acquisition.feasibility.funnel.needs": "At that share, {target} needs {needed} people to enter in 30 days. With today\u2019s {entered} who entered, it needs a share of {shareNeeded}.",
+  "acquisition.feasibility.funnel.needsAll": "At that share, {target} needs {needed} people to enter in 30 days. With today\u2019s {entered} who entered, no share is enough: the target is more than everyone who entered.",
+  "acquisition.feasibility.source": "From {source}, read on {day}. Only a reading moves this goal, never a claim.",
+  "acquisition.feasibility.step": "A nearer step: {value}, aimed for {due}. It needs twice today\u2019s rate, not more.",
+  "acquisition.feasibility.step.note": "Your goal stays as you set it. The step is reached only by a reading, whenever that reading comes.",
+  "acquisition.feasibility.step.statement": "Reach {value}",
+  "acquisition.feasibility.step.add": "Add as a milestone",
+  "nav.growth.acquisition": "Acquisition",
+  "acquisition.title": "Acquisition",
+  "acquisition.busy": "Working\u2026",
+  "acquisition.error.notPermitted": "You are not permitted to change this company\u2019s growth work.",
+  "acquisition.error.unavailable": "This could not be saved just now. Nothing was changed. Try again in a moment.",
+  "acquisition.boundary.title": "Customers from your own channels, counted only when a source confirms them.",
+  "acquisition.boundary.body": "Orvay does not build lead lists, store people you have not heard from, or email anybody on your behalf. Nothing is posted until you approve each post, nothing is submitted to a directory for you, and Orvay never posts on Hacker News or acts on LinkedIn by itself.",
+  "acquisition.goals.title": "Your goals, checked against your numbers",
+  "acquisition.goals.lead": "Each open goal, worked out from the reading that measures it. Only a reading moves a goal.",
+  "acquisition.goals.empty": "No open goal yet",
+  "acquisition.goals.emptyBecause": "Set a goal with a target, a due date and a reading that measures it, such as signups in Zenovay, and it is checked here.",
+  "acquisition.goals.open": "Open goals",
+  "acquisition.rounds.title": "Rounds of your own posts",
+  "acquisition.rounds.lead": "A round is one test: what you expect, the posts that test it, and what your numbers did. Each post is still approved on its own before it goes out.",
+  "acquisition.rounds.empty": "No round yet",
+  "acquisition.rounds.emptyBecause": "Write or draft posts on the Growth page first, then open a round with them here.",
+  "acquisition.rounds.toGrowth": "Go to Growth",
+  "acquisition.round.open": "Open a round",
+  "acquisition.round.open.submit": "Open the round",
+  "acquisition.round.noDrafts": "There is no draft free for a round. Write or draft posts on the Growth page first.",
+  "acquisition.round.hypothesis": "What you expect",
+  "acquisition.round.hypothesis.hint": "One or two sentences, at most {max} characters. For example: a post about the free plan brings more signups than one about features.",
+  "acquisition.round.goal": "Goal",
+  "acquisition.round.goal.none": "No goal",
+  "acquisition.round.drafts": "Posts in this round",
+  "acquisition.round.drafts.hint": "Drafts of your current brief that are not scheduled yet, at most {max}. Opening the round approves none of them.",
+  "acquisition.round.draft.detail": "On {channel}",
+  "acquisition.round.opened.recorded": "Round opened. The goal\u2019s reading today is recorded with it. Approve each post on the Growth page when you are ready.",
+  "acquisition.round.opened.noSource": "Round opened. Its goal has no reading, so no number is recorded with it. Approve each post on the Growth page when you are ready.",
+  "acquisition.round.opened.notMeasured": "Round opened. The goal\u2019s reading could not be measured today, so no number is recorded with it yet. Approve each post on the Growth page when you are ready.",
+  "acquisition.round.error.hypothesis": "Say what you expect, in at most {max} characters.",
+  "acquisition.round.error.noBrief": "State your brand brief in settings first. Rounds use drafts written against it.",
+  "acquisition.round.error.noDrafts": "Choose at least one post for the round.",
+  "acquisition.round.error.tooManyDrafts": "A round can use at most eight posts.",
+  "acquisition.round.error.draftUnknown": "One of those posts is not a draft of your current brief any more. Reload the page and choose again.",
+  "acquisition.round.error.draftInRound": "One of those posts is already in another round. A post can be in one round only.",
+  "acquisition.round.error.goalUnknown": "That goal is not open any more. Choose another, or no goal.",
+  "acquisition.round.error.learned": "Say what you learned, in at most {max} characters.",
+  "acquisition.round.error.closed": "This round was already closed. A closed round is not changed.",
+  "acquisition.round.error.unknown": "That round was not found.",
+  "acquisition.round.openedOn": "Opened on {opened}",
+  "acquisition.round.closedOn": "Opened on {opened}, closed on {closed}",
+  "acquisition.round.state.open": "Open",
+  "acquisition.round.state.closed": "Closed",
+  "acquisition.round.start": "At the start",
+  "acquisition.round.now": "Now",
+  "acquisition.round.end": "At the close",
+  "acquisition.round.notMeasured": "Not measured",
+  "acquisition.round.noCause": "These are what your source read. A change is not proof that these posts caused it.",
+  "acquisition.round.approveOnGrowth": "Posts not yet scheduled wait for your approval on the Growth page.",
+  "acquisition.round.close": "Close the round",
+  "acquisition.round.close.submit": "Close it",
+  "acquisition.round.learned": "What you learned",
+  "acquisition.round.learned.hint": "At most {max} characters. The round and this note are kept as they are once closed.",
+  "acquisition.round.learnedWas": "Learned: {learned}",
+  "acquisition.round.closed": "Round closed.",
+  "acquisition.round.closed.recorded": "Round closed, with the goal\u2019s reading today.",
+  "acquisition.post.not_scheduled": "Waiting for your approval",
+  "acquisition.post.scheduled": "Approved and scheduled",
+  "acquisition.post.released": "Posted",
+  "acquisition.post.stopped": "Stopped before it went out",
+  "acquisition.post.discarded": "Discarded",
+  "acquisition.post.open": "Open the post",
+  "acquisition.post.numbers": "{likes} likes, {reposts} reposts, {replies} replies",
+  "acquisition.post.notReadYet": "Its public numbers are read once a day for {days} days after it goes out.",
+  "acquisition.post.notMeasured": "Its public numbers could not be read.",
+  "acquisition.post.notRead.x": "X bills every read of a post, so Orvay does not read these numbers.",
+  "acquisition.post.notRead.linkedin": "LinkedIn lets only approved partners read a member\u2019s posts, so these numbers are not read.",
+  "acquisition.kits.title": "Listing kits",
+  "acquisition.kits.lead": "The text of a listing for a software directory, ready for you to check and submit on the directory\u2019s own form. Orvay never submits one.",
+  "acquisition.kits.empty": "No listing kit yet",
+  "acquisition.kits.emptyBecause": "Write one yourself, or have Orvay draft one from your brand brief.",
+  "acquisition.kit.draft.open": "Draft a kit",
+  "acquisition.kit.draft.lead": "Orvay\u2019s model drafts the text from your brand brief and what you write here. It costs credits, like drafting posts. Check every word before you submit it.",
+  "acquisition.kit.draft.submit": "Draft it",
+  "acquisition.kit.write.open": "Write a kit",
+  "acquisition.kit.write.submit": "Save the kit",
+  "acquisition.kit.directory": "Directory",
+  "acquisition.kit.language": "Language",
+  "acquisition.kit.about": "What to say about your product",
+  "acquisition.kit.about.hint": "Optional, at most {max} characters. Only what you write here and in your brief is used.",
+  "acquisition.kit.tagline": "Tagline, at most {max} characters",
+  "acquisition.kit.summary": "Short description, at most {max} characters",
+  "acquisition.kit.description": "Long description, at most {max} characters",
+  "acquisition.kit.categories": "Categories",
+  "acquisition.kit.categories.hint": "Up to three, separated by commas.",
+  "acquisition.kit.firstComment": "First comment, at most {max} characters",
+  "acquisition.kit.summary.term": "Short description",
+  "acquisition.kit.description.term": "Long description",
+  "acquisition.kit.firstComment.term": "First comment",
+  "acquisition.kit.link": "Link",
+  "acquisition.kit.link.none": "No link: your setup names no website.",
+  "acquisition.kit.by.agent": "Drafted by Orvay",
+  "acquisition.kit.by.human": "Written by a person",
+  "acquisition.kit.state.draft": "Draft",
+  "acquisition.kit.state.submitted": "Submitted, as you said",
+  "acquisition.kit.check": "Drafted by a model, which does not check its own work. Read every field before you submit it.",
+  "acquisition.kit.openDirectory": "Open {directory}",
+  "acquisition.kit.mark": "I submitted it",
+  "acquisition.kit.mark.lead": "This records that you submitted the kit yourself. Orvay does not check the listing.",
+  "acquisition.kit.mark.submit": "Record it",
+  "acquisition.kit.listingUrl": "The listing\u2019s address",
+  "acquisition.kit.listingUrl.hint": "Optional. An https address.",
+  "acquisition.kit.submittedOn": "You said you submitted it on {when}.",
+  "acquisition.kit.listing": "The listing",
+  "acquisition.kit.discard": "Discard",
+  "acquisition.kit.saved": "Kit saved.",
+  "acquisition.kit.drafted": "Kit drafted. Read it before you submit it.",
+  "acquisition.kit.markedSubmitted": "Recorded as submitted by you.",
+  "acquisition.kit.discarded": "Kit discarded.",
+  "acquisition.kit.creditsUsed": "Credits were used for this.",
+  "acquisition.kit.draft.unavailable": "Drafting a kit is not available here yet. You can write one yourself.",
+  "acquisition.kit.draft.spend": "The credits left do not cover drafting a kit. You can write one yourself.",
+  "acquisition.kit.draft.failed": "The kit could not be drafted. You can try again or write one yourself.",
+  "acquisition.kit.draft.noKit": "The draft did not fit the listing\u2019s limits, so it was not kept. You can try again or write one yourself.",
+  "acquisition.kit.error.directory": "Choose a directory from the list.",
+  "acquisition.kit.error.about": "Write at most {max} characters about your product.",
+  "acquisition.kit.error.noBrief": "State your brand brief in settings first. A kit says only what your brief says.",
+  "acquisition.kit.error.briefChanged": "Your brand brief changed while the kit was drafted, so it was not kept. Draft it again.",
+  "acquisition.kit.error.tagline": "Write a tagline of at most {max} characters.",
+  "acquisition.kit.error.summary": "Write a short description of at most {max} characters.",
+  "acquisition.kit.error.description": "Write a long description of at most {max} characters.",
+  "acquisition.kit.error.categories": "Give at most three categories, each at most {max} characters.",
+  "acquisition.kit.error.firstComment": "Keep the first comment to at most {max} characters.",
+  "acquisition.kit.error.listingUrl": "That is not an https address.",
+  "acquisition.kit.error.unknown": "That kit is not a draft any more. Reload the page.",
+  "acquisition.hn.title": "Hacker News, read only",
+  "acquisition.hn.lead": "Recent stories, Ask HN and Show HN posts that use your words, from Hacker News\u2019s own search.",
+  "acquisition.hn.query": "Words to look for",
+  "acquisition.hn.query.hint": "At most {max} characters. Email addresses, phone numbers and your team\u2019s names are removed before anything is sent.",
+  "acquisition.hn.submit": "Read Hacker News",
+  "acquisition.hn.rule": "Orvay does not post, reply, vote or automate anything on Hacker News. Its guidelines ask for comments written by people. If you take part, write it yourself, there.",
+  "acquisition.hn.readAt": "Read for \u201C{query}\u201D on {when}. Who wrote each story is not kept.",
+  "acquisition.hn.none": "Nothing was found for \u201C{query}\u201D on {when}.",
+  "acquisition.hn.read": {
+    one: "Read Hacker News: one story found.",
+    other: "Read Hacker News: {count} stories found."
+  },
+  "acquisition.hn.removed": "Something that looked like contact details or a name was removed before the search was sent.",
+  "acquisition.hn.kind.story": "Story",
+  "acquisition.hn.kind.ask": "Ask HN",
+  "acquisition.hn.kind.show": "Show HN",
+  "acquisition.hn.points": { one: "one point", other: "{count} points" },
+  "acquisition.hn.comments": { one: "one comment", other: "{count} comments" },
+  "acquisition.hn.error.query": "Type the words to look for, at most {max} characters.",
+  "acquisition.hn.error.prohibited": "Orvay does not search for that.",
+  "acquisition.hn.error.withheld": "Nothing would be left to search once contact details and names are removed. Nothing was sent.",
+  "acquisition.hn.error.refused": "Your company\u2019s rules do not allow reading Hacker News\u2019s search.",
+  "acquisition.hn.error.unreachable": "Hacker News\u2019s search did not answer. Nothing was kept. Try again later.",
+  "docs.nav.business.acquisition.title": "Acquisition",
+  "docs.nav.business.acquisition.summary": "Goals checked against your numbers, rounds of your own posts, listing kits and a Hacker News read.",
+  "goals.measured.none.otherFunnel": "Not measured: {source} no longer reads the funnel this goal was set against",
+  "goals.measure.error.noFunnel": "Zenovay has not read a funnel with people in it yet, so there is no funnel to measure this goal by. Try again after its next daily read.",
+  "goals.measured.valueFunnel": "{value} in Zenovay\u2019s last 30 days, read on {read} from {source}",
+  "acquisition.feasibility.sourceFunnel": "From the funnel \u201C{funnel}\u201D in Zenovay, read on {day}. Only a reading moves this goal, never a claim.",
+  "acquisition.round.error.draftScheduled": "One of those posts is already scheduled or posted. A round starts before its posts go out.",
+  "acquisition.kit.draft.offBrief": "The draft used a word your brief avoids, a link, an @ name or a dash, so it was not kept. You can try again or write one yourself.",
+  "acquisition.round.readOn": "{value}, read on {day}",
+  // AA end.
   // The public site check (ADR-0226), 2026-11-18. Held behind SITE_CHECK_OPEN. English only, TRANSLATION_DEFERRED.
   "siteCheck.meta.title": "Check your site",
   "siteCheck.meta.description": "See what any browser and any public resolver can read about a website, each line with the answer it rests on.",
@@ -23145,7 +23359,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "399acf34e" : "unknown";
+var sourceCommit = true ? "135b611ae" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
