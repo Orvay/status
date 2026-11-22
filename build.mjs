@@ -1634,7 +1634,7 @@ var COMPONENTS = [
     id: "scheduled-work",
     group: "work",
     label: "Scheduled work",
-    summary: "Background work that runs on a timer rather than when you ask for it. Three timers leave a mark: one every five minutes, which also carries your workflows forward a few steps at a time and checks each expectation you declared so a missed one is reported once, one once a day that rechecks every audit trail end to end, and one once a day that re-reads every connected tool server's list against the one you approved. The five-minute timer does several jobs, and each one leaves its own mark, so a job that stops is visible even while the timer it rides on keeps running. This row reads how old each mark is, against its own schedule, so a stopped five-minute timer shows within fifteen minutes and a stopped daily one within a day.",
+    summary: "Background work that runs on a timer rather than when you ask for it. Four timers leave a mark: one every five minutes, which also carries your workflows forward a few steps at a time and checks each expectation you declared so a missed one is reported once, one once a day that rechecks every audit trail end to end, one once a day that re-reads every connected tool server's list against the one you approved, and one once a day that looks for credits set aside for a request that was cut off and never given back, and tells us, so a person can return them before they hold up your work. The five-minute timer does several jobs, and each one leaves its own mark, so a job that stops is visible even while the timer it rides on keeps running. This row reads how old each mark is, against its own schedule, so a stopped five-minute timer shows within fifteen minutes and a stopped daily one within a day.",
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
@@ -3541,6 +3541,28 @@ var PRODUCT_SOURCE_BASE = {
   "console.turn.credits-used": "Credits used",
   "console.turn.today": "Today at {time}",
   "console.turn.yesterday": "Yesterday at {time}",
+  // Editing your latest message and its versions (2026-11-22, the operator, after ChatGPT's). In all six languages.
+  "console.version.edit": "Edit message",
+  "console.version.editor": "Edit your message",
+  "console.version.cancel": "Cancel",
+  "console.version.send": "Send",
+  "console.version.unchanged": "Change the message to send it.",
+  "console.version.empty": "Write a message to send it.",
+  "console.version.busy": "Wait for the answer to finish.",
+  "console.version.history": "Versions of this message",
+  "console.version.position": "Version {n} of {count}",
+  "console.version.previous": "Previous version",
+  "console.version.next": "Next version",
+  "console.version.viewing": "Not the current version",
+  "console.version.viewing.body": "Orvay reads the current version of this message. This one is kept as it was sent, with its answer.",
+  "console.version.return": "Return to this version",
+  "console.version.show-current": "Show the current version",
+  "console.version.latest-only": "Only the versions of your latest message can be made current again.",
+  "console.version.no-answer": "No answer was kept with this version.",
+  "console.version.refused": "This message cannot be changed now. Only your latest message can be, once its answer has finished.",
+  "console.version.reverted": "Your earlier message is still the current one. This attempt is kept as a version of it.",
+  "console.version.failed": "The version was not changed. Try again.",
+  "console.version.actions-kept": "Its answer proposed or started work, which stays recorded, so this message cannot be edited.",
   // Why an answer did not help, the long paste and copying a table or code, after Lovable's (the operator,
   // 2026-11-07). English only, TRANSLATION_DEFERRED.
   "console.feedback.thanks": "Thanks for your feedback!",
@@ -5930,6 +5952,8 @@ var PRODUCT_SOURCE_BASE = {
   "integrations.rules.guarded": "While autonomy is guarded, an action with a high risk still asks first, even when set to Always allow.",
   "integrations.rules.guarded.link": "Change autonomy",
   "integrations.rules.saved": "Permissions saved.",
+  "integrations.rules.savedExcept": "Permissions saved. A tool that runs other tools, or whose rule is forbidden, kept its setting.",
+  "integrations.rules.heldByReading": "Always allow lets a tool run without asking. A tool that can change something still asks when the conversation has already read outside text, such as another tool\u2019s result, because that text could have been written to steer it.",
   "integrations.rules.on": "Switched on.",
   "integrations.rules.off": "Switched off.",
   "integrations.detail.permissions.default": "No rule names it, so the workspace default applies: {mode}.",
@@ -6048,7 +6072,6 @@ var PRODUCT_SOURCE_BASE = {
   "refusal.reason.connector_blocked": "this workspace's owner has blocked this connector",
   "refusal.reason.connectors_owners_only": "this workspace's owner lets only owners connect and disconnect tools",
   "refusal.reason.custom_servers_off": "this workspace's owner allows only the catalogue's own tool servers",
-  "integrations.connection.reconnect.title": "Reconnect {name}?",
   "integrations.connection.reconnect.body": "You sign in at {name} again with the access chosen here. Until that sign-in finishes, agents cannot use {name}, and if it is abandoned, {name} stays disconnected.",
   "integrations.connection.edit": "Edit",
   "integrations.connection.done": "Done",
@@ -6762,6 +6785,27 @@ var PRODUCT_SOURCE_BASE = {
   "console.voice.decide-how": "To decide one, say approve or refuse and its number.",
   "console.voice.decide-which": "I could not tell which one you mean. Say approve or refuse and its number, for example: approve one.",
   "console.voice.address.informal": "Done. I will keep things informal from now on.",
+  /*
+    THE SAME SENTENCES, SPOKEN INFORMALLY (the operator, 2026-11-19: "du everywhere"). The call speaks informally unless
+    the person asked otherwise (`addressLine`), and the read-back was the one voice in it saying Sie. English has one
+    form, so these first repeated the sentences above. Since 2026-11-19 they are also SAID the way a person says them
+    (the operator: nobody says "Unverändert gelassen, und nichts wurde festgehalten"): a question for the read-back,
+    a short line for the outcome. The formal sentences, for whoever asked for formal, stay as they were.
+  */
+  "console.voice.informal.waiting": "Waiting on you, {count} of them.",
+  "console.voice.informal.nothing-waiting": "Nothing is waiting for you right now.",
+  "console.voice.informal.waiting-at-least": "Waiting on you, at least {count} of them.",
+  "console.voice.informal.decide-how": "To decide one, just say approve or refuse and its number.",
+  "console.voice.informal.decide-which": "Which one do you mean? Say approve or refuse and its number, for example: approve one.",
+  "console.voice.informal.unclear": "I did not quite catch that, so nothing changed. Say approve or refuse and the number.",
+  "console.voice.informal.confirm.approve": "Number {ordinal}: {objective}. Shall I approve it?",
+  "console.voice.informal.confirm.refuse": "Number {ordinal}: {objective}. Shall I refuse it?",
+  "console.voice.informal.expired": "That took a little too long, so nothing changed. Just say it again.",
+  "console.voice.informal.decisionFailed": "That did not go through, so nothing changed. Try again in a moment.",
+  "console.voice.informal.help": "Ask what is waiting for you. To decide something, just say approve or refuse and the number.",
+  "console.voice.informal.cancelled": "Okay, I will leave it open.",
+  "console.voice.informal.approved": "Done, it is approved.",
+  "console.voice.informal.refused": "Done, it is refused.",
   "console.voice.address.formal": "Done. I will address you formally from now on.",
   "console.voice.unclear": "That did not come through clearly, so nothing was recorded. Say approve or refuse and the number.",
   "console.voice.confirm.approve": "Number {ordinal} is {objective}. Say yes to approve this proposal, or no to leave it open.",
@@ -6843,7 +6887,7 @@ var PRODUCT_SOURCE_BASE = {
   "console.voice.greeting.again": "Hi, shall we pick up where we left off?",
   /*
     DICTATION INTO THE COMPOSER (2026-11-06, ADR-0146 point 5 closed): what a person says is written into the field
-    and NEVER sent; they press send. Orvay's own metered transcription, not the browser's (`server/dictation.ts`),
+    and never sent on its own; they press send, the composer's or the dictation bar's own (2026-11-22). Orvay's own metered transcription, not the browser's (`server/dictation.ts`),
     charged at what it cost. English only, TRANSLATION_DEFERRED.
   */
   "console.dictate.label": "Dictate",
@@ -6858,10 +6902,13 @@ var PRODUCT_SOURCE_BASE = {
   "console.dictate.nothing-heard": "No words were heard, so the field was left as it was.",
   "console.dictate.not-heard": "That was not turned into words. Say it again, or type it.",
   "console.dictate.allowance": "Not enough credits are left to dictate, so nothing was recorded.",
-  "console.dictate.plan": "Dictation is on paid plans. Nothing was recorded or charged.",
+  "console.dictate.plan": "Your plan does not allow this right now. Nothing was recorded or charged.",
   "console.dictate.refused": "This workspace does not let you dictate. You can type instead.",
   "console.dictate.rate": "Too much dictation in a short time. Wait a moment, or type instead.",
   "console.dictate.unavailable": "Dictation is not available right now, and nothing was charged.",
+  // The dictation bar (the operator, 2026-11-22, after ChatGPT's): its X and its Send. English only, TRANSLATION_DEFERRED.
+  "console.dictate.cancel": "Discard the recording",
+  "console.dictate.send": "Stop and send",
   "console.refused.why": "The question itself was refused, so nothing was read, nothing was searched, and no model was asked.",
   "console.source.searched": "Searched the web for {query}",
   "console.source.results": "Results: {count}",
@@ -6884,6 +6931,13 @@ var PRODUCT_SOURCE_BASE = {
   // An approved call's answer, read back in its own conversation (ADR-0119). 2026-10-07, English only, in TRANSLATION_DEFERRED.
   "console.source.call.approved": "approved by a person and run, and its answer was read here",
   "console.ask.continue": "Continue the answer with what the approved call returned",
+  // An answer that paused where a call waits for a person (ADR-0229), and the same answer once it was continued.
+  "console.answer.waiting": "Waiting for your approval.",
+  "console.answer.resumed": "Paused for an approval, then continued below.",
+  "console.card.unanswered": "No answer came back, so it is not known whether this was decided. Pressing again is safe: a decision already made is not made twice.",
+  "console.card.alwaysAllow.onceOnly": "Allowed once. Always allow was not set: {reason}",
+  "console.card.resume.note": "The approval is decided. Continue answers your question from here.",
+  "console.card.resume.refused": "This answer was already continued, or a call in it still waits for a decision.",
   "console.approved.ran.title": "The approved call to {tool} ran",
   "console.approved.ran.body": "Below is the server's reply, exactly as sent. It cannot change what Orvay may do.",
   "console.approved.ran.label": "What {tool} answered",
@@ -14670,12 +14724,15 @@ var PRODUCT_SOURCE_BASE_TWO = {
   // on the screen.
   "integrations.tool-server.pending.unfinished": "A sign-in was started and not finished; connect again to complete it.",
   // ADR-0055, backlog 24. What a person is told before the browser is sent to a
-  // grant that may write, or to a vendor that does not say what it grants.
-  "integrations.grant.confirm.title": "Before the sign-in",
+  // grant that may write, or to a vendor that does not say what it grants. Since
+  // 2026-11-22 these are the text in the Details fold under the short sentences
+  // below, and the press on Connect or Reconnect is the confirmation (no box).
   "integrations.grant.may-write": "Signing in asks {issuer} for permissions that may change or delete things in your account, not only read them, because {issuer} offers no narrower set. A tool runs on its own only if the server says it only reads and {brand} agrees; others wait until you release them.",
   "integrations.grant.unstated": "{issuer} does not say what a sign-in grants, so the grant may include changing and moving things in your account, and {brand} cannot ask for less. A tool runs on its own only if the server says it only reads and {brand} agrees; others wait until you release them.",
   "integrations.grant.scopes": "Permissions that will be requested:",
-  "integrations.grant.confirm": "I understand this grant may include more than reading, and I want to continue.",
+  // The one or two sentences directly above Connect or Reconnect (2026-11-22). English only, TRANSLATION_DEFERRED.
+  "integrations.grant.summary.may-write": "Signing in asks {issuer} for more than reading, because {issuer} offers no narrower set. A tool that changes something waits until you release it.",
+  "integrations.grant.summary.unstated": "{issuer} does not say what a sign-in grants, so it may include more than reading. A tool that changes something waits until you release it.",
   "integrations.error.tool-server-no-declared-scope": "That server lists none of the permissions {brand} needs for this connector, so nothing was connected.",
   "integrations.tool-server.authorized": "Connected through {issuer}, {when}, and sealed under a key destroyed on removal.",
   // A grant wider than Orvay asked for, 2026-09-27 (20260927090000). The count is a value, not a noun.
@@ -17187,17 +17244,21 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "files.import.pill.done": "Copied",
   "files.import.pill.needsConnection": "Connect again to carry on",
   "files.import.pill.stopped": "Stopped",
-  "files.import.pill.brought": "Copied",
-  "files.import.pill.waiting": "Still to come",
-  "files.import.pill.unchanged": "Unchanged",
-  "files.import.pill.skipped": "Skipped",
-  "files.import.pill.failed": "Could not be read",
+  // The card's counts as one line, a figure and its word each (2026-11-19, the operator: four tiles cut their labels to
+  // "Still to …"). English only, TRANSLATION_DEFERRED with the rest of files.import.
+  // Plural objects, read with `plural()` and crossed to the client as `PluralForms` (§5b rule 8).
+  "files.import.pill.countCopied": { one: "{count} copied", other: "{count} copied" },
+  "files.import.pill.countToGo": { one: "{count} to go", other: "{count} to go" },
+  "files.import.pill.countUnchanged": { one: "{count} unchanged", other: "{count} unchanged" },
+  "files.import.pill.countFailed": { one: "{count} could not be read", other: "{count} could not be read" },
+  // Two imports of one drive on the card at once are told apart by when each started (2026-11-19).
+  "files.import.pill.started": "started {when}",
   "files.import.pill.stop": "Stop",
   "files.import.pill.demo": "(demo)",
   "files.import.pill.note": "Skipped files are over your plan's file size limit or your storage, are not files (a Google Form, say), or were refused by the malware check.",
   // The pill's word once the last copy skipped files, and the word a screen reader hears on a connected drive's row
   // (2026-11-15). English only, TRANSLATION_DEFERRED with the rest of files.import.
-  "files.import.pill.skippedCount": "{count} skipped",
+  "files.import.pill.skippedCount": { one: "{count} skipped", other: "{count} skipped" },
   "files.import.on": "Connected",
   // Keeping a synced copy of a company drive, and the connect dialog rebuilt (2026-11-15, ADR-0206). English only,
   // TRANSLATION_DEFERRED with the rest of files.import.
@@ -17207,7 +17268,6 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "files.import.done": "Done",
   // Folders brought over whole, a connected drive's row with its state in words and a visible menu, and the storage
   // kinds behind a hover (2026-11-16). English only, TRANSLATION_DEFERRED with the rest of files.import.
-  "files.import.google.folder": "Google showed {brand} no files in {names}. It may show only files picked with this Google account: open each folder in the picker and pick its files.",
   "files.import.google.again": "Open Google Drive again",
   "files.import.pill.googleFolder": "{brand} copies the files Google shows it in a folder. Files not picked with this Google account may not be shown, and stay only in your Drive.",
   "files.import.pill.googleNothing": "Google showed {brand} no files in {names}, so nothing came from there. Open each folder in the picker and pick its files.",
@@ -17215,6 +17275,17 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "files.import.pill.retry": "Try failed files again",
   "files.import.pill.retryFailed": "Those files could not be put back in line just now. Try again in a minute.",
   "files.import.options": "Options for {name}",
+  // Google Drive's whole-drive grant, asked for only when a picked folder shows nothing (the operator, 2026-11-19): the
+  // toast that offers it, its link, what the library says when the person comes back, and the connected drive's line
+  // once it is held. English only, TRANSLATION_DEFERRED with the rest of files.import.
+  // Shortened 2026-11-19 (the operator: the toast was thirteen lines tall). It still says plainly that the grant is the
+  // whole Drive: the privacy page's Google Drive paragraph relies on the person being told exactly that.
+  "files.import.google.wholeDrive": "Google shows {brand} nothing in {names}. To copy the contents, let {brand} read your whole Drive. It still copies only what you pick.",
+  "files.import.google.allow": "Allow reading my Drive",
+  "files.import.google.leadWhole": "Google Drive opens its own picker. {brand} can read your whole Drive and copies only what you pick there.",
+  "files.import.status.wholeDrive": "Your Google Drive can be read now. The folders you picked are on their way.",
+  "files.import.status.wholeDrivePick": "Your Google Drive can be read now. Pick the folder again to copy it.",
+  "files.import.status.wholeDeclined": "The folder was not copied. You can still pick its files one by one in Google Drive.",
   "files.sync.heading": "Keep a company drive in sync",
   "files.sync.lead": "Copied one way every few minutes. The drive never changes.",
   "files.sync.elsewhere": "Open a folder in Company to sync a company drive into it.",
@@ -17348,6 +17419,16 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "files.office.discard.body": "Your changes to {name} have not been saved.",
   "files.office.discard.confirm": "Discard",
   "files.office.discard.keep": "Keep editing",
+  // The editor in the file viewer (2026-11-20, the operator: edit in the same full view, with a way back at the top
+  // left as in Settings, and the Agent field's formatting bar with text sizes). English only, TRANSLATION_DEFERRED.
+  "files.edit.back": "Back to the file",
+  "files.edit.mode": "Edit as",
+  "files.edit.format.style": "Text size",
+  "files.edit.format.paragraph": "Normal text",
+  "files.edit.format.heading1": "Heading 1",
+  "files.edit.format.heading2": "Heading 2",
+  "files.edit.format.heading3": "Heading 3",
+  "files.edit.kept": "Kept exactly as written. Switch to Source to change it.",
   "files.office.error.too_large": "Over the {limit} edit limit.",
   "files.office.error.not_editable": "Only Word, Excel and PowerPoint files can be saved this way.",
   "files.office.error.unreadable": "The edited file could not be read back, so it was not saved. Try again.",
@@ -20639,6 +20720,8 @@ var PRODUCT_SOURCE_BASE_TWO = {
   // Supabase, 2026-10-07. English only, listed in TRANSLATION_DEFERRED under the same date.
   "integrations.catalogue.supabase.summary": "Your projects, database, logs and edge functions",
   "integrations.catalogue.supabase.because": "Orvay asks Supabase for permission to change your projects, databases, branches and edge functions as well as to read them, because Supabase counts every database query as a change, even the one that lists your tables. It does not ask to read your projects' secret keys, so reading a project's publishable keys waits for you, and Supabase may refuse it. Tools that only read, such as listing tables or reading logs and advisors, run on their own. The thirteen tools that change something there, such as running SQL, applying a migration or deploying a function, each wait for your approval every time, even where your policy lets other work run on its own, unless you release that one tool yourself. A tool Supabase adds later follows your policy's rule for everything else.",
+  // The short form above Reconnect (2026-11-22); the sentence below is the whole text, in the fold.
+  "integrations.grant.summary.supabase": "Signing in also asks Supabase for permission to change your projects, not only to read them. Each of the thirteen tools that change something waits for a person every time unless you release it, and {brand} does not ask for your projects' secret keys.",
   "integrations.grant.may-write.supabase": "Signing in asks Supabase for permission to change your projects, databases, branches and edge functions, not only to read them, because Supabase counts every database query as a change, even one that lists your tables. Orvay does not ask to read your projects' secret keys. Each of the thirteen tools that change something there waits for a person every time, even where your policy lets other work run on its own, unless you release that one tool yourself.",
   "integrations.error.tool-server-catalogue-address": "That address is {vendor}'s own tool server. Connect it from the {vendor} row in the catalogue instead, so Orvay asks for what it needs and holds what it should.",
   // The read-only browser researcher (slice 1 of browser goal pursuit, ADR-0070 WP-11), 2026-10-15.
@@ -20757,6 +20840,10 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "console.card.alwaysAllow.refused.permission": "Only someone who may change this workspace\u2019s permissions can always allow this. Allow once still works.",
   "console.card.alwaysAllow.refused.irreversible": "This cannot be undone, so it is decided each time.",
   "console.card.alwaysAllow.refused.locked": "This is decided each time and cannot be always allowed.",
+  "console.card.taken.decline": "Denied.",
+  "console.card.taken.once": "Allowed once.",
+  "console.card.taken.always": "Always allowed.",
+  "console.card.alwaysAllow.refused.held": "This tool is already always allowed. It asks this time because the conversation read outside text before this call, such as another tool\u2019s result, and a call that can change something waits for a person after that. Allow once runs it.",
   "console.card.tool.browserOpen": "Open a browser",
   "console.card.tool.workflowRun": "Run a recorded workflow",
   "capability.name.browser.session.open": "Open a browser from the Agent tab",
@@ -20884,6 +20971,8 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "console.answer.file-folders": "Orvay listed the folders you can open.",
   "console.answer.files-organized": "Orvay changed your files and folders as you asked.",
   "console.answer.file-written": "Orvay wrote the document into your files.",
+  // The agent's own web search, as a read's answer sentence (2026-11-20). English only, TRANSLATION_DEFERRED.
+  "console.answer.web-search": "Here is what a web search found about that.",
   "console.goal.title": "Goal checklist",
   "console.goal.state.working": "Working on it",
   "console.goal.state.met": "Every criterion is met",
@@ -20999,6 +21088,11 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "loop.revert.body": "This pull request puts back the files #{number} changed, as they were before it merged. Orvay opened it because the error it was meant to fix kept happening after the release that carried it.",
   "loop.revert.close": "Close the revert pull request on GitHub.",
   "loop.fix.close": "Close the fix pull request on GitHub.",
+  "contract.run.reason.no_change": "The sandbox found nothing to change, so no pull request was opened.",
+  "loop.earlierFix.title": "A fix for this error was merged before",
+  "loop.earlierFix.body": "Orvay already merged a fix for this error in pull request #{number}, and the error has been reported again since. If that fix is still in the code, a new attempt may find nothing to change. If it does, the credits it used are given back.",
+  "loop.run.approved.title": "Approved, waiting for the product loop",
+  "loop.run.approved.body": "The product loop checks the evidence again and runs this on its next pass, within five minutes. Until then you can still refuse it under More, and the loop will not run it.",
   "loop.run.bySweep": "Approved. The product loop checks the evidence again and runs this on its next pass, within five minutes.",
   // Orvay's proof on its own fix pull request (ADR-0216), 2026-11-17. Written on GitHub in English, whatever the
   // company's language, and on the contract a person approves. English only, TRANSLATION_DEFERRED.
@@ -21024,6 +21118,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "loop.proof.checks.failed": "At least one of the repository's own checks failed at that commit.",
   "loop.proof.checks.pending": "The repository's own checks were still running at that commit when this was written.",
   "loop.proof.checks.none": "No check of the repository ran at that commit.",
+  "loop.proof.vendorUnrecorded": "a vendor that was not recorded",
   "loop.proof.sandbox": "The change was written in Orvay's sandbox. What the sandbox reported is the fixer's own account, and it is not counted as proof here.",
   "loop.proof.next.production": "Not confirmed in production. If Orvay later reads a production result for this change, it updates this check.",
   "loop.proof.next.productionComment": "Not confirmed in production. If Orvay later reads a production result for this change, it adds a comment.",
@@ -21647,7 +21742,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "meetings.bot.allowance": "The company\u2019s credits for this period are used up, so I am leaving the meeting now. Goodbye.",
   "meetings.bot.stopped": "I have been stopped, so I am leaving the meeting now. Goodbye.",
   "meetings.bot.time-limit": "I have reached the four hour limit for one meeting, so I am leaving now. Goodbye.",
-  "meetings.bot.guest": "Sorry, I can only take requests from members of the company. The member who invited me can ask for it.",
+  "meetings.bot.guest": "Sorry, I can only take requests from members of the company. If you are a member, get a code under Meetings in Orvay, type it in this chat, and ask me again. The member who invited me can also ask for it.",
   "meetings.bot.unmatched": "Sorry, I could not tell who asked that, so I cannot take it as a request. The member who invited me can ask for it.",
   "meetings.bot.proposed": "I have put that forward. Nothing is done until the member who asked approves it in Orvay.",
   "meetings.bot.already": "That is already waiting for the member who asked to approve it in Orvay.",
@@ -21656,6 +21751,9 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "meetings.bot.not-put-forward": "I could not put that forward just now. The member who asked can raise it in Orvay.",
   "meetings.bot.unavailable": "I could not work that out just now.",
   "meetings.bot.no-credits": "The company\u2019s credits for this period are used up, so I cannot answer that.",
+  // 2026-11-22 (the operator, ADR-0211 addendum): appended to an answer when a guest, or a member matched by name
+  // alone, asked for research or a look-up. The web and research are only for a member who claimed or was matched by email.
+  "meetings.bot.confirm-for-web": "I search the web and research only for a member who has said who they are. If you are one, press This is me on the meeting\u2019s page in Orvay, or get a code under Meetings in Orvay and type it in this chat.",
   // The company names its agent (2026-11-17): the same disclosure, introducing itself by that name and still as Orvay's
   // AI agent for the company, and teaching that name for sending it away.
   "meetings.bot.chat.named": "{agent}, Orvay\u2019s AI agent for {company}, is transcribing this meeting. Say \u201C{name}, please leave\u201D and I will go.",
@@ -21665,6 +21763,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "meetings.room.working": "Writing a proposal",
   "meetings.room.speaking": "Speaking",
   "meetings.room.leaving": "Leaving the meeting",
+  "meetings.room.trouble": "Reconnecting",
   // The one letter a day that lists decisions that waited a day for the reader (ADR-0214), and the page its way out
   // opens. Translated in all six languages: it is a message every agreeing member receives.
   "notification.waiting.subject": "Decisions waiting for you",
@@ -21846,11 +21945,13 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.new.link.platform": "Only Google Meet and Microsoft Teams links can be used.",
   "meetings.new.link.malformed": "This is not a meeting link. Copy the whole link from the invitation, starting with https.",
   "meetings.new.role.label": "Role",
-  "meetings.new.role.costHint": "Fixed for the whole meeting. Beside each role, its credits an hour, waiting to be admitted included. For \u201CAnswers when addressed\u201D, the higher figure is its voice open the whole hour. Answers it writes come on top.",
+  "meetings.new.role.hint": "Fixed for the whole meeting.",
+  "meetings.new.role.perHour": "credits an hour, plus the summary it writes",
+  "meetings.new.role.perHourPlusAnswers": "credits an hour, plus the answers and the summary it writes",
   "meetings.new.role.unknown": "Choose a role.",
-  "meetings.new.role.listen_only.detail": "Transcribes the call. It speaks only to announce itself, and only when the meeting chat does not take its line.",
-  "meetings.new.role.answers_when_addressed.detail": "Transcribes, and speaks only when someone addresses it by name. Members can ask it for work.",
-  "meetings.new.role.participates.detail": "Transcribes, takes part in the conversation, and proposes work when a member asks for it.",
+  "meetings.new.role.listen_only.detail": "Transcribes the call.",
+  "meetings.new.role.answers_when_addressed.detail": "Transcribes, and speaks only when named.",
+  "meetings.new.role.participates.detail": "Transcribes, joins in, and proposes work.",
   "meetings.new.scope.label": "What it may read",
   "meetings.new.scope.hint": "Never more than you may read yourself. Everyone in the call, guests included, hears what it says.",
   "meetings.new.scope.unknown": "Choose what the agent may read.",
@@ -21923,6 +22024,30 @@ var MODEL_SELECTION_SOURCE = {
   "meetings.detail.transcript.speakerUnknown": "Speaker unknown",
   "meetings.detail.transcript.speakerGuess": "{name}, guessed to be {person}",
   "meetings.detail.transcript.utc": "Times are in UTC.",
+  // Which participant a member is (ADR-0211 addendum 2026-11-22, `server/meetings/claim.ts`): "This is me" on a
+  // meeting's page, and a one-time code typed into the meeting's chat.
+  "meetings.claim.title": "Are you in this call?",
+  "meetings.claim.lead": "A name in a call is only a guess. Press This is me next to the one the call shows for you, and what you ask the agent comes to you to approve.",
+  "meetings.claim.button": "This is me",
+  "meetings.claim.undo": "Not me",
+  "meetings.claim.you": "You, as you said",
+  "meetings.claim.claimed": "{person}, as they said",
+  "meetings.claim.unmatched": "Not matched to a member",
+  "meetings.claim.noName": "No name shown",
+  "meetings.claim.host": "Host",
+  "meetings.claim.left": "Left the call",
+  "meetings.claim.empty": "Nobody is in the call yet, apart from the agent.",
+  "meetings.claim.someoneElse": "Matched to someone else. If this is you, type your code in the meeting chat instead.",
+  "meetings.claim.done": "Done. What you ask the agent in this call now comes to you.",
+  "meetings.claim.released": "Taken back. This person is no longer matched to you.",
+  "meetings.claim.failed": "That did not work. The agent may have left the call.",
+  "meetings.claim.code.title": "In a call with the agent?",
+  "meetings.claim.code.lead": "If the agent does not know who you are, get a code here and type it in the meeting chat. The agent then knows that the person who typed it is you, and what you ask it comes to you to approve. A code works once, for ten minutes, and shows you nothing of any meeting.",
+  "meetings.claim.code.button": "Get a code",
+  "meetings.claim.code.yours": "Your code",
+  "meetings.claim.code.typeIt": "Type it in the meeting chat within ten minutes.",
+  "meetings.claim.code.failed": "No code could be made. Try again in a moment.",
+  "meetings.detail.transcript.speakerClaimed": "{name}, who said they are {person}",
   "meetings.detail.erase.heading": "Erase this meeting",
   "meetings.detail.erase.lead": "The member who invited the agent can erase the meeting, and so can the company\u2019s owners and admins.",
   "capability.name.communicate.meeting.inbound.respond": "Invite the agent into a meeting",
@@ -22394,7 +22519,12 @@ var MODEL_SELECTION_SOURCE = {
   "deals.crm.refused.toolNotListed": "The tools approved for {vendor} include none for searching its records.",
   "deals.crm.refused.requestNotOffered": "{vendor}\u2019s search tool does not take the request Orvay sends, so nothing was asked.",
   "deals.crm.refused.callRefused": "{vendor} could not be reached or refused the request. Try again later.",
-  "deals.crm.refused.unreadable": "{vendor} answered in a form Orvay does not read, so nothing from it is shown."
+  "deals.crm.refused.unreadable": "{vendor} answered in a form Orvay does not read, so nothing from it is shown.",
+  // A changed tool is held and the rest of its server keeps working (ADR-0228), 2026-11-19.
+  // English only and on TRANSLATION_DEFERRED below, for the separate translation pass.
+  "integrations.tool-server.held.title": "Some tools changed and wait for approval",
+  "integrations.tool-server.held": "These tools changed since they were approved, so Orvay does not use them until someone approves the new list: {tools}. Every other tool on this server keeps working.",
+  "product.blind.toolHeld": "Sentry changed a tool Orvay needs to read your errors since it was approved, so that tool waits until someone reviews the change. Sentry's other tools keep working."
 };
 var PRODUCT_SOURCE = {
   ...PRODUCT_SOURCE_BASE,
@@ -23359,7 +23489,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "135b611ae" : "unknown";
+var sourceCommit = true ? "30401a00d" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
