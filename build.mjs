@@ -130,6 +130,8 @@ var MEETINGS_INVITE = [
 var MEETINGS_ERASE_ANY = ["meetings.record:erase_any:company"];
 var ORGANIZATION_AUDIT_READ = ["organization.audit:read:organization"];
 var MAILBOX_SHARED_READ = ["mailbox.shared:read:company"];
+var ROUTINES = ["routine:propose:company", "routine:run:company"];
+var ROUTINES_SWITCH = ["routine:toggle:company"];
 var GUEST = [
   "company:read:company",
   ...OWN_DATA,
@@ -263,6 +265,13 @@ var MEMBER = [
   */
   "browser.session:open:*",
   /*
+    THE AGENT READING A SITE FOR THIS PERSON, in its own browser (`browserReadCapability`, 2026-11-28): open, move within
+    the site, scroll, read, and nothing that acts. Beside opening, for its reason: whoever could ask the console to open
+    a browser may have the agent read a page in one. Migration 20261128230700 gives it to every seat that holds
+    `browser.session:open:*`.
+  */
+  "browser.session:read:*",
+  /*
       THE FOUR WORKFLOW CAPABILITIES A MEMBER DOES THE WORK WITH (ADR-0072 D15).
       Copies of four of the nine constants in
       `apps/app/src/server/workflow-capabilities.ts`.
@@ -343,7 +352,8 @@ var MEMBER = [
   ...MEETINGS_READ,
   ...MEETINGS_INVITE,
   ...ROOM_ASKS,
-  ...ROOM_DELEGATION
+  ...ROOM_DELEGATION,
+  ...ROUTINES
 ];
 var ADMIN = [
   "company:read:company",
@@ -701,6 +711,7 @@ var ADMIN = [
   "browser.session:view:company",
   "browser.session:control:*",
   "browser.session:open:*",
+  "browser.session:read:*",
   "browser.site:authorize:company",
   "browser.session:act:*",
   "browser.file:transfer:*",
@@ -776,7 +787,9 @@ var ADMIN = [
   ...MEETINGS_READ,
   ...MEETINGS_INVITE,
   ...MEETINGS_ERASE_ANY,
-  ...ORGANIZATION_AUDIT_READ
+  ...ORGANIZATION_AUDIT_READ,
+  ...ROUTINES,
+  ...ROUTINES_SWITCH
 ];
 var OWNER = ["*:*:*"];
 var ROLES = Object.freeze({
@@ -1315,6 +1328,11 @@ var ENQUIRY_LIMITS = Object.freeze({
   message: 5e3
 });
 
+// ../../packages/domain/src/routine-schedule.ts
+var ROUTINE_MIN_SPACING_MS = 15 * 6e4;
+var ROUTINE_MAX_EVERY_MS = 31 * 24 * 36e5;
+var DAY_MS2 = 24 * 36e5;
+
 // ../../packages/routes/src/index.ts
 var HOSTS = {
   site: "https://orvayos.com",
@@ -1569,23 +1587,27 @@ var COMPONENTS = [
   },
   {
     id: "waitlist",
+    // MEASURED SINCE 2026-11-28 by `/api/health/waitlist`, which says what it checks and what it cannot. The reasoning
+    // below is the record of why the row waited.
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED (2026-11-27). The waitlist form came back on the not-open-yet note,
-          behind a Turnstile check, posting to the app's intake (`apps/app/src/app/api/waitlist/route.ts`), which writes a
-          consent record and sends the confirmation message. Its silent failures are a missing site key on the site Worker
-          (the note then renders no form, and logs it), a missing secret on the app Worker (every submission is refused), a
-          Turnstile widget whose hostname list lacks orvayos.com, and the confirmation mail not leaving.
+          ADDED WITH THE SURFACE (§13c), NOT MEASURED UNTIL 2026-11-28. The waitlist form came back on the not-open-yet
+          note, behind a Turnstile check, posting to the app's intake (`apps/app/src/app/api/waitlist/route.ts`), which
+          writes a consent record and sends the confirmation message.
     
-          WHY NOTHING WATCHES IT YET. A probe that submits would write a consent record and mail an address, and one that
-          does not submit proves only that a page renders, which the Public website row already reads. A health route like
-          the contact form's (`/api/health/contact-form`, which reads the tables and whether the bot check is configured) is
-          the shape that would fit; not built.
+          WHAT IS MEASURED NOW, and it submits nothing: the two tables a submission writes, whether the app holds the
+          Turnstile secret (on production every submission is refused without it), whether this deployment can send mail,
+          and whether the newest confirmation outcome the intake recorded is a failure (`WAITLIST_MAIL_FAILED_MARK` against
+          `WAITLIST_MAIL_SENT_MARK`, reported for a day). A probe that submitted would write a consent record and mail an
+          address, so none does.
+    
+          WHAT IS STILL NOT: the site Worker's half. A missing site key there renders the note without a form, and a widget
+          whose hostname list lacks orvayos.com refuses every visitor before the app hears of it; the Public website row
+          reads only that the page renders.
         */
     group: "surfaces",
     label: "Waitlist",
-    summary: "Joining the waitlist on the not-open-yet page of orvayos.com, and the message that asks you to confirm your address.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not check the waitlist yet. If joining fails, the page says that nothing was saved; if the confirmation message does not arrive, you can submit the form again after 24 hours."
+    summary: "Joining the waitlist on the not-open-yet page of orvayos.com, and the message that asks you to confirm your address. We check that a signup can still be recorded, that the bot check in front of the form is in place, that we can send the message, and whether the last one we tried to send went out. No test signup is made, so this cannot tell whether a message reached your inbox.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     // Split from the public website, because they are separate deployments that
@@ -2088,254 +2110,297 @@ var COMPONENTS = [
     budget: { staleAfterMs: 45 * MINUTE }
   },
   {
-    id: "file-checks",
+    id: "agent-browser",
+    // MEASURED SINCE 2026-11-28 by `/api/health/agent-browser`, which says what it checks and what it cannot. The
+    // reasoning below is the record of why the row waited.
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED. Files project A: every uploaded file waits as "Scanning" until the
-          malware scanner beside Orvay's database answers, and it fails closed, so a scanner that is down does not leak a
-          file; it stops every new file from opening, for colleagues and for agents, while the uploads themselves succeed.
-          That is the silent failure a customer would notice first and could not explain.
+          ADDED WITH THE LIVE LANE (§13c, plan 53 D1.4), NOT MEASURED UNTIL 2026-11-28. The remote browser an agent or a
+          person opens on a website, at Browser Use, watched and taken over from inside Orvay. Its failures are quiet: the
+          vendor refusing to start a browser, or the deployment's monthly browser ceiling reached (`browser-ceiling.ts`),
+          each reach a person who asked as a sentence where they asked; a background job only waits and logs it.
     
-          WHY NOTHING WATCHES IT YET. The scanner has a health endpoint on the VM (`GET /health`, a clamd PING), but it is
-          reachable only through the Workers VPC Service, so a probe needs an app route that asks it and a signed reading
-          like `scheduled-work`'s; not built. The sweep's own counts (`files` in the unattended answer) say when nothing is
-          released, and nothing reads them for this page either.
+          WHAT IS MEASURED NOW, and it opens no browser: the browser configuration through its one reader, a live provider
+          named with its credential, the wrap key, the table sessions are kept in, that the month's ceiling is set, and
+          WHETHER IT STILL LETS A BROWSER START, as a yes or a no (`browsers_paused`). Never the amount, the share or the
+          ceiling itself (§11b, §8b). Reached is degraded, not an outage: it lifts when the month turns and a browser
+          already open finishes its task.
     
-          WHAT DOES WATCH IT, SINCE 2026-11-11: the operator. The file sweep raises `file-scanner-down` when the oldest
-          waiting file has waited half an hour and the scanner refused it again (`fileScannerAlertOf` in
-          `apps/app/src/server/file-sweep.ts`), and the orchestrator mails it every hour while it lasts. That is why the
-          sentence below no longer says nothing watches it; this page still measures nothing.
+          WHAT IS STILL NOT: whether the vendor starts a browser when asked. Only starting one would show that, and it
+          bills by the hour against the same ceiling the customers' browsers share.
         */
     group: "work",
+    label: "Agent browser",
+    summary: "The remote browser an agent or a person opens on a website, to watch, take over and hand back. We check that a live browser is set up on this deployment and whether new browsers can start right now. No test browser is opened, so this cannot tell whether a particular browser will start; if one cannot, the place you asked for it says so.",
+    budget: { staleAfterMs: 45 * MINUTE }
+  },
+  {
+    id: "agent-routines",
+    // MEASURED SINCE 2026-11-28 by `/api/health/agent-routines`, which says what it checks and what it cannot. The
+    // reasoning below is the record of why the row waited.
+    /*
+          ADDED WITH THE SURFACE (§13c), NOT MEASURED UNTIL 2026-11-28 (docs/plan/53 D6). An agent's routine runs on a clock,
+          at an interval, on a vendor event or when a watched figure crosses a line, approved once, driven by the five-minute
+          pass (`routine-sweep.ts`). A SCHEDULED JOB WHOSE SILENCE IS THE FAILURE: a pass that stops starting routines leaves
+          every drawer saying "Next run" for a time that has gone.
+    
+          WHAT IS MEASURED NOW, and it runs no routine: the routine tables and the function the pass lists companies
+          through, `ROUTINE_SWEEP_MARK` (written by `/api/unattended` as the pass reaches the routines, before any work) on
+          the mid-pass window `AXIS_STALE_AFTER_MS`, and whether the newest pass could read which routines were due
+          (`ROUTINE_SWEEP_UNREAD_MARK` against `ROUTINE_SWEEP_READ_MARK`).
+    
+          WHAT IS STILL NOT: whether any one run did what it was asked, which is that run's own record in its room, and an
+          event or a watched figure that never arrives, which looks the same as a quiet week.
+        */
+    group: "work",
+    label: "Agent routines",
+    summary: "Tasks an agent repeats by itself after one approval: on a schedule, at an interval, when a connected service sends an event, or when a watched figure crosses a line. We check that routines are still being started on schedule. It cannot tell whether a particular run did what you asked; each run is recorded in its room.",
+    budget: { staleAfterMs: 45 * MINUTE }
+  },
+  {
+    id: "file-checks",
+    /*
+      MEASURED SINCE 2026-11-28 by `/api/health/file-checks` (files project A; the row waited because the scanner is
+      reachable only through the Workers VPC Service). It asks the scanner's own `GET /health` (clamd PING) through
+      `askScannerHealth`, the endpoint a scan uses: a definite "clamd is down" or no scanner configured is unavailable,
+      no answer is degraded. It also reads `company_files` in the catalogue and `FILE_SWEEP_MARK`, written by the
+      unattended pass as it reaches the file sweep, against three intervals. It sends no file, so it cannot see a key
+      the scanner refuses or how long any file has waited; the sweep's `file-scanner-down` alert to the operator
+      (`fileScannerAlertOf`) still covers both.
+    */
+    group: "work",
     label: "File checks",
-    summary: "The malware check every new file passes before anybody else or an agent can open it. While it is slow or down, new files stay marked Scanning; files already checked open as usual.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure the malware check yet; Orvay is alerted when it stops answering. If it stops, new files stay marked Scanning and cannot be opened until it is back; nothing unchecked is ever opened."
+    summary: "The malware check every new file passes before anybody else or an agent can open it. While it is slow or down, new files stay marked Scanning; files already checked open as usual. We ask the scanner whether it is answering and check that the pass retrying waiting files still runs; no file is sent, so this cannot show how long any one file has waited.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "product-fixes",
+    // MEASURED SINCE 2026-11-28 by `/api/health/product-fixes`, which says what it checks and what it cannot. The
+    // reasoning below is the record of why the row waited.
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED (docs/plan/49a, D8). The fix lane (`fix.ts`) reads a company's
-          error tracker for the repositories `orvay.code_mappings` maps it to (ADR-0198) and turns a failure into a pull request a person
-          approved. The summary says what runs TODAY: dispatch to the company's coding agent and merging on evidence are
-          the loop docs/plan/49a builds next, and the sentence grows with them, not before. A customer depends on it the
-          way they depend on scheduled work, and its silent failure is the one this row is for: a connector that stopped
-          answering, so nothing is read and nothing is fixed, and the page goes on looking calm.
+          ADDED WITH THE SURFACE (§13c), NOT MEASURED UNTIL 2026-11-28 (docs/plan/49a, D8). The fix lane (`fix.ts`) reads a
+          company's error tracker for the repositories `orvay.code_mappings` maps it to (ADR-0198), a repository's own CI
+          (ADR-0208) and a website's errors in Zenovay (ADR-0221), and turns a failure into a pull request. The summary says
+          what runs TODAY, and grows with the loop, not before.
     
-          WHAT DOES WATCH IT, PER COMPANY: `connector-alarm.ts` opens an incident when a connector the loop reads from or
-          writes to stops answering, and mails it to the people who can act on incidents (`incident-notice.ts`). That is
-          the company's own signal, and this page has no per-company axis to show it on.
+          WHAT IS MEASURED NOW, and it touches no customer's system: the loop's tables and the function its pass lists
+          companies through, the forge binding and caller secret every fix is written and reviewed through, the loop's
+          waking mark (`PRODUCT_LOOP_MARK`) on three five-minute intervals, and whether the newest pass threw before its end
+          (`PRODUCT_LOOP_INCOMPLETE_MARK` against `PRODUCT_LOOP_COMPLETED_MARK`, written by `/api/unattended`).
     
-          WHY NOTHING ON THIS PAGE WATCHES IT. A probe would have to read a customer's error tracker and open a change in
-          their repository, which is real work on a customer's systems and the one thing a status probe must never do.
-          The measurable version is a mark the loop writes when it reads and when it dispatches, read through the signed
-          health endpoint as `scheduled-work` reads its marks; not built, because the loop's own record is not built yet.
-    
-          ADR-0208: a repository's own CI is the second error source, read by the loop's own pass through the company's
-          GitHub connection. The same row covers it, with the same reason: probing it would read a customer's repository.
-    
-          ADR-0221: a website's JavaScript errors in Zenovay are the third, read through the company's Zenovay tool server.
-          Same row, same reason: probing it would read a customer's website errors. Its reads feed the same per-company
-          connector alarm (`noteSourceReads` on the Zenovay server).
+          WHAT IS STILL NOT, AND CANNOT BE HERE: any one company. Probing would read a customer's error tracker or repository
+          and open a change in it, which a status probe must never do. A connector that stops answering is that company's
+          own incident (`connector-alarm.ts`, `incident-notice.ts`), told to the people who can act on it, and this page has
+          no per-company axis to show it on.
         */
     group: "work",
     label: "Fixes in your product",
-    summary: "Reading your error tracker, the errors your website reports to Zenovay, or your repository's own CI, for failures in the repository it is mapped to, and opening a pull request with a fix: once a person approves it, or on its own where your company lets fixes start automatically.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure fixes yet. When a connection they read from or write to stops answering, the people who can act on incidents are told in Orvay, and by email where they allowed it; this page shows none of that."
+    summary: "Reading your error tracker, the errors your website reports to Zenovay, or your repository's own CI, for failures in the repository it is mapped to, and opening a pull request with a fix: once a person approves it, or on its own where your company lets fixes start automatically. We check that the fix loop is in place and still running. It cannot see your own connections; when one stops answering, the people who can act on incidents are told in Orvay.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "file-search",
     /*
-      ADDED WITH THE SURFACE (§13c), NOT MEASURED. Files project E4 (ADR-0191): searching files by their words always
-      works, from the database alone; finding them by meaning needs the index sweep (`file-index.ts`, run by
-      `/api/unattended`) and the embedder at Cloudflare Workers AI through forge. If either stops, the search still
-      answers, by words, and new files are not found by meaning until it is back. Nothing probes the embedder for this
-      page, and the sweep's counts (`fileIndex` in the unattended answer) are read by nothing here either.
+      MEASURED SINCE 2026-11-28 by `/api/health/file-search` (files project E4, ADR-0191). Words are the database
+      alone, so a missing `file_chunks` or `file_word_passages` is unavailable. Meaning is degraded when its wiring is
+      missing (the vector, queue and state tables, the forge binding and its caller secret) or when `FILE_INDEX_MARK`,
+      written by the unattended pass as it reaches the index sweep, is older than three intervals. The embedder is not
+      called, because a call is billed per use, so forge's own embedder binding is not measured.
     */
     group: "work",
     label: "File search",
-    summary: "Finding files by their words, and by their meaning once they are indexed.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure file search yet. If indexing stops, every file is still found by its words; new files are found by meaning once it is back."
+    summary: "Finding files by their words, and by their meaning once they are indexed. We check that what both kinds of search need is in place and that indexing of new files still runs; no search is made, so this cannot show that a search by meaning finds anything.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "file-import",
     /*
-      ADDED WITH THE SURFACE (§13c), NOT MEASURED. Files project G (ADR-0194): files a person brings over from their own
-      Google Drive, Dropbox or OneDrive arrive through the five-minute sweep (`file-imports.ts`, `/api/unattended`) and
-      each provider's own API. If the sweep or a provider stops, nothing already brought over is lost and the rest
-      arrives once it is back. Nothing probes the providers for this page, and the sweep's counts (`fileImports` in the
-      unattended answer) are read by nothing here either.
+      MEASURED SINCE 2026-11-28 by `/api/health/file-import` (files project G, ADR-0194). It reads the import tables
+      and `file_source_connections` in the catalogue (unavailable when missing), the drive clients `offeredSources()`
+      offers (none is unavailable, one missing is degraded and named), `file_imports_due`, and `FILE_IMPORT_MARK`,
+      written by the unattended pass as it reaches the import axis, against three intervals. No provider is called:
+      that needs a person's own grant.
     */
     group: "work",
     label: "Bringing files from other drives",
-    summary: "Copying the files people choose from Google Drive, Dropbox and OneDrive into Orvay Files.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure bringing files over yet. If it stops, files already brought over stay, and the rest arrive once it is back."
+    summary: "Copying the files people choose from Google Drive, Dropbox and OneDrive into Orvay Files. We check that each of the three can be connected here and that the pass bringing files over still runs; no drive is read, so this cannot show whether Google, Dropbox or Microsoft are answering.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "file-sync",
     /*
-      ADDED WITH THE SURFACE (§13c), NOT MEASURED. Files project G (b), ADR-0206: a company's synced Dropbox, OneDrive or
-      Google Drive is kept in step by the five-minute sweep (`file-syncs.ts`, `/api/unattended`), a scheduled job whose
-      SILENCE is the failure: a stopped sweep looks exactly like a drive where nothing changed. Each sync records when it
-      last caught up (`file_syncs.synced_at`, shown in the dialog), but nothing reads those times for this page, and the
-      sweep's counts (`fileSyncs` in the unattended answer) are read by nothing here either.
+      MEASURED SINCE 2026-11-28 by `/api/health/file-sync` (files project G (b), ADR-0206). A stopped sweep looks
+      exactly like a drive where nothing changed, so the mark is the point: `FILE_SYNC_MARK`, written by the unattended
+      pass as it reaches the sync axis, read against three intervals. It also reads the sync tables and
+      `set_file_sync_admitted()` (unavailable when missing), the drive clients `offeredSyncSources()` offers, and
+      `file_syncs_due`. No provider is called and no `file_syncs.synced_at` is read: a tenant row, invisible here.
     */
     group: "work",
     label: "Keeping company drives in sync",
-    summary: "Copying changes from the Dropbox, OneDrive and Google Drive files a company syncs into Orvay Files.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure syncing company drives yet. If it stops, the copies stay as they were and catch up once it is back. Each sync shows when it was last up to date."
+    summary: "Copying changes from the Dropbox, OneDrive and Google Drive files a company syncs into Orvay Files. We check that each of the three can be connected here and that the pass keeping syncs in step still runs; no drive is read, so this cannot show whether any one sync is up to date, which each sync shows itself.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "site-check",
+    // MEASURED SINCE 2026-11-28 by `/api/health/site-check`, which says what it checks and what it cannot. The
+    // reasoning below is the record of why the row waited.
     /*
-          ADDED WITH THE SWITCH THAT OPENS IT (§13c, ADR-0226), NOT MEASURED. The public site check: a stranger names a
-          website on orvayos.com and the app reads its home page's headers, its security.txt and two DNS records, then
-          shows a private report. A broken check is seen by the visitor as a refusal or an error page, and nothing else on
-          this page would say why.
+          ADDED WITH THE SWITCH THAT OPENS IT (§13c, ADR-0226), NOT MEASURED UNTIL 2026-11-28. The public site check: a
+          stranger names a website on orvayos.com and the app reads its home page's headers, its security.txt and two DNS
+          records, then shows a private report.
     
-          WHY NOTHING WATCHES IT. A probe would have to run a check, which reads a third party's site and spends one of the
-          deployment's daily runs, and solve a bot challenge built to refuse exactly that. The measurable version is a
-          health endpoint reading the claim table and whether the bot check is configured, as `contact-form` does; not built.
+          WHAT IS MEASURED NOW, and it runs no check: that the switch is open, the claim table and the definer function
+          every run takes its slot through, whether the app holds the Turnstile secret (on production every run is refused
+          without it), and whether the newest run the route recorded failed on our side (`SITE_CHECK_FAILED_MARK` against
+          `SITE_CHECK_READY_MARK`, reported for a day). An answer about the visitor or the site marks nothing.
+    
+          WHAT IS STILL NOT: running one. That reads a third party's site, spends one of the deployment's daily runs and
+          needs a bot challenge solved that exists to refuse it.
         */
     group: "surfaces",
     label: "Site check",
-    summary: "The free check on orvayos.com that shows what anyone can see about a website.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure the site check yet. If a check cannot run, the form says so and nothing is kept."
+    summary: "The free check on orvayos.com that shows what anyone can see about a website. We check that the check is open, that a report can still be kept, that the bot check in front of it is in place, and whether the last check that ran could finish. No test check is run, so this cannot tell how a particular site will answer.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "meetings-join",
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED (ADR-0211 §13, docs/plan/51 package I). A member invites an Orvay
-          agent into a Google Meet or Microsoft Teams call; the agent joins through the meeting vendor's bot, waits to be
-          admitted, and gives its disclosure. A customer depends on it in the moment: a bot that never arrives is noticed by
-          everybody in the call, and nothing else on this page would say why.
+          MEASURED SINCE 2026-11-28 by `/api/health/meetings-join` (ADR-0211 §13, docs/plan/51 package I). A member invites
+          an Orvay agent into a Google Meet or Microsoft Teams call; the agent joins through the meeting vendor's bot, waits
+          to be admitted, and gives its disclosure. A bot that never arrives is noticed by everybody in the call.
     
-          WHY NOTHING WATCHES IT. A probe would have to create a real bot in a real meeting, which bills by the second from
-          the waiting room on and puts a stranger into somebody's call. The measurable version is a signed health endpoint
-          reading whether the vendor's credentials and webhook secret are on the deployment (a deploy without
-          `--keep-vars` removes them) and the age of the last bot status event; not built. Each meeting's own page in the
-          product states its status and, when the agent could not join, why (ADR-0211 §12, package J of docs/plan/51, not
-          built when this row was added; the row and the feature ship in one build), and that is what the sentence below
-          points at.
+          WHAT IS MEASURED: the vendor's credentials and webhook secret on this deployment (a deploy without `--keep-vars`
+          removes them, and an invite then makes a simulated meeting that joins nothing, so that is unavailable), the
+          meeting tables and the lookup the vendor's status events are matched by, and whether the most recent live bot
+          create that failed is newer than the most recent one that succeeded (marks the invite writes after its answer).
+          A meeting is a person's choice, so no invite lately is quiet, never a fault.
+    
+          WHAT IT CANNOT: create a bot of its own, which bills from the waiting room on and puts a stranger into somebody's
+          call, or see whether a host admits one. Each meeting's own page states its status and, when the agent could not
+          join, why (ADR-0211 §12).
     
           A SURFACE, because a person sees it in their own call, as `team-chat` is a surface in Slack. The label names no
           vendor, on `comment-replies`' rule; the summary names the two meeting platforms, as the mailbox row names its two.
         */
     group: "surfaces",
     label: "Agent in your meetings",
-    summary: "An Orvay agent joining a Google Meet or Microsoft Teams call you invited it to.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure the agent joining meetings yet. If it cannot join, the meeting\u2019s page in Orvay says why."
+    summary: "An Orvay agent joining a Google Meet or Microsoft Teams call you invited it to. We check that this deployment can still send an agent into a call and that the last attempt to send one did not fail. We do not put an agent into anybody\u2019s call to test it, so whether one is let in from the waiting room is shown only on the meeting\u2019s page in Orvay.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "meetings-transcript",
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED (ADR-0211 §5 and §9). The record of a meeting is the vendor's
-          real-time transcript, pushed to `/api/meetings/recall` while the bot is in the call. Push only, and a real-time
-          endpoint the vendor marks failed is never re-armed for that bot, so a fault of ours mid-meeting loses the rest of
-          that meeting's transcript. A SILENT FAILURE by construction: a meeting with no transcript looks like a quiet
-          meeting from everywhere except the meeting itself.
+          MEASURED SINCE 2026-11-28 by `/api/health/meetings-transcript` (ADR-0211 §5 and §9). The record of a meeting is the
+          vendor's real-time transcript, pushed to `/api/meetings/recall` while the bot is in the call. Push only, and a
+          real-time endpoint the vendor marks failed is never re-armed for that bot, so a fault of ours mid-meeting loses the
+          rest of that meeting's transcript.
     
           A SEPARATE ROW FROM `meetings-join`, because they fail separately: a bot can be in the call, heard and seen,
           while nothing it hears reaches us.
     
-          WHY NOTHING WATCHES IT. The only way to see a segment arrive is a real meeting. What a customer relies on
-          instead, and what the sentence below promises, is the gap marker built by packages G and K2 of docs/plan/51
-          (not built when this row was added; the row and the feature ship in one build): the ingest records "the transcript is incomplete between these times" on the meeting,
-          the summary says so, and the agent stops proposing (ADR-0211 §9 item 5), and the operator is mailed
-          `meeting-realtime-endpoint-failed` (`@orvay/alerting`). The measurable version is a mark the webhook writes per
-          accepted real-time event, read through a signed health endpoint; not built.
+          WHAT IS MEASURED: the webhook secret every delivery is verified against (absent, every delivery is refused), the
+          tables a segment, a participant and a receipt are written to, the lookup a delivery is matched by, and whether
+          the most recent endpoint the vendor marked failed (the operator's `meeting-realtime-endpoint-failed`) is newer
+          than the most recent real-time event the webhook took in. Both are marks; no meeting lately is quiet.
+    
+          WHAT IT CANNOT: a single event lost while the endpoint stays up, which the ingest records on the meeting as
+          "the transcript is incomplete between these times" and the summary repeats (packages G and K2 of docs/plan/51),
+          and the summary itself, which is a model call.
         */
     group: "work",
     label: "Meeting transcripts",
-    summary: "Writing down what is said in a meeting the agent joined, and the summary afterwards.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure meeting transcripts yet. If part of one is lost, the meeting\u2019s page and its summary say which part."
+    summary: "Writing down what is said in a meeting the agent joined, and the summary afterwards. We check that what is said in a call can still reach Orvay and be kept, and that the most recent meeting did not stop sending it part way. If part of one meeting is lost, that meeting\u2019s page and its summary say which part.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "verified-fixes-page",
     /*
-          ADDED IN THE SAME CHANGE THAT BUILT THE SURFACE (§13c), NOT MEASURED. ADR-0223: a company that turned it on has
-          the fixes production confirmed listed at its own site address, with one receipt per fix, served by the tenants
-          Worker from an object forge writes; the unattended pass (`statusPages`) keeps it current and deletes it when it is
-          turned off. A SCHEDULED JOB WHOSE SILENCE IS PART OF THE FAILURE, as the public record's: if the pass stops, a page
-          goes stale, and a page turned off while forge was unreachable stays up until the pass deletes it.
+          MEASURED SINCE 2026-11-28 by `/api/health/verified-fixes-page`, the public record's shape. ADR-0223: a company
+          that turned it on has the fixes production confirmed listed at its own site address, with one receipt per fix,
+          served by the tenants Worker from an object forge writes; the unattended pass (`statusPages`) keeps it current
+          and deletes it when it is turned off.
     
-          WHY NOTHING WATCHES IT. A probe needs a company that has the page turned on and a fix production confirmed, which
-          is a customer's decision and a real defect, and a synthetic company with both would be a product of its own. The
-          measurable version is the public record's: a mark the pass writes for this axis, read through a signed health
-          endpoint (`/api/health/public-record` is the pattern); not built. The settings page shows each company whether its
-          address holds the page. This row is also what the plan's "probes come in a second version" waits on.
+          WHAT IS MEASURED: the page's tables and the function the pass lists its work with, the binding and secret the page
+          is written through, and the pass's own mark, written on every pass that could list its work and read against the
+          five-minute pass's window (three missed passes).
+    
+          WHAT IT CANNOT: whether one company's page was written, because that is a tenant's row, and a probe of its own
+          would need a company with a confirmed fix. The settings page shows each company whether its address holds the page.
         */
     group: "surfaces",
     label: "Verified fixes page",
-    summary: "The page at your website address listing the fixes production confirmed, with a receipt for each, for companies that turned it on, and taking it down when they turn it off.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure the verified fixes page yet. The settings page shows whether your address holds it, and turning it off removes it, normally within a minute."
+    summary: "The page at your website address listing the fixes production confirmed, with a receipt for each, for companies that turned it on, and taking it down when they turn it off. We check that the pass keeping these pages current is still running and can still write them. Whether your own address holds the page is shown on your settings page.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "crm-deals",
+    // MEASURED SINCE 2026-11-28 by `/api/health/crm-deals`, which says what it checks and what it cannot. The reasoning
+    // below is the record of why the row waited.
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED (ADR-0220). The Deals tab reads a company's connected HubSpot when a
-          member opens it, through that company's tool server and HubSpot's search tool, and keeps nothing.
+          ADDED WITH THE SURFACE (§13c), NOT MEASURED UNTIL 2026-11-28 (ADR-0220). The Deals tab reads a company's connected
+          HubSpot when a member opens it, through that company's tool server and HubSpot's search tool, and keeps nothing.
     
-          WHY NOTHING WATCHES IT. The read is per company, needs that company's credential and reaches HubSpot's server, so a
-          probe would have to pick a tenant and spend their vendor's limits (the reasoning on `connected-tools`). And this
-          read records no `tool.called` outcome, so the `connected-tools` health endpoint does not count it either. What a
-          customer relies on instead, and what the sentence below promises, is the tab itself: a read that fails says why in
-          words and never shows an empty pipeline. The measurable version is a mark the read writes per answer, read through
-          a signed health endpoint; not built.
+          WHAT IS MEASURED NOW, and it reads no CRM: the table a company's connection lives in, that the catalogue still
+          reads deals from a CRM, that this deployment holds the HubSpot client a connection is made and renewed with, and
+          whether the newest read the tab recorded failed (`CRM_DEALS_FAILED_MARK` against `CRM_DEALS_READ_MARK`, reported
+          for a day). A company's own state (a sign-in it revoked, a tool list waiting for its approval, its rules asking
+          first) marks nothing, so one company's housekeeping is never published as everybody's outage.
+    
+          WHAT IS STILL NOT: a read of any one company, which needs that company's credential and spends its vendor's
+          limits (the reasoning on `connected-tools`), and HubSpot answering an error to everybody, which the read cannot
+          tell apart from an answer about one account, so only a read that got no readable answer at all marks failed. The tab itself still says why in words when a read fails.
         */
     group: "work",
     label: "Deals from your CRM",
-    summary: "Reading the deals in the HubSpot account your company connected, each time the Deals tab opens.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure reading deals from your CRM yet. If a read fails, the Deals tab says why instead of showing an empty list."
+    summary: "Reading the deals in the HubSpot account your company connected, each time the Deals tab opens. We check that a connection can still be made and kept, and whether the last read of anyone\u2019s deals succeeded. No test read is made, so this cannot tell whether your own account answers; if a read fails, the Deals tab says why instead of showing an empty list.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "acquisition",
     /*
-          ADDED WITH THE SURFACE (§13c), NOT MEASURED (ADR-0227). The Acquisition tab reads Hacker News's search (Algolia) when
-          a person presses for it and drafts listing kits through forge `/api/listing-kit`. Both are pressed by a person and
-          answer on the page, so a failure is seen where it happens; neither runs unattended.
+          MEASURED SINCE 2026-11-28 by `/api/health/acquisition` (ADR-0227). The Acquisition tab reads Hacker News's search
+          (Algolia) when a person presses for it and drafts listing kits through forge `/api/listing-kit`. Both are pressed
+          by a person and answer on the page; neither runs unattended.
     
-          WHY NOTHING WATCHES IT. A probe of the search would send words to a third party on nobody's behalf, and a probe of
-          the kit route would spend on a model. The measurable version is a signed health endpoint reading whether the
-          deployed forge answers the route (a 404 there means forge was not deployed with it) and the age of the last read;
-          not built. The rest of the tab is reads of stored rows, covered by the control plane's row.
+          WHAT IS MEASURED: the tables a read and a kit are kept in; the forge binding and secret, and whether the forge that
+          is running serves the kit route at all, asked with an empty body that forge refuses before any hold or model (a
+          404 there is a forge deployed without it); and whether the most recent Hacker News read failed more recently than
+          one succeeded (marks the action writes after its answer). Nothing is sent to the search and nothing is drafted.
+    
+          WHAT IT CANNOT: whether the model writes a usable kit (the `model-calls` row's path). The rest of the tab is reads
+          of stored rows, covered by the control plane's row.
         */
     group: "work",
     label: "Acquisition",
-    summary: "Reading Hacker News when you ask, and drafting listing kits, on the Acquisition tab.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure the Acquisition tab yet. If a Hacker News read or a kit draft fails, the tab says so when you press it."
+    summary: "Reading Hacker News when you ask, and drafting listing kits, on the Acquisition tab. We check that kits can still be drafted here and that the last Hacker News read did not fail. We do not search Hacker News or draft a kit to test it, so a read or a draft that fails says so on the tab when you press it.",
+    budget: { staleAfterMs: 45 * MINUTE }
   },
   {
     id: "model-calls",
     /*
-          ADDED WITH THE DEPLOYMENT CEILING'S WARNINGS (§13c, ADR-0234), NOT MEASURED. The model-calling path is on §13c's
-          list of what is critical and had no row: on 2026-11-24 every company's model calls were refused for eight hours
-          (`global_ceiling`, stale holds filling forge's deployment ledger) while every row here stayed green, because
-          "Agent runs" measures the machinery that records a run and not whether a model answers.
+          MEASURED SINCE 2026-11-28 by `/api/health/model-calls` (ADR-0234). The model-calling path is on §13c's list of
+          what is critical: on 2026-11-24 every company's model calls were refused for eight hours (`global_ceiling`, stale
+          holds filling forge's deployment ledger) while every row here stayed green, because "Agent runs" measures the
+          machinery that records a run and not whether a model answers.
     
-          WHY NOTHING WATCHES IT. A probe that calls a model spends our money on every tick, and `/api/health/model` is
-          gated to a signed-in member for exactly that reason. The measurable version is a signed health endpoint reading
-          whether forge's deployment ledger would still admit an ordinary call (a yes or no, never the ceiling or a share
-          of it, which are facts about our bill, §11b); not built.
+          WHAT IS MEASURED: the forge binding and caller secret every model call crosses, and forge's own yes or no on
+          whether its deployment ledger would hold an ordinary call now (`apps/forge/src/model-calls-health.ts`): a read and
+          an in-memory decision, no model, no lease. A refusal is unavailable. Never the ceiling or a share of it, which are
+          facts about our bill (§11b).
     
-          WHAT DOES WATCH IT: the operator. Forge raises `deployment-ceiling-near` at 70% and 90% of the ceiling, once per
-          threshold per month. THE ROW NEVER MENTIONS THAT CEILING, its existence included (the lead, 2026-11-25, §11b: our
-          cost ceilings are never published). It says only what this page does not watch.
+          AND THE LATEST CALLS (2026-11-28): degraded when the most recent call forge reported as unanswered by EVERY vendor
+          in its chain (credit exhausted, a refused key, a vendor down on every fallback) is newer than the most recent call
+          a model answered. Both are marks written at the one binding every forge call crosses (`model-call-marks.ts`);
+          our own refusals never write the failure. Added after 2026-11-27, when both vendors ran out of credit and this row
+          stayed green.
+    
+          WHAT IT CANNOT: a vendor fault no call has met yet, because a probe that calls a model spends on every tick. The operator is
+          also warned by forge at 70% and 90% (`deployment-ceiling-near`). THE ROW NEVER MENTIONS THAT CEILING, its
+          existence included (the lead, 2026-11-25, §11b: our cost ceilings are never published).
         */
     group: "work",
     label: "AI model calls",
-    summary: "The calls to AI models behind agent work and site building. A separate row from agent runs, because a run can still be recorded while its model call is refused.",
-    budget: { staleAfterMs: 45 * MINUTE },
-    notMeasuredWhy: "This page does not measure AI model calls yet. We do not yet watch from outside whether answers are being given or refused."
+    summary: "The calls to AI models behind agent work and site building. A separate row from agent runs, because a run can still be recorded while its model call is refused. We check that ordinary model calls are still being let through, and whether the latest ones were answered. We do not call a model to test it, so a fault that no call has met yet is not seen here.",
+    budget: { staleAfterMs: 45 * MINUTE }
   }
   /*
       TWO SURFACES FROM THE SAME RELEASE HAVE NO ROW, DELIBERATELY, AND THE REASON EXPIRES.
@@ -2448,6 +2513,15 @@ var pruneBefore = (record, endDay, keep = 400) => {
   const days = {};
   for (const [key2, value] of Object.entries(record.days)) {
     if (Date.parse(`${key2}T00:00:00Z`) >= cutoff) days[key2] = value;
+  }
+  return { schema: 1, days };
+};
+var RECORD_STARTS_ON = "2026-11-09";
+var RECORD_STARTS_AT_MS = Date.parse(`${RECORD_STARTS_ON}T00:00:00Z`);
+var startingOn = (record, firstDay = RECORD_STARTS_ON) => {
+  const days = {};
+  for (const [key2, value] of Object.entries(record.days)) {
+    if (key2 >= firstDay) days[key2] = value;
   }
   return { schema: 1, days };
 };
@@ -3299,6 +3373,157 @@ var HEALTH_TARGETS = [
     expectStatus: 200,
     thresholds: APP,
     signed: true
+  },
+  {
+    component: "waitlist",
+    url: `${HOSTS.app}/api/health/waitlist`,
+    // The tables a submission writes, the bot check in production, the confirmation sender, and whether the last confirmation send failed. Nothing is submitted.
+    bodyMarker: readyMarker("waitlist"),
+    degradedMarker: degradedMarker("waitlist"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "site-check",
+    url: `${HOSTS.app}/api/health/site-check`,
+    // The switch that opens it, the claim table and function, the bot check, and whether the last run failed on our side. No site is checked.
+    bodyMarker: readyMarker("site-check"),
+    degradedMarker: degradedMarker("site-check"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "meetings-join",
+    url: `${HOSTS.app}/api/health/meetings-join`,
+    // The meeting tables, the vendor credentials on this deployment, and whether the last live bot request failed. No bot joins anything.
+    bodyMarker: readyMarker("meetings-join"),
+    degradedMarker: degradedMarker("meetings-join"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "meetings-transcript",
+    url: `${HOSTS.app}/api/health/meetings-transcript`,
+    // The transcript tables, the webhook secret, and whether a failed real-time endpoint is newer than the last accepted event.
+    bodyMarker: readyMarker("meetings-transcript"),
+    degradedMarker: degradedMarker("meetings-transcript"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "verified-fixes-page",
+    url: `${HOSTS.app}/api/health/verified-fixes-page`,
+    // The page tables and lister, the forge binding and caller secret, and the age of the pass that keeps each page current.
+    bodyMarker: readyMarker("verified-fixes-page"),
+    degradedMarker: degradedMarker("verified-fixes-page"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "file-checks",
+    url: `${HOSTS.app}/api/health/file-checks`,
+    // Asks the malware scanner whether it answers, over the link the file sweep uses, and the age of the file sweep. No file is scanned.
+    bodyMarker: readyMarker("file-checks"),
+    degradedMarker: degradedMarker("file-checks"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "product-fixes",
+    url: `${HOSTS.app}/api/health/product-fixes`,
+    // The fix loop tables, forge, the age of its five-minute pass, and whether that pass last completed. No customer system is read.
+    bodyMarker: readyMarker("product-fixes"),
+    degradedMarker: degradedMarker("product-fixes"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "file-search",
+    url: `${HOSTS.app}/api/health/file-search`,
+    // The index tables, the word search, forge, and the age of the index pass. The embedder is not called.
+    bodyMarker: readyMarker("file-search"),
+    degradedMarker: degradedMarker("file-search"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "file-import",
+    url: `${HOSTS.app}/api/health/file-import`,
+    // The import tables, each drive sign-in configured, and the age of the import pass. No drive is called.
+    bodyMarker: readyMarker("file-import"),
+    degradedMarker: degradedMarker("file-import"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "file-sync",
+    url: `${HOSTS.app}/api/health/file-sync`,
+    // The sync tables, each drive sign-in configured, and the age of the sync pass. No drive is called.
+    bodyMarker: readyMarker("file-sync"),
+    degradedMarker: degradedMarker("file-sync"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "crm-deals",
+    url: `${HOSTS.app}/api/health/crm-deals`,
+    // The tool server table, a CRM sign-in configured, and whether the last Deals read failed on a cause not the company's own. No CRM is read.
+    bodyMarker: readyMarker("crm-deals"),
+    degradedMarker: degradedMarker("crm-deals"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "agent-browser",
+    url: `${HOSTS.app}/api/health/agent-browser`,
+    // The browser configuration, a live provider and its key, the wrap key, and whether the month still lets a browser start, as a yes or a no. No browser is opened.
+    bodyMarker: readyMarker("agent-browser"),
+    degradedMarker: degradedMarker("agent-browser"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "agent-routines",
+    url: `${HOSTS.app}/api/health/agent-routines`,
+    // The routine tables, the age of the pass that starts routines, and whether it last read which were due. No routine is run.
+    bodyMarker: readyMarker("agent-routines"),
+    degradedMarker: degradedMarker("agent-routines"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "acquisition",
+    url: `${HOSTS.app}/api/health/acquisition`,
+    // Its tables, whether the last Hacker News read failed, and whether deployed forge serves the kit route, asked with an empty body forge refuses before any model.
+    bodyMarker: readyMarker("acquisition"),
+    degradedMarker: degradedMarker("acquisition"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
+  },
+  {
+    component: "model-calls",
+    url: `${HOSTS.app}/api/health/model-calls`,
+    // Forge's yes or no on whether an ordinary model call would be let through right now, computed without writing, then
+    // whether the latest call no vendor answered is newer than the latest one a model answered (two marks). No model is called.
+    bodyMarker: readyMarker("model-calls"),
+    degradedMarker: degradedMarker("model-calls"),
+    expectStatus: 200,
+    thresholds: APP,
+    signed: true
   }
 ];
 var SECONDARY_TARGETS = [
@@ -4127,6 +4352,8 @@ var PRODUCT_SOURCE_BASE = {
   "docs.nav.operate.memory.summary": "See what Orvay remembers, correct, forget or erase a fact, and import context from another tool.",
   "docs.nav.operate.workflows.title": "Workflows",
   "docs.nav.operate.workflows.summary": "Write, dry run, publish, start and retire a workflow, and set its triggers and webhooks.",
+  "docs.nav.operate.routines.title": "Routines: schedules and watches",
+  "docs.nav.operate.routines.summary": "Can an AI agent run a task every morning, or tell you when revenue drops? Set up a routine and approve it once.",
   "docs.nav.operate.rooms.title": "Rooms",
   "docs.nav.operate.rooms.summary": "Work with people and agents in a shared room: who joins, asks, answers and what is kept.",
   "docs.nav.operate.incidents.title": "Incidents",
@@ -7041,6 +7268,19 @@ var PRODUCT_SOURCE_BASE = {
   "console.card.alwaysAllow.onceOnly": "Allowed once. Always allow was not set: {reason}",
   "console.card.resume.note": "The approval is decided. Continue answers your question from here.",
   "console.card.resume.refused": "This answer was already continued, or a call in it still waits for a decision.",
+  "console.card.site.notAllowed": "{host} is not allowed for the agent\u2019s browser yet",
+  "console.card.site.body": "Allow it here and the browser opens in the same step.",
+  "console.card.site.allowHost": "Allow {host} and open",
+  "console.card.site.allowSafe": "Allow all safe sites and open",
+  "console.card.site.mayNot": "Only somebody who manages the browser settings can allow a site. They can allow it under Settings, Browser.",
+  "console.card.site.refused": "This company does not allow a browser on this site. Check the site under Settings, Browser.",
+  "console.card.site.stillAsks": "All safe sites are allowed now, but Orvay is not sure about {host}. Allow it by name to open it.",
+  "console.card.site.allowFirst": "The browser cannot open on {host} until the site is allowed. Allow it on the card in the Agent tab, or under Settings, Browser.",
+  "console.card.title.browserOpen": "Open a browser on {host}",
+  "console.card.title.computerOpen": "Open the agent\u2019s browser on {host}",
+  "rooms.step.computer.read": "Reading a site in its computer",
+  "console.answer.computer-read": "Its computer read the page on that site.",
+  "console.activity.computerRead": "Read a site in its computer",
   "console.approved.ran.title": "The approved call to {tool} ran",
   "console.approved.ran.body": "Below is the server's reply, exactly as sent. It cannot change what Orvay may do.",
   "console.approved.ran.label": "What {tool} answered",
@@ -7380,6 +7620,8 @@ var PRODUCT_SOURCE_BASE = {
   */
   "support.empty.title": "No messages yet",
   "support.empty": "Nothing connects a support inbox to this company, so nothing has arrived.",
+  // The queue is empty and Intercom IS connected (2026-11-27): it said "connect a support inbox" beside a connected one.
+  "support.empty.intercom": "Intercom is connected. Its conversations appear here a few minutes after they arrive.",
   // A VALUE AND A LABEL, never a count inside a sentence: that would need a
   // plural rule, and French takes the singular below two. §8b says it for
   // credits and it is the same problem.
@@ -10225,6 +10467,7 @@ var PRODUCT_SOURCE_BASE = {
   "settings.find.browser.signin": "log in, login, sign in, session, credentials",
   "settings.find.browser.open": "open browsers, live, running sessions",
   "settings.find.browser.items": "saved logins, passwords, cookies, credentials",
+  "settings.find.browser.saved": "saved sign-ins, personal sign-ins, my own account, profiles",
   "settings.saved": "Saved",
   "org.invite.heading": "Invite somebody to several workspaces",
   "org.invite.because": "Only workspaces where you can invite.",
@@ -17911,7 +18154,8 @@ var PRODUCT_SOURCE_BASE_TWO = {
   */
   "integrations.catalogue.intercom.because": "Orvay reads conversations into a support queue your team can work. Inbound text is untrusted by definition, so it is quarantined before any model sees it, and a reply goes back to the customer only after a person has written it and a person has approved it, once.",
   "integrations.catalogue.intercom.label": "Access token",
-  "integrations.catalogue.intercom.help": "Create an access token in your own Intercom developer hub and paste it here. Orvay checks it with one read-only call and shows you which workspace it belongs to before storing anything, so a token for the wrong workspace is visible before it is used.",
+  // The click path, measured in Intercom's Developer Hub 2026-11-27: the access token sits under the app's Authentication.
+  "integrations.catalogue.intercom.help": "In Intercom, open the Developer Hub (the link beside this field opens it), open your app or create one, then open Authentication and copy the access token. Paste it here. Orvay checks it with one read-only call and shows you which workspace it belongs to before storing anything, so a token for the wrong workspace is visible before it is used.",
   "integrations.catalogue.zenovay.summary": "Website analytics, goals, funnels, uptime",
   "integrations.catalogue.zenovay.because": "A tool runs on its own only if the server says it only reads and Orvay agrees; others wait for approval.",
   "integrations.catalogue.posthog.summary": "Funnels, replays, feature flags",
@@ -18476,6 +18720,9 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "browser.wake.error.noProfile": "No sign-in was kept. Open a new browser.",
   "browser.wake.error.provider": "Couldn\u2019t start a browser. Try again.",
   "browser.wake.error.profileBusy": "Another browser holds this sign-in. Close it, then wake this one.",
+  // Plan 53 D1.1: the deployment's monthly browser ceiling. No figure, on purpose (§8b, §11b).
+  "browser.refusal.deploymentBudget": "This month\u2019s browser budget is used up, so browsers open again on the 1st of next month.",
+  "browser.refusal.proxyUnmetered": "This site is set to use a proxy. Orvay does not open browsers through a proxy yet, because their traffic cannot be counted yet.",
   "browser.view.error.invalid": "This address does not carry a valid viewer grant. Open the session from the product rather than from a copied address.",
   "browser.view.error.expired": "This viewer grant has expired. Reload the session page to receive a new one.",
   "browser.view.error.escalation": "This grant allows watching only. Taking control needs a control grant, and one is issued only to the person who holds control.",
@@ -18665,11 +18912,41 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "settings.browser.default.termsChecked": "Somebody read what these sites say about automated access",
   "settings.browser.default.termsRef": "Where you read it",
   "settings.browser.default.submit": "Save this decision",
-  "settings.browser.default.error.mode": "Choose one of the three.",
+  "settings.browser.default.error.mode": "Choose one of the four.",
   "settings.browser.default.error.attestation": "Tick both statements, or choose Ask per site.",
   "settings.browser.default.done.ask": "Each site will be asked for.",
   "settings.browser.default.done.allow_all": "Every unblocked site is allowed, attested in your name.",
   "settings.browser.default.done.block_all": "No site may be opened.",
+  "settings.browser.default.mode.allow_safe": "Allow every safe site",
+  "settings.browser.default.mode.allow_safe.hint": "Orvay checks each site against its own list and a public filter for malware and adult sites. A site whose name looks doubtful asks a person first; anything else opens. You can still block a site.",
+  "settings.browser.default.attestSafe": "You attest, for every site this opens, that the company holds the account and someone read its terms on automation. Recorded in your name.",
+  "settings.browser.default.attestTitle": "What you attest",
+  "settings.browser.default.done.allow_safe": "Every safe site is allowed, attested in your name.",
+  "settings.browser.default.allowSafe": "Allow all safe sites",
+  // The operator's decision of 2026-11-27 (ADR-0070 D14, amended): CAPTCHA solving on by default for sites an agent
+  // opens, switched off per site, and the company that chose the mode answers for each site's terms.
+  "settings.browser.default.captcha": "CAPTCHAs are solved automatically, and one that stays unsolved goes to a person; your company is responsible for whether each site\u2019s terms allow that, and you can switch it off for one site by authorizing it with Solve CAPTCHAs automatically unticked.",
+  "settings.browser.captcha.unavailable": "This deployment cannot solve CAPTCHAs, so each one goes to a person.",
+  "settings.browser.site.add.captcha.label": "Solve CAPTCHAs automatically",
+  "settings.browser.site.add.captcha.hint": "The browser solves them, and one that stays unsolved goes to a person. Your company is responsible for whether this site\u2019s terms allow it.",
+  "settings.browser.sites.captcha.on": "CAPTCHAs solved automatically",
+  "settings.browser.sites.captcha.off": "CAPTCHAs go to a person",
+  "settings.browser.sites.captcha.turnOff.label": "Stop solving",
+  "settings.browser.sites.captcha.turnOff.submit": "Stop solving CAPTCHAs on {host}",
+  "settings.browser.sites.captcha.turnOn.label": "Solve CAPTCHAs",
+  "settings.browser.sites.captcha.turnOn.submit": "Solve CAPTCHAs on {host}",
+  "settings.browser.sites.captcha.pending": "Saving the setting",
+  "settings.browser.sites.captcha.done.off": "CAPTCHAs on {host} now go to a person.",
+  "settings.browser.sites.captcha.done.on": "CAPTCHAs on {host} are now solved automatically.",
+  "settings.browser.sites.captcha.notFound": "This site is not authorized.",
+  // Spec 53 D2: the safe-site default's refusals and questions, said where a site did not open.
+  "browser.safety.unsafe.listed": "This site is on Orvay\u2019s list of sites an agent does not open, such as adult, gambling and link shortening sites. To use it anyway, authorize it under Settings, Browser.",
+  "browser.safety.unsafe.filtered": "A public filter for malware and adult sites lists this site, so an agent does not open it. To use it anyway, authorize it under Settings, Browser.",
+  "browser.safety.ask.lookalike": "This site\u2019s name imitates a well-known brand. If you trust it, authorize it under Settings, Browser.",
+  "browser.safety.ask.ip_literal": "This is a bare address, not a site name. If you trust it, authorize it under Settings, Browser.",
+  "browser.safety.ask.random_name": "This site\u2019s name looks generated rather than chosen. If you trust it, authorize it under Settings, Browser.",
+  "browser.safety.ask.risky_tld": "This site\u2019s ending is one that is often used for abuse. If you trust it, authorize it under Settings, Browser.",
+  "browser.safety.ask.unverified": "Orvay could not check this site just now. Try again, or if you trust it, authorize it under Settings, Browser.",
   "settings.browser.block.heading": "Blocked sites",
   "settings.browser.block.body": "Always refused. Nothing overrides a block.",
   "settings.browser.block.host": "Site to block",
@@ -18696,6 +18973,17 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "settings.browser.signin.sites.label": "Which site do you want to open",
   "settings.browser.signin.sites.empty": "Authorize a site first.",
   "settings.browser.signin.submit": "Open a browser",
+  "settings.browser.signin.keep.label": "Who may use it",
+  "settings.browser.signin.keep.company": "For the company",
+  "settings.browser.signin.keep.companyDetail": "Every agent of the company may use this sign-in on the site.",
+  "settings.browser.signin.keep.me": "Only for my requests",
+  "settings.browser.signin.keep.meDetail": "An agent uses it only while working for you. Nobody else sees it.",
+  "settings.browser.saved.heading": "Saved sign-ins",
+  "settings.browser.saved.empty": "No sign-in is saved yet.",
+  "settings.browser.saved.company": "For the company",
+  "settings.browser.saved.mine": "Only for your requests",
+  "settings.browser.saved.others": "Personal sign-ins other members keep",
+  "settings.browser.saved.note": "Only you see your personal sign-ins. They are deleted if you erase your data or are no longer a member.",
   "settings.browser.signin.pending": "Opening a browser",
   "settings.browser.signin.note": "You control it until you hand it back. Codes and challenges are yours.",
   "settings.browser.open.heading": "Browsers open now",
@@ -20940,6 +21228,9 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "capability.name.browser.recording.start": "Record what you do in a browser you hold",
   "capability.name.workflow.batch.propose": "Ask for a taught task to be done for a list",
   "capability.name.workflow.batch.run": "Run a taught task for a list",
+  "capability.name.routine.propose": "Propose a routine",
+  "capability.name.routine.toggle": "Pause or resume a routine",
+  "capability.name.routine.run": "Run a routine on its schedule",
   "console.research.heading": "Read from websites",
   "console.research.lead": "A browser read these sites to answer a question. It only reads: it does not click buttons, type, sign in or submit anything.",
   "console.research.question": "Question",
@@ -21051,6 +21342,7 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "console.card.tool.browserOpen": "Open a browser",
   "console.card.tool.workflowRun": "Run a recorded workflow",
   "capability.name.browser.session.open": "Open a browser from the Agent tab",
+  "capability.name.browser.session.read": "Read a site in the agent\u2019s browser",
   "decision.ok.browserOpened": "The browser is open on {host}. It waits for you at a blank tab.",
   "decision.error.browserNeedsAPerson": "A browser opens only for a person who is there to use it. Allow it from the Agent tab.",
   "decision.error.browserUnconfirmed": "Orvay could not tell whether the browser opened. Check your open browsers under Settings, Browser before asking again.",
@@ -21093,6 +21385,54 @@ var PRODUCT_SOURCE_BASE_TWO = {
   "console.cloud.control.you": "You have control",
   "console.cloud.control.colleague": "A colleague has control",
   "console.cloud.giveBack": "Return control",
+  "docs.nav.business.agents-browser.title": "The agent's browser",
+  "docs.nav.business.agents-browser.summary": "Can an AI agent use a website with no API? Watch its own browser, take control and give it back.",
+  "docs.nav.business.show-me.title": "Teach a task by showing it",
+  "docs.nav.business.show-me.summary": "Can I teach an AI agent a task by showing it? Press Show me, do it once, and it repeats it when asked.",
+  "docs.nav.business.sign-ins.title": "Sign-ins: company and personal",
+  "docs.nav.business.sign-ins.summary": "Can an AI agent use my own account on a site? Keep a sign-in for the company, or only for your own requests.",
+  "teach.form.saved.again": "Saved. Find it again by asking for it in any conversation.",
+  "teach.form.saved.again.say": "To run it, ask for it in the Agent tab, typed or on a call.",
+  "rooms.agent.library.taughtNone": "Nothing has been taught yet. Ask the agent in this room or in the Agent tab to be shown a task, and it is listed here.",
+  "rooms.agent.library.openAgentTab": "Open the Agent tab",
+  "rooms.agent.library.lastRun": "Last run {when}",
+  "rooms.agent.library.neverRun": "Not run yet",
+  "rooms.agent.library.verified": "Verified",
+  "rooms.agent.library.unverified": "Not verified",
+  "rooms.agent.library.notYet": "Nothing to verify yet",
+  "console.activity.browserTeach": "Ask to be shown a task",
+  "console.answer.show-me-asked": "It asked to be shown the task. Press Show me when you are ready.",
+  "rooms.step.browser.teach": "Asking to be shown a task",
+  "browser.showMe.title": "Show me",
+  "browser.showMe.button": "Show me",
+  "browser.showMe.busy": "Opening the browser",
+  "browser.showMe.lead": "On {host}. Pressing Show me opens the agent's browser, gives you control and starts recording. Do the task once, then press Stop.",
+  "browser.showMe.settings": "Open Settings, Browser",
+  "browser.showMe.noAgent": "This company has no main agent, so there is no browser to show it in.",
+  "browser.showMe.busyBy": "{name} is using this site's sign-in. Press Show me again when they are done.",
+  "teach.record.refused.simulated": "This browser is simulated, so there is nothing real to record. Recording needs a live browser.",
+  "browser.pane.record.start": "Record",
+  "browser.pane.record.stop": "Stop",
+  "browser.pane.record.recording": "Recording",
+  "browser.pane.record.started": "Recording. Do the task once, then press Stop.",
+  "browser.pane.record.releaseConfirm": "Returning control stops the recording first.",
+  "browser.pane.record.stopAndRelease": "Stop and return control",
+  "browser.pane.record.keepRecording": "Keep recording",
+  "teach.back.conversation": "Back to the conversation",
+  "teach.held": "The recording stopped, but the browser could not be handed back, so you still have control of it. Return control from the browser's own page so the agent can use it again.",
+  "agent.popover.panel": "About {name}",
+  "agent.popover.call": "Call",
+  "agent.popover.browser": "{name}'s browser",
+  "agent.popover.browser.working": "Working on {host}",
+  "agent.popover.browser.noSite": "Not opened on a site yet",
+  "agent.popover.routines": "Routines",
+  "agent.popover.routine.paused": "Paused",
+  "agent.popover.recent": "Recent activity",
+  "agent.popover.recent.session": "Used the browser on {host}",
+  "agent.popover.recent.recording": "Recorded a task on {host}",
+  "agent.picker.label": "Talk to",
+  "agent.picker.switches": "Choosing another agent starts a new conversation with it.",
+  "console.agent.newWith": "A new conversation with {name}",
   "console.cloud.interactive": "Clicks and typing in this page reach the real site, whoever has control.",
   // The console's web search as a step of the trace, and attaching a file from the computer, 2026-11-06. TRANSLATION_DEFERRED.
   "console.activity.webSearch": "Searched the web",
@@ -22890,8 +23230,8 @@ var MODEL_SELECTION_SOURCE = {
   "integrations.tool-server.held.title": "Some tools changed and wait for approval",
   "integrations.tool-server.held": "These tools changed since they were approved, so Orvay does not use them until someone approves the new list: {tools}. Every other tool on this server keeps working.",
   "product.blind.toolHeld": "Sentry changed a tool Orvay needs to read your errors since it was approved, so that tool waits until someone reviews the change. Sentry's other tools keep working.",
-  // An agent's own computer (Rooms v2, 2026-11-24): the Computer card in the agent's profile and on its page.
-  // English only and on TRANSLATION_DEFERRED below, for the separate translation pass.
+  // An agent's own computer (Rooms v2, 2026-11-24): the Computer card in the agent's profile and on its page. In all six
+  // languages since 2026-11-28: the approved `computer.open` said its refusal in English in a German Agent tab.
   "agent.computer.title": "Computer",
   "agent.computer.state.sleeping": "Asleep",
   "agent.computer.state.waking": "Waking up",
@@ -22991,6 +23331,31 @@ var MODEL_SELECTION_SOURCE = {
   // A retired agent's panel says so under its name (2026-11-27). English only, TRANSLATION_DEFERRED.
   "rooms.agent.inactive": "Inactive",
   "rooms.agent.inactive.detail": "This agent is retired. Nobody can ask it, and it starts no work.",
+  // Retiring and restoring a bot from its panel, a paste longer than a message, and who may release a held ask
+  // (2026-11-27). English only, TRANSLATION_DEFERRED.
+  "rooms.agent.retire.heading": "Retire",
+  "rooms.agent.retire": "Retire bot",
+  "rooms.agent.retire.name": "Retire {agent}",
+  "rooms.agent.retire.line": "It stops answering everywhere and leaves the pickers. Its rooms and messages stay.",
+  "rooms.agent.retire.confirm.title": "Retire {agent}?",
+  "rooms.agent.retire.confirm": "It stops answering everywhere, and what it is working on ends without an answer. Its rooms, messages and chat stay readable. You can restore it later.",
+  "rooms.agent.retire.keep": "Keep it",
+  "rooms.agent.retire.busy": "Retiring",
+  "rooms.agent.retire.main": "This is the main agent. Make another bot the main agent first, from its chat\u2019s menu in the list.",
+  "rooms.agent.retire.notAllowed": "Your role can\u2019t retire or restore bots.",
+  "rooms.agent.retire.done": "{agent} is retired. It no longer answers.",
+  "rooms.agent.retire.already": "{agent} is already retired.",
+  "rooms.agent.retire.isMain": "{agent} is the main agent. Make another bot the main agent first, then retire it.",
+  "rooms.agent.restore": "Restore bot",
+  "rooms.agent.restore.name": "Restore {agent}",
+  "rooms.agent.restore.line": "It answers again and can be named, added and asked. What it was asked before stays ended.",
+  "rooms.agent.restore.busy": "Restoring",
+  "rooms.agent.restore.done": "{agent} is restored and answers again.",
+  "rooms.agent.restore.already": "{agent} is already working.",
+  "rooms.givenUp.retired": "{agent} was retired before it answered.",
+  "rooms.composer.retired": "{agent} is retired and won\u2019t answer.",
+  "rooms.post.pasteCut": "Only the first {limit} characters were kept.",
+  "rooms.tasks.release.notYours": "Only the person who asked or a room owner can release this hold.",
   "rooms.agent.activity": "Activity",
   "rooms.agent.activity.none": "Nothing asked of this agent in this room yet.",
   "rooms.agent.activity.now": "Working now",
@@ -23374,7 +23739,16 @@ var MODEL_SELECTION_SOURCE = {
   "rooms.did.otherRoom": "a room you are not in",
   "rooms.unbacked.none": "Nothing was changed by this answer",
   "rooms.unbacked.some": "Not everything this answer describes was done",
-  "rooms.unbacked.detail": "It describes a change to this room that no action in it made. Check the room before you rely on it."
+  "rooms.unbacked.detail": "It describes a change to this room that no action in it made. Check the room before you rely on it.",
+  // Routines (docs/plan/53 D7): the step a run shows while a routine tool works. Typed as `MessageKey`, so here.
+  "console.activity.routineCreate": "Set up a routine",
+  "console.activity.routineList": "Read the routines",
+  "console.activity.routinePause": "Pause a routine",
+  "console.activity.routineResume": "Resume a routine",
+  "rooms.step.routine.create": "Setting up a routine",
+  "rooms.step.routine.list": "Reading the routines",
+  "rooms.step.routine.pause": "Pausing a routine",
+  "rooms.step.routine.resume": "Resuming a routine"
 };
 var PRODUCT_SOURCE = {
   ...PRODUCT_SOURCE_BASE,
@@ -23539,6 +23913,12 @@ ${input.script}
 </body>
 </html>
 `;
+var recordStart = new Date(RECORD_STARTS_AT_MS).toLocaleDateString("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC"
+});
 
 // src/staleness.ts
 var STALE_MS = 60 * 60 * 1e3;
@@ -23851,11 +24231,11 @@ var renderHistoryPage = (input) => {
     </section>`;
   }).join("");
   const empty = `
-    <p class="empty">Nothing has changed state since we started recording. This page fills itself as things happen, and entries are never removed from it.</p>`;
+    <p class="empty">Nothing has changed state since the record started on ${recordStart}. This page fills itself as things happen, and entries are never removed from it.</p>`;
   return shell({
     canonical: `${HOSTS.status}/history/`,
     title: `History \xB7 ${BRAND.name} Status`,
-    description: `Every recorded change of state for ${BRAND.name}, oldest kept forever.`,
+    description: `Every recorded change of state for ${BRAND.name} since ${recordStart}.`,
     tokensCss: input.tokensCss,
     pageCss: input.pageCss,
     breadcrumb: [{ label: `${BRAND.name} Status`, href: "/" }, { label: "History" }],
@@ -23991,6 +24371,9 @@ var renderAboutPage = (input) => {
 
     <h2>Why there is no uptime percentage</h2>
     <p>Every number of that kind we could publish would be derived from our own account of our own incidents, which is the proposer checking its own work. We show you what each check found and when instead.</p>
+
+    <h2>When the record starts</h2>
+    <p>The history and the daily bars start on ${recordStart}. Nothing recorded before that day is published, and nothing recorded since is removed.</p>
 
     <h2>Why there is no explanation of an incident</h2>
     <p>The records on the history page are machine records. When a check changes its answer we write down the component, the time and the new state. <strong>Nobody has written an explanation of why</strong>, because there is no operator typing updates here yet. When that changes, the written account will appear alongside these timings rather than replacing them.</p>
@@ -24199,6 +24582,10 @@ var transitions = (previous, current, labels, at) => {
   return out;
 };
 var append = (history, entries) => ({ schema: 1, entries: [...entries, ...history.entries] });
+var entriesFrom = (history, startMs) => ({
+  schema: 1,
+  entries: history.entries.filter((e) => e.at >= startMs)
+});
 
 // src/corrections.ts
 var CORRECTIONS = [
@@ -24339,7 +24726,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "7adc229cd" : "unknown";
+var sourceCommit = true ? "d38efb7d4" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
@@ -24475,14 +24862,13 @@ var main = async (outDir, options = {}) => {
   const today = dayKey(at);
   const todayStates = {};
   for (const [id, display] of displays) todayStates[id] = stateOfDisplay(display);
-  const daily = pruneBefore(
-    recordDay(readDaily(await readIfPresent(join(outDir, "daily.json"))), today, todayStates),
-    today
+  const daily = startingOn(
+    pruneBefore(recordDay(readDaily(await readIfPresent(join(outDir, "daily.json"))), today, todayStates), today)
   );
   const shown = correctDaily(daily);
-  const recorded = append(
-    readHistory(await readIfPresent(join(outDir, "history.json"))),
-    transitions(previousStates, displays, labels, at)
+  const recorded = entriesFrom(
+    append(readHistory(await readIfPresent(join(outDir, "history.json"))), transitions(previousStates, displays, labels, at)),
+    RECORD_STARTS_AT_MS
   );
   const history = {
     schema: 1,

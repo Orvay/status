@@ -18,8 +18,8 @@ It is the same data the page renders. Two fields are worth knowing:
   old, our publisher is what is broken, and that is worth knowing too.
 
 **[`history.json`](../../blob/gh-pages/history.json)** holds every state change
-we have ever recorded, and the commit log of the `gh-pages` branch is its audit
-trail.
+recorded since 9 November 2026, when the published record starts, and the commit
+log of the `gh-pages` branch is its audit trail from that day on.
 
 ## Why this repository exists at all
 
