@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "entries": [
+    {
+      "at": 1795871242193,
+      "component": "agent-routines",
+      "label": "Agent routines",
+      "from": "degraded",
+      "to": "operational",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795871242193,
+      "component": "file-checks",
+      "label": "File checks",
+      "from": "degraded",
+      "to": "operational",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795871242193,
+      "component": "file-search",
+      "label": "File search",
+      "from": "degraded",
+      "to": "operational",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795871242193,
+      "component": "file-import",
+      "label": "Bringing files from other drives",
+      "from": "degraded",
+      "to": "operational",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795871242193,
+      "component": "file-sync",
+      "label": "Keeping company drives in sync",
+      "from": "degraded",
+      "to": "operational",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795871242193,
+      "component": "verified-fixes-page",
+      "label": "Verified fixes page",
+      "from": "degraded",
+      "to": "operational",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795870856380,
+      "component": "waitlist",
+      "label": "Waitlist",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "file-checks",
+      "label": "File checks",
+      "from": "not-measured",
+      "to": "degraded",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795870856380,
+      "component": "product-fixes",
+      "label": "Fixes in your product",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "file-search",
+      "label": "File search",
+      "from": "not-measured",
+      "to": "degraded",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795870856380,
+      "component": "file-import",
+      "label": "Bringing files from other drives",
+      "from": "not-measured",
+      "to": "degraded",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795870856380,
+      "component": "file-sync",
+      "label": "Keeping company drives in sync",
+      "from": "not-measured",
+      "to": "degraded",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795870856380,
+      "component": "site-check",
+      "label": "Site check",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "meetings-join",
+      "label": "Agent in your meetings",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "meetings-transcript",
+      "label": "Meeting transcripts",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "verified-fixes-page",
+      "label": "Verified fixes page",
+      "from": "not-measured",
+      "to": "degraded",
+      "correction": "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+    },
+    {
+      "at": 1795870856380,
+      "component": "crm-deals",
+      "label": "Deals from your CRM",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "acquisition",
+      "label": "Acquisition",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795870856380,
+      "component": "model-calls",
+      "label": "AI model calls",
+      "from": "not-measured",
+      "to": "operational"
+    },
+    {
+      "at": 1795021211157,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1795021211157,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1795019410535,
+      "component": "sign-in",
+      "label": "Sign in",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1795019410535,
+      "component": "voice-mode",
+      "label": "Voice mode",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1794213014358,
+      "component": "taught-workflows",
+      "label": "Taught workflows",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1794211212454,
+      "component": "taught-workflows",
+      "label": "Taught workflows",
+      "from": "operational",
+      "to": "degraded"
+    },
+    {
+      "at": 1794195010524,
+      "component": "taught-workflows",
+      "label": "Taught workflows",
+      "from": "degraded",
+      "to": "operational"
+    },
+    {
+      "at": 1794193211018,
+      "component": "taught-workflows",
+      "label": "Taught workflows",
+      "from": "operational",
+      "to": "degraded"
+    }
+  ]
+}

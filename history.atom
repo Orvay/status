@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Orvay Status</title>
+  <subtitle>Changes to what we measure. Nothing is published here unless a state actually changed.</subtitle>
+  <id>https://status.orvayos.com/</id>
+  <link rel="self" href="https://status.orvayos.com/history.atom"/>
+  <link rel="alternate" href="https://status.orvayos.com/"/>
+  <updated>2026-11-28T13:07:22.193Z</updated>
+  <entry>
+    <id>tag:status,2026-11-28:agent-routines:1795871242193</id>
+    <title>Agent routines: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:07:22.193Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Agent routines changing from degraded to operational at 2026-11-28T13:07:22.193Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-checks:1795871242193</id>
+    <title>File checks: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:07:22.193Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded File checks changing from degraded to operational at 2026-11-28T13:07:22.193Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-search:1795871242193</id>
+    <title>File search: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:07:22.193Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded File search changing from degraded to operational at 2026-11-28T13:07:22.193Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-import:1795871242193</id>
+    <title>Bringing files from other drives: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:07:22.193Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Bringing files from other drives changing from degraded to operational at 2026-11-28T13:07:22.193Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-sync:1795871242193</id>
+    <title>Keeping company drives in sync: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:07:22.193Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Keeping company drives in sync changing from degraded to operational at 2026-11-28T13:07:22.193Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:verified-fixes-page:1795871242193</id>
+    <title>Verified fixes page: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:07:22.193Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Verified fixes page changing from degraded to operational at 2026-11-28T13:07:22.193Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:waitlist:1795870856380</id>
+    <title>Waitlist is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Waitlist changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-checks:1795870856380</id>
+    <title>File checks: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded File checks changing from not measured to degraded at 2026-11-28T13:00:56.380Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:product-fixes:1795870856380</id>
+    <title>Fixes in your product is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Fixes in your product changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-search:1795870856380</id>
+    <title>File search: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded File search changing from not measured to degraded at 2026-11-28T13:00:56.380Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-import:1795870856380</id>
+    <title>Bringing files from other drives: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Bringing files from other drives changing from not measured to degraded at 2026-11-28T13:00:56.380Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:file-sync:1795870856380</id>
+    <title>Keeping company drives in sync: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Keeping company drives in sync changing from not measured to degraded at 2026-11-28T13:00:56.380Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:site-check:1795870856380</id>
+    <title>Site check is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Site check changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:meetings-join:1795870856380</id>
+    <title>Agent in your meetings is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Agent in your meetings changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:meetings-transcript:1795870856380</id>
+    <title>Meeting transcripts is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Meeting transcripts changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:verified-fixes-page:1795870856380</id>
+    <title>Verified fixes page: a fault in our own checking, not in the service</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped. We recorded Verified fixes page changing from not measured to degraded at 2026-11-28T13:00:56.380Z, and that reading was our own, so the entry is kept and corrected rather than deleted.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:crm-deals:1795870856380</id>
+    <title>Deals from your CRM is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Deals from your CRM changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:acquisition:1795870856380</id>
+    <title>Acquisition is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Acquisition changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-28:model-calls:1795870856380</id>
+    <title>AI model calls is now operational</title>
+    <updated>2026-11-28T13:00:56.380Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">AI model calls changed from not measured to operational at 2026-11-28T13:00:56.380Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-18:sign-in:1795021211157</id>
+    <title>Sign in is now operational</title>
+    <updated>2026-11-18T17:00:11.157Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from degraded to operational at 2026-11-18T17:00:11.157Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-18:voice-mode:1795021211157</id>
+    <title>Voice mode is now operational</title>
+    <updated>2026-11-18T17:00:11.157Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from degraded to operational at 2026-11-18T17:00:11.157Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-18:sign-in:1795019410535</id>
+    <title>Sign in is now degraded</title>
+    <updated>2026-11-18T16:30:10.535Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Sign in changed from operational to degraded at 2026-11-18T16:30:10.535Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-18:voice-mode:1795019410535</id>
+    <title>Voice mode is now degraded</title>
+    <updated>2026-11-18T16:30:10.535Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Voice mode changed from operational to degraded at 2026-11-18T16:30:10.535Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-09:taught-workflows:1794213014358</id>
+    <title>Taught workflows is now operational</title>
+    <updated>2026-11-09T08:30:14.358Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Taught workflows changed from degraded to operational at 2026-11-09T08:30:14.358Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-09:taught-workflows:1794211212454</id>
+    <title>Taught workflows is now degraded</title>
+    <updated>2026-11-09T08:00:12.454Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Taught workflows changed from operational to degraded at 2026-11-09T08:00:12.454Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-09:taught-workflows:1794195010524</id>
+    <title>Taught workflows is now operational</title>
+    <updated>2026-11-09T03:30:10.524Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Taught workflows changed from degraded to operational at 2026-11-09T03:30:10.524Z.</content>
+  </entry>
+  <entry>
+    <id>tag:status,2026-11-09:taught-workflows:1794193211018</id>
+    <title>Taught workflows is now degraded</title>
+    <updated>2026-11-09T03:00:11.018Z</updated>
+    <link rel="alternate" href="https://status.orvayos.com/"/>
+    <content type="text">Taught workflows changed from operational to degraded at 2026-11-09T03:00:11.018Z.</content>
+  </entry>
+</feed>
