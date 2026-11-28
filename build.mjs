@@ -24655,6 +24655,74 @@ var CORRECTIONS = [
     component: "repository-changes",
     note: "Our check timed out and called the database unreachable. Other checks read it in the same run, so it was not. A read that does not finish now reads as slow rather than as an outage.",
     day: { recorded: "major-outage", actual: "operational" }
+  },
+  /*
+    2026-11-28, THE FIRST CHECKS OF ROWS WHOSE MARK DID NOT EXIST YET. These rows read a mark the five-minute pass writes,
+    and the app deployed at 13:00:19Z with the 13:00:56Z probe landing before that pass had run once. The endpoints said
+    so (`*_never_ran`), which is honest about the mark and says nothing about the work: the sweep had been running
+    throughout. The 13:07Z run read all six operational. Both the amber entry and the recovery are corrected, and the
+    day cell is repainted while it still shows the amber from that one reading.
+  */
+  {
+    at: 1795870856380,
+    component: "file-checks",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+  },
+  {
+    at: 1795870856380,
+    component: "file-search",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+  },
+  {
+    at: 1795870856380,
+    component: "file-import",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+  },
+  {
+    at: 1795870856380,
+    component: "file-sync",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+  },
+  {
+    at: 1795870856380,
+    component: "verified-fixes-page",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped."
+  },
+  {
+    at: 1795871242193,
+    component: "file-checks",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped.",
+    day: { recorded: "degraded", actual: "operational" }
+  },
+  {
+    at: 1795871242193,
+    component: "file-search",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped.",
+    day: { recorded: "degraded", actual: "operational" }
+  },
+  {
+    at: 1795871242193,
+    component: "file-import",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped.",
+    day: { recorded: "degraded", actual: "operational" }
+  },
+  {
+    at: 1795871242193,
+    component: "file-sync",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped.",
+    day: { recorded: "degraded", actual: "operational" }
+  },
+  {
+    at: 1795871242193,
+    component: "verified-fixes-page",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped.",
+    day: { recorded: "degraded", actual: "operational" }
+  },
+  {
+    at: 1795871242193,
+    component: "agent-routines",
+    note: "This row started being checked on 28 November. Its first check ran a few minutes before the background job it reads had run once since the update, so it read as degraded until the next run of that job. Nothing had stopped.",
+    day: { recorded: "degraded", actual: "operational" }
   }
 ];
 var key = (component, at) => `${component}@${at}`;
@@ -24726,7 +24794,7 @@ var announce = (entries, pageUrl) => {
 };
 
 // src/build.ts
-var sourceCommit = true ? "d38efb7d4" : "unknown";
+var sourceCommit = true ? "7478f050d" : "unknown";
 var liveJs = true ? '"use strict";(()=>{var S=3e4,x=2,I="/summary.json",R="/",_=1e4,v=async(o,e)=>{let n=new AbortController,t=window.setTimeout(()=>n.abort(),_);try{return await fetch(o,{...e,signal:n.signal})}finally{clearTimeout(t)}},i=null,a=0,E=0,h=()=>Date.now()+E,L=o=>{let e=o.headers.get("date");if(e===null)return;let n=Date.parse(e);Number.isFinite(n)&&(E=n-Date.now())},u,c=!1,m=()=>document.getElementById("live"),b=()=>{let o=m()?.getAttribute("data-generated-at");if(o==null)return null;let e=Number(o);return Number.isFinite(e)?e:null},w=o=>{let e=new Map;for(let n of Array.from(o.querySelectorAll("[data-component]"))){let t=n.getAttribute("data-component"),r=n.getAttribute("data-state");t===null||r===null||e.set(t,{state:r,label:n.querySelector(".row-label")?.textContent?.trim()??t,word:n.querySelector(".state .sr-only")?.textContent?.trim()??n.querySelector(".state-word")?.textContent?.trim()??r})}return e},d=new Intl.RelativeTimeFormat("en",{numeric:"always"}),T=o=>{let e=Math.round(o/1e3);if(e<60)return"just now";let n=Math.round(e/60);if(n<60)return d.format(-n,"minute");let t=Math.round(n/60);return t<24?d.format(-t,"hour"):d.format(-Math.round(t/24),"day")},P=o=>{let e=document.activeElement;if(!(e instanceof HTMLElement)||!o.contains(e))return null;let n=e.closest("[data-component]"),t=n===null?null:n.getAttribute("data-component");if(n===null||t===null)return null;let r=Array.from(n.querySelectorAll(".cell")).indexOf(e);return r<0?null:{component:t,cell:r}},F=(o,e)=>{if(e!==null)for(let n of Array.from(o.querySelectorAll("[data-component]"))){if(n.getAttribute("data-component")!==e.component)continue;let t=n.querySelectorAll(".cell")[e.cell];t instanceof HTMLElement&&t.focus();return}},q=(o,e)=>{let n=document.getElementById("live-announce");if(n===null)return;let t=[];for(let[r,l]of e){let s=o.get(r);s===void 0||s.state===l.state||t.push(`${l.label}: ${l.word}.`)}t.length!==0&&(n.textContent=t.length>3?`${t.slice(0,3).join(" ")} ${t.length-3} more changed.`:t.join(" "))},y=null,g=()=>{let o=b();for(let s of Array.from(document.querySelectorAll(".age")))s.textContent=o===null?"":`, ${T(h()-o)}`;let e=document.getElementById("live-notice"),n=document.getElementById("live-notice-text");if(e===null||n===null)return;let t=a>=x?"unreachable":o!==null&&h()-o>36e5?"stale":null;if(t===y)return;if(y=t,t===null){n.textContent="",e.hidden=!0;return}let r=e.getAttribute(t==="unreachable"?"data-unreachable":"data-stale");if(r===null||r==="")return;n.textContent=r,e.hidden=!1;let l=document.getElementById("live-announce");l!==null&&(l.textContent=r)},C=async()=>{let o=await v(R,{cache:"no-store"});if(!o.ok)throw new Error(`page ${o.status}`);let n=new DOMParser().parseFromString(await o.text(),"text/html").getElementById("live"),t=m();if(n===null||t===null)throw new Error("no live region");let r=w(t),l=P(t),s=document.importNode(n,!0);t.replaceWith(s),F(s,l),q(r,w(s))},p=async()=>{if(!c){c=!0;try{let o={};i!==null&&(o["If-None-Match"]=i);let e=await v(I,{cache:"no-store",headers:o});if(L(e),e.status===304){a=0;return}if(!e.ok){a+=1;return}let n=e.headers.get("etag"),t=await e.json();a=0;let r=typeof t=="object"&&t!==null&&"generatedAt"in t?t.generatedAt:void 0;if(typeof r!="number"||r===b()){i=n;return}await C(),i=n}catch{a+=1}finally{c=!1,g()}}},A=()=>{u!==void 0&&(clearInterval(u),u=void 0)},f=()=>{A(),g(),p(),u=window.setInterval(()=>{p()},S)};m()!==null&&(g(),document.addEventListener("visibilitychange",()=>{document.hidden?A():f()}),window.addEventListener("pageshow",o=>{o.persisted&&!document.hidden&&f()}),document.hidden||f());})();\n' : "";
 var CERT_WARN_DAYS = 14;
 var readIfPresent = async (path) => {
